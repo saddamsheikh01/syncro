@@ -11,3 +11,10 @@ spring:
     properties:
       hibernate:
         default_schema: ${POSTGRES_SCHEMA}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:syncro}
+    access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
+    refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}

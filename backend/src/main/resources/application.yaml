@@ -3,14 +3,3 @@ spring:
     name: backend
   profiles:
     default: dev
-
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui
-    display-request-duration: true
-    operations-sorter: alpha
-    tags-sorter: alpha
-    doc-expansion: none
-  paths-to-match: /api/**
