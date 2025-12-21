@@ -1,12 +1,16 @@
 package com.syncro.backend.domain.auth.service;
 
+import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
+import com.syncro.backend.config.AdminBootstrapProperties;
 import com.syncro.backend.domain.auth.dto.AdminAuthResponse;
 import com.syncro.backend.domain.auth.dto.AdminLoginRequest;
+import com.syncro.backend.domain.auth.dto.AdminRegisterRequest;
 import com.syncro.backend.domain.auth.dto.AdminUserResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
+import com.syncro.backend.domain.auth.entity.AdminRole;
 import com.syncro.backend.domain.auth.entity.AdminStatus;
 import com.syncro.backend.domain.auth.entity.AdminUser;
 import com.syncro.backend.domain.auth.mapper.AdminAuthMapper;
@@ -28,17 +32,20 @@ public class AdminAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AdminAuthMapper adminAuthMapper;
+    private final AdminBootstrapProperties adminBootstrapProperties;
 
     public AdminAuthService(
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         JwtService jwtService,
-        AdminAuthMapper adminAuthMapper
+        AdminAuthMapper adminAuthMapper,
+        AdminBootstrapProperties adminBootstrapProperties
     ) {
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.adminAuthMapper = adminAuthMapper;
+        this.adminBootstrapProperties = adminBootstrapProperties;
     }
 
     @Transactional
@@ -53,6 +60,35 @@ public class AdminAuthService {
             throw new UnauthorizedException("Credenziali non valide");
         }
         adminUser.setLastLogin(Instant.now());
+        AdminUser savedAdmin = adminUserRepository.save(adminUser);
+        return buildAuthResponse(savedAdmin);
+    }
+
+    @Transactional
+    public AdminAuthResponse register(
+        AdminRegisterRequest request,
+        AdminPrincipal principal,
+        String bootstrapSecret
+    ) {
+        if (principal != null) {
+            if (!"SUPER_ADMIN".equals(principal.role())) {
+                throw new UnauthorizedException("Permesso negato");
+            }
+        } else {
+            ensureBootstrapAllowed(bootstrapSecret);
+        }
+
+        String email = normalizeEmail(request.email());
+        if (adminUserRepository.findByEmail(email).isPresent()) {
+            throw new ConflictException("Email gia registrata");
+        }
+
+        AdminUser adminUser = new AdminUser();
+        adminUser.setEmail(email);
+        adminUser.setPassword(passwordEncoder.encode(request.password()));
+        adminUser.setRole(resolveRole(request.role(), principal));
+        adminUser.setStatus(AdminStatus.ACTIVE);
+
         AdminUser savedAdmin = adminUserRepository.save(adminUser);
         return buildAuthResponse(savedAdmin);
     }
@@ -93,5 +129,29 @@ public class AdminAuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void ensureBootstrapAllowed(String bootstrapSecret) {
+        String configuredSecret = adminBootstrapProperties.bootstrapSecret();
+        if (configuredSecret == null || configuredSecret.isBlank()) {
+            throw new UnauthorizedException("Bootstrap non abilitato");
+        }
+        if (bootstrapSecret == null || !configuredSecret.equals(bootstrapSecret)) {
+            throw new UnauthorizedException("Bootstrap token non valido");
+        }
+        if (adminUserRepository.count() > 0) {
+            throw new UnauthorizedException("Bootstrap gia completato");
+        }
+    }
+
+    private AdminRole resolveRole(String requestedRole, AdminPrincipal principal) {
+        if (requestedRole == null || requestedRole.isBlank()) {
+            return AdminRole.SUPER_ADMIN;
+        }
+        AdminRole role = AdminRole.valueOf(requestedRole);
+        if (principal == null) {
+            return role;
+        }
+        return role;
     }
 }

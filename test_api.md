@@ -85,21 +85,39 @@ Nota: la logout e stateless, il client deve eliminare i token salvati.
 # Test API - Admin Auth (Postman)
 
 ## Prerequisiti
-- Esiste un record in `admin_users` con password BCrypt.
-
-Esempio SQL (da eseguire su `syncro_dev`):
-```sql
-INSERT INTO admin_users (id, email, password, role, status, created_at)
-VALUES (gen_random_uuid(), 'admin@syncro.com', '<bcrypt_hash>', 'SUPER_ADMIN', 'ACTIVE', now());
-```
-
-Nota: genera `<bcrypt_hash>` con un encoder BCrypt (es. Spring `BCryptPasswordEncoder`).
+- Bootstrap disponibile tramite header `X-Admin-Bootstrap`.
 
 ## Variabili Postman consigliate
 - `adminAccessToken` = (vuoto)
 - `adminRefreshToken` = (vuoto)
 
-## 1) Login Admin
+## 1) Registrazione Super Admin (bootstrap)
+**POST** `{{baseUrl}}/api/v1/auth/admin/register`  
+Headers:
+- `Content-Type: application/json`
+- `X-Admin-Bootstrap: <ADMIN_BOOTSTRAP_SECRET>`
+
+Nota: il bootstrap funziona solo se non esistono admin nel database.
+Per creare altri admin dopo il bootstrap, usa lo stesso endpoint con header `Authorization: Bearer {{adminAccessToken}}` (SUPER_ADMIN richiesto).
+
+Body (raw JSON):
+```json
+{
+  "email": "admin@syncro.com",
+  "password": "Password123!",
+  "role": "SUPER_ADMIN"
+}
+```
+
+Atteso:
+- **201 Created**
+- Response con `tokens.accessToken` e `tokens.refreshToken`
+
+Azioni Postman:
+- Salva `tokens.accessToken` in `adminAccessToken`
+- Salva `tokens.refreshToken` in `adminRefreshToken`
+
+## 2) Login Admin
 **POST** `{{baseUrl}}/api/v1/auth/admin/login`  
 Headers: `Content-Type: application/json`
 
@@ -115,11 +133,7 @@ Atteso:
 - **200 OK**
 - Response con `tokens.accessToken` e `tokens.refreshToken`
 
-Azioni Postman:
-- Salva `tokens.accessToken` in `adminAccessToken`
-- Salva `tokens.refreshToken` in `adminRefreshToken`
-
-## 2) Refresh Token Admin
+## 3) Refresh Token Admin
 **POST** `{{baseUrl}}/api/v1/auth/admin/refresh`  
 Headers: `Content-Type: application/json`
 
@@ -134,7 +148,7 @@ Atteso:
 - **200 OK**
 - Nuovi `accessToken` e `refreshToken`
 
-## 3) Profilo admin corrente (/me)
+## 4) Profilo admin corrente (/me)
 **GET** `{{baseUrl}}/api/v1/auth/admin/me`  
 Headers:
 - `Authorization: Bearer {{adminAccessToken}}`
@@ -143,7 +157,7 @@ Atteso:
 - **200 OK**
 - Dati admin (id, email, role, status, lastLogin, createdAt)
 
-## 4) Logout Admin
+## 5) Logout Admin
 **POST** `{{baseUrl}}/api/v1/auth/admin/logout`  
 Headers:
 - `Authorization: Bearer {{adminAccessToken}}`

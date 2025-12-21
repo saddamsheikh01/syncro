@@ -18,3 +18,5 @@ app:
     issuer: ${JWT_ISSUER:syncro}
     access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+  admin:
+    bootstrap-secret: ${ADMIN_BOOTSTRAP_SECRET}
