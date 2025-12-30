@@ -81,4 +81,20 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/positions/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi tagsApi() {
+        return GroupedOpenApi.builder()
+            .group("tags")
+            .pathsToMatch("/api/v1/tags/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi interestsApi() {
+        return GroupedOpenApi.builder()
+            .group("interests")
+            .pathsToMatch("/api/v1/users/me/interests/**")
+            .build();
+    }
 }

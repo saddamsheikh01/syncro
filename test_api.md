@@ -215,6 +215,48 @@ Atteso:
 
 ---
 
+# Test API - Tags & Interests (Postman)
+
+## 1) Lista tag
+**GET** `{{baseUrl}}/api/v1/tags`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Lista tag disponibili
+
+## 2) Interessi utente correnti
+**GET** `{{baseUrl}}/api/v1/users/me/interests`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Lista interessi utente
+
+## 3) Aggiorna interessi
+**PUT** `{{baseUrl}}/api/v1/users/me/interests`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "tagIds": [
+    "00000000-0000-0000-0000-000000000000",
+    "11111111-1111-1111-1111-111111111111"
+  ]
+}
+```
+
+Atteso:
+- **200 OK**
+- Interessi aggiornati
+
+---
+
 # Test API - Admin Auth (Postman)
 
 ## Prerequisiti
