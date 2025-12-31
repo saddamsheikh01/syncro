@@ -339,3 +339,112 @@ Headers:
 
 Atteso:
 - **204 No Content**
+
+---
+
+# Test API - Tests (Postman)
+
+## 1) Lista test attivi
+**GET** `{{baseUrl}}/api/v1/tests`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Lista test attivi
+
+## 2) Dettaglio test
+**GET** `{{baseUrl}}/api/v1/tests/<testId>`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Domande e opzioni del test
+
+## 3) Submit test
+**POST** `{{baseUrl}}/api/v1/tests/<testId>/submit`  
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "answers": [
+    {
+      "questionId": "00000000-0000-0000-0000-000000000000",
+      "answerOptionId": "11111111-1111-1111-1111-111111111111"
+    }
+  ]
+}
+```
+
+Atteso:
+- **201 Created**
+
+---
+
+# Test API - Admin Tests (Postman)
+
+Nota: richiede token `adminAccessToken` con ruolo SUPER_ADMIN.
+
+## 1) Crea test
+**POST** `{{baseUrl}}/api/v1/admin/tests`  
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "title": "Micro-test social",
+  "description": "Preferenze sociali di base",
+  "active": true
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 2) Aggiungi domanda
+**POST** `{{baseUrl}}/api/v1/admin/tests/<testId>/questions`  
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "question": "Preferisci attività di gruppo o individuali?",
+  "position": 1
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 3) Aggiungi opzione
+**POST** `{{baseUrl}}/api/v1/admin/tests/<testId>/questions/<questionId>/options`  
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "label": "Gruppo",
+  "weight": 5
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 4) Dettaglio test (admin)
+**GET** `{{baseUrl}}/api/v1/admin/tests/<testId>`  
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**

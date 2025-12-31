@@ -97,4 +97,20 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/users/me/interests/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi testsApi() {
+        return GroupedOpenApi.builder()
+            .group("tests")
+            .pathsToMatch("/api/v1/tests/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminTestsApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-tests")
+            .pathsToMatch("/api/v1/admin/tests/**")
+            .build();
+    }
 }
