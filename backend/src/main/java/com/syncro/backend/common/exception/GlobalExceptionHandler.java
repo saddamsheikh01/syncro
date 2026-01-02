@@ -60,6 +60,19 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Errore interno", request);
     }
 
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ApiError> handleExternalService(
+        ExternalServiceException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.BAD_GATEWAY, "Servizio esterno non disponibile", request);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ApiError> handleStorage(StorageException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Storage temporaneamente non disponibile", request);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
         return buildError(HttpStatus.NOT_FOUND, "Risorsa non trovata", request);
