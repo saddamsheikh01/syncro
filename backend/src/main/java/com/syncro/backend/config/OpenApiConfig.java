@@ -203,6 +203,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi zyraApi() {
+        return GroupedOpenApi.builder()
+            .group("zyra")
+            .pathsToMatch("/api/v1/zyra/**")
+            .build();
+    }
+
+    @Bean
     public GroupedOpenApi mediaApi() {
         return GroupedOpenApi.builder()
             .group("media")

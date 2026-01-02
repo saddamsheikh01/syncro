@@ -29,3 +29,9 @@ app:
   media:
     storage-dir: ${MEDIA_STORAGE_PATH}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:8080}/media}
+  zyra:
+    provider: ${ZYRA_PROVIDER:OPENAI}
+    base-url: ${ZYRA_BASE_URL:https://api.openai.com/v1}
+    model: ${ZYRA_MODEL:gpt5}
+    api-key: ${OPENAI_API_KEY}
+    max-history: ${ZYRA_MAX_HISTORY:10}

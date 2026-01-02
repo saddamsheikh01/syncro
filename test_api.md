@@ -833,3 +833,74 @@ Headers:
 
 Atteso:
 - **200 OK**
+
+---
+
+# Test API - Zyra (Postman)
+
+## 1) Crea sessione Zyra
+**POST** `{{baseUrl}}/api/v1/zyra/sessions`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **201 Created**
+- Response con `id` sessione
+
+## 2) Lista sessioni Zyra
+**GET** `{{baseUrl}}/api/v1/zyra/sessions?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 3) Invia messaggio a Zyra
+**POST** `{{baseUrl}}/api/v1/zyra/sessions/<sessionId>/messages`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "content": "Consigliami un posto interessante vicino a me"
+}
+```
+
+Atteso:
+- **201 Created**
+- Response con `userMessage` e `assistantMessage`
+
+## 4) Lista messaggi Zyra
+**GET** `{{baseUrl}}/api/v1/zyra/sessions/<sessionId>/messages?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 5) Genera suggerimento Zyra
+**POST** `{{baseUrl}}/api/v1/zyra/suggestions`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "suggestionType": "MATCH_OF_THE_DAY",
+  "context": "Preferisco attività all'aperto"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 6) Lista suggerimenti Zyra
+**GET** `{{baseUrl}}/api/v1/zyra/suggestions?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**

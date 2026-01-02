@@ -31,3 +31,9 @@ app:
   media:
     storage-dir: ${MEDIA_STORAGE_PATH}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:8080}/media}
+  zyra:
+    provider: ${ZYRA_PROVIDER:OLLAMA}
+    base-url: ${ZYRA_BASE_URL:http://localhost:11434}
+    model: ${ZYRA_MODEL:deepseek-r1:7b}
+    api-key: ${OPENAI_API_KEY:}
+    max-history: ${ZYRA_MAX_HISTORY:10}
