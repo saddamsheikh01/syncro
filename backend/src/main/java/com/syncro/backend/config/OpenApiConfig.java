@@ -113,4 +113,52 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/admin/tests/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi categoriesApi() {
+        return GroupedOpenApi.builder()
+            .group("categories")
+            .pathsToMatch("/api/v1/categories/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi placesApi() {
+        return GroupedOpenApi.builder()
+            .group("places")
+            .pathsToMatch("/api/v1/places/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi experiencesApi() {
+        return GroupedOpenApi.builder()
+            .group("experiences")
+            .pathsToMatch("/api/v1/experiences/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminCategoriesApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-categories")
+            .pathsToMatch("/api/v1/admin/categories/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminPlacesApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-places")
+            .pathsToMatch("/api/v1/admin/places/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminExperiencesApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-experiences")
+            .pathsToMatch("/api/v1/admin/experiences/**")
+            .build();
+    }
 }

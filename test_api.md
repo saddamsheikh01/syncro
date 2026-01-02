@@ -448,3 +448,153 @@ Headers:
 
 Atteso:
 - **200 OK**
+
+---
+
+# Test API - Catalogo (Postman)
+
+## 1) Lista categorie
+**GET** `{{baseUrl}}/api/v1/categories?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Page con `content` e metadata
+
+## 2) Lista luoghi con filtri
+**GET** `{{baseUrl}}/api/v1/places?page=0&size=20&categoryId=<categoryId>&tagIds=<tagId>&lat=45.4642&lng=9.1900&radiusKm=10&q=bar`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Nota: `tagIds` supporta piu valori con parametri ripetuti.
+
+Atteso:
+- **200 OK**
+- Page di luoghi ordinata per rilevanza
+
+## 3) Dettaglio luogo
+**GET** `{{baseUrl}}/api/v1/places/<placeId>`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Dettaglio con tag e affiliazioni
+
+## 4) Lista esperienze con filtri
+**GET** `{{baseUrl}}/api/v1/experiences?page=0&size=20&categoryId=<categoryId>&tagIds=<tagId>&lat=45.4642&lng=9.1900&radiusKm=10&q=tour`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Page di esperienze ordinata per rilevanza
+
+## 5) Dettaglio esperienza
+**GET** `{{baseUrl}}/api/v1/experiences/<experienceId>`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Dettaglio con tag e affiliazioni
+
+---
+
+# Test API - Admin Catalogo (Postman)
+
+Nota: richiede token `adminAccessToken` con ruolo ADMIN o SUPER_ADMIN.
+
+## 1) Crea categoria
+**POST** `{{baseUrl}}/api/v1/admin/categories`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "name": "Ristoranti"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 2) Crea luogo
+**POST** `{{baseUrl}}/api/v1/admin/places`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "name": "Trattoria Milano",
+  "description": "Cucina tradizionale",
+  "latitude": 45.4642,
+  "longitude": 9.1900,
+  "categoryId": "<categoryId>",
+  "source": "MANUAL",
+  "tagIds": ["<tagId>"]
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 3) Crea esperienza
+**POST** `{{baseUrl}}/api/v1/admin/experiences`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "name": "Tour enogastronomico",
+  "description": "Degustazione guidata",
+  "categoryId": "<categoryId>",
+  "placeId": "<placeId>",
+  "source": "MANUAL",
+  "tagIds": ["<tagId>"]
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 4) Crea affiliazione luogo
+**POST** `{{baseUrl}}/api/v1/admin/places/<placeId>/affiliations`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "url": "https://partner.example.com/offer",
+  "provider": "affiliate-x"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 5) Crea affiliazione esperienza
+**POST** `{{baseUrl}}/api/v1/admin/experiences/<experienceId>/affiliations`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "url": "https://partner.example.com/experience",
+  "provider": "affiliate-x"
+}
+```
+
+Atteso:
+- **201 Created**
