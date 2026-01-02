@@ -904,3 +904,127 @@ Headers:
 
 Atteso:
 - **200 OK**
+
+---
+
+# Test API - Admin Backoffice (Postman)
+
+## Prerequisiti
+- Admin autenticato con token SUPER_ADMIN (`Authorization: Bearer {{adminAccessToken}}`).
+
+## 1) Lista utenti app
+**GET** `{{baseUrl}}/api/v1/admin/users?page=0&size=20&email=rossi&status=ACTIVE&onboardingCompleted=true`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 2) Dettaglio utente app
+**GET** `{{baseUrl}}/api/v1/admin/users/<userId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 3) Crea utente app
+**POST** `{{baseUrl}}/api/v1/admin/users`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "email": "nuovo.utente@example.com",
+  "password": "Password123!",
+  "language": "it"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 4) Aggiorna utente app
+**PATCH** `{{baseUrl}}/api/v1/admin/users/<userId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "language": "en",
+  "onboardingCompleted": true,
+  "status": "SUSPENDED"
+}
+```
+
+Atteso:
+- **200 OK**
+
+## 5) Elimina utente app (soft delete)
+**DELETE** `{{baseUrl}}/api/v1/admin/users/<userId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **204 No Content**
+
+## 6) Lista admin
+**GET** `{{baseUrl}}/api/v1/admin/admin-users?page=0&size=20&email=admin&status=ACTIVE&role=ADMIN`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 7) Dettaglio admin
+**GET** `{{baseUrl}}/api/v1/admin/admin-users/<adminId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 8) Crea admin (solo ADMIN)
+**POST** `{{baseUrl}}/api/v1/admin/admin-users`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "email": "nuovo.admin@example.com",
+  "password": "Password123!"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 9) Aggiorna admin
+**PATCH** `{{baseUrl}}/api/v1/admin/admin-users/<adminId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "status": "SUSPENDED"
+}
+```
+
+Atteso:
+- **200 OK**
+
+## 10) Elimina admin
+**DELETE** `{{baseUrl}}/api/v1/admin/admin-users/<adminId>`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **204 No Content**

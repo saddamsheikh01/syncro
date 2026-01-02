@@ -163,6 +163,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi adminBackofficeApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-backoffice")
+            .pathsToMatch("/api/v1/admin/users/**", "/api/v1/admin/admin-users/**")
+            .build();
+    }
+
+    @Bean
     public GroupedOpenApi favoritesApi() {
         return GroupedOpenApi.builder()
             .group("favorites")
