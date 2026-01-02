@@ -2,6 +2,7 @@ package com.syncro.backend.domain.media.service;
 
 import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.NotFoundException;
+import com.syncro.backend.common.exception.StorageException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.MediaProperties;
 import com.syncro.backend.domain.auth.entity.User;
@@ -200,7 +201,7 @@ public class MediaService {
             Path target = ownerDir.resolve(filename).normalize();
             file.transferTo(target);
         } catch (IOException ex) {
-            throw new IllegalStateException("Errore durante il salvataggio del media", ex);
+            throw new StorageException("Errore durante il salvataggio del media", ex);
         }
         return ownerType.getFolderName() + "/" + filename;
     }
@@ -229,14 +230,14 @@ public class MediaService {
 
     private Path resolveStorageRoot(String storageDir) {
         if (storageDir == null || storageDir.isBlank()) {
-            throw new IllegalStateException("Storage media non configurato");
+            throw new StorageException("Storage media non configurato");
         }
         return Paths.get(storageDir).toAbsolutePath().normalize();
     }
 
     private String normalizeBaseUrl(String baseUrlValue) {
         if (baseUrlValue == null || baseUrlValue.isBlank()) {
-            throw new IllegalStateException("Base URL media non configurata");
+            throw new StorageException("Base URL media non configurata");
         }
         String trimmed = baseUrlValue.trim();
         if (trimmed.endsWith("/")) {

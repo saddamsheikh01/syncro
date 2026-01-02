@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.zyra.client;
 
+import com.syncro.backend.common.exception.ExternalServiceException;
 import com.syncro.backend.config.ZyraProperties;
 import java.util.List;
 import org.springframework.web.client.RestClient;
@@ -27,15 +28,15 @@ public class OllamaZyraClient implements ZyraClient {
                 .retrieve()
                 .body(OllamaChatResponse.class);
             if (response == null || response.message == null) {
-                throw new IllegalStateException("Risposta Ollama non valida");
+                throw new ExternalServiceException("Risposta Ollama non valida");
             }
             String content = response.message.content();
             if (content == null || content.isBlank()) {
-                throw new IllegalStateException("Risposta Ollama non valida");
+                throw new ExternalServiceException("Risposta Ollama non valida");
             }
             return content.trim();
         } catch (RestClientResponseException ex) {
-            throw new IllegalStateException("Errore Ollama: " + ex.getStatusCode(), ex);
+            throw new ExternalServiceException("Errore Ollama: " + ex.getStatusCode(), ex);
         }
     }
 

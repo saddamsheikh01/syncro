@@ -192,6 +192,9 @@ public class AdminBackofficeService {
         AdminUpdateAdminRequest request
     ) {
         ensureSuperAdmin(principal);
+        if (request.status() == AdminStatus.SUSPENDED && principal.adminId().equals(adminId)) {
+            throw new ConflictException("Non puoi sospendere il tuo stesso account");
+        }
         AdminUser adminUser = adminUserRepository.findById(adminId)
             .orElseThrow(() -> new NotFoundException("Admin non trovato"));
         if (request.status() != null) {
@@ -204,6 +207,9 @@ public class AdminBackofficeService {
     @Transactional
     public void deleteAdmin(AdminPrincipal principal, UUID adminId) {
         ensureSuperAdmin(principal);
+        if (principal.adminId().equals(adminId)) {
+            throw new ConflictException("Non puoi eliminare il tuo stesso account");
+        }
         AdminUser adminUser = adminUserRepository.findById(adminId)
             .orElseThrow(() -> new NotFoundException("Admin non trovato"));
         adminUserRepository.delete(adminUser);
