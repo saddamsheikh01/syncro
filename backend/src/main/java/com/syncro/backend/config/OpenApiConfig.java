@@ -201,4 +201,12 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/chats/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi mediaApi() {
+        return GroupedOpenApi.builder()
+            .group("media")
+            .pathsToMatch("/api/v1/media/**")
+            .build();
+    }
 }

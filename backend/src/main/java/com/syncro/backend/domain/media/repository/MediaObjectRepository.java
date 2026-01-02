@@ -1,0 +1,13 @@
+package com.syncro.backend.domain.media.repository;
+
+import com.syncro.backend.domain.media.entity.MediaObject;
+import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface MediaObjectRepository extends JpaRepository<MediaObject, UUID> {
+
+    Page<MediaObject> findByOwnerTypeAndOwnerId(MediaOwnerType ownerType, UUID ownerId, Pageable pageable);
+}

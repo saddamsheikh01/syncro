@@ -786,3 +786,50 @@ Body (raw JSON):
 
 Atteso:
 - **201 Created**
+
+---
+
+# Test API - Media (Postman)
+
+## 1) Upload media per owner
+**POST** `{{baseUrl}}/api/v1/media`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Body (form-data):
+- `file`: (seleziona file)
+- `ownerType`: `USER_PROFILE` | `POST` | `PLACE` | `EXPERIENCE`
+- `ownerId`: `<ownerId>`
+
+Atteso:
+- **201 Created**
+- Response con `url`, `mediaType`, `ownerType`, `ownerId`
+
+## 2) Lista media per owner
+**GET** `{{baseUrl}}/api/v1/media?ownerType=USER_PROFILE&ownerId=<ownerId>&page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Page di media
+
+## 3) Upload media per post
+**POST** `{{baseUrl}}/api/v1/posts/<postId>/media`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Body (form-data):
+- `file`: (seleziona file)
+
+Atteso:
+- **201 Created**
+- Response con `url`
+
+## 4) Lista media per post
+**GET** `{{baseUrl}}/api/v1/posts/<postId>/media?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
