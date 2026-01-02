@@ -161,4 +161,12 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/admin/experiences/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi favoritesApi() {
+        return GroupedOpenApi.builder()
+            .group("favorites")
+            .pathsToMatch("/api/v1/favorites/**")
+            .build();
+    }
 }

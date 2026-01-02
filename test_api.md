@@ -598,3 +598,67 @@ Body (raw JSON):
 
 Atteso:
 - **201 Created**
+
+---
+
+# Test API - Favorites (Postman)
+
+## 1) Lista preferiti
+**GET** `{{baseUrl}}/api/v1/favorites?page=0&size=20&type=PLACE`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Note:
+- `type` opzionale: `PLACE` o `EXPERIENCE`.
+
+Atteso:
+- **200 OK**
+- Page con preferiti
+
+## 2) Aggiungi preferito (luogo)
+**POST** `{{baseUrl}}/api/v1/favorites`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "placeId": "<placeId>"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 3) Aggiungi preferito (esperienza)
+**POST** `{{baseUrl}}/api/v1/favorites`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "experienceId": "<experienceId>"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 4) Rimuovi preferito (luogo)
+**DELETE** `{{baseUrl}}/api/v1/favorites?placeId=<placeId>`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **204 No Content**
+
+## 5) Rimuovi preferito (esperienza)
+**DELETE** `{{baseUrl}}/api/v1/favorites?experienceId=<experienceId>`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **204 No Content**
