@@ -169,4 +169,20 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/favorites/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi matchesUsersApi() {
+        return GroupedOpenApi.builder()
+            .group("matches-users")
+            .pathsToMatch("/api/v1/matches/users/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi matchesPlacesApi() {
+        return GroupedOpenApi.builder()
+            .group("matches-places")
+            .pathsToMatch("/api/v1/matches/places/**")
+            .build();
+    }
 }

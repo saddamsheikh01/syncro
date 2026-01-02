@@ -662,3 +662,32 @@ Headers:
 
 Atteso:
 - **204 No Content**
+
+---
+
+# Test API - Matchmaking (Postman)
+
+## 1) Lista match utenti
+**GET** `{{baseUrl}}/api/v1/matches/users?page=0&size=20&refresh=true`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Note:
+- `refresh=true` forza il ricalcolo.
+
+Atteso:
+- **200 OK**
+- Page con match utenti
+
+## 2) Lista raccomandazioni luoghi/esperienze
+**GET** `{{baseUrl}}/api/v1/matches/places?page=0&size=20&type=PLACE&refresh=true`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Note:
+- `type` opzionale: `PLACE` o `EXPERIENCE`.
+- `refresh=true` forza il ricalcolo.
+
+Atteso:
+- **200 OK**
+- Page con raccomandazioni
