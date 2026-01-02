@@ -1,0 +1,178 @@
+package com.syncro.backend.domain.social.service;
+
+import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ConflictException;
+import com.syncro.backend.common.exception.NotFoundException;
+import com.syncro.backend.common.exception.UnauthorizedException;
+import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.social.dto.CreatePostRequest;
+import com.syncro.backend.domain.social.dto.PostResponse;
+import com.syncro.backend.domain.social.entity.Post;
+import com.syncro.backend.domain.social.entity.PostLike;
+import com.syncro.backend.domain.social.mapper.PostMapper;
+import com.syncro.backend.domain.social.repository.PostLikeCountProjection;
+import com.syncro.backend.domain.social.repository.PostLikeRepository;
+import com.syncro.backend.domain.social.repository.PostRepository;
+import com.syncro.backend.security.UserPrincipal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class PostService {
+
+    private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final PostMapper postMapper;
+
+    public PostService(
+        UserRepository userRepository,
+        PostRepository postRepository,
+        PostLikeRepository postLikeRepository,
+        PostMapper postMapper
+    ) {
+        this.userRepository = userRepository;
+        this.postRepository = postRepository;
+        this.postLikeRepository = postLikeRepository;
+        this.postMapper = postMapper;
+    }
+
+    @Transactional
+    public PostResponse createPost(UserPrincipal principal, CreatePostRequest request) {
+        User user = getUser(principal);
+        validateCoordinates(request.latitude(), request.longitude());
+
+        Post post = new Post();
+        post.setUser(user);
+        post.setContent(normalizeRequired(request.content()));
+        post.setLanguage(normalizeOptional(request.language(), user.getLanguage()));
+        post.setLatitude(request.latitude());
+        post.setLongitude(request.longitude());
+
+        Post saved = postRepository.save(post);
+        return postMapper.toResponse(saved, 0, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getFeed(
+        UserPrincipal principal,
+        Double latitude,
+        Double longitude,
+        Double radiusKm,
+        int page,
+        int size
+    ) {
+        User user = getUser(principal);
+        validateCoordinates(latitude, longitude);
+        validateRadius(radiusKm, latitude, longitude);
+
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findFeed(latitude, longitude, radiusKm, pageable);
+        return mapFeed(posts, user.getId());
+    }
+
+    @Transactional
+    public void likePost(UserPrincipal principal, UUID postId) {
+        User user = getUser(principal);
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post non trovato"));
+        if (postLikeRepository.existsByUserIdAndPostId(user.getId(), postId)) {
+            throw new ConflictException("Post gia piaciuto");
+        }
+        PostLike like = new PostLike();
+        like.setUser(user);
+        like.setPost(post);
+        postLikeRepository.save(like);
+    }
+
+    @Transactional
+    public void unlikePost(UserPrincipal principal, UUID postId) {
+        User user = getUser(principal);
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post non trovato"));
+        if (!postLikeRepository.existsByUserIdAndPostId(user.getId(), postId)) {
+            throw new NotFoundException("Like non trovato");
+        }
+        postLikeRepository.deleteByUserIdAndPostId(user.getId(), postId);
+    }
+
+    private Page<PostResponse> mapFeed(Page<Post> posts, UUID userId) {
+        if (posts.isEmpty()) {
+            return posts.map(post -> postMapper.toResponse(post, 0, false));
+        }
+        List<UUID> postIds = posts.getContent().stream().map(Post::getId).toList();
+        Map<UUID, Long> likeCounts = loadLikeCounts(postIds);
+        Set<UUID> likedByUser = loadLikedByUser(userId, postIds);
+        return posts.map(post -> postMapper.toResponse(
+            post,
+            likeCounts.getOrDefault(post.getId(), 0L),
+            likedByUser.contains(post.getId())
+        ));
+    }
+
+    private Map<UUID, Long> loadLikeCounts(List<UUID> postIds) {
+        List<PostLikeCountProjection> counts = postLikeRepository.countByPostIds(postIds);
+        Map<UUID, Long> map = new HashMap<>();
+        for (PostLikeCountProjection item : counts) {
+            map.put(item.getPostId(), item.getLikeCount());
+        }
+        return map;
+    }
+
+    private Set<UUID> loadLikedByUser(UUID userId, List<UUID> postIds) {
+        return postLikeRepository.findLikedPostIds(userId, postIds)
+            .stream()
+            .collect(Collectors.toSet());
+    }
+
+    private void validateCoordinates(Double latitude, Double longitude) {
+        if ((latitude == null) != (longitude == null)) {
+            throw new BadRequestException("Latitudine e longitudine devono essere valorizzate insieme");
+        }
+    }
+
+    private void validateRadius(Double radiusKm, Double latitude, Double longitude) {
+        if (radiusKm != null && (latitude == null || longitude == null)) {
+            throw new BadRequestException("Raggio richiede coordinate valide");
+        }
+        if (radiusKm != null && radiusKm <= 0) {
+            throw new BadRequestException("Raggio non valido");
+        }
+    }
+
+    private String normalizeRequired(String value) {
+        if (value == null) {
+            throw new BadRequestException("Contenuto non valido");
+        }
+        String normalized = value.trim();
+        if (normalized.isBlank()) {
+            throw new BadRequestException("Contenuto non valido");
+        }
+        return normalized;
+    }
+
+    private String normalizeOptional(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback != null ? fallback : "it";
+        }
+        return value.trim();
+    }
+
+    private User getUser(UserPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        UUID userId = principal.userId();
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+    }
+}

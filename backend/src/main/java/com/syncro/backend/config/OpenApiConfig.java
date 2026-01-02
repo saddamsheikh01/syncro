@@ -185,4 +185,20 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/matches/places/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi postsApi() {
+        return GroupedOpenApi.builder()
+            .group("posts")
+            .pathsToMatch("/api/v1/posts/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi chatsApi() {
+        return GroupedOpenApi.builder()
+            .group("chats")
+            .pathsToMatch("/api/v1/chats/**")
+            .build();
+    }
 }

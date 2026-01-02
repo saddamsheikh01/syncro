@@ -691,3 +691,98 @@ Note:
 Atteso:
 - **200 OK**
 - Page con raccomandazioni
+
+---
+
+# Test API - Social (Postman)
+
+## 1) Crea post
+**POST** `{{baseUrl}}/api/v1/posts`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "content": "Ciao da Milano!",
+  "language": "it",
+  "latitude": 45.4642,
+  "longitude": 9.1900
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 2) Feed post
+**GET** `{{baseUrl}}/api/v1/posts?page=0&size=20&lat=45.4642&lng=9.1900&radiusKm=10`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 3) Like post
+**POST** `{{baseUrl}}/api/v1/posts/<postId>/likes`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **201 Created**
+
+## 4) Unlike post
+**DELETE** `{{baseUrl}}/api/v1/posts/<postId>/likes`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **204 No Content**
+
+## 5) Crea conversazione
+**POST** `{{baseUrl}}/api/v1/chats`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "otherUserId": "<otherUserId>"
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 6) Lista conversazioni
+**GET** `{{baseUrl}}/api/v1/chats?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 7) Lista messaggi
+**GET** `{{baseUrl}}/api/v1/chats/<conversationId>/messages?page=0&size=20`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+
+## 8) Invia messaggio
+**POST** `{{baseUrl}}/api/v1/chats/<conversationId>/messages`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "content": "Ciao!"
+}
+```
+
+Atteso:
+- **201 Created**
