@@ -78,6 +78,59 @@ Headers:
 Atteso:
 - **204 No Content**
 
+---
+
+# Test API - Analytics (Postman)
+
+## 1) Registra evento (APP_OPEN)
+**POST** `{{baseUrl}}/api/v1/analytics/events`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "eventType": "APP_OPEN",
+  "payload": {}
+}
+```
+
+Atteso:
+- **201 Created**
+
+## 2) Registra evento (SESSION_DURATION)
+**POST** `{{baseUrl}}/api/v1/analytics/events`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "eventType": "SESSION_DURATION",
+  "payload": {
+    "duration_seconds": 245
+  }
+}
+```
+
+Atteso:
+- **201 Created**
+
+---
+
+# Test API - Admin Analytics (Postman)
+
+## 1) KPI analytics
+**GET** `{{baseUrl}}/api/v1/admin/analytics?from=2025-01-01&to=2025-01-31`
+Headers:
+- `Authorization: Bearer {{adminAccessToken}}`
+
+Atteso:
+- **200 OK**
+- Risposta con KPI aggregati (serie giornaliere/settimanali e metriche base)
+
 Nota: la logout e stateless, il client deve eliminare i token salvati.
 
 ---

@@ -225,4 +225,20 @@ public class OpenApiConfig {
             .pathsToMatch("/api/v1/media/**")
             .build();
     }
+
+    @Bean
+    public GroupedOpenApi analyticsApi() {
+        return GroupedOpenApi.builder()
+            .group("analytics")
+            .pathsToMatch("/api/v1/analytics/**")
+            .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminAnalyticsApi() {
+        return GroupedOpenApi.builder()
+            .group("admin-analytics")
+            .pathsToMatch("/api/v1/admin/analytics/**")
+            .build();
+    }
 }
