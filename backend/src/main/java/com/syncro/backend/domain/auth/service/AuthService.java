@@ -76,6 +76,7 @@ public class AuthService {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Credenziali non valide"));
+        ensureUserActive(user);
 
         UserAuthProvider provider = providerRepository.findByUserIdAndProvider(
                 user.getId(),
@@ -94,6 +95,7 @@ public class AuthService {
         UUID userId = jwtService.parseRefreshToken(request.refreshToken(), SubjectType.USER);
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UnauthorizedException("Token non valido"));
+        ensureUserActive(user);
         return buildTokenResponse(user);
     }
 
@@ -104,6 +106,7 @@ public class AuthService {
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        ensureUserActive(user);
         return authMapper.toUserResponse(user);
     }
 
@@ -119,6 +122,12 @@ public class AuthService {
             jwtService.getAccessTtlSeconds(),
             jwtService.getRefreshTtlSeconds()
         );
+    }
+
+    private void ensureUserActive(User user) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new UnauthorizedException("Account sospeso");
+        }
     }
 
     private String normalizeEmail(String email) {
