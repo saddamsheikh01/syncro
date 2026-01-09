@@ -1,0 +1,52 @@
+import type { IsoDate, IsoDateTime, JsonObject, Uuid } from "../shared";
+
+export type ProfileVisibility = "PUBLIC" | "PARTIAL" | "PRIVATE";
+
+export type UserProfileRequest = {
+  fullName?: string | null;
+  birthDate?: IsoDate | null;
+  city?: string | null;
+  country?: string | null;
+  visibility?: ProfileVisibility | null;
+};
+
+export type UserProfileResponse = {
+  id: Uuid;
+  userId: Uuid;
+  fullName: string | null;
+  birthDate: IsoDate | null;
+  age: number | null;
+  city: string | null;
+  country: string | null;
+  visibility: ProfileVisibility;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+export type UserPreferencesRequest = {
+  matchmakingFilters?: JsonObject | null;
+  feedPreferences?: JsonObject | null;
+};
+
+export type UserPreferencesResponse = {
+  id: Uuid;
+  userId: Uuid;
+  matchmakingFilters: JsonObject;
+  feedPreferences: JsonObject;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+export type UserPositionRequest = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+};
+
+export type UserPositionResponse = {
+  userId: Uuid;
+  latitude: number | null;
+  longitude: number | null;
+  accuracyMeters: number | null;
+  updatedAt: IsoDateTime;
+};
