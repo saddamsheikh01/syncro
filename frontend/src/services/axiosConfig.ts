@@ -12,9 +12,17 @@ const normalizeBaseUrl = (baseUrl: string) => {
   return `${trimmed}/api/v1`;
 };
 
-export const API_BASE_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8080"
-);
+const resolveBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return "/api/v1";
+  }
+
+  return normalizeBaseUrl(
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8080"
+  );
+};
+
+export const API_BASE_URL = resolveBaseUrl();
 
 let accessToken: string | null = null;
 
