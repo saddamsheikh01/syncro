@@ -11,11 +11,15 @@ import com.syncro.backend.domain.profile.mapper.UserPositionMapper;
 import com.syncro.backend.domain.profile.repository.UserPositionRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserPositionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserPositionService.class);
 
     private final UserRepository userRepository;
     private final UserPositionRepository positionRepository;
@@ -46,15 +50,18 @@ public class UserPositionService {
     public UserPositionResponse upsertPosition(UserPrincipal principal, UserPositionRequest request) {
         User user = getUser(principal);
         UserPosition position = positionRepository.findByUserId(user.getId())
-            .orElseGet(() -> {
-                UserPosition created = new UserPosition();
-                created.setUser(user);
-                return created;
-            });
+            .orElseGet(UserPosition::new);
 
+        position.setUserId(user.getId());
         position.setLatitude(request.latitude());
         position.setLongitude(request.longitude());
         position.setAccuracyMeters(request.accuracyMeters());
+
+        logger.info(
+            "Upsert position userId={}, positionUserId={}",
+            user.getId(),
+            position.getUserId()
+        );
 
         UserPosition saved = positionRepository.save(position);
         onboardingService.refreshOnboardingStatus(user);

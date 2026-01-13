@@ -1,13 +1,8 @@
 package com.syncro.backend.domain.profile.entity;
 
-import com.syncro.backend.domain.auth.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -21,11 +16,6 @@ public class UserPosition {
     @Id
     @Column(name = "user_id")
     private UUID userId;
-
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
 
     @Column(name = "latitude")
     private Double latitude;
@@ -55,15 +45,6 @@ public class UserPosition {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-        this.userId = user != null ? user.getId() : null;
     }
 
     public Double getLatitude() {
