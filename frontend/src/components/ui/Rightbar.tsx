@@ -2,10 +2,9 @@
 
 import type { HTMLAttributes } from "react";
 import { Card, CardBody, CardHeader } from "@/components/elements/Card";
-import { Avatar } from "@/components/elements/Avatar";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
-import { Button } from "@/components/buttons/Button";
+import { User } from "@/components/elements/User";
 import { cx } from "@/lib/classNames";
 
 const TASKS = [
@@ -62,28 +61,7 @@ export const Rightbar = ({
     {...props}
   >
     <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-[var(--radius-xl)] border border-border/70 bg-surface p-4 shadow-md">
-      <Card>
-        <CardBody className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Avatar name="Martin" size="xl" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-foreground">Martin</p>
-              <p className="text-xs text-subtle">Travel creator</p>
-            </div>
-            <Button size="sm" variant="secondary">
-              Profilo
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="accent" size="sm">
-              Match 94%
-            </Badge>
-            <Badge tone="success" size="sm">
-              Online
-            </Badge>
-          </div>
-        </CardBody>
-      </Card>
+      <User />
 
       <Card>
         <CardHeader>
