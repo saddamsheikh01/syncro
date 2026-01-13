@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { TestGallery } from "./TestGallery";
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function TestPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12">
+    <MainLayout>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12">
         <header className="space-y-3">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
             UI playground
@@ -24,7 +25,7 @@ export default function TestPage() {
           </div>
         </header>
         <TestGallery />
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 }
