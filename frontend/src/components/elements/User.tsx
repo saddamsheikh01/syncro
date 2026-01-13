@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAuth, usePosition, useUser } from "@/hooks";
 import { Card, CardBody, CardHeader } from "@/components/elements/Card";
 import { Badge } from "@/components/elements/Badge";
-import { Button } from "@/components/buttons/Button";
+import { Logout } from "@/components/buttons/Logout";
 
 const formatCoordinate = (value: number | null | undefined) => {
   if (typeof value !== "number") {
@@ -86,15 +86,7 @@ export const User = () => {
           </div>
         </div>
         {isAuthenticated ? (
-          <Button
-            size="sm"
-            variant="outline"
-            loading={status === "loading"}
-            loadingText="Logout"
-            onClick={() => authActions.logout()}
-          >
-            Logout
-          </Button>
+          <Logout fullWidth />
         ) : null}
       </CardBody>
     </Card>
