@@ -17,6 +17,11 @@ export interface DropdownProps
   items: DropdownItem[];
   align?: "left" | "right";
   onSelect?: (id: string) => void;
+  disabled?: boolean;
+  buttonId?: string;
+  buttonAriaLabel?: string;
+  buttonClassName?: string;
+  menuClassName?: string;
 }
 
 export const Dropdown = ({
@@ -25,6 +30,11 @@ export const Dropdown = ({
   items,
   align = "left",
   onSelect,
+  disabled,
+  buttonId,
+  buttonAriaLabel,
+  buttonClassName,
+  menuClassName,
   ...props
 }: DropdownProps) => {
   const [open, setOpen] = useState(false);
@@ -42,19 +52,31 @@ export const Dropdown = ({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleSelect = (itemId: string, disabled?: boolean) => {
-    if (disabled) return;
+  const handleSelect = (itemId: string, itemDisabled?: boolean) => {
+    if (itemDisabled) return;
     onSelect?.(itemId);
     setOpen(false);
+  };
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setOpen((prev) => !prev);
   };
 
   return (
     <div ref={ref} className={cx("relative", className)} {...props}>
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm"
+        id={buttonId}
+        aria-label={buttonAriaLabel ?? label}
         aria-expanded={open}
+        disabled={disabled}
+        onClick={handleToggle}
+        className={cx(
+          "inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm",
+          "disabled:cursor-not-allowed disabled:opacity-60",
+          buttonClassName
+        )}
       >
         {label}
         <span className="text-subtle">v</span>
@@ -63,7 +85,8 @@ export const Dropdown = ({
         <div
           className={cx(
             "absolute z-10 mt-2 min-w-[220px] rounded-[var(--radius-md)] border border-border bg-card p-2 shadow-lg",
-            align === "left" ? "left-0" : "right-0"
+            align === "left" ? "left-0" : "right-0",
+            menuClassName
           )}
         >
           {items.map((item) => (

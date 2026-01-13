@@ -10,7 +10,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = ({ className, variant = "default", ...props }: CardProps) => (
   <div
     className={cx(
-      "rounded-[var(--radius-lg)] border bg-card shadow-sm",
+      "rounded-[var(--radius-lg)] border border-border/60 bg-card shadow-sm",
       variant === "muted" && "bg-surface-muted",
       className
     )}
@@ -19,7 +19,7 @@ export const Card = ({ className, variant = "default", ...props }: CardProps) =>
 );
 
 export const CardHeader = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
-  <div className={cx("border-b border-border px-6 py-4", className)} {...props} />
+  <div className={cx("border-b border-border/60 px-6 py-4", className)} {...props} />
 );
 
 export const CardBody = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
@@ -27,5 +27,5 @@ export const CardBody = ({ className, ...props }: HTMLAttributes<HTMLDivElement>
 );
 
 export const CardFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
-  <div className={cx("border-t border-border px-6 py-4", className)} {...props} />
+  <div className={cx("border-t border-border/60 px-6 py-4", className)} {...props} />
 );

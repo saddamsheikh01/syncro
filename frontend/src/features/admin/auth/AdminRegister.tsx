@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import type { AdminRole } from "../../../types/admin";
+import { Select } from "@/components/elements/Select";
 
 const ADMIN_ROLES: AdminRole[] = ["ADMIN", "SUPER_ADMIN"];
+const ADMIN_ROLE_OPTIONS = ADMIN_ROLES.map((roleItem) => ({
+  value: roleItem,
+  label: roleItem,
+}));
 
 export const AdminRegister = () => {
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
@@ -86,24 +91,13 @@ export const AdminRegister = () => {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="admin-register-role">
-              Ruolo
-            </label>
-            <select
-              id="admin-register-role"
-              name="role"
-              value={role}
-              onChange={(event) => setRole(event.target.value as AdminRole)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm"
-            >
-              {ADMIN_ROLES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Ruolo"
+            name="role"
+            value={role}
+            options={ADMIN_ROLE_OPTIONS}
+            onValueChange={(nextRole) => setRole(nextRole as AdminRole)}
+          />
 
           <div className="space-y-2">
             <label

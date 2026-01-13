@@ -29,11 +29,15 @@ export const DrawerPreview = () => {
       >
         <div className="space-y-3">
           <Input label="Citta" placeholder="Milano" />
-          <Select label="Distanza" defaultValue="10">
-            <option value="5">5 km</option>
-            <option value="10">10 km</option>
-            <option value="25">25 km</option>
-          </Select>
+          <Select
+            label="Distanza"
+            defaultValue="10"
+            options={[
+              { value: "5", label: "5 km" },
+              { value: "10", label: "10 km" },
+              { value: "25", label: "25 km" },
+            ]}
+          />
         </div>
       </Drawer>
     </>
