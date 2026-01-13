@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
+import type { ButtonProps } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
 
@@ -25,6 +26,8 @@ export interface LocationPermissionGateProps
   description?: string;
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
+  primaryActionProps?: Omit<ButtonProps, "children">;
+  secondaryActionProps?: Omit<ButtonProps, "children">;
   helper?: string;
 }
 
@@ -34,6 +37,8 @@ export const LocationPermissionGate = ({
   description = "Serve per suggerirti luoghi e match vicini.",
   primaryActionLabel = "Consenti",
   secondaryActionLabel = "Non ora",
+  primaryActionProps,
+  secondaryActionProps,
   helper = "Puoi cambiare in qualsiasi momento.",
   ...props
 }: LocationPermissionGateProps) => (
@@ -48,8 +53,10 @@ export const LocationPermissionGate = ({
       </div>
     </div>
     <div className="flex flex-wrap items-center gap-3">
-      <Button size="sm">{primaryActionLabel}</Button>
-      <Button size="sm" variant="ghost">
+      <Button size="sm" {...primaryActionProps}>
+        {primaryActionLabel}
+      </Button>
+      <Button size="sm" variant="ghost" {...secondaryActionProps}>
         {secondaryActionLabel}
       </Button>
     </div>
