@@ -9,6 +9,7 @@ export const usePosition = () => {
 
   const actions = useMemo(
     () => ({
+      hydrate: positionActions.hydrate,
       setPermission: positionActions.setPermission,
       setPosition: positionActions.setPosition,
       fetchPosition: positionActions.fetchPosition,

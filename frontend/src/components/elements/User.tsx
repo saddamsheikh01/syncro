@@ -27,19 +27,32 @@ const formatLocation = (city?: string | null, country?: string | null) => {
 };
 
 export const User = () => {
-  const { user, actions: authActions } = useAuth();
+  const { user, actions: authActions, isAuthenticated } = useAuth();
   const { profile, actions: userActions } = useUser();
   const { position, hasPosition, actions: positionActions } = usePosition();
 
   useEffect(() => {
     authActions.hydrate();
+    positionActions.hydrate();
+  }, [authActions, positionActions]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
     if (!profile) {
       userActions.fetchProfile().catch(() => undefined);
     }
     if (!position) {
       positionActions.fetchPosition().catch(() => undefined);
     }
-  }, [authActions, position, positionActions, profile, userActions]);
+  }, [
+    isAuthenticated,
+    position,
+    positionActions,
+    profile,
+    userActions,
+  ]);
 
   const fullName = profile?.fullName?.trim() ?? "";
   const { firstName, lastName } = useMemo(

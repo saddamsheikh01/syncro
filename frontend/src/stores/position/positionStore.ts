@@ -5,6 +5,7 @@ import type {
 } from "../../types/profile";
 import { getPosition, upsertPosition } from "../../services/profile";
 import { createStore } from "../utils/createStore";
+import { readStorage, writeStorage } from "../utils/storage";
 
 export type PositionPermission = "unknown" | "granted" | "denied";
 
@@ -24,13 +25,24 @@ const initialState: PositionState = {
 
 export const positionStore = createStore<PositionState>(initialState);
 
+const POSITION_STORAGE_KEY = "syncro.user.position";
+
 export const positionActions = {
+  hydrate: () => {
+    const position = readStorage<UserPositionResponse | null>(
+      POSITION_STORAGE_KEY,
+      null
+    );
+    positionStore.setState({ position });
+  },
+
   setPermission: (permission: PositionPermission) => {
     positionStore.setState({ permission });
   },
 
   setPosition: (position: UserPositionResponse | null) => {
     positionStore.setState({ position });
+    writeStorage(POSITION_STORAGE_KEY, position);
   },
 
   fetchPosition: async (): Promise<UserPositionResponse> => {
@@ -39,6 +51,7 @@ export const positionActions = {
     try {
       const position = await getPosition();
       positionStore.setState({ position, loading: false });
+      writeStorage(POSITION_STORAGE_KEY, position);
       return position;
     } catch (error) {
       positionStore.setState({ loading: false, error: error as ApiError });
@@ -54,6 +67,7 @@ export const positionActions = {
     try {
       const position = await upsertPosition(payload);
       positionStore.setState({ position, loading: false });
+      writeStorage(POSITION_STORAGE_KEY, position);
       return position;
     } catch (error) {
       positionStore.setState({ loading: false, error: error as ApiError });
