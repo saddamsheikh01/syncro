@@ -4,6 +4,8 @@ import { Textarea } from "@/components/elements/Textarea";
 import { Select } from "@/components/elements/Select";
 import { Checkbox } from "@/components/elements/Checkbox";
 import { Switch } from "@/components/elements/Switch";
+import { DatePicker } from "@/components/elements/DatePicker";
+import { TimePicker } from "@/components/elements/TimePicker";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/elements/Card";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
@@ -1069,6 +1071,19 @@ export const TestGallery = () => {
               description="Suggerimenti e aggiornamenti Zyra."
               defaultChecked
             />
+          </CardBody>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-foreground">Date & Time</h3>
+            <p className="text-sm text-muted">Picker customizzati.</p>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <DatePicker label="Data" defaultValue="1992-06-12" />
+            <TimePicker label="Ora" defaultValue="08:30" stepMinutes={15} />
           </CardBody>
         </Card>
       </section>

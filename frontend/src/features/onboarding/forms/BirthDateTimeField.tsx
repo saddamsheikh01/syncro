@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
-import { Input } from "@/components/elements/Input";
+import { DatePicker } from "@/components/elements/DatePicker";
+import { TimePicker } from "@/components/elements/TimePicker";
 import { cx } from "@/lib/classNames";
 
 export interface BirthDateTimeValue {
@@ -70,20 +71,22 @@ export const BirthDateTimeField = ({
         {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          type="date"
+        <DatePicker
           label={dateLabel}
           value={currentValue.date}
           required={required}
           disabled={disabled}
-          onChange={(event) => updateValue({ date: event.target.value })}
+          onValueChange={(date) => updateValue({ date })}
+          maxYear={new Date().getFullYear()}
         />
-        <Input
-          type="time"
+        <TimePicker
           label={timeLabel}
           value={currentValue.time}
           disabled={disabled}
-          onChange={(event) => updateValue({ time: event.target.value })}
+          onValueChange={(time) => updateValue({ time })}
+          startHour={0}
+          endHour={23}
+          stepMinutes={15}
         />
       </div>
       {hint ? <p className="text-xs text-subtle">{hint}</p> : null}
