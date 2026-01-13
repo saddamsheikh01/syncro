@@ -11,26 +11,28 @@ export const Register = () => {
   const { actions: analyticsActions } = useAnalytics();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     actions.hydrate();
   }, [actions]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/test");
+    }
+  }, [isAuthenticated, router]);
+
   const isSubmitting = status === "loading";
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSuccess(false);
 
     try {
       await actions.register({ email, password });
-      setSuccess(true);
       analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
       router.push("/onboarding/step-1");
     } catch {
-      setSuccess(false);
     }
   };
 
@@ -101,12 +103,6 @@ export const Register = () => {
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error.message}
-            </div>
-          ) : null}
-
-          {success && !error ? (
-            <div className="rounded-[var(--radius-md)] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-              Registrazione completata.
             </div>
           ) : null}
 

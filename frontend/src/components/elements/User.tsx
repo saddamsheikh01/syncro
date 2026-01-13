@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useAuth, usePosition, useUser } from "@/hooks";
 import { Card, CardBody, CardHeader } from "@/components/elements/Card";
-import { Avatar } from "@/components/elements/Avatar";
 import { Badge } from "@/components/elements/Badge";
+import { Button } from "@/components/buttons/Button";
 
 const formatCoordinate = (value: number | null | undefined) => {
   if (typeof value !== "number") {
@@ -13,21 +13,13 @@ const formatCoordinate = (value: number | null | undefined) => {
   return value.toFixed(5);
 };
 
-const splitName = (fullName: string) => {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  return {
-    firstName: parts[0] ?? "",
-    lastName: parts.slice(1).join(" "),
-  };
-};
-
 const formatLocation = (city?: string | null, country?: string | null) => {
   const parts = [city?.trim(), country?.trim()].filter(Boolean);
   return parts.length ? parts.join(", ") : "-";
 };
 
 export const User = () => {
-  const { user, actions: authActions, isAuthenticated } = useAuth();
+  const { user, status, actions: authActions, isAuthenticated } = useAuth();
   const { profile, actions: userActions } = useUser();
   const { position, hasPosition, actions: positionActions } = usePosition();
 
@@ -54,13 +46,8 @@ export const User = () => {
     userActions,
   ]);
 
-  const fullName = profile?.fullName?.trim() ?? "";
-  const { firstName, lastName } = useMemo(
-    () => splitName(fullName),
-    [fullName]
-  );
-
   const email = user?.email ?? "-";
+  const fullName = profile?.fullName?.trim() ?? "";
   const displayName = fullName || email;
   const cityCountry = formatLocation(profile?.city, profile?.country);
   const locationLabel = hasPosition
@@ -75,8 +62,7 @@ export const User = () => {
         <h3 className="text-sm font-semibold text-foreground">Utente loggato</h3>
       </CardHeader>
       <CardBody className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Avatar name={displayName} size="lg" />
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">
               {displayName || "-"}
@@ -88,18 +74,6 @@ export const User = () => {
           </Badge>
         </div>
         <div className="grid gap-3 text-xs sm:grid-cols-2">
-          <div className="rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2">
-            <p className="text-subtle">Nome</p>
-            <p className="text-sm font-semibold text-foreground">
-              {firstName || "-"}
-            </p>
-          </div>
-          <div className="rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2">
-            <p className="text-subtle">Cognome</p>
-            <p className="text-sm font-semibold text-foreground">
-              {lastName || "-"}
-            </p>
-          </div>
           <div className="rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2 sm:col-span-2">
             <p className="text-subtle">Citta e paese</p>
             <p className="text-sm font-semibold text-foreground">{cityCountry}</p>
@@ -111,6 +85,17 @@ export const User = () => {
             </p>
           </div>
         </div>
+        {isAuthenticated ? (
+          <Button
+            size="sm"
+            variant="outline"
+            loading={status === "loading"}
+            loadingText="Logout"
+            onClick={() => authActions.logout()}
+          >
+            Logout
+          </Button>
+        ) : null}
       </CardBody>
     </Card>
   );
