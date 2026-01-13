@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "../../hooks";
+import { useRouter } from "next/navigation";
+import { useAnalytics, useAuth } from "../../hooks";
 
 export const Register = () => {
+  const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
+  const { actions: analyticsActions } = useAnalytics();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     actions.hydrate();
@@ -23,6 +27,8 @@ export const Register = () => {
     try {
       await actions.register({ email, password });
       setSuccess(true);
+      analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
+      router.push("/onboarding/step-1");
     } catch {
       setSuccess(false);
     }
@@ -68,17 +74,28 @@ export const Register = () => {
             >
               Password
             </label>
-            <input
-              id="signup-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="Crea una password"
-            />
+            <div className="relative">
+              <input
+                id="signup-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 pr-14 text-sm text-foreground shadow-sm placeholder:text-subtle"
+                placeholder="Crea una password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-subtle transition hover:text-foreground"
+                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? "Nascondi" : "Mostra"}
+              </button>
+            </div>
           </div>
 
           {error ? (
