@@ -8,15 +8,15 @@ export const metadata: Metadata = {
 };
 
 type TestRunnerPageProps = {
-  params: {
-    testId: string;
-  };
+  params: { testId: string } | Promise<{ testId: string }>;
 };
 
-export default function TestRunnerPage({ params }: TestRunnerPageProps) {
+export default async function TestRunnerPage({ params }: TestRunnerPageProps) {
+  const { testId } = await params;
+
   return (
     <MainLayout>
-      <TestRunner testId={params.testId} />
+      <TestRunner testId={testId} />
     </MainLayout>
   );
 }

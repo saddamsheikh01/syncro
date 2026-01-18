@@ -65,7 +65,6 @@ public class UserPsyProfile {
 
     public void setUser(User user) {
         this.user = user;
-        this.userId = user != null ? user.getId() : null;
     }
 
     public Map<String, Object> getProfile() {

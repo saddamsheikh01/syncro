@@ -157,6 +157,9 @@ public class TestService {
                 created.setUser(user);
                 return created;
             });
+        if (profile.getUser() == null || profile.getUserId() == null) {
+            profile.setUser(user);
+        }
         Map<String, Object> profileData = profile.getProfile();
         if (profileData == null) {
             profileData = new HashMap<>();

@@ -13,6 +13,7 @@ import { MapAnswerOptionCard } from "@/features/tests/lists/MapAnswerOptionCard"
 import { SubmissionProgress } from "@/features/tests/elements/SubmissionProgress";
 import type { TestQuestionResponse } from "@/types/tests";
 import { useTests } from "@/hooks";
+import { isUuid } from "@/lib/validators";
 
 const sortQuestions = (questions: TestQuestionResponse[]) =>
   [...questions].sort((a, b) => a.position - b.position);
@@ -29,11 +30,16 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isValidTestId = isUuid(testId);
 
   useEffect(() => {
+    if (!isValidTestId) {
+      actions.clearActiveTest();
+      return;
+    }
     actions.fetchTest(testId).catch(() => undefined);
     return () => actions.clearActiveTest();
-  }, [actions, testId]);
+  }, [actions, testId, isValidTestId]);
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -146,6 +152,19 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       setSubmitting(false);
     }
   };
+
+  if (!isValidTestId) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+        <ErrorState
+          title="Test non valido"
+          description="Il test richiesto non esiste o non e disponibile."
+          actionLabel="Torna ai test"
+          actionHref="/tests"
+        />
+      </div>
+    );
+  }
 
   if (isInitialLoading) {
     return (
