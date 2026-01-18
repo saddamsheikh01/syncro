@@ -9,6 +9,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -76,6 +77,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ApiError> handleStorage(StorageException ex, HttpServletRequest request) {
         return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Storage temporaneamente non disponibile", request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadSize(
+        MaxUploadSizeExceededException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

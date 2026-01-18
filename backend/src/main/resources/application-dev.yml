@@ -11,6 +11,10 @@ spring:
     properties:
       hibernate:
         default_schema: ${POSTGRES_SCHEMA}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
 
 springdoc:
   api-docs:
