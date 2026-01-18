@@ -2,6 +2,8 @@ package com.syncro.backend.domain.tests.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,12 +33,25 @@ public class TestQuestion {
     @Column(name = "position", nullable = false)
     private int position;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "question_type", nullable = false)
+    private TestQuestionType questionType;
+
+    @Column(name = "required", nullable = false)
+    private boolean required = true;
+
+    @Column(name = "max_selections")
+    private Integer maxSelections;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+        if (questionType == null) {
+            questionType = TestQuestionType.SINGLE;
+        }
     }
 
     public UUID getId() {
@@ -69,6 +84,30 @@ public class TestQuestion {
 
     public void setPosition(int position) {
         this.position = position;
+    }
+
+    public TestQuestionType getQuestionType() {
+        return questionType;
+    }
+
+    public void setQuestionType(TestQuestionType questionType) {
+        this.questionType = questionType;
+    }
+
+    public boolean isRequired() {
+        return required;
+    }
+
+    public void setRequired(boolean required) {
+        this.required = required;
+    }
+
+    public Integer getMaxSelections() {
+        return maxSelections;
+    }
+
+    public void setMaxSelections(Integer maxSelections) {
+        this.maxSelections = maxSelections;
     }
 
     public Instant getCreatedAt() {

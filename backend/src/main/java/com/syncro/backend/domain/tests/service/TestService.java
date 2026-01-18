@@ -12,6 +12,9 @@ import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
 import com.syncro.backend.domain.tests.entity.TestAnswerOption;
 import com.syncro.backend.domain.tests.entity.TestDefinition;
 import com.syncro.backend.domain.tests.entity.TestQuestion;
+import com.syncro.backend.domain.tests.entity.TestQuestionType;
+import com.syncro.backend.domain.tests.entity.TestScoringStrategy;
+import com.syncro.backend.domain.tests.entity.TestType;
 import com.syncro.backend.domain.tests.entity.UserPsyProfile;
 import com.syncro.backend.domain.tests.entity.UserTestAnswer;
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
@@ -23,10 +26,13 @@ import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.security.UserPrincipal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -94,19 +100,6 @@ public class TestService {
             throw new BadRequestException("Risposte mancanti");
         }
 
-        Set<UUID> expectedQuestionIds = questions.stream()
-            .map(TestQuestion::getId)
-            .collect(Collectors.toSet());
-        Set<UUID> answeredQuestionIds = request.answers().stream()
-            .map(answer -> answer.questionId())
-            .collect(Collectors.toSet());
-        if (answeredQuestionIds.size() != request.answers().size()) {
-            throw new BadRequestException("Risposte duplicate");
-        }
-        if (!answeredQuestionIds.equals(expectedQuestionIds)) {
-            throw new BadRequestException("Risposte non valide");
-        }
-
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = loadOptionsByQuestion(questions);
         Map<UUID, TestAnswerOption> optionsById = optionsByQuestion.values().stream()
             .flatMap(List::stream)
@@ -114,48 +107,48 @@ public class TestService {
         Map<UUID, TestQuestion> questionsById = questions.stream()
             .collect(Collectors.toMap(TestQuestion::getId, Function.identity()));
 
-        int rawScore = 0;
-        for (TestAnswerRequest answer : request.answers()) {
-            TestAnswerOption option = optionsById.get(answer.answerOptionId());
-            if (option == null || !option.getQuestion().getId().equals(answer.questionId())) {
-                throw new BadRequestException("Risposte non valide");
-            }
-            rawScore += option.getWeight();
-        }
+        Map<UUID, List<UUID>> answersByQuestion = normalizeAnswers(request.answers(), questionsById);
+        validateAnswers(questions, optionsByQuestion, optionsById, answersByQuestion);
 
-        int minScore = 0;
-        int maxScore = 0;
-        for (TestQuestion question : questions) {
-            List<TestAnswerOption> options = optionsByQuestion.get(question.getId());
-            if (options == null || options.isEmpty()) {
-                throw new BadRequestException("Domanda senza opzioni");
-            }
-            int min = options.stream().mapToInt(TestAnswerOption::getWeight).min().orElse(0);
-            int max = options.stream().mapToInt(TestAnswerOption::getWeight).max().orElse(0);
-            minScore += min;
-            maxScore += max;
+        int answeredQuestions = (int) answersByQuestion.entrySet().stream()
+            .filter(entry -> !entry.getValue().isEmpty())
+            .count();
+        int totalQuestions = questions.size();
+        if (answeredQuestions == 0) {
+            throw new BadRequestException("Risposte mancanti");
         }
-
-        int normalizedScore = maxScore == minScore
+        int confidence = totalQuestions == 0
             ? 0
-            : (int) Math.round(100.0 * (rawScore - minScore) / (maxScore - minScore));
-        normalizedScore = Math.max(0, Math.min(100, normalizedScore));
+            : (int) Math.round(100.0 * answeredQuestions / totalQuestions);
+
+        Map<String, Object> scorePayload = buildScorePayload(
+            definition,
+            questions,
+            optionsByQuestion,
+            optionsById,
+            answersByQuestion
+        );
 
         UserTestSubmission submission = new UserTestSubmission();
         submission.setUser(user);
         submission.setTestDefinition(definition);
+        submission.setScorePayload(scorePayload);
         UserTestSubmission savedSubmission = userTestSubmissionRepository.save(submission);
 
-        List<UserTestAnswer> answers = request.answers().stream()
-            .map(answer -> {
+        List<UserTestAnswer> answers = new ArrayList<>();
+        answersByQuestion.forEach((questionId, optionIds) -> {
+            if (optionIds == null || optionIds.isEmpty()) {
+                return;
+            }
+            TestQuestion question = questionsById.get(questionId);
+            optionIds.forEach(optionId -> {
                 UserTestAnswer entity = new UserTestAnswer();
                 entity.setSubmission(savedSubmission);
-                TestQuestion question = questionsById.get(answer.questionId());
                 entity.setQuestion(question);
-                entity.setAnswerOption(optionsById.get(answer.answerOptionId()));
-                return entity;
-            })
-            .toList();
+                entity.setAnswerOption(optionsById.get(optionId));
+                answers.add(entity);
+            });
+        });
         userTestAnswerRepository.saveAll(answers);
 
         UserPsyProfile profile = userPsyProfileRepository.findByUserId(user.getId())
@@ -170,13 +163,26 @@ public class TestService {
         }
         Map<String, Object> testsData = getOrCreateTestsMap(profileData);
         Map<String, Object> testEntry = new HashMap<>();
-        testEntry.put("score", normalizedScore);
-        testEntry.put("rawScore", rawScore);
-        testEntry.put("maxScore", maxScore);
+        testEntry.put("strategy", definition.getScoringStrategy().name());
+        testEntry.put("testType", definition.getTestType().name());
+        testEntry.put("payload", scorePayload);
+        if (definition.getScoringStrategy() == TestScoringStrategy.SINGLE_SCORE) {
+            Object normalizedScore = scorePayload.get("normalizedScore");
+            if (normalizedScore != null) {
+                testEntry.put("score", normalizedScore);
+            }
+            if (scorePayload.get("rawScore") != null) {
+                testEntry.put("rawScore", scorePayload.get("rawScore"));
+            }
+            if (scorePayload.get("maxScore") != null) {
+                testEntry.put("maxScore", scorePayload.get("maxScore"));
+            }
+        }
         testEntry.put("submissionId", savedSubmission.getId().toString());
         testEntry.put("submittedAt", savedSubmission.getSubmittedAt().toString());
         testsData.put(definition.getId().toString(), testEntry);
         profileData.put("tests", testsData);
+        updateProfileDimensions(profileData, definition, scorePayload, confidence);
         profile.setProfile(profileData);
         userPsyProfileRepository.save(profile);
     }
@@ -195,7 +201,7 @@ public class TestService {
         }
         List<UUID> questionIds = questions.stream().map(TestQuestion::getId).toList();
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = testAnswerOptionRepository
-            .findByQuestionIdIn(questionIds)
+            .findByQuestion_IdIn(questionIds)
             .stream()
             .collect(Collectors.groupingBy(option -> option.getQuestion().getId()));
         optionsByQuestion.values()
@@ -210,5 +216,364 @@ public class TestService {
             return (Map<String, Object>) existingMap;
         }
         return new HashMap<>();
+    }
+
+    private Map<UUID, List<UUID>> normalizeAnswers(
+        List<TestAnswerRequest> answers,
+        Map<UUID, TestQuestion> questionsById
+    ) {
+        Map<UUID, List<UUID>> answersByQuestion = new HashMap<>();
+        for (TestAnswerRequest answer : answers) {
+            if (answer == null || answer.questionId() == null) {
+                throw new BadRequestException("Risposte non valide");
+            }
+            if (!questionsById.containsKey(answer.questionId())) {
+                throw new BadRequestException("Risposte non valide");
+            }
+            if (answersByQuestion.containsKey(answer.questionId())) {
+                throw new BadRequestException("Risposte duplicate");
+            }
+            List<UUID> optionIds = Optional.ofNullable(answer.answerOptionIds()).orElse(List.of());
+            List<UUID> normalized = optionIds.stream().distinct().toList();
+            if (normalized.size() != optionIds.size()) {
+                throw new BadRequestException("Risposte duplicate");
+            }
+            answersByQuestion.put(answer.questionId(), normalized);
+        }
+        return answersByQuestion;
+    }
+
+    private void validateAnswers(
+        List<TestQuestion> questions,
+        Map<UUID, List<TestAnswerOption>> optionsByQuestion,
+        Map<UUID, TestAnswerOption> optionsById,
+        Map<UUID, List<UUID>> answersByQuestion
+    ) {
+        for (TestQuestion question : questions) {
+            List<TestAnswerOption> options = optionsByQuestion.get(question.getId());
+            if (options == null || options.isEmpty()) {
+                throw new BadRequestException("Domanda senza opzioni");
+            }
+            List<UUID> selectedOptions = answersByQuestion.getOrDefault(question.getId(), List.of());
+            if (question.isRequired() && selectedOptions.isEmpty()) {
+                throw new BadRequestException("Risposte mancanti");
+            }
+            int maxSelections = resolveMaxSelections(question, options);
+            if (selectedOptions.size() > maxSelections) {
+                throw new BadRequestException("Troppe risposte selezionate");
+            }
+            if (question.getQuestionType() == TestQuestionType.SINGLE && selectedOptions.size() > 1) {
+                throw new BadRequestException("Risposte non valide");
+            }
+            for (UUID optionId : selectedOptions) {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option == null || !option.getQuestion().getId().equals(question.getId())) {
+                    throw new BadRequestException("Risposte non valide");
+                }
+            }
+        }
+    }
+
+    private int resolveMaxSelections(TestQuestion question, List<TestAnswerOption> options) {
+        if (question.getQuestionType() == TestQuestionType.SINGLE) {
+            return 1;
+        }
+        Integer maxSelections = question.getMaxSelections();
+        if (maxSelections == null || maxSelections < 1) {
+            return options.size();
+        }
+        return Math.min(maxSelections, options.size());
+    }
+
+    private Map<String, Object> buildScorePayload(
+        TestDefinition definition,
+        List<TestQuestion> questions,
+        Map<UUID, List<TestAnswerOption>> optionsByQuestion,
+        Map<UUID, TestAnswerOption> optionsById,
+        Map<UUID, List<UUID>> answersByQuestion
+    ) {
+        if (definition.getScoringStrategy() == TestScoringStrategy.CLUSTER_SCORE) {
+            return buildClusterScorePayload(definition, optionsByQuestion, optionsById, answersByQuestion);
+        }
+        return buildSingleScorePayload(questions, optionsByQuestion, optionsById, answersByQuestion);
+    }
+
+    private Map<String, Object> buildSingleScorePayload(
+        List<TestQuestion> questions,
+        Map<UUID, List<TestAnswerOption>> optionsByQuestion,
+        Map<UUID, TestAnswerOption> optionsById,
+        Map<UUID, List<UUID>> answersByQuestion
+    ) {
+        int rawScore = 0;
+        int minScore = 0;
+        int maxScore = 0;
+        for (TestQuestion question : questions) {
+            List<TestAnswerOption> options = optionsByQuestion.get(question.getId());
+            if (options == null || options.isEmpty()) {
+                throw new BadRequestException("Domanda senza opzioni");
+            }
+            List<Integer> weights = options.stream()
+                .map(TestAnswerOption::getWeight)
+                .sorted()
+                .toList();
+            int maxSelections = resolveMaxSelections(question, options);
+            int minSelections = question.isRequired() ? 1 : 0;
+            minScore += sumSmallest(weights, minSelections);
+            maxScore += sumLargest(weights, maxSelections);
+            List<UUID> selected = answersByQuestion.getOrDefault(question.getId(), List.of());
+            for (UUID optionId : selected) {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option != null) {
+                    rawScore += option.getWeight();
+                }
+            }
+        }
+        int normalizedScore = maxScore == minScore
+            ? 0
+            : (int) Math.round(100.0 * (rawScore - minScore) / (maxScore - minScore));
+        normalizedScore = Math.max(0, Math.min(100, normalizedScore));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("rawScore", rawScore);
+        payload.put("minScore", minScore);
+        payload.put("maxScore", maxScore);
+        payload.put("normalizedScore", normalizedScore);
+        return payload;
+    }
+
+    private Map<String, Object> buildClusterScorePayload(
+        TestDefinition definition,
+        Map<UUID, List<TestAnswerOption>> optionsByQuestion,
+        Map<UUID, TestAnswerOption> optionsById,
+        Map<UUID, List<UUID>> answersByQuestion
+    ) {
+        Map<String, Integer> clusterMax = new HashMap<>();
+        Map<String, Integer> clusterScores = new HashMap<>();
+
+        optionsByQuestion.values().stream()
+            .flatMap(List::stream)
+            .forEach(option -> {
+                String clusterId = readClusterId(option.getMetadata());
+                if (clusterId == null) {
+                    return;
+                }
+                clusterMax.merge(clusterId, option.getWeight(), Integer::sum);
+            });
+
+        answersByQuestion.values().stream()
+            .flatMap(List::stream)
+            .forEach(optionId -> {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option == null) {
+                    return;
+                }
+                String clusterId = readClusterId(option.getMetadata());
+                if (clusterId == null) {
+                    throw new BadRequestException("Cluster mancante per opzione risposta");
+                }
+                clusterScores.merge(clusterId, option.getWeight(), Integer::sum);
+            });
+
+        Map<String, Integer> clusterNormalized = new HashMap<>();
+        clusterMax.forEach((clusterId, maxScore) -> {
+            int rawScore = clusterScores.getOrDefault(clusterId, 0);
+            int normalized = maxScore == 0
+                ? 0
+                : (int) Math.round(100.0 * rawScore / maxScore);
+            clusterNormalized.put(clusterId, Math.max(0, Math.min(100, normalized)));
+        });
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("clusters", clusterScores);
+        payload.put("clustersNormalized", clusterNormalized);
+        Map<String, Object> profile = resolveInterestProfile(clusterScores, definition);
+        if (!profile.isEmpty()) {
+            payload.put("profile", profile);
+        }
+        Map<String, Object> domainNotes = readDomainNotes(definition.getConfig());
+        if (!domainNotes.isEmpty()) {
+            payload.put("domainNotes", domainNotes);
+        }
+        return payload;
+    }
+
+    private String readClusterId(Map<String, Object> metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        Object value = metadata.get("clusterId");
+        if (value == null) {
+            return null;
+        }
+        return String.valueOf(value).trim();
+    }
+
+    private Map<String, Object> resolveInterestProfile(
+        Map<String, Integer> clusterScores,
+        TestDefinition definition
+    ) {
+        if (definition.getTestType() != TestType.INTERESTS) {
+            return Map.of();
+        }
+        if (clusterScores.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> config = definition.getConfig();
+        List<Map<String, Object>> profiles = readProfiles(config);
+        Map<String, Map<String, Object>> profilesByCluster = profiles.stream()
+            .filter(profile -> profile.get("clusterId") != null)
+            .collect(Collectors.toMap(
+                profile -> String.valueOf(profile.get("clusterId")),
+                Function.identity(),
+                (a, b) -> a
+            ));
+        Map<String, Map<String, Object>> profilesByCode = profiles.stream()
+            .filter(profile -> profile.get("code") != null)
+            .collect(Collectors.toMap(
+                profile -> String.valueOf(profile.get("code")).toUpperCase(Locale.ROOT),
+                Function.identity(),
+                (a, b) -> a
+            ));
+
+        List<Map.Entry<String, Integer>> sortedScores = clusterScores.entrySet().stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
+            .toList();
+        Map.Entry<String, Integer> top = sortedScores.get(0);
+        int topScore = top.getValue();
+        int secondScore = sortedScores.size() > 1 ? sortedScores.get(1).getValue() : 0;
+        int dominanceDelta = readInt(config, "dominanceDelta", 2);
+
+        String selectedCode = "P5";
+        if (topScore >= 4 && (topScore - secondScore) >= dominanceDelta) {
+            selectedCode = switch (top.getKey()) {
+                case "I1" -> "P1";
+                case "I2" -> "P2";
+                case "I3" -> "P3";
+                case "I4" -> "P4";
+                default -> "P5";
+            };
+        }
+
+        Map<String, Object> profile = new HashMap<>();
+        Map<String, Object> selectedProfile = profilesByCode.get(selectedCode);
+        if (selectedProfile == null) {
+            selectedProfile = profilesByCluster.getOrDefault(top.getKey(), Map.of());
+        }
+        profile.put("code", selectedCode);
+        if (selectedProfile.get("label") != null) {
+            profile.put("label", selectedProfile.get("label"));
+        } else {
+            profile.put("label", defaultProfileLabel(selectedCode));
+        }
+        if (selectedProfile.get("description") != null) {
+            profile.put("description", selectedProfile.get("description"));
+        }
+        profile.put("dominantCluster", top.getKey());
+        return profile;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> readProfiles(Map<String, Object> config) {
+        if (config == null) {
+            return List.of();
+        }
+        Object profiles = config.get("profiles");
+        if (profiles instanceof List<?> list) {
+            return list.stream()
+                .filter(item -> item instanceof Map<?, ?>)
+                .map(item -> (Map<String, Object>) item)
+                .toList();
+        }
+        return List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readDomainNotes(Map<String, Object> config) {
+        if (config == null) {
+            return Map.of();
+        }
+        Object notes = config.get("domainNotes");
+        if (notes instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
+    }
+
+    private int readInt(Map<String, Object> config, String key, int fallback) {
+        if (config == null) {
+            return fallback;
+        }
+        Object value = config.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
+    private int sumSmallest(List<Integer> values, int count) {
+        if (count <= 0 || values.isEmpty()) {
+            return 0;
+        }
+        return values.stream().limit(count).mapToInt(Integer::intValue).sum();
+    }
+
+    private int sumLargest(List<Integer> values, int count) {
+        if (count <= 0 || values.isEmpty()) {
+            return 0;
+        }
+        return values.stream()
+            .sorted(Comparator.reverseOrder())
+            .limit(count)
+            .mapToInt(Integer::intValue)
+            .sum();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateProfileDimensions(
+        Map<String, Object> profileData,
+        TestDefinition definition,
+        Map<String, Object> scorePayload,
+        int confidence
+    ) {
+        Map<String, Object> dimensions = Optional.ofNullable(profileData.get("dimensions"))
+            .filter(Map.class::isInstance)
+            .map(value -> (Map<String, Object>) value)
+            .orElseGet(HashMap::new);
+        String key = definition.getTestType().name().toLowerCase(Locale.ROOT);
+        Map<String, Object> dimension = new HashMap<>();
+        dimension.put("confidence", confidence);
+        if (definition.getScoringStrategy() == TestScoringStrategy.CLUSTER_SCORE) {
+            Object clusters = scorePayload.get("clustersNormalized");
+            if (clusters == null) {
+                clusters = scorePayload.get("clusters");
+            }
+            if (clusters != null) {
+                dimension.put("score", clusters);
+            }
+            if (scorePayload.get("profile") != null) {
+                dimension.put("profile", scorePayload.get("profile"));
+            }
+        } else if (scorePayload.get("normalizedScore") != null) {
+            dimension.put("score", scorePayload.get("normalizedScore"));
+        }
+        dimensions.put(key, dimension);
+        profileData.put("dimensions", dimensions);
+    }
+
+    private String defaultProfileLabel(String code) {
+        return switch (code) {
+            case "P1" -> "Esploratore di Esperienze";
+            case "P2" -> "Connettore Sociale";
+            case "P3" -> "Orientato alla Crescita";
+            case "P4" -> "Benessere e Qualita";
+            case "P5" -> "Ibrido";
+            default -> "Profilo";
+        };
     }
 }

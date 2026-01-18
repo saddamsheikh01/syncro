@@ -25,7 +25,8 @@ public class TestMapper {
         return new TestSummaryResponse(
             definition.getId(),
             definition.getTitle(),
-            definition.getDescription()
+            definition.getDescription(),
+            definition.getTestType()
         );
     }
 
@@ -39,8 +40,15 @@ public class TestMapper {
                 question.getId(),
                 question.getQuestion(),
                 question.getPosition(),
+                question.getQuestionType(),
+                question.isRequired(),
+                question.getMaxSelections(),
                 optionsByQuestion.getOrDefault(question.getId(), List.of()).stream()
-                    .map(option -> new TestAnswerOptionResponse(option.getId(), option.getLabel()))
+                    .map(option -> new TestAnswerOptionResponse(
+                        option.getId(),
+                        option.getLabel(),
+                        option.getMetadata()
+                    ))
                     .toList()
             ))
             .toList();
@@ -48,6 +56,9 @@ public class TestMapper {
             definition.getId(),
             definition.getTitle(),
             definition.getDescription(),
+            definition.getTestType(),
+            definition.getScoringStrategy(),
+            definition.getConfig(),
             questionResponses
         );
     }
@@ -58,6 +69,9 @@ public class TestMapper {
             definition.getTitle(),
             definition.getDescription(),
             definition.isActive(),
+            definition.getTestType(),
+            definition.getScoringStrategy(),
+            definition.getConfig(),
             definition.getCreatedAt(),
             definition.getUpdatedAt()
         );
@@ -73,11 +87,15 @@ public class TestMapper {
                 question.getId(),
                 question.getQuestion(),
                 question.getPosition(),
+                question.getQuestionType(),
+                question.isRequired(),
+                question.getMaxSelections(),
                 optionsByQuestion.getOrDefault(question.getId(), List.of()).stream()
                     .map(option -> new AdminTestAnswerOptionDetailResponse(
                         option.getId(),
                         option.getLabel(),
-                        option.getWeight()
+                        option.getWeight(),
+                        option.getMetadata()
                     ))
                     .toList()
             ))
@@ -87,6 +105,9 @@ public class TestMapper {
             definition.getTitle(),
             definition.getDescription(),
             definition.isActive(),
+            definition.getTestType(),
+            definition.getScoringStrategy(),
+            definition.getConfig(),
             definition.getCreatedAt(),
             definition.getUpdatedAt(),
             questionResponses
@@ -98,7 +119,10 @@ public class TestMapper {
             question.getId(),
             question.getTestDefinition().getId(),
             question.getQuestion(),
-            question.getPosition()
+            question.getPosition(),
+            question.getQuestionType(),
+            question.isRequired(),
+            question.getMaxSelections()
         );
     }
 
@@ -107,7 +131,8 @@ public class TestMapper {
             option.getId(),
             option.getQuestion().getId(),
             option.getLabel(),
-            option.getWeight()
+            option.getWeight(),
+            option.getMetadata()
         );
     }
 }

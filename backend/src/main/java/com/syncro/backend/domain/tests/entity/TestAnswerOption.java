@@ -11,7 +11,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "test_answer_options")
@@ -31,12 +35,19 @@ public class TestAnswerOption {
     @Column(name = "weight", nullable = false)
     private int weight;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata", nullable = false, columnDefinition = "jsonb")
+    private Map<String, Object> metadata;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+        if (metadata == null) {
+            metadata = new HashMap<>();
+        }
     }
 
     public UUID getId() {
@@ -69,6 +80,14 @@ public class TestAnswerOption {
 
     public void setWeight(int weight) {
         this.weight = weight;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
     }
 
     public Instant getCreatedAt() {

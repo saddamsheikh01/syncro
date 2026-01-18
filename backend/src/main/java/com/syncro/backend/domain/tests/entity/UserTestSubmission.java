@@ -12,7 +12,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "user_test_submissions")
@@ -30,12 +34,19 @@ public class UserTestSubmission {
     @JoinColumn(name = "test_id", nullable = false)
     private TestDefinition testDefinition;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "score_payload", nullable = false, columnDefinition = "jsonb")
+    private Map<String, Object> scorePayload;
+
     @Column(name = "submitted_at", nullable = false)
     private Instant submittedAt;
 
     @PrePersist
     void onCreate() {
         submittedAt = Instant.now();
+        if (scorePayload == null) {
+            scorePayload = new HashMap<>();
+        }
     }
 
     public UUID getId() {
@@ -60,6 +71,14 @@ public class UserTestSubmission {
 
     public void setTestDefinition(TestDefinition testDefinition) {
         this.testDefinition = testDefinition;
+    }
+
+    public Map<String, Object> getScorePayload() {
+        return scorePayload;
+    }
+
+    public void setScorePayload(Map<String, Object> scorePayload) {
+        this.scorePayload = scorePayload;
     }
 
     public Instant getSubmittedAt() {

@@ -82,6 +82,15 @@ public class AdminTestService {
         definition.setTitle(normalizeRequired(request.title()));
         definition.setDescription(normalizeOptional(request.description()));
         definition.setActive(request.active() != null ? request.active() : true);
+        if (request.testType() != null) {
+            definition.setTestType(request.testType());
+        }
+        if (request.scoringStrategy() != null) {
+            definition.setScoringStrategy(request.scoringStrategy());
+        }
+        if (request.config() != null) {
+            definition.setConfig(request.config());
+        }
         TestDefinition saved = testDefinitionRepository.save(definition);
         return testMapper.toAdminDefinitionResponse(saved);
     }
@@ -102,6 +111,15 @@ public class AdminTestService {
         }
         if (request.active() != null) {
             definition.setActive(request.active());
+        }
+        if (request.testType() != null) {
+            definition.setTestType(request.testType());
+        }
+        if (request.scoringStrategy() != null) {
+            definition.setScoringStrategy(request.scoringStrategy());
+        }
+        if (request.config() != null) {
+            definition.setConfig(request.config());
         }
         TestDefinition saved = testDefinitionRepository.save(definition);
         return testMapper.toAdminDefinitionResponse(saved);
@@ -129,6 +147,15 @@ public class AdminTestService {
         question.setTestDefinition(definition);
         question.setQuestion(normalizeRequired(request.question()));
         question.setPosition(request.position());
+        if (request.questionType() != null) {
+            question.setQuestionType(request.questionType());
+        }
+        if (request.required() != null) {
+            question.setRequired(request.required());
+        }
+        if (request.maxSelections() != null) {
+            question.setMaxSelections(request.maxSelections());
+        }
         TestQuestion saved = testQuestionRepository.save(question);
         return testMapper.toAdminQuestionResponse(saved);
     }
@@ -148,6 +175,15 @@ public class AdminTestService {
         if (request.position() != null) {
             question.setPosition(request.position());
         }
+        if (request.questionType() != null) {
+            question.setQuestionType(request.questionType());
+        }
+        if (request.required() != null) {
+            question.setRequired(request.required());
+        }
+        if (request.maxSelections() != null) {
+            question.setMaxSelections(request.maxSelections());
+        }
         TestQuestion saved = testQuestionRepository.save(question);
         return testMapper.toAdminQuestionResponse(saved);
     }
@@ -156,7 +192,7 @@ public class AdminTestService {
     public void deleteQuestion(AdminPrincipal principal, UUID testId, UUID questionId) {
         ensureSuperAdmin(principal);
         TestQuestion question = getQuestion(testId, questionId);
-        if (userTestAnswerRepository.existsByQuestionId(question.getId())) {
+        if (userTestAnswerRepository.existsByQuestion_Id(question.getId())) {
             throw new ConflictException("Domanda gia utilizzata");
         }
         testQuestionRepository.delete(question);
@@ -175,6 +211,9 @@ public class AdminTestService {
         option.setQuestion(question);
         option.setLabel(normalizeRequired(request.label()));
         option.setWeight(request.weight());
+        if (request.metadata() != null) {
+            option.setMetadata(request.metadata());
+        }
         TestAnswerOption saved = testAnswerOptionRepository.save(option);
         return testMapper.toAdminAnswerOptionResponse(saved);
     }
@@ -189,13 +228,16 @@ public class AdminTestService {
     ) {
         ensureSuperAdmin(principal);
         TestQuestion question = getQuestion(testId, questionId);
-        TestAnswerOption option = testAnswerOptionRepository.findByIdAndQuestionId(optionId, question.getId())
+        TestAnswerOption option = testAnswerOptionRepository.findByIdAndQuestion_Id(optionId, question.getId())
             .orElseThrow(() -> new NotFoundException("Opzione non trovata"));
         if (request.label() != null) {
             option.setLabel(normalizeRequired(request.label()));
         }
         if (request.weight() != null) {
             option.setWeight(request.weight());
+        }
+        if (request.metadata() != null) {
+            option.setMetadata(request.metadata());
         }
         TestAnswerOption saved = testAnswerOptionRepository.save(option);
         return testMapper.toAdminAnswerOptionResponse(saved);
@@ -210,9 +252,9 @@ public class AdminTestService {
     ) {
         ensureSuperAdmin(principal);
         TestQuestion question = getQuestion(testId, questionId);
-        TestAnswerOption option = testAnswerOptionRepository.findByIdAndQuestionId(optionId, question.getId())
+        TestAnswerOption option = testAnswerOptionRepository.findByIdAndQuestion_Id(optionId, question.getId())
             .orElseThrow(() -> new NotFoundException("Opzione non trovata"));
-        if (userTestAnswerRepository.existsByAnswerOptionId(option.getId())) {
+        if (userTestAnswerRepository.existsByAnswerOption_Id(option.getId())) {
             throw new ConflictException("Opzione gia utilizzata");
         }
         testAnswerOptionRepository.delete(option);
@@ -259,7 +301,7 @@ public class AdminTestService {
         }
         List<UUID> questionIds = questions.stream().map(TestQuestion::getId).toList();
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = testAnswerOptionRepository
-            .findByQuestionIdIn(questionIds)
+            .findByQuestion_IdIn(questionIds)
             .stream()
             .collect(Collectors.groupingBy(option -> option.getQuestion().getId()));
         optionsByQuestion.values()

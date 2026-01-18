@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TestAnswerOptionRepository extends JpaRepository<TestAnswerOption, UUID> {
 
-    List<TestAnswerOption> findByQuestionIdIn(Collection<UUID> questionIds);
+    List<TestAnswerOption> findByQuestion_IdIn(Collection<UUID> questionIds);
 
-    List<TestAnswerOption> findByQuestionIdOrderByCreatedAtAsc(UUID questionId);
+    List<TestAnswerOption> findByQuestion_IdOrderByCreatedAtAsc(UUID questionId);
 
-    Optional<TestAnswerOption> findByIdAndQuestionId(UUID id, UUID questionId);
+    Optional<TestAnswerOption> findByIdAndQuestion_Id(UUID id, UUID questionId);
 }

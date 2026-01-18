@@ -200,6 +200,52 @@ Atteso:
 
 ---
 
+# Test API - Tests (Postman)
+
+## 1) Lista test
+**GET** `{{baseUrl}}/api/v1/tests`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Lista test con `testType`
+
+## 2) Dettaglio test
+**GET** `{{baseUrl}}/api/v1/tests/{testId}`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+
+Atteso:
+- **200 OK**
+- Test con `questionType`, `required`, `maxSelections`, `config`
+
+## 3) Submit test (multi-select)
+**POST** `{{baseUrl}}/api/v1/tests/{testId}/submit`
+Headers:
+- `Authorization: Bearer {{accessToken}}`
+- `Content-Type: application/json`
+
+Body (raw JSON):
+```json
+{
+  "answers": [
+    {
+      "questionId": "11111111-1111-1111-1111-111111111111",
+      "answerOptionIds": [
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+      ]
+    }
+  ]
+}
+```
+
+Atteso:
+- **201 Created**
+
+---
+
 # Test API - Preferences (Postman)
 
 ## 1) Preferenze utente correnti

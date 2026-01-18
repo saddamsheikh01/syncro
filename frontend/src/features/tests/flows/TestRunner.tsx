@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
+import { Badge } from "@/components/elements/Badge";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { QuestionCard } from "@/features/tests/cards/QuestionCard";
+import { MapAnswerOptionCard } from "@/features/tests/lists/MapAnswerOptionCard";
 import { SubmissionProgress } from "@/features/tests/elements/SubmissionProgress";
 import type { TestQuestionResponse } from "@/types/tests";
 import { useTests } from "@/hooks";
@@ -23,7 +25,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const router = useRouter();
   const { activeTest, loading, error, actions } = useTests();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -46,24 +48,62 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   );
 
   const currentQuestion = questions[currentIndex];
-  const selectedOptionId = currentQuestion
-    ? answers[currentQuestion.id]
-    : undefined;
-  const answeredCount = Object.keys(answers).length;
-  const allAnswered = questions.length > 0 && answeredCount === questions.length;
+  const selectedOptionIds = currentQuestion
+    ? answers[currentQuestion.id] ?? []
+    : [];
+  const requiredQuestions = questions.filter((question) => question.required);
+  const requiredCount = requiredQuestions.length;
+  const answeredRequiredCount = requiredQuestions.filter(
+    (question) => (answers[question.id] ?? []).length > 0
+  ).length;
+  const answeredCount = Object.values(answers).filter(
+    (items) => items.length > 0
+  ).length;
+  const allAnswered =
+    requiredCount > 0 ? answeredRequiredCount === requiredCount : answeredCount > 0;
   const isLastQuestion = currentIndex === questions.length - 1;
-  const canAdvance = Boolean(selectedOptionId);
+  const canAdvance = currentQuestion
+    ? currentQuestion.required
+      ? selectedOptionIds.length > 0
+      : true
+    : false;
   const isInitialLoading = loading && !activeTest;
+  const resolveMaxSelections = (question: TestQuestionResponse) => {
+    if (question.questionType === "SINGLE") return 1;
+    const maxSelections = question.maxSelections ?? question.options.length;
+    return Math.max(1, maxSelections);
+  };
 
   const handleOptionToggle = (optionId: string, nextSelected: boolean) => {
     if (!currentQuestion) return;
     setSubmitError(null);
     setAnswers((prev) => {
       const next = { ...prev };
+      const existing = next[currentQuestion.id] ?? [];
+      if (currentQuestion.questionType === "SINGLE") {
+        if (nextSelected) {
+          next[currentQuestion.id] = [optionId];
+        } else {
+          delete next[currentQuestion.id];
+        }
+        return next;
+      }
       if (nextSelected) {
-        next[currentQuestion.id] = optionId;
+        const maxSelections = resolveMaxSelections(currentQuestion);
+        if (existing.length >= maxSelections) {
+          setSubmitError(
+            `Puoi selezionare al massimo ${maxSelections} opzioni.`
+          );
+          return prev;
+        }
+        next[currentQuestion.id] = [...existing, optionId];
       } else {
-        delete next[currentQuestion.id];
+        const filtered = existing.filter((id) => id !== optionId);
+        if (filtered.length) {
+          next[currentQuestion.id] = filtered;
+        } else {
+          delete next[currentQuestion.id];
+        }
       }
       return next;
     });
@@ -85,17 +125,19 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
   const handleSubmit = async () => {
     if (!allAnswered) {
-      setSubmitError("Completa tutte le domande prima di inviare.");
+      setSubmitError("Completa le domande richieste prima di inviare.");
       return;
     }
     setSubmitError(null);
     setSubmitting(true);
     try {
       await actions.submitTest(testId, {
-        answers: questions.map((question) => ({
-          questionId: question.id,
-          answerOptionId: answers[question.id],
-        })),
+        answers: questions
+          .map((question) => ({
+            questionId: question.id,
+            answerOptionIds: answers[question.id] ?? [],
+          }))
+          .filter((answer) => answer.answerOptionIds.length > 0),
       });
       setSubmitted(true);
     } catch {
@@ -174,8 +216,17 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     id: option.id,
     label: option.label,
     indexLabel: String(index + 1),
-    selected: selectedOptionId === option.id,
+    selected: selectedOptionIds.includes(option.id),
   }));
+  const isInterestTest =
+    activeTest.testType === "INTERESTS" &&
+    currentQuestion.questionType === "MULTI";
+  const maxSelections = resolveMaxSelections(currentQuestion);
+  const selectionHelper = currentQuestion.questionType === "MULTI"
+    ? `Puoi selezionare fino a ${maxSelections} ${
+        isInterestTest ? "card" : "opzioni"
+      }.`
+    : undefined;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
@@ -193,18 +244,46 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
       <SubmissionProgress
         label="Avanzamento"
-        current={answeredCount}
-        total={questions.length}
-        helper="Completa tutte le domande per inviare il test."
+        current={requiredCount > 0 ? answeredRequiredCount : answeredCount}
+        total={requiredCount > 0 ? requiredCount : questions.length}
+        helper="Completa tutte le domande richieste per inviare il test."
       />
 
-      <QuestionCard
-        title={currentQuestion.question}
-        questionNumber={currentIndex + 1}
-        totalQuestions={questions.length}
-        options={optionItems}
-        onOptionToggle={handleOptionToggle}
-      />
+      {isInterestTest ? (
+        <Card className="space-y-4 p-5">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="accent" size="sm">
+                Domanda {currentIndex + 1}/{questions.length}
+              </Badge>
+              {selectionHelper ? (
+                <span className="text-xs text-subtle">{selectionHelper}</span>
+              ) : null}
+            </div>
+            <h4 className="text-base font-semibold text-foreground">
+              {currentQuestion.question}
+            </h4>
+          </div>
+          <MapAnswerOptionCard
+            className="grid gap-3 sm:grid-cols-2"
+            items={currentQuestion.options.map((option) => ({
+              id: option.id,
+              label: option.label,
+              selected: selectedOptionIds.includes(option.id),
+            }))}
+            onItemToggle={handleOptionToggle}
+          />
+        </Card>
+      ) : (
+        <QuestionCard
+          title={currentQuestion.question}
+          subtitle={selectionHelper}
+          questionNumber={currentIndex + 1}
+          totalQuestions={questions.length}
+          options={optionItems}
+          onOptionToggle={handleOptionToggle}
+        />
+      )}
 
       {submitError ? (
         <p className="text-sm text-danger">{submitError}</p>
