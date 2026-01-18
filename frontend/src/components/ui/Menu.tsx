@@ -39,7 +39,8 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "wallet", label: "Syncro Wallet", href: "/wallet", icon: "wallet" },
   { id: "news", label: "News", href: "/news", icon: "document" },
   { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
-  { id: "test", label: "Test", href: "/test", icon: "clipboard" },
+  { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
+  { id: "ui-test", label: "UI-test", href: "/test", icon: "clipboard" },
 ];
 
 const normalizePath = (path: string) =>
