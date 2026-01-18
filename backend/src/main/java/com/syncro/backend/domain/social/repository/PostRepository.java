@@ -60,4 +60,20 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("radiusKm") Double radiusKm,
         Pageable pageable
     );
+
+    @Query(
+        value = """
+            SELECT p.*
+            FROM posts p
+            WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :q, '%'))
+            ORDER BY p.created_at DESC
+            """,
+        countQuery = """
+            SELECT COUNT(*)
+            FROM posts p
+            WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :q, '%'))
+            """,
+        nativeQuery = true
+    )
+    Page<Post> searchByContent(@Param("q") String q, Pageable pageable);
 }

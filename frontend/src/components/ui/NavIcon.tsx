@@ -6,7 +6,9 @@ export type NavIconName =
   | "home"
   | "chat"
   | "map"
+  | "map-pin"
   | "spark"
+  | "star"
   | "calendar"
   | "users"
   | "briefcase"
@@ -17,7 +19,8 @@ export type NavIconName =
   | "user"
   | "bell"
   | "clipboard"
-  | "search";
+  | "search"
+  | "chevron-right";
 
 export interface NavIconProps {
   name: NavIconName;
@@ -42,9 +45,20 @@ const renderIcon = (name: NavIconName) => {
           <circle cx="12" cy="11" r="2.5" />
         </>
       );
+    case "map-pin":
+      return (
+        <>
+          <path d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z" />
+          <circle cx="12" cy="11" r="2" />
+        </>
+      );
     case "spark":
       return (
         <path d="M12 3l2.6 5.4 6 .9-4.3 4.2 1 6-5.3-2.9-5.3 2.9 1-6-4.3-4.2 6-.9L12 3z" />
+      );
+    case "star":
+      return (
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
       );
     case "calendar":
       return (
@@ -129,6 +143,8 @@ const renderIcon = (name: NavIconName) => {
           <path d="M20 20l-3.5-3.5" />
         </>
       );
+    case "chevron-right":
+      return <path d="M9 18l6-6-6-6" />;
     default:
       return <circle cx="12" cy="12" r="4" />;
   }

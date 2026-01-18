@@ -18,6 +18,12 @@ export type FeedParams = {
   size?: number;
 };
 
+export type PostSearchParams = {
+  q: string;
+  page?: number;
+  size?: number;
+};
+
 export type PageParams = {
   page?: number;
   size?: number;
@@ -45,6 +51,16 @@ export const likePost = async (postId: Uuid): Promise<void> => {
 
 export const unlikePost = async (postId: Uuid): Promise<void> => {
   await apiClient.delete(`/posts/${postId}/likes`);
+};
+
+export const searchPosts = async (
+  params: PostSearchParams
+): Promise<PageResponse<PostResponse>> => {
+  const { data } = await apiClient.get<PageResponse<PostResponse>>(
+    "/posts/search",
+    { params: buildQueryParams(params) }
+  );
+  return data;
 };
 
 export const getConversations = async (

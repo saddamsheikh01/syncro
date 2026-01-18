@@ -47,6 +47,17 @@ public class PostsController {
         return ResponseEntity.ok(postService.getFeed(principal, lat, lng, radiusKm, page, size));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Cerca post per contenuto")
+    public ResponseEntity<Page<PostResponse>> searchPosts(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @RequestParam String q,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(postService.searchPosts(principal, q, page, size));
+    }
+
     @PostMapping
     @Operation(summary = "Crea post")
     public ResponseEntity<PostResponse> createPost(

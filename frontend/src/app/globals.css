@@ -17,6 +17,12 @@
   --success: #18a957;
   --warning: #f2b203;
   --danger: #e35757;
+  --zyra-gradient-start: #8b5cf6;
+  --zyra-gradient-mid: #6366f1;
+  --zyra-gradient-end: #3b82f6;
+  --zyra-glow: rgba(139, 92, 246, 0.15);
+  --zyra-border: rgba(139, 92, 246, 0.3);
+  --zyra-text: #7c3aed;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
@@ -50,6 +56,12 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-zyra-start: var(--zyra-gradient-start);
+  --color-zyra-mid: var(--zyra-gradient-mid);
+  --color-zyra-end: var(--zyra-gradient-end);
+  --color-zyra-glow: var(--zyra-glow);
+  --color-zyra-border: var(--zyra-border);
+  --color-zyra-text: var(--zyra-text);
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);

@@ -1,0 +1,213 @@
+"use client";
+
+import type {
+  PlaceSummaryResponse,
+  ExperienceSummaryResponse,
+} from "@/types/catalog";
+import type { PostResponse } from "@/types/social";
+import { cx } from "@/lib/classNames";
+import { NavIcon } from "@/components/ui/NavIcon";
+
+export interface ZyraSearchResultsProps {
+  places: PlaceSummaryResponse[];
+  experiences: ExperienceSummaryResponse[];
+  posts: PostResponse[];
+  loading: boolean;
+  query: string;
+  onResultClick: (type: "place" | "experience" | "post", id: string) => void;
+}
+
+export const ZyraSearchResults = ({
+  places,
+  experiences,
+  posts,
+  loading,
+  query,
+  onResultClick,
+}: ZyraSearchResultsProps) => {
+  const hasResults =
+    places.length > 0 || experiences.length > 0 || posts.length > 0;
+  const showNoResults = !loading && query.length >= 2 && !hasResults;
+
+  return (
+    <div
+      className={cx(
+        "absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-lg)] border bg-surface shadow-lg",
+        "border-zyra-border"
+      )}
+      style={{
+        boxShadow: "0 8px 32px var(--zyra-glow), 0 4px 16px rgba(0,0,0,0.08)",
+      }}
+      role="listbox"
+    >
+      <div
+        className="h-1 w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, var(--zyra-gradient-start), var(--zyra-gradient-mid), var(--zyra-gradient-end))",
+        }}
+      />
+
+      <div className="max-h-[400px] overflow-y-auto p-2">
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-8 text-subtle">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-zyra-text border-t-transparent" />
+            <span className="text-sm">Zyra sta cercando...</span>
+          </div>
+        )}
+
+        {showNoResults && (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ background: "var(--zyra-glow)" }}
+            >
+              <NavIcon name="search" className="h-5 w-5 text-zyra-text" />
+            </div>
+            <p className="text-sm text-subtle">
+              Nessun risultato per &ldquo;{query}&rdquo;
+            </p>
+            <p className="text-xs text-subtle">Prova con termini diversi</p>
+          </div>
+        )}
+
+        {!loading && hasResults && (
+          <>
+            {places.length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <NavIcon
+                    name="map-pin"
+                    className="h-3.5 w-3.5 text-zyra-text"
+                  />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
+                    Luoghi
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {places.map((place) => (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onClick={() => onResultClick("place", place.id)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      role="option"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
+                        <NavIcon
+                          name="map-pin"
+                          className="h-4 w-4 text-muted"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {place.name}
+                        </p>
+                        {place.category && (
+                          <p className="truncate text-xs text-subtle">
+                            {place.category.name}
+                          </p>
+                        )}
+                      </div>
+                      <NavIcon
+                        name="chevron-right"
+                        className="h-4 w-4 shrink-0 text-subtle"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {experiences.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <NavIcon name="star" className="h-3.5 w-3.5 text-zyra-text" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
+                    Esperienze
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {experiences.map((experience) => (
+                    <button
+                      key={experience.id}
+                      type="button"
+                      onClick={() => onResultClick("experience", experience.id)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      role="option"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
+                        <NavIcon name="star" className="h-4 w-4 text-muted" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {experience.name}
+                        </p>
+                        {experience.category && (
+                          <p className="truncate text-xs text-subtle">
+                            {experience.category.name}
+                          </p>
+                        )}
+                      </div>
+                      <NavIcon
+                        name="chevron-right"
+                        className="h-4 w-4 shrink-0 text-subtle"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {posts.length > 0 && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <NavIcon name="chat" className="h-3.5 w-3.5 text-zyra-text" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
+                    Post
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {posts.map((post) => (
+                    <button
+                      key={post.id}
+                      type="button"
+                      onClick={() => onResultClick("post", post.id)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      role="option"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
+                        <NavIcon name="chat" className="h-4 w-4 text-muted" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {`Utente ${post.userId?.toString()?.slice(0, 8)}`}
+                        </p>
+                        <p className="truncate text-xs text-subtle">
+                          {post.content.slice(0, 120)}
+                        </p>
+                      </div>
+                      <NavIcon
+                        name="chevron-right"
+                        className="h-4 w-4 shrink-0 text-subtle"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {!loading && hasResults && (
+        <div className="border-t border-border/60 px-3 py-2">
+          <p className="text-center text-[10px] text-subtle">
+            Powered by{" "}
+            <span className="font-semibold text-zyra-text">Zyra AI</span>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};

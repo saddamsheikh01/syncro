@@ -80,6 +80,22 @@ public class PostService {
         return mapFeed(posts, user.getId());
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponse> searchPosts(
+        UserPrincipal principal,
+        String query,
+        int page,
+        int size
+    ) {
+        User user = getUser(principal);
+        if (query == null || query.trim().length() < 2) {
+            throw new BadRequestException("Query deve avere almeno 2 caratteri");
+        }
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.searchByContent(query.trim(), pageable);
+        return mapFeed(posts, user.getId());
+    }
+
     @Transactional
     public void likePost(UserPrincipal principal, UUID postId) {
         User user = getUser(principal);
