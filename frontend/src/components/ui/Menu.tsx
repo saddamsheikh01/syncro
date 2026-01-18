@@ -16,15 +16,25 @@ type MenuItem = {
 
 const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
-  { id: "social", label: "Social", href: "/feed", icon: "chat" },
+  { id: "feed", label: "Feed", href: "/feed", icon: "chat" },
   { id: "map", label: "Mappa", href: "/map", icon: "map" },
   { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
   { id: "lounges", label: "Syncro Lounges", href: "/lounges", icon: "spark" },
   { id: "ristoranti", label: "Ristoranti", href: "/places", icon: "spark" },
-  { id: "esperienze", label: "Esperienze", href: "/experiences", icon: "spark" },
+  {
+    id: "esperienze",
+    label: "Esperienze",
+    href: "/experiences",
+    icon: "spark",
+  },
   { id: "living", label: "Syncro Living", href: "/living", icon: "home" },
   { id: "eventi", label: "Eventi", href: "/events", icon: "calendar" },
-  { id: "professionisti", label: "Professionisti", href: "/professionisti", icon: "briefcase" },
+  {
+    id: "professionisti",
+    label: "Professionisti",
+    href: "/professionisti",
+    icon: "briefcase",
+  },
   { id: "tasks", label: "Syncro Tasks", href: "/tasks", icon: "check" },
   { id: "wallet", label: "Syncro Wallet", href: "/wallet", icon: "wallet" },
   { id: "news", label: "News", href: "/news", icon: "document" },
