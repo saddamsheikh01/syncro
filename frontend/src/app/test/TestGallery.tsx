@@ -38,6 +38,7 @@ import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
 import { MapExperienceListItem } from "@/features/catalog/lists/MapExperienceListItem";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
 import { PostHeader } from "@/features/social/elements/PostHeader";
+import { PostCard } from "@/features/social/cards/PostCard";
 import { MapChatListItem } from "@/features/social/lists/MapChatListItem";
 import { MapTestListItem } from "@/features/tests/lists/MapTestListItem";
 import type { FavoriteItemCardProps } from "@/features/favorites/cards/FavoriteItemCard";
@@ -91,7 +92,10 @@ import { PostActionBar } from "@/features/social/sections/PostActionBar";
 import type { PostActionItem } from "@/features/social/lists/MapPostActionButton";
 import { PostMediaStrip } from "@/features/social/sections/PostMediaStrip";
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
+import { PostMediaCarousel } from "@/features/social/sections/PostMediaCarousel";
 import { TranslationToggle } from "@/features/social/elements/TranslationToggle";
+import type { PostResponse } from "@/types/social";
+import { PostComposerPreview } from "./PostComposerPreview";
 import { MapFilterPanel } from "@/features/map/sections/MapFilterPanel";
 import { MapLegend } from "@/features/map/sections/MapLegend";
 import { MapClusterBadge } from "@/features/map/elements/MapClusterBadge";
@@ -362,6 +366,36 @@ const POST_MEDIA_ITEMS: PostMediaItem[] = [
   { id: "media-3", label: "Clip", isVideo: true, duration: "0:32" },
   { id: "media-4", label: "Scatto 2" },
 ];
+const HERO_MEDIA_ITEMS: PostMediaItem[] = [
+  {
+    id: "hero-1",
+    label: "Hero 1",
+    src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000'><rect width='800' height='1000' fill='%23f2f4f8'/><circle cx='400' cy='420' r='180' fill='%23dfe7ff'/><text x='400' y='620' font-size='56' text-anchor='middle' fill='%238a8f98' font-family='Arial'>Syncro</text></svg>",
+  },
+  {
+    id: "hero-2",
+    label: "Hero 2",
+    src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000'><rect width='800' height='1000' fill='%23f9f3ea'/><rect x='140' y='180' width='520' height='520' rx='80' fill='%23f6d7b6'/><text x='400' y='620' font-size='56' text-anchor='middle' fill='%238a8f98' font-family='Arial'>Moments</text></svg>",
+  },
+  {
+    id: "hero-3",
+    label: "Video",
+    isVideo: true,
+    src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000'><rect width='800' height='1000' fill='%23eef5f2'/><polygon points='360,360 520,460 360,560' fill='%239ac7b1'/><text x='400' y='660' font-size='48' text-anchor='middle' fill='%238a8f98' font-family='Arial'>Video</text></svg>",
+  },
+];
+const SAMPLE_POST: PostResponse = {
+  id: "post-1",
+  userId: "user-1",
+  content:
+    "Weekend al lago con un tramonto incredibile. Qualcuno ha voglia di unirsi?",
+  language: "it",
+  latitude: null,
+  longitude: null,
+  likeCount: 48,
+  likedByMe: true,
+  createdAt: new Date().toISOString(),
+};
 const MAP_FILTERS: FilterChipItem[] = [
   { id: "open", label: "Aperto ora", selected: true },
   { id: "verified", label: "Verificato" },
@@ -974,6 +1008,38 @@ export const TestGallery = () => {
             <MapChatListItem items={CHAT_ITEMS} />
           </CardBody>
         </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-foreground">Post card</h3>
+          <p className="text-sm text-muted">
+            Card completa per il feed.
+          </p>
+          <PostCard post={SAMPLE_POST} showMedia={false} />
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-foreground">Post hero</h3>
+            <p className="text-sm text-muted">Slider media stile feed.</p>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <PostMediaCarousel items={HERO_MEDIA_ITEMS} />
+          </CardBody>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-foreground">Post composer</h3>
+          <p className="text-sm text-muted">
+            Modal per la creazione dei post.
+          </p>
+          <PostComposerPreview />
+        </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">

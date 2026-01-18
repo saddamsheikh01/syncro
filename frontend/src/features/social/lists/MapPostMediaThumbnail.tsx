@@ -5,6 +5,7 @@ import { cx } from "@/lib/classNames";
 
 export interface PostMediaItem {
   id: string;
+  src?: string;
   label?: string;
   duration?: string;
   isVideo?: boolean;
@@ -27,6 +28,7 @@ export const MapPostMediaThumbnail = ({
     {items.map((item) => (
       <PostMediaThumbnail
         key={item.id}
+        src={item.src}
         label={item.label}
         duration={item.duration}
         isVideo={item.isVideo}

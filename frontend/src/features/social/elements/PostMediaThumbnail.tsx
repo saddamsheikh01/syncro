@@ -6,6 +6,7 @@ import { cx } from "@/lib/classNames";
 export interface PostMediaThumbnailProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
   className?: string;
+  src?: string;
   label?: string;
   duration?: string;
   isVideo?: boolean;
@@ -14,6 +15,7 @@ export interface PostMediaThumbnailProps
 
 export const PostMediaThumbnail = ({
   className,
+  src,
   label,
   duration,
   isVideo,
@@ -41,9 +43,18 @@ export const PostMediaThumbnail = ({
       )}
       {...props}
     >
-      <span className="flex h-full w-full items-center justify-center text-xs text-subtle">
-        {label ?? (isVideo ? "Video" : "Media")}
-      </span>
+      {src ? (
+        <img
+          src={src}
+          alt={label ?? "Media"}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-xs text-subtle">
+          {label ?? (isVideo ? "Video" : "Media")}
+        </span>
+      )}
       {isVideo && duration ? (
         <span className="absolute bottom-2 left-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10px] font-semibold text-white">
           {duration}
