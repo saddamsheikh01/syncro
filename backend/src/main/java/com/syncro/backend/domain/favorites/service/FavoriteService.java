@@ -89,8 +89,8 @@ public class FavoriteService {
         Map<UUID, ExperienceSummaryResponse> experiences = loadExperienceSummaries(favorites.getContent());
         return favorites.map(favorite -> favoriteMapper.toResponse(
             favorite,
-            places.get(favorite.getPlaceId()),
-            experiences.get(favorite.getExperienceId())
+            favorite.getPlaceId() != null ? places.get(favorite.getPlaceId()) : null,
+            favorite.getExperienceId() != null ? experiences.get(favorite.getExperienceId()) : null
         ));
     }
 

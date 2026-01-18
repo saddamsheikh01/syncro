@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -9,8 +9,9 @@ import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
-import { useCatalog } from "@/hooks";
+import { useCatalog, useFavorites, usePosition } from "@/hooks";
 import { isUuid } from "@/lib/validators";
+import { calculateDistanceKm, formatDistanceKm } from "@/lib/geo";
 
 export interface PlaceDetailProps {
   placeId: string;
@@ -19,8 +20,51 @@ export interface PlaceDetailProps {
 export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const router = useRouter();
   const { placeDetail, loading, error, actions } = useCatalog();
+  const { items: favorites, actions: favoritesActions } = useFavorites();
+  const { position, hasPosition } = usePosition();
   const bootstrappedRef = useRef(false);
+  const favoritesBootstrappedRef = useRef(false);
   const isValidId = isUuid(placeId);
+  const [savingFavorite, setSavingFavorite] = useState(false);
+
+  const distanceKm = useMemo(() => {
+    if (
+      !hasPosition ||
+      !position?.latitude ||
+      !position?.longitude ||
+      !placeDetail?.latitude ||
+      !placeDetail?.longitude
+    ) {
+      return null;
+    }
+    return calculateDistanceKm(
+      position.latitude,
+      position.longitude,
+      placeDetail.latitude,
+      placeDetail.longitude
+    );
+  }, [hasPosition, position, placeDetail]);
+
+  const isFavorite = useMemo(
+    () => favorites.some((fav) => fav.place?.id === placeId),
+    [favorites, placeId]
+  );
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (savingFavorite) return;
+    setSavingFavorite(true);
+    try {
+      if (isFavorite) {
+        await favoritesActions.removeFavorite({ placeId });
+      } else {
+        await favoritesActions.addFavorite({ placeId });
+      }
+    } catch {
+      // Error handled by store
+    } finally {
+      setSavingFavorite(false);
+    }
+  }, [placeId, isFavorite, savingFavorite, favoritesActions]);
 
   useEffect(() => {
     if (!isValidId) {
@@ -32,6 +76,12 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     actions.fetchPlace(placeId).catch(() => undefined);
     return () => actions.clearDetails();
   }, [actions, placeId, isValidId]);
+
+  useEffect(() => {
+    if (favoritesBootstrappedRef.current) return;
+    favoritesBootstrappedRef.current = true;
+    favoritesActions.fetchFavorites({ type: "PLACE" }).catch(() => undefined);
+  }, [favoritesActions]);
 
   if (!isValidId) {
     return (
@@ -143,7 +193,15 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
             </Button>
           )}
           <Button
-            variant="secondary"
+            variant={isFavorite ? "outline" : "secondary"}
+            onClick={handleToggleFavorite}
+            loading={savingFavorite}
+            loadingText={isFavorite ? "Rimuovo..." : "Salvo..."}
+          >
+            {isFavorite ? "Rimuovi dai preferiti" : "Salva nei preferiti"}
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => {
               if (navigator.share) {
                 navigator.share({
@@ -161,6 +219,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       {hasCoordinates && (
         <Card className="space-y-3 p-5">
           <h3 className="text-base font-semibold text-foreground">Posizione</h3>
+          {distanceKm !== null && (
+            <p className="text-sm font-medium text-accent">
+              A {formatDistanceKm(distanceKm)} da te
+            </p>
+          )}
           <p className="text-sm text-muted">
             Coordinate: {placeDetail.latitude?.toFixed(6)},{" "}
             {placeDetail.longitude?.toFixed(6)}

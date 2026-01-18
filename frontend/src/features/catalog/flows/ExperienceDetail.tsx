@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -9,7 +9,7 @@ import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
-import { useCatalog } from "@/hooks";
+import { useCatalog, useFavorites } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 
 export interface ExperienceDetailProps {
@@ -19,8 +19,32 @@ export interface ExperienceDetailProps {
 export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   const router = useRouter();
   const { experienceDetail, loading, error, actions } = useCatalog();
+  const { items: favorites, actions: favoritesActions } = useFavorites();
   const bootstrappedRef = useRef(false);
+  const favoritesBootstrappedRef = useRef(false);
   const isValidId = isUuid(experienceId);
+  const [savingFavorite, setSavingFavorite] = useState(false);
+
+  const isFavorite = useMemo(
+    () => favorites.some((fav) => fav.experience?.id === experienceId),
+    [favorites, experienceId]
+  );
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (savingFavorite) return;
+    setSavingFavorite(true);
+    try {
+      if (isFavorite) {
+        await favoritesActions.removeFavorite({ experienceId });
+      } else {
+        await favoritesActions.addFavorite({ experienceId });
+      }
+    } catch {
+      // Error handled by store
+    } finally {
+      setSavingFavorite(false);
+    }
+  }, [experienceId, isFavorite, savingFavorite, favoritesActions]);
 
   useEffect(() => {
     if (!isValidId) {
@@ -32,6 +56,12 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
     actions.fetchExperience(experienceId).catch(() => undefined);
     return () => actions.clearDetails();
   }, [actions, experienceId, isValidId]);
+
+  useEffect(() => {
+    if (favoritesBootstrappedRef.current) return;
+    favoritesBootstrappedRef.current = true;
+    favoritesActions.fetchFavorites({ type: "EXPERIENCE" }).catch(() => undefined);
+  }, [favoritesActions]);
 
   if (!isValidId) {
     return (
@@ -142,7 +172,15 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
             </Button>
           )}
           <Button
-            variant="secondary"
+            variant={isFavorite ? "outline" : "secondary"}
+            onClick={handleToggleFavorite}
+            loading={savingFavorite}
+            loadingText={isFavorite ? "Rimuovo..." : "Salvo..."}
+          >
+            {isFavorite ? "Rimuovi dai preferiti" : "Salva nei preferiti"}
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => {
               if (navigator.share) {
                 navigator.share({

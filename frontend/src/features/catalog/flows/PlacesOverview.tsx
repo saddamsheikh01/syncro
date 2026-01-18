@@ -8,7 +8,8 @@ import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { Input } from "@/components/elements/Input";
 import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
-import { useCatalog } from "@/hooks";
+import { useCatalog, usePosition } from "@/hooks";
+import { calculateDistanceKm } from "@/lib/geo";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
 
 const PAGE_SIZE = 10;
@@ -23,6 +24,7 @@ export const PlacesOverview = () => {
     hasMorePlaces,
     actions,
   } = useCatalog();
+  const { position, hasPosition } = usePosition();
   const bootstrappedRef = useRef(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -75,13 +77,31 @@ export const PlacesOverview = () => {
 
   const placeItems: PlaceListItemProps[] = useMemo(
     () =>
-      places.map((place) => ({
-        title: place.name,
-        subtitle: place.description ?? undefined,
-        category: place.category?.name ?? undefined,
-        href: `/places/${place.id}`,
-      })),
-    [places]
+      places.map((place) => {
+        let distanceKm: number | undefined;
+        if (
+          hasPosition &&
+          position?.latitude &&
+          position?.longitude &&
+          place.latitude &&
+          place.longitude
+        ) {
+          distanceKm = calculateDistanceKm(
+            position.latitude,
+            position.longitude,
+            place.latitude,
+            place.longitude
+          );
+        }
+        return {
+          title: place.name,
+          subtitle: place.description ?? undefined,
+          category: place.category?.name ?? undefined,
+          href: `/places/${place.id}`,
+          distanceKm,
+        };
+      }),
+    [places, hasPosition, position]
   );
 
   const isInitialLoading = loading && places.length === 0;
