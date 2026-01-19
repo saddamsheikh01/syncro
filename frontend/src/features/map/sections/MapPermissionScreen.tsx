@@ -27,6 +27,8 @@ export interface MapPermissionScreenProps
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
   helper?: string;
+  onPrimaryAction?: () => void;
+  onSecondaryAction?: () => void;
 }
 
 export const MapPermissionScreen = ({
@@ -36,6 +38,8 @@ export const MapPermissionScreen = ({
   primaryActionLabel = "Attiva posizione",
   secondaryActionLabel = "Usa senza posizione",
   helper = "La posizione migliora i suggerimenti.",
+  onPrimaryAction,
+  onSecondaryAction,
   ...props
 }: MapPermissionScreenProps) => (
   <Card className={cx("space-y-5 p-6", className)} {...props}>
@@ -49,8 +53,8 @@ export const MapPermissionScreen = ({
       </div>
     </div>
     <div className="flex flex-wrap items-center gap-3">
-      <Button size="sm">{primaryActionLabel}</Button>
-      <Button size="sm" variant="ghost">
+      <Button size="sm" onClick={onPrimaryAction}>{primaryActionLabel}</Button>
+      <Button size="sm" variant="ghost" onClick={onSecondaryAction}>
         {secondaryActionLabel}
       </Button>
     </div>

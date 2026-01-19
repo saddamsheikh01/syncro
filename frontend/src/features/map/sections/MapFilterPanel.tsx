@@ -21,6 +21,9 @@ export interface MapFilterPanelProps
   defaultDistance?: string;
   filters?: FilterChipItem[];
   onFilterToggle?: (id: string, nextSelected: boolean) => void;
+  onCategoryChange?: (value: string | null) => void;
+  onDistanceChange?: (value: string | null) => void;
+  onSearchChange?: (value: string) => void;
   actionLabel?: string;
   onActionClick?: () => void;
   showAction?: boolean;
@@ -37,6 +40,9 @@ export const MapFilterPanel = ({
   defaultDistance,
   filters = [],
   onFilterToggle,
+  onCategoryChange,
+  onDistanceChange,
+  onSearchChange,
   actionLabel = "Applica filtri",
   onActionClick,
   showAction = true,
@@ -47,19 +53,25 @@ export const MapFilterPanel = ({
       <h4 className="text-base font-semibold text-foreground">{title}</h4>
       {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
     </div>
-    <Input label="Ricerca" placeholder={searchPlaceholder} />
+    <Input
+      label="Ricerca"
+      placeholder={searchPlaceholder}
+      onChange={(e) => onSearchChange?.(e.target.value)}
+    />
     <div className="grid gap-3 sm:grid-cols-2">
       <Select
         label="Categoria"
         options={categoryOptions}
         defaultValue={defaultCategory}
         placeholder="Tutte"
+        onValueChange={(val) => onCategoryChange?.(val || null)}
       />
       <Select
         label="Distanza"
         options={distanceOptions}
         defaultValue={defaultDistance}
         placeholder="Qualsiasi"
+        onValueChange={(val) => onDistanceChange?.(val || null)}
       />
     </div>
     {filters.length ? (

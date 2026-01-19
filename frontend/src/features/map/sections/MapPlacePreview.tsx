@@ -19,6 +19,9 @@ export interface MapPlacePreviewProps
   media?: ReactNode;
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
+  onPrimaryAction?: () => void;
+  onSecondaryAction?: () => void;
+  onClose?: () => void;
 }
 
 export const MapPlacePreview = ({
@@ -33,20 +36,46 @@ export const MapPlacePreview = ({
   media,
   primaryActionLabel = "Apri",
   secondaryActionLabel = "Salva",
+  onPrimaryAction,
+  onSecondaryAction,
+  onClose,
   ...props
 }: MapPlacePreviewProps) => (
-  <Card className={cx("space-y-4 p-4", className)} {...props}>
+  <Card className={cx("relative space-y-4 p-4", className)} {...props}>
+    {onClose ? (
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-surface-muted text-muted transition hover:bg-border hover:text-foreground"
+        aria-label="Chiudi"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    ) : null}
     <div className="flex flex-wrap gap-4">
       <div className="h-24 w-24 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
         {media ?? <div className="h-full w-full" />}
       </div>
       <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 pr-6">
           <div className="min-w-0 space-y-1">
             <h4 className="truncate text-base font-semibold text-foreground">
               {title}
             </h4>
-            {subtitle ? <p className="text-xs text-subtle">{subtitle}</p> : null}
+            {subtitle ? (
+              <p className="line-clamp-2 text-xs text-subtle">{subtitle}</p>
+            ) : null}
           </div>
           {category ? <Badge tone="accent">{category}</Badge> : null}
         </div>
@@ -73,8 +102,10 @@ export const MapPlacePreview = ({
       </div>
     ) : null}
     <div className="flex flex-wrap gap-3">
-      <Button size="sm">{primaryActionLabel}</Button>
-      <Button size="sm" variant="secondary">
+      <Button size="sm" onClick={onPrimaryAction}>
+        {primaryActionLabel}
+      </Button>
+      <Button size="sm" variant="secondary" onClick={onSecondaryAction}>
         {secondaryActionLabel}
       </Button>
     </div>
