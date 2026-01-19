@@ -16,34 +16,17 @@ type MenuItem = {
 
 const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
+  { id: "map", label: "Mappa", href: "/map", icon: "map" },
+  { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
   { id: "feed", label: "Feed", href: "/feed", icon: "document" },
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
-  { id: "map", label: "Mappa", href: "/map", icon: "map" },
-  { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
-  { id: "lounges", label: "Syncro Lounges", href: "/lounges", icon: "spark" },
-  { id: "ristoranti", label: "Ristoranti", href: "/places", icon: "spark" },
-  {
-    id: "esperienze",
-    label: "Esperienze",
-    href: "/experiences",
-    icon: "spark",
-  },
+  { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
+  { id: "experiences", label: "Esperienze", href: "/experiences", icon: "spark" },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
-  { id: "living", label: "Syncro Living", href: "/living", icon: "home" },
-  { id: "eventi", label: "Eventi", href: "/events", icon: "calendar" },
-  {
-    id: "professionisti",
-    label: "Professionisti",
-    href: "/professionisti",
-    icon: "briefcase",
-  },
-  { id: "tasks", label: "Syncro Tasks", href: "/tasks", icon: "check" },
-  { id: "wallet", label: "Syncro Wallet", href: "/wallet", icon: "wallet" },
-  { id: "news", label: "News", href: "/news", icon: "document" },
+  { id: "profile", label: "Profilo", href: "/profile", icon: "user" },
   { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
   { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
-  { id: "ui-test", label: "UI-test", href: "/test", icon: "clipboard" },
 ];
 
 const normalizePath = (path: string) =>
