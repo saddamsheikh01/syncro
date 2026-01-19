@@ -15,7 +15,8 @@ import type { LegendItemData } from "@/features/map/lists/MapLegendItem";
 import type { SelectOption } from "@/components/elements/Select";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
 import type { PlaceSummaryResponse } from "@/types/catalog";
-import { useCatalog, usePosition } from "@/hooks";
+import type { RecommendationResponse } from "@/types/matches";
+import { useCatalog, usePosition, useMatches } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 
 // Import dinamico per MapContainer (evita SSR issues con Leaflet)
@@ -64,18 +65,29 @@ export const MapOverview = () => {
     loading: positionLoading,
     actions: positionActions,
   } = usePosition();
+  const {
+    recommendations,
+    loadingRecommendations,
+    error: matchesError,
+    actions: matchesActions,
+  } = useMatches();
 
   const [selectedPlace, setSelectedPlace] =
     useState<PlaceSummaryResponse | null>(null);
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<RecommendationResponse | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDistance, setSelectedDistance] = useState<string>("25");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [forYouMode, setForYouMode] = useState(false);
   const [gpsWatchId, setGpsWatchId] = useState<number | null>(null);
   const [isRequestingPosition, setIsRequestingPosition] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const bootstrappedRef = useRef(false);
+  const forYouFetchedRef = useRef(false);
 
   // Carica categorie all'avvio
   useEffect(() => {
@@ -84,20 +96,40 @@ export const MapOverview = () => {
     catalogActions.fetchCategories({ size: 50 }).catch(() => undefined);
   }, [catalogActions]);
 
+  // Carica raccomandazioni quando forYouMode è attivo
+  useEffect(() => {
+    if (!forYouMode || permission !== "granted") return;
+    if (forYouFetchedRef.current) return;
+    forYouFetchedRef.current = true;
+    matchesActions.fetchRecommendations({ type: "PLACE", size: 50 }).catch(() => undefined);
+  }, [forYouMode, permission, matchesActions]);
+
+  // Reset flag quando si disattiva forYouMode
+  useEffect(() => {
+    if (!forYouMode) {
+      forYouFetchedRef.current = false;
+    }
+  }, [forYouMode]);
+
   // Carica luoghi quando cambia posizione o filtri
   useEffect(() => {
     if (permission !== "granted") return;
+    if (forYouMode) return; // In modalità "Per te" usa le raccomandazioni
 
     const params: Record<string, unknown> = {
       size: PAGE_SIZE,
       categoryId: selectedCategory || undefined,
-      radiusKm: selectedDistance ? Number(selectedDistance) : undefined,
       q: searchQuery || undefined,
     };
 
-    if (hasPosition && position?.latitude && position?.longitude) {
-      params.lat = position.latitude;
-      params.lng = position.longitude;
+    // Applica filtro distanza solo se NON c'è una ricerca testuale
+    // Questo permette di cercare luoghi in altre città
+    if (!searchQuery) {
+      params.radiusKm = selectedDistance ? Number(selectedDistance) : undefined;
+      if (hasPosition && position?.latitude && position?.longitude) {
+        params.lat = position.latitude;
+        params.lng = position.longitude;
+      }
     }
 
     catalogActions.fetchPlaces(params).catch(() => undefined);
@@ -110,6 +142,7 @@ export const MapOverview = () => {
     selectedCategory,
     selectedDistance,
     searchQuery,
+    forYouMode,
   ]);
 
   // Gestione ricerca con debounce
@@ -230,10 +263,22 @@ export const MapOverview = () => {
   const filterChips: FilterChipItem[] = useMemo(() => {
     const chips: FilterChipItem[] = [];
     if (hasPosition) {
-      chips.push({ id: "nearby", label: "Vicino a me", selected: true });
+      chips.push({ id: "nearby", label: "Vicino a me", selected: !forYouMode });
     }
+    chips.push({ id: "forYou", label: "Per te", selected: forYouMode });
     return chips;
-  }, [hasPosition]);
+  }, [hasPosition, forYouMode]);
+
+  // Gestione toggle filtri chip
+  const handleFilterToggle = useCallback((id: string, nextSelected: boolean) => {
+    if (id === "forYou") {
+      setForYouMode(nextSelected);
+      if (nextSelected) {
+        setSelectedPlace(null);
+        setSelectedRecommendation(null);
+      }
+    }
+  }, []);
 
   // Calcola distanza per il luogo selezionato
   const selectedPlaceDistance = useMemo(() => {
@@ -262,6 +307,36 @@ export const MapOverview = () => {
     }
     return { latitude: position.latitude, longitude: position.longitude };
   }, [hasPosition, position]);
+
+  // Luoghi da mostrare sulla mappa (normali o raccomandati)
+  const displayPlaces: PlaceSummaryResponse[] = useMemo(() => {
+    if (forYouMode) {
+      return recommendations
+        .filter((r) => r.type === "PLACE" && r.place !== null)
+        .map((r) => r.place!);
+    }
+    return places;
+  }, [forYouMode, recommendations, places]);
+
+  // Mappa delle raccomandazioni per ID (per recuperare lo score)
+  const recommendationsByPlaceId = useMemo(() => {
+    const map = new Map<string, RecommendationResponse>();
+    if (forYouMode) {
+      recommendations.forEach((r) => {
+        if (r.place) {
+          map.set(r.place.id, r);
+        }
+      });
+    }
+    return map;
+  }, [forYouMode, recommendations]);
+
+  // Score del luogo selezionato (solo in modalità "Per te")
+  const selectedPlaceScore = useMemo(() => {
+    if (!forYouMode || !selectedPlace) return null;
+    const rec = recommendationsByPlaceId.get(selectedPlace.id);
+    return rec?.score ?? null;
+  }, [forYouMode, selectedPlace, recommendationsByPlaceId]);
 
   // Gate permessi
   if (permission === "unknown") {
@@ -340,7 +415,10 @@ export const MapOverview = () => {
     );
   }
 
-  const isInitialLoading = loading && places.length === 0 && !positionLoading;
+  const isInitialLoading = forYouMode
+    ? loadingRecommendations && displayPlaces.length === 0
+    : loading && places.length === 0 && !positionLoading;
+  const currentError = forYouMode ? matchesError : error;
 
   return (
     <div className="flex h-full flex-col">
@@ -374,6 +452,7 @@ export const MapOverview = () => {
               defaultCategory={selectedCategory ?? undefined}
               defaultDistance={selectedDistance}
               filters={filterChips}
+              onFilterToggle={handleFilterToggle}
               onCategoryChange={(val) => setSelectedCategory(val || null)}
               onDistanceChange={(val) => setSelectedDistance(val || "25")}
               onSearchChange={handleSearchChange}
@@ -393,29 +472,33 @@ export const MapOverview = () => {
             </div>
           )}
 
-          {error && !isInitialLoading && (
+          {currentError && !isInitialLoading && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
               <ErrorState
-                title="Impossibile caricare i luoghi"
-                description={error.message}
+                title={forYouMode ? "Impossibile caricare i suggerimenti" : "Impossibile caricare i luoghi"}
+                description={currentError.message}
               />
             </div>
           )}
 
-          {!error && places.length === 0 && !isInitialLoading && (
+          {!currentError && displayPlaces.length === 0 && !isInitialLoading && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
               <EmptyState
-                title="Nessun luogo trovato"
-                description="Prova a modificare i filtri o ad ampliare il raggio di ricerca."
+                title={forYouMode ? "Nessun suggerimento disponibile" : "Nessun luogo trovato"}
+                description={forYouMode
+                  ? "Completa il tuo profilo e i test per ricevere suggerimenti personalizzati."
+                  : "Prova a modificare i filtri o ad ampliare il raggio di ricerca."
+                }
               />
             </div>
           )}
 
           <MapContainer
-            places={places}
+            places={displayPlaces}
             userPosition={userPositionForMap}
             selectedPlaceId={selectedPlace?.id}
             onPlaceSelect={handlePlaceSelect}
+            recenterTrigger={recenterTrigger}
           />
 
           {/* Legenda */}
@@ -423,12 +506,40 @@ export const MapOverview = () => {
             <MapLegend items={LEGEND_ITEMS} title="" />
           </div>
 
+          {/* Pulsante torna alla mia posizione */}
+          {hasPosition && (
+            <div className="absolute bottom-4 right-4 z-10">
+              <button
+                type="button"
+                onClick={() => setRecenterTrigger((t) => t + 1)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface shadow-md transition hover:bg-surface-muted"
+                aria-label="Torna alla mia posizione"
+                title="Torna alla mia posizione"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           {/* Info luoghi caricati */}
-          {places.length > 0 && (
+          {displayPlaces.length > 0 && (
             <div className="absolute right-4 top-4 z-10">
               <Card className="px-3 py-2">
                 <p className="text-xs font-medium text-muted">
-                  {places.length} luoghi
+                  {displayPlaces.length} {forYouMode ? "suggeriti" : "luoghi"}
                 </p>
               </Card>
             </div>
@@ -443,6 +554,7 @@ export const MapOverview = () => {
               subtitle={selectedPlace.description ?? undefined}
               category={selectedPlace.category?.name}
               distanceKm={selectedPlaceDistance}
+              ratingLabel={selectedPlaceScore !== null ? `${Math.round(selectedPlaceScore)}% compatibile` : undefined}
               primaryActionLabel="Dettagli"
               secondaryActionLabel="Indicazioni"
               onPrimaryAction={() => {
