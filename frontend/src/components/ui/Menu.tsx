@@ -27,6 +27,7 @@ const MENU_ITEMS: MenuItem[] = [
     href: "/experiences",
     icon: "spark",
   },
+  { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
   { id: "living", label: "Syncro Living", href: "/living", icon: "home" },
   { id: "eventi", label: "Eventi", href: "/events", icon: "calendar" },
   {

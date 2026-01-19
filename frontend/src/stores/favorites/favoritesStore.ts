@@ -103,10 +103,29 @@ export const favoritesActions = {
 
     try {
       await removeFavorite(params);
-      favoritesStore.setState((state) => ({
-        items: state.items.filter((favorite) => !matchesFavorite(favorite, params)),
-        loading: false,
-      }));
+      favoritesStore.setState((state) => {
+        const items = state.items.filter((favorite) => !matchesFavorite(favorite, params));
+        const totalElements = Math.max(0, state.pageInfo.totalElements - 1);
+        const totalPages =
+          state.pageInfo.size > 0
+            ? Math.ceil(totalElements / state.pageInfo.size)
+            : state.pageInfo.totalPages;
+        const page =
+          totalPages > 0
+            ? Math.min(state.pageInfo.page, totalPages - 1)
+            : 0;
+
+        return {
+          items,
+          pageInfo: {
+            ...state.pageInfo,
+            totalElements,
+            totalPages,
+            page,
+          },
+          loading: false,
+        };
+      });
     } catch (error) {
       favoritesStore.setState({ loading: false, error: error as ApiError });
       throw error;
