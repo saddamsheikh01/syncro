@@ -21,6 +21,7 @@ export type ChatState = {
   activeConversationId: Uuid | null;
   loadingConversations: boolean;
   loadingMessages: boolean;
+  sendingMessage: boolean;
   error: ApiError | null;
 };
 
@@ -30,6 +31,7 @@ const initialState: ChatState = {
   activeConversationId: null,
   loadingConversations: false,
   loadingMessages: false,
+  sendingMessage: false,
   error: null,
 };
 
@@ -131,15 +133,15 @@ export const chatActions = {
     conversationId: Uuid,
     payload: ChatMessageRequest
   ): Promise<ChatMessageResponse> => {
-    chatStore.setState({ loadingMessages: true, error: null });
+    chatStore.setState({ sendingMessage: true, error: null });
 
     try {
       const message = await sendMessage(conversationId, payload);
       updateMessages(conversationId, [message], true);
-      chatStore.setState({ loadingMessages: false });
+      chatStore.setState({ sendingMessage: false });
       return message;
     } catch (error) {
-      chatStore.setState({ loadingMessages: false, error: error as ApiError });
+      chatStore.setState({ sendingMessage: false, error: error as ApiError });
       throw error;
     }
   },

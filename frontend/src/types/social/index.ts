@@ -23,9 +23,17 @@ export type CreateConversationRequest = {
   otherUserId: Uuid;
 };
 
+export type ChatParticipantInfo = {
+  userId: Uuid;
+  fullName: string | null;
+  avatarUrl: string | null;
+};
+
 export type ChatConversationResponse = {
   id: Uuid;
   participantIds: Uuid[];
+  participants: ChatParticipantInfo[];
+  lastMessage: ChatMessageResponse | null;
   createdAt: IsoDateTime;
 };
 

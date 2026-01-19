@@ -69,7 +69,6 @@ import { ZyraHeader } from "@/features/zyra/sections/ZyraHeader";
 import { MapZyraMessageBubble } from "@/features/zyra/lists/MapZyraMessageBubble";
 import type { ZyraMessageBubbleProps } from "@/features/zyra/elements/ZyraMessageBubble";
 import { ChatHeader } from "@/features/social/sections/ChatHeader";
-import { ChatComposer } from "@/features/social/sections/ChatComposer";
 import { ConversationEmptyState } from "@/features/social/sections/ConversationEmptyState";
 import { AdminTableToolbar } from "@/features/admin/sections/AdminTableToolbar";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
@@ -899,7 +898,6 @@ export const TestGallery = () => {
                 matchScore={82}
                 lastSeen="Ora"
               />
-              <ChatComposer helper="Risposte rapide consigliate." />
             </CardBody>
           </Card>
           <ConversationEmptyState />

@@ -5,9 +5,12 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.ChatConversationResponse;
 import com.syncro.backend.domain.social.dto.ChatMessageRequest;
 import com.syncro.backend.domain.social.dto.ChatMessageResponse;
+import com.syncro.backend.domain.social.dto.ChatParticipantInfo;
 import com.syncro.backend.domain.social.dto.CreateConversationRequest;
 import com.syncro.backend.domain.social.entity.ChatConversation;
 import com.syncro.backend.domain.social.entity.ChatMessage;
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -33,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatService {
 
     private final UserRepository userRepository;
+    private final UserProfileRepository profileRepository;
     private final ChatConversationRepository conversationRepository;
     private final ChatParticipantRepository participantRepository;
     private final ChatMessageRepository messageRepository;
@@ -40,12 +45,14 @@ public class ChatService {
 
     public ChatService(
         UserRepository userRepository,
+        UserProfileRepository profileRepository,
         ChatConversationRepository conversationRepository,
         ChatParticipantRepository participantRepository,
         ChatMessageRepository messageRepository,
         ChatMapper chatMapper
     ) {
         this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
         this.conversationRepository = conversationRepository;
         this.participantRepository = participantRepository;
         this.messageRepository = messageRepository;
@@ -65,11 +72,16 @@ public class ChatService {
         User otherUser = userRepository.findById(otherUserId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
 
+        List<UUID> participantIds = List.of(user.getId(), otherUserId);
+
         UUID existingConversationId = participantRepository.findPrivateConversationId(user.getId(), otherUserId);
         if (existingConversationId != null) {
             ChatConversation existing = conversationRepository.findById(existingConversationId)
                 .orElseThrow(() -> new NotFoundException("Conversazione non trovata"));
-            return chatMapper.toConversationResponse(existing, List.of(user.getId(), otherUserId));
+            List<ChatParticipantInfo> participantInfos = loadParticipantInfos(participantIds);
+            ChatMessage lastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(existingConversationId)
+                .orElse(null);
+            return chatMapper.toConversationResponse(existing, participantIds, participantInfos, lastMessage);
         }
 
         ChatConversation conversation = new ChatConversation();
@@ -80,7 +92,8 @@ public class ChatService {
         participants.add(buildParticipant(saved, otherUser));
         participantRepository.saveAll(participants);
 
-        return chatMapper.toConversationResponse(saved, List.of(user.getId(), otherUserId));
+        List<ChatParticipantInfo> participantInfos = loadParticipantInfos(participantIds);
+        return chatMapper.toConversationResponse(saved, participantIds, participantInfos, null);
     }
 
     @Transactional(readOnly = true)
@@ -96,11 +109,22 @@ public class ChatService {
             .collect(Collectors.toMap(ChatConversation::getId, conversation -> conversation));
         Map<UUID, List<UUID>> participantsByConversation = loadParticipants(conversationIds);
 
+        Set<UUID> allUserIds = participantsByConversation.values().stream()
+            .flatMap(List::stream)
+            .collect(Collectors.toSet());
+        Map<UUID, ChatParticipantInfo> userInfoMap = loadUserInfoMap(allUserIds);
+
+        Map<UUID, ChatMessage> lastMessages = loadLastMessages(conversationIds);
+
         return participants.map(participant -> {
             ChatConversation conversation = conversations.get(participant.getConversationId());
             List<UUID> participantIds = participantsByConversation
                 .getOrDefault(participant.getConversationId(), List.of());
-            return chatMapper.toConversationResponse(conversation, participantIds);
+            List<ChatParticipantInfo> participantInfos = participantIds.stream()
+                .map(id -> userInfoMap.getOrDefault(id, new ChatParticipantInfo(id, null, null)))
+                .toList();
+            ChatMessage lastMessage = lastMessages.get(participant.getConversationId());
+            return chatMapper.toConversationResponse(conversation, participantIds, participantInfos, lastMessage);
         });
     }
 
@@ -159,6 +183,38 @@ public class ChatService {
             map.put(conversationId, userIds);
         }
         return map;
+    }
+
+    private List<ChatParticipantInfo> loadParticipantInfos(List<UUID> userIds) {
+        return userIds.stream()
+            .map(userId -> {
+                UserProfile profile = profileRepository.findByUserId(userId).orElse(null);
+                String fullName = profile != null ? profile.getFullName() : null;
+                return chatMapper.toParticipantInfo(userId, fullName, null);
+            })
+            .toList();
+    }
+
+    private Map<UUID, ChatParticipantInfo> loadUserInfoMap(Set<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, ChatParticipantInfo> map = new HashMap<>();
+        for (UUID userId : userIds) {
+            UserProfile profile = profileRepository.findByUserId(userId).orElse(null);
+            String fullName = profile != null ? profile.getFullName() : null;
+            map.put(userId, chatMapper.toParticipantInfo(userId, fullName, null));
+        }
+        return map;
+    }
+
+    private Map<UUID, ChatMessage> loadLastMessages(List<UUID> conversationIds) {
+        if (conversationIds.isEmpty()) {
+            return Map.of();
+        }
+        List<ChatMessage> lastMessages = messageRepository.findLastMessagesByConversationIds(conversationIds);
+        return lastMessages.stream()
+            .collect(Collectors.toMap(ChatMessage::getConversationId, msg -> msg));
     }
 
     private void ensureParticipant(UUID userId, UUID conversationId) {

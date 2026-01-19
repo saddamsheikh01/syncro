@@ -18,12 +18,17 @@ export const useChat = () => {
     []
   );
 
+  const activeConversation = state.activeConversationId
+    ? state.conversations.find((c) => c.id === state.activeConversationId) ?? null
+    : null;
+
   const activeMessages = state.activeConversationId
     ? state.messagesByConversation[state.activeConversationId] ?? []
     : [];
 
   return {
     ...state,
+    activeConversation,
     activeMessages,
     actions,
   };

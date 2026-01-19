@@ -5,6 +5,21 @@ import { Button } from "@/components/buttons/Button";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { cx } from "@/lib/classNames";
 
+const BackIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5"
+    aria-hidden="true"
+  >
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
 export interface ChatHeaderProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   name: string;
@@ -14,17 +29,21 @@ export interface ChatHeaderProps
   avatarUrl?: string;
   matchScore?: number;
   actionLabel?: string;
+  showBack?: boolean;
+  onBack?: () => void;
 }
 
 export const ChatHeader = ({
   className,
   name,
   subtitle,
-  statusLabel = "Online",
+  statusLabel,
   lastSeen,
   avatarUrl,
   matchScore,
-  actionLabel = "Info",
+  actionLabel,
+  showBack = false,
+  onBack,
   ...props
 }: ChatHeaderProps) => (
   <div
@@ -32,6 +51,17 @@ export const ChatHeader = ({
     {...props}
   >
     <div className="flex min-w-0 items-center gap-3">
+      {showBack ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onBack}
+          aria-label="Torna indietro"
+          className="mr-1 shrink-0 p-2"
+        >
+          <BackIcon />
+        </Button>
+      ) : null}
       <Avatar name={name} src={avatarUrl} />
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">

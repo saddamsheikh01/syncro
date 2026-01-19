@@ -1,33 +1,71 @@
-import type { HTMLAttributes } from "react";
+"use client";
+
+import { useState, type HTMLAttributes, type FormEvent } from "react";
 import { Button } from "@/components/buttons/Button";
-import { Card } from "@/components/elements/Card";
 import { Textarea } from "@/components/elements/Textarea";
 import { cx } from "@/lib/classNames";
 
 export interface ChatComposerProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+  extends Omit<HTMLAttributes<HTMLFormElement>, "title" | "onSubmit"> {
   placeholder?: string;
   primaryActionLabel?: string;
-  secondaryActionLabel?: string;
   helper?: string;
+  loading?: boolean;
+  disabled?: boolean;
+  onSend: (content: string) => void | Promise<void>;
 }
 
 export const ChatComposer = ({
   className,
   placeholder = "Scrivi un messaggio...",
   primaryActionLabel = "Invia",
-  secondaryActionLabel = "Allega",
   helper,
+  loading = false,
+  disabled = false,
+  onSend,
   ...props
-}: ChatComposerProps) => (
-  <Card className={cx("space-y-3 p-4", className)} {...props}>
-    <Textarea placeholder={placeholder} rows={3} />
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <Button size="sm" variant="secondary">
-        {secondaryActionLabel}
-      </Button>
-      <Button size="sm">{primaryActionLabel}</Button>
-    </div>
-    {helper ? <p className="text-xs text-subtle">{helper}</p> : null}
-  </Card>
-);
+}: ChatComposerProps) => {
+  const [content, setContent] = useState("");
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = content.trim();
+    if (!trimmed || loading || disabled) return;
+
+    await onSend(trimmed);
+    setContent("");
+  };
+
+  const isDisabled = loading || disabled || !content.trim();
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className={cx(
+        "space-y-3 rounded-[var(--radius-lg)] border border-border/60 bg-card p-4 shadow-sm",
+        className
+      )}
+      {...props}
+    >
+      <Textarea
+        placeholder={placeholder}
+        rows={2}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        disabled={loading || disabled}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e);
+          }
+        }}
+      />
+      <div className="flex items-center justify-end">
+        <Button size="sm" type="submit" disabled={isDisabled} loading={loading}>
+          {primaryActionLabel}
+        </Button>
+      </div>
+      {helper ? <p className="text-xs text-subtle">{helper}</p> : null}
+    </form>
+  );
+};
