@@ -834,23 +834,6 @@ export const TestGallery = () => {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <MatchFilterBar
-          typeItems={MATCH_TYPES}
-          filterItems={MATCH_FILTER_ITEMS}
-          sortOptions={MATCH_SORT_OPTIONS}
-          defaultSort="compat"
-        />
-        <MatchDetailPanel
-          name="Elena M."
-          location="Milano"
-          matchScore={88}
-          bio="Creativa, amante di viaggi e design."
-          tags={["Design", "Food", "Viaggi"]}
-          insights={MATCH_INSIGHTS}
-        />
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
         <PlaceDetailSheet
           title="Botanica Cafe"
           subtitle="Brunch e botanica"

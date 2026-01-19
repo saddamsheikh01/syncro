@@ -14,10 +14,16 @@ export interface MatchFilterBarProps
   title?: string;
   subtitle?: string;
   searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   typeItems?: MatchTypeItem[];
   filterItems?: TagPillSelectableItem[];
   sortOptions?: SelectOption[];
   defaultSort?: string;
+  sortValue?: string;
+  onSortChange?: (value: string) => void;
+  onTypeToggle?: (id: string, nextSelected: boolean) => void;
+  onFilterToggle?: (id: string, nextSelected: boolean) => void;
 }
 
 export const MatchFilterBar = ({
@@ -25,10 +31,16 @@ export const MatchFilterBar = ({
   title = "Filtri match",
   subtitle = "Aggiorna le preferenze per affinita.",
   searchPlaceholder = "Cerca persone o interessi",
+  searchValue,
+  onSearchChange,
   typeItems = [],
   filterItems = [],
   sortOptions = [],
   defaultSort,
+  sortValue,
+  onSortChange,
+  onTypeToggle,
+  onFilterToggle,
   ...props
 }: MatchFilterBarProps) => (
   <Card className={cx("space-y-4 p-5", className)} {...props}>
@@ -36,25 +48,32 @@ export const MatchFilterBar = ({
       <h4 className="text-base font-semibold text-foreground">{title}</h4>
       {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
     </div>
-    <Input label="Ricerca" placeholder={searchPlaceholder} />
+    <Input
+      label="Ricerca"
+      placeholder={searchPlaceholder}
+      value={searchValue}
+      onChange={(event) => onSearchChange?.(event.target.value)}
+    />
     {sortOptions.length ? (
       <Select
         label="Ordina per"
         options={sortOptions}
         defaultValue={defaultSort}
+        value={sortValue}
+        onValueChange={onSortChange}
         placeholder="Suggeriti"
       />
     ) : null}
     {typeItems.length ? (
       <div className="space-y-2">
         <p className="text-xs font-semibold text-subtle">Tipologia</p>
-        <MapMatchTypeChip items={typeItems} />
+        <MapMatchTypeChip items={typeItems} onItemToggle={onTypeToggle} />
       </div>
     ) : null}
     {filterItems.length ? (
       <div className="space-y-2">
         <p className="text-xs font-semibold text-subtle">Filtri rapidi</p>
-        <MapTagPillSelectable items={filterItems} />
+        <MapTagPillSelectable items={filterItems} onItemToggle={onFilterToggle} />
       </div>
     ) : null}
   </Card>

@@ -11,12 +11,17 @@ import com.syncro.backend.domain.matchmaking.mapper.UserMatchMapper;
 import com.syncro.backend.domain.matchmaking.repository.MatchExplanationRepository;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchCandidateProjection;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchScoreRepository;
+import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.tags.entity.UserInterest;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -36,19 +41,25 @@ public class UserMatchService {
     private final UserMatchScoreRepository userMatchScoreRepository;
     private final MatchExplanationRepository matchExplanationRepository;
     private final UserMatchMapper userMatchMapper;
+    private final UserProfileRepository userProfileRepository;
+    private final UserProfileMapper userProfileMapper;
 
     public UserMatchService(
         UserRepository userRepository,
         UserInterestRepository userInterestRepository,
         UserMatchScoreRepository userMatchScoreRepository,
         MatchExplanationRepository matchExplanationRepository,
-        UserMatchMapper userMatchMapper
+        UserMatchMapper userMatchMapper,
+        UserProfileRepository userProfileRepository,
+        UserProfileMapper userProfileMapper
     ) {
         this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
         this.userMatchScoreRepository = userMatchScoreRepository;
         this.matchExplanationRepository = matchExplanationRepository;
         this.userMatchMapper = userMatchMapper;
+        this.userProfileRepository = userProfileRepository;
+        this.userProfileMapper = userProfileMapper;
     }
 
     @Transactional
@@ -116,10 +127,12 @@ public class UserMatchService {
 
     private Page<UserMatchResponse> mapResponses(Page<UserMatchScore> matches, UUID userId) {
         Map<UUID, String> explanations = loadExplanations(matches.getContent());
+        Map<UUID, UserSummaryResponse> summaries = loadUserSummaries(matches.getContent(), userId);
         return matches.map(match -> userMatchMapper.toResponse(
             match,
             userId,
-            explanations.get(match.getId())
+            explanations.get(match.getId()),
+            summaries.get(resolveOtherUserId(match, userId))
         ));
     }
 
@@ -138,6 +151,33 @@ public class UserMatchService {
             ));
     }
 
+    private Map<UUID, UserSummaryResponse> loadUserSummaries(List<UserMatchScore> matches, UUID currentUserId) {
+        if (matches.isEmpty()) {
+            return Map.of();
+        }
+        Set<UUID> userIds = matches.stream()
+            .map(match -> resolveOtherUserId(match, currentUserId))
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, UserProfile> profiles = new HashMap<>();
+        userProfileRepository.findByUserIdIn(userIds)
+            .forEach(profile -> {
+                if (profile.getUser() != null && profile.getUser().getId() != null) {
+                    profiles.putIfAbsent(profile.getUser().getId(), profile);
+                }
+            });
+
+        return userIds.stream()
+            .collect(Collectors.toMap(
+                id -> id,
+                id -> userProfileMapper.toSummary(id, profiles.get(id))
+            ));
+    }
+
     private UUID orderFirst(UUID first, UUID second) {
         if (first.compareTo(second) <= 0) {
             return first;
@@ -150,6 +190,16 @@ public class UserMatchService {
             return second;
         }
         return first;
+    }
+
+    private UUID resolveOtherUserId(UserMatchScore matchScore, UUID currentUserId) {
+        if (currentUserId == null) {
+            return matchScore.getUserBId();
+        }
+        if (currentUserId.equals(matchScore.getUserAId())) {
+            return matchScore.getUserBId();
+        }
+        return matchScore.getUserAId();
     }
 
     private User getUser(UserPrincipal principal) {

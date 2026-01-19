@@ -6,6 +6,7 @@ import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.profile.dto.UserProfileRequest;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
+import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
@@ -73,6 +74,18 @@ public class UserProfileService {
         UserProfile saved = profileRepository.save(profile);
         onboardingService.refreshOnboardingStatus(user);
         return profileMapper.toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getUserSummary(UserPrincipal principal, UUID userId) {
+        getUser(principal); // solo per validare il token
+        if (userId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        User targetUser = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
+        return profileMapper.toSummary(targetUser.getId(), profile);
     }
 
     private User getUser(UserPrincipal principal) {

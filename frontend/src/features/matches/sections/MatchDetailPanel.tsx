@@ -19,6 +19,10 @@ export interface MatchDetailPanelProps
   insights?: MatchInsightItemProps[];
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
+  onPrimaryAction?: () => void;
+  onSecondaryAction?: () => void;
+  primaryActionDisabled?: boolean;
+  secondaryActionDisabled?: boolean;
 }
 
 export const MatchDetailPanel = ({
@@ -32,6 +36,10 @@ export const MatchDetailPanel = ({
   insights = [],
   primaryActionLabel = "Vedi profilo",
   secondaryActionLabel = "Salva",
+  onPrimaryAction,
+  onSecondaryAction,
+  primaryActionDisabled,
+  secondaryActionDisabled,
   ...props
 }: MatchDetailPanelProps) => (
   <Card className={cx("space-y-5 p-6", className)} {...props}>
@@ -65,11 +73,24 @@ export const MatchDetailPanel = ({
         <MapMatchInsightItem items={insights} />
       </div>
     ) : null}
-    <div className="flex flex-wrap gap-3">
-      <Button size="sm">{primaryActionLabel}</Button>
-      <Button size="sm" variant="secondary">
-        {secondaryActionLabel}
-      </Button>
-    </div>
+    {primaryActionLabel || secondaryActionLabel ? (
+      <div className="flex flex-wrap gap-3">
+        {primaryActionLabel ? (
+          <Button size="sm" onClick={onPrimaryAction} disabled={primaryActionDisabled}>
+            {primaryActionLabel}
+          </Button>
+        ) : null}
+        {secondaryActionLabel ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={onSecondaryAction}
+            disabled={secondaryActionDisabled}
+          >
+            {secondaryActionLabel}
+          </Button>
+        ) : null}
+      </div>
+    ) : null}
   </Card>
 );

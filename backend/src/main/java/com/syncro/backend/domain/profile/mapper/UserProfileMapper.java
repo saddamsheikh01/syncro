@@ -1,7 +1,9 @@
 package com.syncro.backend.domain.profile.mapper;
 
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
+import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
 import com.syncro.backend.domain.profile.entity.UserProfile;
+import java.util.UUID;
 import java.time.LocalDate;
 import java.time.Period;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,20 @@ public class UserProfileMapper {
             profile.getVisibility().name(),
             profile.getCreatedAt(),
             profile.getUpdatedAt()
+        );
+    }
+
+    public UserSummaryResponse toSummary(UUID userId, UserProfile profile) {
+        if (profile == null) {
+            return new UserSummaryResponse(userId, null, null, null, null, null);
+        }
+        return new UserSummaryResponse(
+            userId,
+            profile.getFullName(),
+            profile.getCity(),
+            profile.getCountry(),
+            null,
+            profile.getVisibility() != null ? profile.getVisibility().name() : null
         );
     }
 
