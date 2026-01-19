@@ -12,6 +12,12 @@ export interface ExperienceListItemProps
   category?: string;
   metaItems?: string[];
   priceLabel?: string;
+  originalPriceLabel?: string;
+  rating?: number;
+  reviewCount?: number;
+  durationLabel?: string;
+  imageUrl?: string;
+  provider?: string;
   media?: ReactNode;
   href?: string;
   onPress?: () => void;
@@ -24,6 +30,12 @@ export const ExperienceListItem = ({
   category,
   metaItems = [],
   priceLabel,
+  originalPriceLabel,
+  rating,
+  reviewCount,
+  durationLabel,
+  imageUrl,
+  provider,
   media,
   href,
   onPress,
@@ -31,8 +43,16 @@ export const ExperienceListItem = ({
 }: ExperienceListItemProps) => {
   const card = (
     <Card className={cx("flex items-start gap-4 p-4", className)} {...props}>
-      <div className="h-16 w-16 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
-        {media ?? <div className="h-full w-full" />}
+      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
+        {media ?? (imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="h-full w-full" />
+        ))}
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex items-start justify-between gap-3">
@@ -45,12 +65,34 @@ export const ExperienceListItem = ({
           {category ? <Badge tone="accent">{category}</Badge> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {metaItems.length ? <PlaceMetaRow items={metaItems} /> : null}
-          {priceLabel ? (
-            <span className="text-xs font-semibold text-foreground">
-              {priceLabel}
+          {rating != null && (
+            <span className="flex items-center gap-1 text-xs text-muted">
+              <span className="text-yellow-500">★</span>
+              {rating.toFixed(1)}
+              {reviewCount != null && reviewCount > 0 && (
+                <span className="text-subtle">({reviewCount})</span>
+              )}
             </span>
-          ) : null}
+          )}
+          {durationLabel && (
+            <span className="text-xs text-muted">{durationLabel}</span>
+          )}
+          {metaItems.length ? <PlaceMetaRow items={metaItems} /> : null}
+          {priceLabel && (
+            <span className="flex items-center gap-1">
+              {originalPriceLabel && (
+                <span className="text-xs text-subtle line-through">
+                  {originalPriceLabel}
+                </span>
+              )}
+              <span className="text-xs font-semibold text-foreground">
+                {priceLabel}
+              </span>
+            </span>
+          )}
+          {provider && (
+            <span className="text-[10px] text-subtle">{provider}</span>
+          )}
         </div>
       </div>
     </Card>

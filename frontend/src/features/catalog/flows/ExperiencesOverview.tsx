@@ -80,13 +80,43 @@ export const ExperiencesOverview = () => {
     experiencesPage.page,
   ]);
 
+  const formatDuration = (minutes: number | null): string | undefined => {
+    if (!minutes) return undefined;
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  };
+
+  const formatPrice = (
+    price: number | null,
+    currency: string | null
+  ): string | undefined => {
+    if (price == null) return undefined;
+    const curr = currency ?? "EUR";
+    return new Intl.NumberFormat("it-IT", {
+      style: "currency",
+      currency: curr,
+    }).format(price);
+  };
+
   const experienceItems: ExperienceListItemProps[] = useMemo(
     () =>
       experiences.map((exp) => ({
         title: exp.name,
-        subtitle: exp.place?.name ?? undefined,
+        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
         category: exp.category?.name ?? undefined,
         href: `/experiences/${exp.id}`,
+        imageUrl: exp.imageUrl ?? undefined,
+        priceLabel: formatPrice(exp.price, exp.priceCurrency),
+        originalPriceLabel:
+          exp.originalPrice && exp.price && exp.originalPrice > exp.price
+            ? formatPrice(exp.originalPrice, exp.priceCurrency)
+            : undefined,
+        rating: exp.rating ?? undefined,
+        reviewCount: exp.reviewCount ?? undefined,
+        durationLabel: formatDuration(exp.durationMinutes),
+        provider: exp.provider ?? undefined,
       })),
     [experiences]
   );

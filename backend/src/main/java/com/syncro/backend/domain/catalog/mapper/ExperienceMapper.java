@@ -24,7 +24,17 @@ public class ExperienceMapper {
             experience.getDescription(),
             category,
             place,
-            experience.getSource()
+            experience.getSource(),
+            experience.getProvider(),
+            experience.getImageUrl(),
+            experience.getPrice(),
+            experience.getPriceCurrency(),
+            experience.getOriginalPrice(),
+            experience.getDurationMinutes(),
+            experience.getRating(),
+            experience.getReviewCount(),
+            experience.getLocationName(),
+            experience.getIsActive()
         );
     }
 
@@ -45,7 +55,31 @@ public class ExperienceMapper {
             tags,
             affiliationLinks,
             experience.getCreatedAt(),
-            experience.getUpdatedAt()
+            experience.getUpdatedAt(),
+            experience.getProvider(),
+            experience.getExternalId(),
+            experience.getPrice(),
+            experience.getPriceCurrency(),
+            experience.getOriginalPrice(),
+            experience.getDurationMinutes(),
+            experience.getImageUrl(),
+            experience.getImages(),
+            experience.getBookingUrl(),
+            experience.getRating(),
+            experience.getReviewCount(),
+            experience.getLatitude(),
+            experience.getLongitude(),
+            experience.getLocationName(),
+            experience.getHighlights(),
+            experience.getInclusions(),
+            experience.getExclusions(),
+            experience.getLanguages(),
+            experience.getCancellationPolicy(),
+            experience.getMeetingPoint(),
+            experience.getMinParticipants(),
+            experience.getMaxParticipants(),
+            experience.getLastSyncedAt(),
+            experience.getIsActive()
         );
     }
 }

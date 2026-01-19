@@ -2,6 +2,7 @@ package com.syncro.backend.domain.catalog.repository;
 
 import com.syncro.backend.domain.catalog.entity.Experience;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +17,8 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
             SELECT e.*
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
-            WHERE (:categoryId IS NULL OR e.category_id = :categoryId)
+            WHERE (e.is_active = true OR e.is_active IS NULL)
+              AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
                   OR e.name ILIKE CONCAT('%', :q, '%')
@@ -70,7 +72,8 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
             SELECT COUNT(*)
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
-            WHERE (:categoryId IS NULL OR e.category_id = :categoryId)
+            WHERE (e.is_active = true OR e.is_active IS NULL)
+              AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
                   OR e.name ILIKE CONCAT('%', :q, '%')
@@ -114,4 +117,17 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
         @Param("q") String q,
         Pageable pageable
     );
+
+    // Metodi per provider esterni
+    Optional<Experience> findByProviderAndExternalId(String provider, String externalId);
+
+    List<Experience> findByProviderAndIsActiveTrue(String provider);
+
+    List<Experience> findByProvider(String provider);
+
+    Page<Experience> findByIsActiveTrue(Pageable pageable);
+
+    long countByProvider(String provider);
+
+    long countByProviderAndIsActiveTrue(String provider);
 }

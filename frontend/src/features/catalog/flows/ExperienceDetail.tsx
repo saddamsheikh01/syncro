@@ -107,6 +107,32 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   }
 
   const affiliationLink = experienceDetail.affiliationLinks?.[0];
+  const bookingUrl = experienceDetail.bookingUrl ?? affiliationLink?.url;
+
+  const formatDuration = (minutes: number | null): string | undefined => {
+    if (!minutes) return undefined;
+    if (minutes < 60) return `${minutes} minuti`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} ore e ${mins} minuti` : `${hours} ore`;
+  };
+
+  const formatPrice = (
+    price: number | null,
+    currency: string | null
+  ): string | undefined => {
+    if (price == null) return undefined;
+    const curr = currency ?? "EUR";
+    return new Intl.NumberFormat("it-IT", {
+      style: "currency",
+      currency: curr,
+    }).format(price);
+  };
+
+  const hasDiscount =
+    experienceDetail.originalPrice &&
+    experienceDetail.price &&
+    experienceDetail.originalPrice > experienceDetail.price;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
@@ -119,9 +145,36 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       </button>
 
       <Card className="space-y-4 p-5">
+        {/* Immagine principale */}
         <div className="overflow-hidden rounded-[var(--radius-lg)] bg-surface-muted">
-          <div className="h-48 w-full" />
+          {experienceDetail.imageUrl ? (
+            <img
+              src={experienceDetail.imageUrl}
+              alt={experienceDetail.name}
+              className="h-48 w-full object-cover"
+            />
+          ) : (
+            <div className="h-48 w-full" />
+          )}
         </div>
+
+        {/* Gallery immagini */}
+        {experienceDetail.images && experienceDetail.images.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {experienceDetail.images.slice(0, 5).map((img, idx) => (
+              <div
+                key={idx}
+                className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted"
+              >
+                <img
+                  src={img}
+                  alt={`${experienceDetail.name} ${idx + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -129,9 +182,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               <h1 className="text-2xl font-semibold text-foreground">
                 {experienceDetail.name}
               </h1>
-              {experienceDetail.place && (
+              {(experienceDetail.locationName || experienceDetail.place) && (
                 <p className="text-sm text-muted">
-                  Presso {experienceDetail.place.name}
+                  {experienceDetail.locationName ?? experienceDetail.place?.name}
                 </p>
               )}
             </div>
@@ -139,6 +192,50 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               <Badge tone="accent">{experienceDetail.category.name}</Badge>
             )}
           </div>
+
+          {/* Rating e recensioni */}
+          {experienceDetail.rating != null && (
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-sm">
+                <span className="text-yellow-500">★</span>
+                <span className="font-medium">{experienceDetail.rating.toFixed(1)}</span>
+              </span>
+              {experienceDetail.reviewCount != null && experienceDetail.reviewCount > 0 && (
+                <span className="text-sm text-muted">
+                  ({experienceDetail.reviewCount} recensioni)
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Prezzo e durata */}
+          <div className="flex flex-wrap items-center gap-4">
+            {experienceDetail.price != null && (
+              <div className="flex items-center gap-2">
+                {hasDiscount && (
+                  <span className="text-sm text-subtle line-through">
+                    {formatPrice(experienceDetail.originalPrice, experienceDetail.priceCurrency)}
+                  </span>
+                )}
+                <span className="text-lg font-semibold text-foreground">
+                  {formatPrice(experienceDetail.price, experienceDetail.priceCurrency)}
+                </span>
+                <span className="text-xs text-muted">a persona</span>
+              </div>
+            )}
+            {experienceDetail.durationMinutes && (
+              <span className="text-sm text-muted">
+                Durata: {formatDuration(experienceDetail.durationMinutes)}
+              </span>
+            )}
+          </div>
+
+          {/* Provider badge */}
+          {experienceDetail.provider && (
+            <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-xs text-subtle">
+              via {experienceDetail.provider}
+            </span>
+          )}
         </div>
 
         {experienceDetail.description && (
@@ -155,20 +252,11 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           </div>
         )}
 
-        {affiliationLink && (
-          <AffiliationLinkBox
-            title="Prenota questa esperienza"
-            href={affiliationLink.url}
-            provider={affiliationLink.provider ?? undefined}
-          />
-        )}
-
+        {/* Pulsanti azione */}
         <div className="flex flex-wrap gap-3 pt-2">
-          {affiliationLink && (
-            <Button
-              onClick={() => window.open(affiliationLink.url, "_blank")}
-            >
-              Prenota
+          {bookingUrl && (
+            <Button onClick={() => window.open(bookingUrl, "_blank")}>
+              Prenota ora
             </Button>
           )}
           <Button
@@ -195,26 +283,137 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         </div>
       </Card>
 
-      {experienceDetail.place && (
+      {/* Highlights */}
+      {experienceDetail.highlights && experienceDetail.highlights.length > 0 && (
+        <Card className="space-y-3 p-5">
+          <h3 className="text-base font-semibold text-foreground">In evidenza</h3>
+          <ul className="space-y-2">
+            {experienceDetail.highlights.map((item, idx) => (
+              <li key={idx} className="flex items-start gap-2 text-sm text-muted">
+                <span className="text-accent">✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Cosa è incluso / escluso */}
+      {((experienceDetail.inclusions && experienceDetail.inclusions.length > 0) ||
+        (experienceDetail.exclusions && experienceDetail.exclusions.length > 0)) && (
+        <Card className="space-y-4 p-5">
+          {experienceDetail.inclusions && experienceDetail.inclusions.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold text-foreground">Cosa è incluso</h3>
+              <ul className="space-y-1">
+                {experienceDetail.inclusions.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-muted">
+                    <span className="text-green-500">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {experienceDetail.exclusions && experienceDetail.exclusions.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold text-foreground">Cosa non è incluso</h3>
+              <ul className="space-y-1">
+                {experienceDetail.exclusions.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-muted">
+                    <span className="text-red-400">✗</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Informazioni aggiuntive */}
+      {(experienceDetail.languages?.length ||
+        experienceDetail.meetingPoint ||
+        experienceDetail.cancellationPolicy ||
+        experienceDetail.minParticipants ||
+        experienceDetail.maxParticipants) && (
+        <Card className="space-y-3 p-5">
+          <h3 className="text-base font-semibold text-foreground">Informazioni</h3>
+          <div className="space-y-2 text-sm text-muted">
+            {experienceDetail.languages && experienceDetail.languages.length > 0 && (
+              <p>
+                <span className="font-medium text-foreground">Lingue:</span>{" "}
+                {experienceDetail.languages.join(", ")}
+              </p>
+            )}
+            {experienceDetail.meetingPoint && (
+              <p>
+                <span className="font-medium text-foreground">Punto di incontro:</span>{" "}
+                {experienceDetail.meetingPoint}
+              </p>
+            )}
+            {(experienceDetail.minParticipants || experienceDetail.maxParticipants) && (
+              <p>
+                <span className="font-medium text-foreground">Partecipanti:</span>{" "}
+                {experienceDetail.minParticipants && `min ${experienceDetail.minParticipants}`}
+                {experienceDetail.minParticipants && experienceDetail.maxParticipants && " - "}
+                {experienceDetail.maxParticipants && `max ${experienceDetail.maxParticipants}`}
+              </p>
+            )}
+            {experienceDetail.cancellationPolicy && (
+              <p>
+                <span className="font-medium text-foreground">Cancellazione:</span>{" "}
+                {experienceDetail.cancellationPolicy}
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Luogo / Mappa */}
+      {(experienceDetail.place || (experienceDetail.latitude && experienceDetail.longitude)) && (
         <Card className="space-y-3 p-5">
           <h3 className="text-base font-semibold text-foreground">Luogo</h3>
-          <p className="text-sm text-muted">{experienceDetail.place.name}</p>
-          {experienceDetail.place.latitude &&
-            experienceDetail.place.longitude && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  window.open(
-                    `https://www.google.com/maps?q=${experienceDetail.place!.latitude},${experienceDetail.place!.longitude}`,
-                    "_blank"
-                  )
-                }
-              >
-                Apri in Google Maps
-              </Button>
-            )}
+          {experienceDetail.place && (
+            <p className="text-sm text-muted">{experienceDetail.place.name}</p>
+          )}
+          {(experienceDetail.latitude && experienceDetail.longitude) ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps?q=${experienceDetail.latitude},${experienceDetail.longitude}`,
+                  "_blank"
+                )
+              }
+            >
+              Apri in Google Maps
+            </Button>
+          ) : experienceDetail.place?.latitude && experienceDetail.place?.longitude ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps?q=${experienceDetail.place!.latitude},${experienceDetail.place!.longitude}`,
+                  "_blank"
+                )
+              }
+            >
+              Apri in Google Maps
+            </Button>
+          ) : null}
         </Card>
+      )}
+
+      {/* Affiliazione link (se diverso da bookingUrl) */}
+      {affiliationLink && affiliationLink.url !== experienceDetail.bookingUrl && (
+        <AffiliationLinkBox
+          title="Prenota questa esperienza"
+          href={affiliationLink.url}
+          provider={affiliationLink.provider ?? undefined}
+        />
       )}
     </div>
   );

@@ -3,6 +3,14 @@ import type { TagResponse } from "../tags";
 
 export type CatalogSource = "MANUAL" | "API";
 
+export type ExperienceProvider =
+  | "GETYOURGUIDE"
+  | "VIATOR"
+  | "MUSEMENT"
+  | "CIVITATIS"
+  | "TIQETS"
+  | "OTHER";
+
 export type CategoryResponse = {
   id: Uuid;
   name: string;
@@ -54,6 +62,17 @@ export type ExperienceSummaryResponse = {
   category: CategoryResponse | null;
   place: PlaceReferenceResponse | null;
   source: CatalogSource;
+  // Provider esterni
+  provider: ExperienceProvider | null;
+  imageUrl: string | null;
+  price: number | null;
+  priceCurrency: string | null;
+  originalPrice: number | null;
+  durationMinutes: number | null;
+  rating: number | null;
+  reviewCount: number | null;
+  locationName: string | null;
+  isActive: boolean;
 };
 
 export type ExperienceDetailResponse = {
@@ -67,6 +86,31 @@ export type ExperienceDetailResponse = {
   affiliationLinks: AffiliationLinkResponse[];
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
+  // Provider esterni
+  provider: ExperienceProvider | null;
+  externalId: string | null;
+  price: number | null;
+  priceCurrency: string | null;
+  originalPrice: number | null;
+  durationMinutes: number | null;
+  imageUrl: string | null;
+  images: string[];
+  bookingUrl: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationName: string | null;
+  highlights: string[];
+  inclusions: string[];
+  exclusions: string[];
+  languages: string[];
+  cancellationPolicy: string | null;
+  meetingPoint: string | null;
+  minParticipants: number | null;
+  maxParticipants: number | null;
+  lastSyncedAt: IsoDateTime | null;
+  isActive: boolean;
 };
 
 export type AdminCategoryRequest = {
@@ -104,6 +148,30 @@ export type AdminExperienceRequest = {
   placeId?: Uuid | null;
   source?: CatalogSource | null;
   tagIds?: Uuid[] | null;
+  // Provider esterni
+  provider?: ExperienceProvider | null;
+  externalId?: string | null;
+  price?: number | null;
+  priceCurrency?: string | null;
+  originalPrice?: number | null;
+  durationMinutes?: number | null;
+  imageUrl?: string | null;
+  images?: string[] | null;
+  bookingUrl?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationName?: string | null;
+  highlights?: string[] | null;
+  inclusions?: string[] | null;
+  exclusions?: string[] | null;
+  languages?: string[] | null;
+  cancellationPolicy?: string | null;
+  meetingPoint?: string | null;
+  minParticipants?: number | null;
+  maxParticipants?: number | null;
+  isActive?: boolean | null;
 };
 
 export type AdminExperienceUpdateRequest = {
@@ -113,6 +181,30 @@ export type AdminExperienceUpdateRequest = {
   placeId?: Uuid | null;
   source?: CatalogSource | null;
   tagIds?: Uuid[] | null;
+  // Provider esterni
+  provider?: ExperienceProvider | null;
+  externalId?: string | null;
+  price?: number | null;
+  priceCurrency?: string | null;
+  originalPrice?: number | null;
+  durationMinutes?: number | null;
+  imageUrl?: string | null;
+  images?: string[] | null;
+  bookingUrl?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationName?: string | null;
+  highlights?: string[] | null;
+  inclusions?: string[] | null;
+  exclusions?: string[] | null;
+  languages?: string[] | null;
+  cancellationPolicy?: string | null;
+  meetingPoint?: string | null;
+  minParticipants?: number | null;
+  maxParticipants?: number | null;
+  isActive?: boolean | null;
 };
 
 export type AdminAffiliationLinkRequest = {

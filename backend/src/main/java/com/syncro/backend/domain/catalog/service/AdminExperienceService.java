@@ -96,6 +96,31 @@ public class AdminExperienceService {
         experience.setPlace(resolvePlace(request.placeId()));
         experience.setSource(resolveSource(request.source()));
 
+        // Campi provider esterni
+        experience.setProvider(normalizeOptional(request.provider()));
+        experience.setExternalId(normalizeOptional(request.externalId()));
+        experience.setPrice(request.price());
+        experience.setPriceCurrency(request.priceCurrency() != null ? request.priceCurrency() : "EUR");
+        experience.setOriginalPrice(request.originalPrice());
+        experience.setDurationMinutes(request.durationMinutes());
+        experience.setImageUrl(normalizeOptional(request.imageUrl()));
+        experience.setImages(request.images());
+        experience.setBookingUrl(normalizeOptional(request.bookingUrl()));
+        experience.setRating(request.rating());
+        experience.setReviewCount(request.reviewCount());
+        experience.setLatitude(request.latitude());
+        experience.setLongitude(request.longitude());
+        experience.setLocationName(normalizeOptional(request.locationName()));
+        experience.setHighlights(request.highlights());
+        experience.setInclusions(request.inclusions());
+        experience.setExclusions(request.exclusions());
+        experience.setLanguages(request.languages());
+        experience.setCancellationPolicy(normalizeOptional(request.cancellationPolicy()));
+        experience.setMeetingPoint(normalizeOptional(request.meetingPoint()));
+        experience.setMinParticipants(request.minParticipants());
+        experience.setMaxParticipants(request.maxParticipants());
+        experience.setIsActive(request.isActive() != null ? request.isActive() : true);
+
         Experience saved = experienceRepository.save(experience);
         if (request.tagIds() != null) {
             replaceTags(saved, request.tagIds());
@@ -127,6 +152,77 @@ public class AdminExperienceService {
         }
         if (request.source() != null) {
             experience.setSource(request.source());
+        }
+
+        // Campi provider esterni
+        if (request.provider() != null) {
+            experience.setProvider(normalizeOptional(request.provider()));
+        }
+        if (request.externalId() != null) {
+            experience.setExternalId(normalizeOptional(request.externalId()));
+        }
+        if (request.price() != null) {
+            experience.setPrice(request.price());
+        }
+        if (request.priceCurrency() != null) {
+            experience.setPriceCurrency(request.priceCurrency());
+        }
+        if (request.originalPrice() != null) {
+            experience.setOriginalPrice(request.originalPrice());
+        }
+        if (request.durationMinutes() != null) {
+            experience.setDurationMinutes(request.durationMinutes());
+        }
+        if (request.imageUrl() != null) {
+            experience.setImageUrl(normalizeOptional(request.imageUrl()));
+        }
+        if (request.images() != null) {
+            experience.setImages(request.images());
+        }
+        if (request.bookingUrl() != null) {
+            experience.setBookingUrl(normalizeOptional(request.bookingUrl()));
+        }
+        if (request.rating() != null) {
+            experience.setRating(request.rating());
+        }
+        if (request.reviewCount() != null) {
+            experience.setReviewCount(request.reviewCount());
+        }
+        if (request.latitude() != null) {
+            experience.setLatitude(request.latitude());
+        }
+        if (request.longitude() != null) {
+            experience.setLongitude(request.longitude());
+        }
+        if (request.locationName() != null) {
+            experience.setLocationName(normalizeOptional(request.locationName()));
+        }
+        if (request.highlights() != null) {
+            experience.setHighlights(request.highlights());
+        }
+        if (request.inclusions() != null) {
+            experience.setInclusions(request.inclusions());
+        }
+        if (request.exclusions() != null) {
+            experience.setExclusions(request.exclusions());
+        }
+        if (request.languages() != null) {
+            experience.setLanguages(request.languages());
+        }
+        if (request.cancellationPolicy() != null) {
+            experience.setCancellationPolicy(normalizeOptional(request.cancellationPolicy()));
+        }
+        if (request.meetingPoint() != null) {
+            experience.setMeetingPoint(normalizeOptional(request.meetingPoint()));
+        }
+        if (request.minParticipants() != null) {
+            experience.setMinParticipants(request.minParticipants());
+        }
+        if (request.maxParticipants() != null) {
+            experience.setMaxParticipants(request.maxParticipants());
+        }
+        if (request.isActive() != null) {
+            experience.setIsActive(request.isActive());
         }
 
         Experience saved = experienceRepository.save(experience);
