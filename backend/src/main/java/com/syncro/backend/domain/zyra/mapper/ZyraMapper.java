@@ -15,6 +15,7 @@ public class ZyraMapper {
         return new ZyraSessionResponse(
             session.getId(),
             session.getUserId(),
+            session.getTitle(),
             session.getCreatedAt()
         );
     }

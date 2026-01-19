@@ -18,6 +18,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
   { id: "feed", label: "Feed", href: "/feed", icon: "document" },
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
+  { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
   { id: "map", label: "Mappa", href: "/map", icon: "map" },
   { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
   { id: "lounges", label: "Syncro Lounges", href: "/lounges", icon: "spark" },

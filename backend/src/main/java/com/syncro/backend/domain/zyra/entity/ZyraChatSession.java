@@ -25,6 +25,9 @@ public class ZyraChatSession {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "title")
+    private String title;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;
@@ -60,6 +63,14 @@ public class ZyraChatSession {
     public void setUser(User user) {
         this.user = user;
         this.userId = user != null ? user.getId() : null;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public Instant getCreatedAt() {

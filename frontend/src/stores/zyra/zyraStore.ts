@@ -58,9 +58,16 @@ const updateMessages = (
   }));
 };
 
-const addSession = (session: ZyraSessionResponse) => {
+const addOrUpdateSession = (session: ZyraSessionResponse) => {
   zyraStore.setState((state) => {
     const exists = state.sessions.some((item) => item.id === session.id);
+    if (exists) {
+      return {
+        sessions: state.sessions.map((item) =>
+          item.id === session.id ? { ...item, ...session } : item
+        ),
+      };
+    }
     return {
       sessions: exists ? state.sessions : [session, ...state.sessions],
     };
@@ -83,7 +90,7 @@ export const zyraActions = {
 
     try {
       const response = await createSession();
-      addSession(response);
+      addOrUpdateSession(response);
       zyraStore.setState({ loadingSessions: false, activeSessionId: response.id });
       return response;
     } catch (error) {
@@ -137,6 +144,15 @@ export const zyraActions = {
     try {
       const response = await sendMessage(sessionId, payload);
       appendChatMessages(sessionId, response);
+      if (response.sessionTitle) {
+        zyraStore.setState((state) => ({
+          sessions: state.sessions.map((session) =>
+            session.id === sessionId
+              ? { ...session, title: response.sessionTitle }
+              : session
+          ),
+        }));
+      }
       zyraStore.setState({ loadingMessages: false });
       return response;
     } catch (error) {

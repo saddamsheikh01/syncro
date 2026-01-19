@@ -9,6 +9,7 @@ export type ZyraSuggestionType =
 export type ZyraSessionResponse = {
   id: Uuid;
   userId: Uuid;
+  title?: string | null;
   createdAt: IsoDateTime;
 };
 
@@ -23,6 +24,7 @@ export type ZyraMessageResponse = {
 export type ZyraChatResponse = {
   userMessage: ZyraMessageResponse;
   assistantMessage: ZyraMessageResponse;
+  sessionTitle?: string | null;
 };
 
 export type ZyraMessageRequest = {

@@ -20,6 +20,8 @@ export const createSession = async (): Promise<ZyraSessionResponse> => {
   return data;
 };
 
+const CHAT_TIMEOUT_MS = 60000;
+
 export const getSessions = async (
   params: PageParams = {}
 ): Promise<PageResponse<ZyraSessionResponse>> => {
@@ -47,7 +49,8 @@ export const sendMessage = async (
 ): Promise<ZyraChatResponse> => {
   const { data } = await apiClient.post<ZyraChatResponse>(
     `/zyra/sessions/${sessionId}/messages`,
-    payload
+    payload,
+    { timeout: CHAT_TIMEOUT_MS }
   );
   return data;
 };

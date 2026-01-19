@@ -6,6 +6,7 @@ import java.util.UUID;
 public record ZyraSessionResponse(
     UUID id,
     UUID userId,
+    String title,
     Instant createdAt
 ) {
 }

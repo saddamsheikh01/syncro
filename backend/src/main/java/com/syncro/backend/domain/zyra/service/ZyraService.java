@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -135,6 +136,26 @@ public class ZyraService {
         userMessage.setContent(content);
         ZyraMessage savedUserMessage = messageRepository.save(userMessage);
 
+        String sessionTitle = session.getTitle();
+        if (sessionTitle == null || sessionTitle.isBlank()) {
+            String fallbackTitle = buildFallbackTitle(content);
+            session.setTitle(fallbackTitle);
+            sessionRepository.save(session);
+            sessionTitle = fallbackTitle;
+
+            String firstMessage = content;
+            UUID sessionIdForAsync = session.getId();
+            CompletableFuture.runAsync(() -> {
+                String generatedTitle = generateSessionTitle(firstMessage);
+                if (generatedTitle != null && !generatedTitle.isBlank()) {
+                    sessionRepository.findById(sessionIdForAsync).ifPresent(s -> {
+                        s.setTitle(generatedTitle);
+                        sessionRepository.save(s);
+                    });
+                }
+            });
+        }
+
         List<ZyraChatMessage> promptMessages = buildPromptMessages(user, session.getId());
         String assistantReply = zyraClient.chat(promptMessages);
 
@@ -146,7 +167,8 @@ public class ZyraService {
 
         return new ZyraChatResponse(
             zyraMapper.toMessageResponse(savedUserMessage),
-            zyraMapper.toMessageResponse(savedAssistantMessage)
+            zyraMapper.toMessageResponse(savedAssistantMessage),
+            sessionTitle
         );
     }
 
@@ -191,8 +213,9 @@ public class ZyraService {
         PageRequest pageable = PageRequest.of(0, maxHistory, Sort.by(Sort.Order.desc("createdAt")));
         List<ZyraMessage> history = messageRepository.findBySessionId(sessionId, pageable).getContent();
         if (!history.isEmpty()) {
-            Collections.reverse(history);
-            for (ZyraMessage message : history) {
+            List<ZyraMessage> ordered = new ArrayList<>(history);
+            Collections.reverse(ordered); // cronologico
+            for (ZyraMessage message : ordered) {
                 messages.add(new ZyraChatMessage(mapRole(message.getRole()), message.getContent()));
             }
         }
@@ -300,6 +323,34 @@ public class ZyraService {
         } catch (JsonProcessingException ex) {
             return payload.toString();
         }
+    }
+
+    private String generateSessionTitle(String firstUserMessage) {
+        String prompt = "Genera un titolo breve (max 48 caratteri) per questa chat, "
+            + "basato sul primo messaggio utente. "
+            + "Rispondi solo con il titolo, senza virgolette.";
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", prompt),
+            new ZyraChatMessage("user", firstUserMessage)
+        );
+        try {
+            String title = zyraClient.chat(messages);
+            if (title == null) {
+                return null;
+            }
+            String normalized = title.trim();
+            return normalized.isBlank() ? null : normalized.substring(0, Math.min(normalized.length(), 64));
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private String buildFallbackTitle(String content) {
+        if (content == null || content.isBlank()) {
+            return "Chat con Zyra";
+        }
+        String trimmed = content.trim();
+        return trimmed.length() > 48 ? trimmed.substring(0, 48) + "..." : trimmed;
     }
 
     private ZyraChatSession getSession(UUID userId, UUID sessionId) {
