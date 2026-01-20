@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
 
@@ -17,13 +16,6 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
   xl: "h-14 w-14 text-base",
 };
 
-const SIZE_PIXELS: Record<AvatarSize, number> = {
-  sm: 32,
-  md: 40,
-  lg: 48,
-  xl: 56,
-};
-
 const getInitials = (name?: string) => {
   if (!name) return "?";
   const parts = name.trim().split(" ");
@@ -40,7 +32,6 @@ export const Avatar = ({
   ...props
 }: AvatarProps) => {
   const initials = getInitials(name);
-  const pixelSize = SIZE_PIXELS[size];
 
   return (
     <div
@@ -53,12 +44,11 @@ export const Avatar = ({
       {...props}
     >
       {src ? (
-        <Image
+        <img
           src={src}
           alt={name ?? "Avatar"}
-          width={pixelSize}
-          height={pixelSize}
           className="h-full w-full object-cover"
+          loading="lazy"
         />
       ) : (
         <span>{initials}</span>
