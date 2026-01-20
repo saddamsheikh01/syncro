@@ -22,9 +22,13 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
-  { id: "experiences", label: "Esperienze", href: "/experiences", icon: "spark" },
+  {
+    id: "experiences",
+    label: "Esperienze",
+    href: "/experiences",
+    icon: "spark",
+  },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
-  { id: "profile", label: "Profilo", href: "/profile", icon: "user" },
   { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
   { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
 ];
@@ -66,7 +70,7 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
               active
                 ? "bg-accent-soft text-accent"
                 : "text-muted hover:bg-surface-muted hover:text-foreground",
-              collapsed && "justify-center px-2"
+              collapsed && "justify-center px-2",
             )}
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
@@ -76,7 +80,7 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
                 "flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground transition",
                 active
                   ? "border-accent/30 bg-accent-soft text-accent"
-                  : "group-hover:border-border-strong"
+                  : "group-hover:border-border-strong",
               )}
             >
               <NavIcon name={item.icon} className="h-5 w-5" />
