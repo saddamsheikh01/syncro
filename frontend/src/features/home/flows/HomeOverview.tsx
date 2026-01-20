@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -9,6 +9,7 @@ import { QuickActionTile } from "@/features/home/cards/QuickActionTile";
 import { RecommendationRow } from "@/features/home/sections/RecommendationRow";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ForYouSectionHeader } from "@/features/home/sections/ForYouSectionHeader";
+import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
 import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
 import { MapPermissionScreen } from "@/features/map/sections/MapPermissionScreen";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
@@ -28,6 +29,7 @@ import {
 
 const RECO_PAGE_SIZE = 8;
 const MATCH_LIMIT = 5;
+const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
 
 const formatDuration = (minutes: number | null): string | undefined => {
   if (!minutes) return undefined;
@@ -134,6 +136,8 @@ export const HomeOverview = () => {
   const { actions: analyticsActions } = useAnalytics();
 
   const bootstrappedRef = useRef(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationModalLoading, setLocationModalLoading] = useState(false);
 
   useEffect(() => {
     authActions.hydrate();
@@ -175,6 +179,57 @@ export const HomeOverview = () => {
     zyraActions,
     analyticsActions,
   ]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (hasPosition) return;
+
+    const dismissed = localStorage.getItem(LOCATION_MODAL_DISMISSED_KEY);
+    if (dismissed === "true") return;
+
+    const timer = setTimeout(() => {
+      setShowLocationModal(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [status, hasPosition]);
+
+  const handleLocationModalClose = () => {
+    localStorage.setItem(LOCATION_MODAL_DISMISSED_KEY, "true");
+    setShowLocationModal(false);
+  };
+
+  const handleLocationActivate = () => {
+    if (!navigator?.geolocation) {
+      handleLocationModalClose();
+      return;
+    }
+
+    setLocationModalLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          positionActions.setPermission("granted");
+          await positionActions.savePosition({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracyMeters: pos.coords.accuracy,
+          });
+          setShowLocationModal(false);
+        } catch {
+          handleLocationModalClose();
+        } finally {
+          setLocationModalLoading(false);
+        }
+      },
+      () => {
+        positionActions.setPermission("denied");
+        setLocationModalLoading(false);
+        handleLocationModalClose();
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const recommendationExperiences = useMemo(
     () =>
@@ -482,6 +537,13 @@ export const HomeOverview = () => {
           actionHref="/zyra"
         />
       </section>
+
+      <LocationRequestModal
+        open={showLocationModal}
+        onClose={handleLocationModalClose}
+        onActivate={handleLocationActivate}
+        loading={locationModalLoading}
+      />
     </div>
   );
 };

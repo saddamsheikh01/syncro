@@ -29,9 +29,8 @@ export const Login = () => {
 
     try {
       await actions.login({ email, password });
-      router.push("/test");
-    } catch {
-    }
+      router.push("/home");
+    } catch {}
   };
 
   return (
@@ -51,7 +50,10 @@ export const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="login-email">
+            <label
+              className="text-sm font-medium text-foreground"
+              htmlFor="login-email"
+            >
               Email
             </label>
             <input
@@ -90,7 +92,9 @@ export const Login = () => {
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-subtle transition hover:text-foreground"
-                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                aria-label={
+                  showPassword ? "Nascondi password" : "Mostra password"
+                }
                 aria-pressed={showPassword}
               >
                 {showPassword ? "Nascondi" : "Mostra"}

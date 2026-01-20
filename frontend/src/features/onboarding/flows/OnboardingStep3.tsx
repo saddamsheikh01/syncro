@@ -118,7 +118,7 @@ export const OnboardingStep3 = () => {
         feedPreferences,
       });
       onboardingActions.completeStep(3);
-      router.push("/onboarding/step-4");
+      router.push("/home");
     } catch (submitError) {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
@@ -137,7 +137,7 @@ export const OnboardingStep3 = () => {
           title="Imposta le tue preferenze"
           subtitle="Configura le preferenze per match e feed personalizzati."
           step={3}
-          totalSteps={4}
+          totalSteps={3}
         />
 
         <Card className="space-y-4 p-5">

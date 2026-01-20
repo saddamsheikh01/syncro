@@ -101,7 +101,7 @@ export const OnboardingStep2 = () => {
           title="Seleziona i tuoi interessi"
           subtitle="Scegli gli argomenti che ti rappresentano di piu."
           step={2}
-          totalSteps={4}
+          totalSteps={3}
         />
 
         <InterestPickerGrid

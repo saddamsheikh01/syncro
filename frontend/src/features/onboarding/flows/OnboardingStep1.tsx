@@ -131,7 +131,7 @@ export const OnboardingStep1 = () => {
           title="Completa il tuo profilo"
           subtitle="Aggiungi i dati principali per personalizzare l'esperienza."
           step={1}
-          totalSteps={4}
+          totalSteps={3}
         />
 
         <Card className="space-y-4 p-5">
