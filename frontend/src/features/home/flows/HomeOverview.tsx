@@ -30,6 +30,7 @@ import {
 const RECO_PAGE_SIZE = 8;
 const MATCH_LIMIT = 5;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
+const DISTANCE_EPSILON = 0.000001;
 
 const formatDuration = (minutes: number | null): string | undefined => {
   if (!minutes) return undefined;
@@ -136,6 +137,7 @@ export const HomeOverview = () => {
   const { actions: analyticsActions } = useAnalytics();
 
   const bootstrappedRef = useRef(false);
+  const locationFetchRef = useRef<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationModalLoading, setLocationModalLoading] = useState(false);
 
@@ -179,6 +181,35 @@ export const HomeOverview = () => {
     zyraActions,
     analyticsActions,
   ]);
+
+  useEffect(() => {
+    if (
+      !hasPosition ||
+      position?.latitude == null ||
+      position?.longitude == null
+    ) {
+      locationFetchRef.current = null;
+      return;
+    }
+    const key = `${position.latitude}:${position.longitude}`;
+    if (locationFetchRef.current === key) return;
+    locationFetchRef.current = key;
+
+    catalogActions
+      .fetchExperiences({
+        size: RECO_PAGE_SIZE,
+        lat: position.latitude,
+        lng: position.longitude,
+      })
+      .catch(() => undefined);
+    catalogActions
+      .fetchPlaces({
+        size: RECO_PAGE_SIZE,
+        lat: position.latitude,
+        lng: position.longitude,
+      })
+      .catch(() => undefined);
+  }, [catalogActions, hasPosition, position?.latitude, position?.longitude]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -247,12 +278,31 @@ export const HomeOverview = () => {
     [recommendations],
   );
 
-  const experienceCards = useMemo(
-    () =>
-      (recommendationExperiences.length
-        ? recommendationExperiences
-        : experiences
-      ).map((exp) => ({
+  const experienceCards = useMemo(() => {
+    const source =
+      hasPosition && experiences.length > 0
+        ? experiences
+        : recommendationExperiences.length
+          ? recommendationExperiences
+          : experiences;
+    const items = source.map((exp) => {
+      let distanceKm: number | undefined;
+      if (
+        hasPosition &&
+        position?.latitude != null &&
+        position?.longitude != null &&
+        exp.place?.latitude != null &&
+        exp.place?.longitude != null
+      ) {
+        distanceKm = calculateDistanceKm(
+          position.latitude,
+          position.longitude,
+          exp.place.latitude,
+          exp.place.longitude,
+        );
+      }
+
+      return {
         title: exp.name,
         subtitle: exp.locationName ?? exp.place?.name ?? undefined,
         category: exp.category?.name ?? undefined,
@@ -267,13 +317,33 @@ export const HomeOverview = () => {
         reviewCount: exp.reviewCount ?? undefined,
         durationLabel: formatDuration(exp.durationMinutes),
         provider: exp.provider ?? undefined,
-      })),
-    [recommendationExperiences, experiences],
-  );
+        distanceKm,
+      };
+    });
+
+    if (hasPosition) {
+      return [...items].sort((a, b) => {
+        if (a.distanceKm == null && b.distanceKm == null) return 0;
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        if (Math.abs(a.distanceKm - b.distanceKm) < DISTANCE_EPSILON) {
+          return 0;
+        }
+        return a.distanceKm - b.distanceKm;
+      });
+    }
+
+    return items;
+  }, [experiences, hasPosition, position, recommendationExperiences]);
 
   const placeCards = useMemo(() => {
-    const list = recommendationPlaces.length ? recommendationPlaces : places;
-    return list.map((place) => {
+    const list =
+      hasPosition && places.length > 0
+        ? places
+        : recommendationPlaces.length
+          ? recommendationPlaces
+          : places;
+    const items = list.map((place) => {
       let distanceKm: number | undefined;
       if (
         hasPosition &&
@@ -299,18 +369,34 @@ export const HomeOverview = () => {
         href: `/places/${place.id}`,
       };
     });
+
+    if (hasPosition) {
+      return [...items].sort((a, b) => {
+        if (a.distanceKm == null && b.distanceKm == null) return 0;
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        if (Math.abs(a.distanceKm - b.distanceKm) < DISTANCE_EPSILON) {
+          return 0;
+        }
+        return a.distanceKm - b.distanceKm;
+      });
+    }
+
+    return items;
   }, [recommendationPlaces, places, hasPosition, position]);
 
   const matchSpotlight = userMatches.length ? userMatches[0] : null;
   const otherMatches =
     userMatches.length > 1 ? userMatches.slice(1, MATCH_LIMIT) : [];
 
-  const isRecoLoading =
-    loadingRecommendations &&
-    experiences.length === 0 &&
-    recommendationExperiences.length === 0;
-  const isPlacesLoading =
-    catalogLoading && places.length === 0 && recommendationPlaces.length === 0;
+  const isRecoLoading = hasPosition
+    ? catalogLoading && experiences.length === 0
+    : loadingRecommendations &&
+      experiences.length === 0 &&
+      recommendationExperiences.length === 0;
+  const isPlacesLoading = hasPosition
+    ? catalogLoading && places.length === 0
+    : catalogLoading && places.length === 0 && recommendationPlaces.length === 0;
 
   const handleRequestPosition = () => {
     if (permission === "unknown") {
