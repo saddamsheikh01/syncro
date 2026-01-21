@@ -112,11 +112,21 @@ public class UserMatchService {
         match.setUserBId(userBId);
         match.setScoreTotal(sharedCount * SCORE_MULTIPLIER);
         match.setBreakdown(Map.of("sharedTags", sharedCount));
-        UserMatchScore saved = userMatchScoreRepository.save(match);
-        upsertExplanation(saved, sharedCount);
+        UserMatchScore saved = userMatchScoreRepository.saveAndFlush(match);
+        if (saved.getId() == null) {
+            saved = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
+                .orElse(saved);
+        }
+        if (saved.getId() == null) {
+            return;
+        }
+        // Explanation is computed on the fly to avoid persistence issues in demo data.
     }
 
     private void upsertExplanation(UserMatchScore match, int sharedCount) {
+        if (match.getId() == null) {
+            return;
+        }
         String explanation = "Match basato su " + sharedCount + " interessi condivisi";
         MatchExplanation stored = matchExplanationRepository.findByMatchId(match.getId())
             .orElseGet(MatchExplanation::new);
@@ -128,12 +138,29 @@ public class UserMatchService {
     private Page<UserMatchResponse> mapResponses(Page<UserMatchScore> matches, UUID userId) {
         Map<UUID, String> explanations = loadExplanations(matches.getContent());
         Map<UUID, UserSummaryResponse> summaries = loadUserSummaries(matches.getContent(), userId);
-        return matches.map(match -> userMatchMapper.toResponse(
-            match,
-            userId,
-            explanations.get(match.getId()),
-            summaries.get(resolveOtherUserId(match, userId))
-        ));
+        return matches.map(match -> {
+            String explanation = explanations.get(match.getId());
+            if (explanation == null) {
+                explanation = buildExplanation(match);
+            }
+            return userMatchMapper.toResponse(
+                match,
+                userId,
+                explanation,
+                summaries.get(resolveOtherUserId(match, userId))
+            );
+        });
+    }
+
+    private String buildExplanation(UserMatchScore match) {
+        if (match.getBreakdown() == null) {
+            return "Match basato su interessi condivisi";
+        }
+        Object shared = match.getBreakdown().get("sharedTags");
+        if (shared instanceof Number sharedCount) {
+            return "Match basato su " + sharedCount.intValue() + " interessi condivisi";
+        }
+        return "Match basato su interessi condivisi";
     }
 
     private Map<UUID, String> loadExplanations(List<UserMatchScore> matches) {

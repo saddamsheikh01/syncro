@@ -1,7 +1,14 @@
 import type { IsoDateTime, Uuid } from "../shared";
 import type { TagResponse } from "../tags";
 
-export type CatalogSource = "MANUAL" | "API";
+export type CatalogSource =
+  | "MANUAL"
+  | "API"
+  | "GETYOURGUIDE"
+  | "VIATOR"
+  | "MUSEMENT"
+  | "CIVITATIS"
+  | "TIQETS";
 
 export type ExperienceProvider =
   | "GETYOURGUIDE"

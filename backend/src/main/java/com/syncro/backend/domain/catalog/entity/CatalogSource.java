@@ -2,5 +2,10 @@ package com.syncro.backend.domain.catalog.entity;
 
 public enum CatalogSource {
     MANUAL,
-    API
+    API,
+    GETYOURGUIDE,
+    VIATOR,
+    MUSEMENT,
+    CIVITATIS,
+    TIQETS
 }
