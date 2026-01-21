@@ -1,5 +1,6 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
-import { Card } from "@/components/elements/Card";
 import { Avatar } from "@/components/elements/Avatar";
 import { Badge } from "@/components/elements/Badge";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
@@ -37,17 +38,24 @@ const formatUpdatedAt = (isoDate: string) => {
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
   if (diffMinutes < 60) {
-    return `Aggiornato ${diffMinutes} min fa`;
+    return `${diffMinutes} min fa`;
   }
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) {
-    return `Aggiornato ${diffHours}h fa`;
+    return `${diffHours}h fa`;
   }
   return date.toLocaleDateString("it-IT", {
     day: "2-digit",
     month: "2-digit",
   });
 };
+
+const LocationIcon = () => (
+  <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
 
 export const MatchListItem = ({
   className,
@@ -70,34 +78,61 @@ export const MatchListItem = ({
         className="w-full text-left"
         onClick={() => onSelectMatch?.(match.matchId)}
       >
-        <Card
+        <div
           className={cx(
-            "flex flex-wrap items-start gap-4 p-4 sm:items-center",
-            selected && "border-accent/40 shadow-md",
+            "group flex flex-wrap items-start gap-4 rounded-[var(--radius-lg)] border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong sm:items-center",
+            selected
+              ? "border-accent/40 bg-accent-soft/30 shadow-md"
+              : "border-border",
             className
           )}
         >
-          <Avatar name={name} src={match.user?.avatarUrl ?? undefined} />
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-foreground">{name}</p>
-              <Badge tone="neutral" size="sm">
-                Match
-              </Badge>
-              {typeof sharedTags === "number" ? (
-                <Badge tone="accent" size="sm">
-                  {sharedTags} interessi comuni
-                </Badge>
-              ) : null}
+          {/* Avatar with gradient ring on hover */}
+          <div className="relative">
+            <div className={cx(
+              "rounded-full p-0.5 transition-all duration-300",
+              selected
+                ? "bg-gradient-to-br from-accent to-accent"
+                : "bg-transparent group-hover:bg-gradient-to-br group-hover:from-qa-match-gradient-start group-hover:to-qa-match-gradient-end"
+            )}>
+              <Avatar
+                name={name}
+                src={match.user?.avatarUrl ?? undefined}
+                className={cx(
+                  "transition-all duration-300",
+                  selected ? "border-2 border-white" : "group-hover:border-2 group-hover:border-white"
+                )}
+              />
             </div>
-            {location ? <p className="text-xs text-subtle">{location}</p> : null}
-            <p className="text-xs text-subtle">{explanation}</p>
+          </div>
+
+          {/* Info */}
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
+                {name}
+              </p>
+              {typeof sharedTags === "number" && sharedTags > 0 && (
+                <Badge tone="accent" size="sm">
+                  {sharedTags} in comune
+                </Badge>
+              )}
+            </div>
+            {location && (
+              <p className="flex items-center gap-1 text-xs text-muted">
+                <LocationIcon />
+                {location}
+              </p>
+            )}
+            <p className="line-clamp-2 text-xs text-subtle">{explanation}</p>
             <p className="text-[11px] text-muted">{updatedLabel}</p>
           </div>
+
+          {/* Score */}
           <div className="flex flex-col items-end gap-2">
             <MatchScoreBadge score={score} />
           </div>
-        </Card>
+        </div>
       </button>
     </div>
   );

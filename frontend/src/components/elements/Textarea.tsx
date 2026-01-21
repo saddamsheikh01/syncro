@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 export interface TextareaProps
   extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> {
   className?: string;
+  containerClassName?: string;
   label?: string;
   hint?: string;
   error?: string;
@@ -21,6 +22,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       hint,
       error,
       rightSlot,
+      containerClassName,
       id,
       disabled,
       required,
@@ -46,7 +48,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cx(
             "flex items-start gap-2 rounded-[var(--radius-md)] border bg-surface px-3 py-2 shadow-sm",
             error ? "border-danger/40" : "border-border",
-            disabled && "bg-surface-muted text-subtle"
+            disabled && "bg-surface-muted text-subtle",
+            containerClassName
           )}
         >
           <textarea

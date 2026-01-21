@@ -1,8 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes, ReactNode } from "react";
-import { Card } from "@/components/elements/Card";
 import { Badge } from "@/components/elements/Badge";
-import { PlaceMetaRow } from "@/features/catalog/elements/PlaceMetaRow";
 import { cx } from "@/lib/classNames";
 
 export interface ExperienceListItemProps
@@ -18,17 +18,30 @@ export interface ExperienceListItemProps
   durationLabel?: string;
   imageUrl?: string;
   provider?: string;
+  distanceKm?: number;
   media?: ReactNode;
   href?: string;
   onPress?: () => void;
 }
+
+const StarIcon = () => (
+  <svg className="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 24 24">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
 
 export const ExperienceListItem = ({
   className,
   title,
   subtitle,
   category,
-  metaItems = [],
   priceLabel,
   originalPriceLabel,
   rating,
@@ -36,71 +49,116 @@ export const ExperienceListItem = ({
   durationLabel,
   imageUrl,
   provider,
+  distanceKm,
   media,
   href,
   onPress,
   ...props
 }: ExperienceListItemProps) => {
   const card = (
-    <Card className={cx("flex items-start gap-4 p-4", className)} {...props}>
-      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
+    <div
+      className={cx(
+        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong",
+        className
+      )}
+      {...props}
+    >
+      {/* Image hero */}
+      <div className="relative h-36 w-full overflow-hidden bg-surface-muted">
         {media ?? (imageUrl ? (
           <img
             src={imageUrl}
             alt={title}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="h-full w-full" />
-        ))}
-      </div>
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h4 className="text-base font-semibold text-foreground">{title}</h4>
-            {subtitle ? (
-              <p className="text-xs text-subtle">{subtitle}</p>
-            ) : null}
+          <div className="flex h-full w-full items-center justify-center">
+            <svg className="h-10 w-10 text-muted/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+            </svg>
           </div>
-          {category ? <Badge tone="accent">{category}</Badge> : null}
+        ))}
+
+        {/* Category badge overlay */}
+        {category && (
+          <div className="absolute left-3 top-3">
+            <Badge tone="neutral" className="bg-white/90 backdrop-blur-sm">
+              {category}
+            </Badge>
+          </div>
+        )}
+
+        {/* Price badge overlay */}
+        {priceLabel && (
+          <div className="absolute bottom-3 right-3">
+            <div className="flex items-center gap-1.5 rounded-full bg-foreground/90 px-2.5 py-1 backdrop-blur-sm">
+              {originalPriceLabel && (
+                <span className="text-xs text-white/60 line-through">
+                  {originalPriceLabel}
+                </span>
+              )}
+              <span className="text-sm font-semibold text-white">
+                {priceLabel}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="space-y-1">
+          <h4 className="line-clamp-2 text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
+            {title}
+          </h4>
+          {subtitle && (
+            <p className="flex items-center gap-1 text-xs text-muted">
+              <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span className="truncate">{subtitle}</span>
+            </p>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        {/* Meta row */}
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {rating != null && (
-            <span className="flex items-center gap-1 text-xs text-muted">
-              <span className="text-yellow-500">★</span>
+            <span className="flex items-center gap-1 text-xs font-medium text-foreground">
+              <StarIcon />
               {rating.toFixed(1)}
               {reviewCount != null && reviewCount > 0 && (
-                <span className="text-subtle">({reviewCount})</span>
+                <span className="text-muted">({reviewCount})</span>
               )}
             </span>
           )}
           {durationLabel && (
-            <span className="text-xs text-muted">{durationLabel}</span>
+            <span className="flex items-center gap-1 text-xs text-muted">
+              <ClockIcon />
+              {durationLabel}
+            </span>
           )}
-          {metaItems.length ? <PlaceMetaRow items={metaItems} /> : null}
-          {priceLabel && (
-            <span className="flex items-center gap-1">
-              {originalPriceLabel && (
-                <span className="text-xs text-subtle line-through">
-                  {originalPriceLabel}
-                </span>
-              )}
-              <span className="text-xs font-semibold text-foreground">
-                {priceLabel}
-              </span>
+          {distanceKm != null && (
+            <span className="text-xs text-muted">
+              {distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m` : `${distanceKm.toFixed(1)}km`}
             </span>
           )}
           {provider && (
-            <span className="text-[10px] text-subtle">{provider}</span>
+            <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-subtle">
+              {provider}
+            </span>
           )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 
   if (href) {
     return (
-      <Link href={href} className="block">
+      <Link href={href} className="block snap-start">
         {card}
       </Link>
     );
@@ -108,11 +166,11 @@ export const ExperienceListItem = ({
 
   if (onPress) {
     return (
-      <button type="button" onClick={onPress} className="w-full text-left">
+      <button type="button" onClick={onPress} className="w-full snap-start text-left">
         {card}
       </button>
     );
   }
 
-  return card;
+  return <div className="snap-start">{card}</div>;
 };

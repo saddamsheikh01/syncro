@@ -23,6 +23,49 @@
   --zyra-glow: rgba(139, 92, 246, 0.15);
   --zyra-border: rgba(139, 92, 246, 0.3);
   --zyra-text: #7c3aed;
+
+  /* Quick Action category colors */
+  --qa-map-gradient-start: #10b981;
+  --qa-map-gradient-end: #059669;
+  --qa-map-glow: rgba(16, 185, 129, 0.2);
+  --qa-map-border: rgba(16, 185, 129, 0.4);
+  --qa-map-bg: rgba(16, 185, 129, 0.08);
+
+  --qa-match-gradient-start: #ec4899;
+  --qa-match-gradient-end: #db2777;
+  --qa-match-glow: rgba(236, 72, 153, 0.2);
+  --qa-match-border: rgba(236, 72, 153, 0.4);
+  --qa-match-bg: rgba(236, 72, 153, 0.08);
+
+  --qa-experiences-gradient-start: #f59e0b;
+  --qa-experiences-gradient-end: #d97706;
+  --qa-experiences-glow: rgba(245, 158, 11, 0.2);
+  --qa-experiences-border: rgba(245, 158, 11, 0.4);
+  --qa-experiences-bg: rgba(245, 158, 11, 0.08);
+
+  --qa-places-gradient-start: #3b82f6;
+  --qa-places-gradient-end: #2563eb;
+  --qa-places-glow: rgba(59, 130, 246, 0.2);
+  --qa-places-border: rgba(59, 130, 246, 0.4);
+  --qa-places-bg: rgba(59, 130, 246, 0.08);
+
+  --qa-feed-gradient-start: #84cc16;
+  --qa-feed-gradient-end: #65a30d;
+  --qa-feed-glow: rgba(132, 204, 22, 0.2);
+  --qa-feed-border: rgba(132, 204, 22, 0.4);
+  --qa-feed-bg: rgba(132, 204, 22, 0.08);
+
+  --qa-chat-gradient-start: #6366f1;
+  --qa-chat-gradient-end: #4f46e5;
+  --qa-chat-glow: rgba(99, 102, 241, 0.2);
+  --qa-chat-border: rgba(99, 102, 241, 0.4);
+  --qa-chat-bg: rgba(99, 102, 241, 0.08);
+
+  --qa-tests-gradient-start: #14b8a6;
+  --qa-tests-gradient-end: #0d9488;
+  --qa-tests-glow: rgba(20, 184, 166, 0.2);
+  --qa-tests-border: rgba(20, 184, 166, 0.4);
+  --qa-tests-bg: rgba(20, 184, 166, 0.08);
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
@@ -86,6 +129,42 @@ body {
   outline-offset: 2px;
 }
 
+.zyra-surface {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.22),
+    rgba(99, 102, 241, 0.16) 45%,
+    rgba(59, 130, 246, 0.22)
+  );
+}
+
+.zyra-surface-soft {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.14),
+    rgba(99, 102, 241, 0.1) 45%,
+    rgba(59, 130, 246, 0.14)
+  );
+}
+
+.zyra-surface-strong {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.34),
+    rgba(99, 102, 241, 0.28) 45%,
+    rgba(59, 130, 246, 0.32)
+  );
+}
+
+.zyra-surface-solid {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.62),
+    rgba(99, 102, 241, 0.56) 45%,
+    rgba(59, 130, 246, 0.6)
+  );
+}
+
 button,
 a,
 [role="button"],
@@ -97,6 +176,20 @@ input[type="radio"],
 select,
 summary {
   cursor: pointer;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Snap scroll children */
+.snap-x > * {
+  scroll-snap-align: start;
 }
 
 /* Leaflet map fixes */

@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { useSearchStore, searchActions } from "@/stores/search/useSearchStore";
 import { ZyraSearchResults } from "./ZyraSearchResults";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
 export interface ZyraSearchBarProps {
   className?: string;
@@ -102,39 +103,18 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
     <div ref={containerRef} className={cx("relative w-full", className)}>
       <div
         className={cx(
-          "relative overflow-hidden rounded-[var(--radius-lg)] transition-all duration-300",
+          "relative overflow-hidden rounded-[var(--radius-xl)] border transition-colors duration-200",
           isFocused
-            ? "shadow-[0_0_0_1px_var(--zyra-border),0_0_20px_var(--zyra-glow)]"
-            : "shadow-sm"
+            ? "border-zyra-border/90 shadow-[0_0_0_1px_var(--zyra-border)]"
+            : "border-border/70"
         )}
       >
         <div
           className={cx(
-            "absolute inset-0 opacity-0 transition-opacity duration-300",
-            isFocused && "opacity-100"
-          )}
-          style={{
-            background:
-              "linear-gradient(135deg, var(--zyra-gradient-start) 0%, var(--zyra-gradient-mid) 50%, var(--zyra-gradient-end) 100%)",
-          }}
-        />
-
-        <div
-          className={cx(
-            "relative m-[1px] flex items-center gap-3 rounded-[calc(var(--radius-lg)-1px)] bg-surface px-4 py-3 transition-all duration-300",
-            isFocused && "bg-white"
+            "relative m-[1px] flex items-center gap-3 rounded-[calc(var(--radius-xl)-1px)] bg-surface px-4 py-3"
           )}
         >
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center">
-            <div
-              className="absolute inset-0 rounded-full opacity-80"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--zyra-gradient-start), var(--zyra-gradient-end))",
-              }}
-            />
-            <span className="relative text-sm font-bold text-white">Z</span>
-          </div>
+          <ZyraMark size="sm" />
 
           <div className="flex flex-1 flex-col gap-0.5">
             <span
@@ -143,7 +123,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
                 isFocused ? "text-zyra-text" : "text-subtle"
               )}
             >
-              Chiedi a Zyra
+              Zyra AI
             </span>
             <input
               ref={inputRef}
@@ -153,9 +133,9 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Cerca persone, luoghi, esperienze..."
+              placeholder="Chiedi a Zyra o cerca luoghi, esperienze, persone..."
               className="w-full bg-transparent text-sm text-foreground placeholder:text-subtle focus:outline-none"
-              aria-label="Cerca su Syncro"
+              aria-label="Chiedi a Zyra"
               aria-expanded={showDropdown}
               aria-haspopup="listbox"
             />
@@ -165,7 +145,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
             className={cx(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200",
               isFocused
-                ? "bg-gradient-to-r from-zyra-start to-zyra-end text-white"
+                ? "bg-accent text-white"
                 : "bg-surface-muted text-subtle"
             )}
           >

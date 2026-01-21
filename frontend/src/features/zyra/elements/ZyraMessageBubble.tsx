@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
 export type ZyraMessageRole = "zyra" | "user";
 
@@ -38,6 +39,12 @@ export const ZyraMessageBubble = ({
             : "border-border bg-card text-foreground"
         )}
       >
+        {!isUser ? (
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zyra-text">
+            <ZyraMark size="xs" glow={false} />
+            <span>Zyra</span>
+          </div>
+        ) : null}
         <p>{message}</p>
         {timestamp || statusLabel ? (
           <div

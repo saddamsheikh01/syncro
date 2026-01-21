@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../hooks";
+import { Logo } from "@/components/elements/Logo";
 
 export const Login = () => {
   const router = useRouter();
@@ -37,8 +38,8 @@ export const Login = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center px-6 py-14">
         <div className="mb-10">
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft text-base font-semibold text-accent">
-            S
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft">
+            <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Bentornato

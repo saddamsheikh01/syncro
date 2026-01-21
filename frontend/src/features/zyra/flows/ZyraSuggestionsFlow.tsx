@@ -7,7 +7,7 @@ import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
-import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
 import { useZyra } from "@/hooks";
 import type { ZyraSuggestionResponse } from "@/types/zyra";
@@ -64,13 +64,21 @@ export const ZyraSuggestionsFlow = () => {
 
   return (
     <Card className="space-y-4 p-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Suggerimenti Zyra
-        </p>
-        <h2 className="text-xl font-semibold text-foreground">
-          Ultime raccomandazioni
-        </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <ZyraMark size="sm" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
+              Suggerimenti Zyra
+            </p>
+            <h2 className="text-xl font-semibold text-foreground">
+              Ultime raccomandazioni
+            </h2>
+          </div>
+        </div>
+        <span className="rounded-full border border-border/60 bg-surface-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+          AI
+        </span>
       </div>
 
       {loadingSuggestions && !hasData ? (
@@ -104,19 +112,6 @@ export const ZyraSuggestionsFlow = () => {
                 ? suggestion.payload.context
                 : null;
 
-            if (suggestion.suggestionType === "MATCH_OF_THE_DAY") {
-              return (
-                <ZyraMatchOfDayCard
-                  key={suggestion.id}
-                  title="Match del giorno"
-                  description={message}
-                  actionHref={action?.href}
-                  actionLabel={action?.label ?? "Apri"}
-                  className="border border-zyra-border/60 bg-zyra-glow/40"
-                />
-              );
-            }
-
             return (
               <div
                 key={suggestion.id}
@@ -141,7 +136,7 @@ export const ZyraSuggestionsFlow = () => {
                 <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">
                   <span>{formatDateTime(suggestion.createdAt)}</span>
                   {action ? (
-                    <Link href={action.href} className="text-zyra-text hover:underline">
+                    <Link href={action.href} className="text-foreground hover:underline">
                       {action.label}
                     </Link>
                   ) : null}

@@ -12,6 +12,21 @@ export interface SectionHeaderProps extends HTMLAttributes<HTMLDivElement> {
   onActionClick?: () => void;
 }
 
+const ActionArrow = () => (
+  <svg
+    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
 export const SectionHeader = ({
   className,
   title,
@@ -33,17 +48,19 @@ export const SectionHeader = ({
       actionHref ? (
         <Link
           href={actionHref}
-          className="text-sm font-semibold text-foreground"
+          className="group flex items-center gap-1.5 rounded-full border border-transparent bg-surface-muted px-3 py-1.5 text-sm font-medium text-muted transition-all duration-200 hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
         >
-          {actionLabel}
+          <span>{actionLabel}</span>
+          <ActionArrow />
         </Link>
       ) : (
         <button
           type="button"
           onClick={onActionClick}
-          className="text-sm font-semibold text-foreground"
+          className="group flex items-center gap-1.5 rounded-full border border-transparent bg-surface-muted px-3 py-1.5 text-sm font-medium text-muted transition-all duration-200 hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
         >
-          {actionLabel}
+          <span>{actionLabel}</span>
+          <ActionArrow />
         </button>
       )
     ) : null}

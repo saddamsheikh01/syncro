@@ -9,6 +9,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { ZyraPromptChip } from "@/features/zyra/elements/ZyraPromptChip";
 import { MapZyraMessageBubble } from "@/features/zyra/lists/MapZyraMessageBubble";
 import { ZyraHeader } from "@/features/zyra/sections/ZyraHeader";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
 import { useZyra } from "@/hooks";
 import type { ZyraMessageResponse, ZyraSuggestionType } from "@/types/zyra";
@@ -254,7 +255,7 @@ export const ZyraChatFlow = () => {
                     className={cx(
                       "flex items-center justify-between px-4 py-3 text-left transition",
                       isActive
-                        ? "bg-accent-soft text-accent"
+                        ? "bg-surface-muted text-foreground"
                         : "hover:bg-surface-muted"
                     )}
                   >
@@ -287,10 +288,13 @@ export const ZyraChatFlow = () => {
               className="border-b border-border/60 pb-3"
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-zyra-border/70 bg-zyra-glow/30 px-3 py-2">
-                <p className="text-xs text-zyra-text">
-                  Suggerimenti rapidi da Zyra
-                </p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <ZyraMark size="xs" glow={false} />
+                  <p className="text-xs text-zyra-text">
+                    Suggerimenti rapidi da Zyra
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"

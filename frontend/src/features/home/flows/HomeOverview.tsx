@@ -5,12 +5,16 @@ import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
-import { QuickActionTile } from "@/features/home/cards/QuickActionTile";
+import {
+  QuickActionTile,
+  type QuickActionVariant,
+} from "@/features/home/cards/QuickActionTile";
 import { RecommendationRow } from "@/features/home/sections/RecommendationRow";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ForYouSectionHeader } from "@/features/home/sections/ForYouSectionHeader";
 import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
 import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { MapPermissionScreen } from "@/features/map/sections/MapPermissionScreen";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
@@ -52,54 +56,69 @@ const formatPrice = (
   }).format(price);
 };
 
-const QUICK_ACTIONS = [
+const QUICK_ACTIONS: Array<{
+  title: string;
+  subtitle: string;
+  href: string;
+  icon: React.ReactNode;
+  variant: QuickActionVariant;
+  iconWrapperClassName?: string;
+}> = [
   {
     title: "Mappa",
     subtitle: "Luoghi vicini",
     href: "/map",
     icon: <NavIcon name="map" className="h-5 w-5" />,
+    variant: "map",
   },
   {
     title: "Match",
     subtitle: "Affinita",
     href: "/matches",
     icon: <NavIcon name="spark" className="h-5 w-5" />,
+    variant: "match",
   },
   {
     title: "Esperienze",
     subtitle: "Per te",
     href: "/experiences",
     icon: <NavIcon name="spark" className="h-5 w-5" />,
+    variant: "experiences",
   },
   {
     title: "Luoghi",
     subtitle: "Scopri ora",
     href: "/places",
     icon: <NavIcon name="map-pin" className="h-5 w-5" />,
+    variant: "places",
   },
   {
     title: "Feed",
     subtitle: "Post vicini",
     href: "/feed",
     icon: <NavIcon name="chat" className="h-5 w-5" />,
+    variant: "feed",
   },
   {
     title: "Zyra",
     subtitle: "Suggerimenti",
     href: "/zyra",
-    icon: <NavIcon name="spark" className="h-5 w-5" />,
+    icon: <ZyraMark size="sm" />,
+    variant: "zyra",
   },
   {
     title: "Chat",
     subtitle: "Conversazioni",
     href: "/chat",
     icon: <NavIcon name="chat" className="h-5 w-5" />,
+    variant: "chat",
   },
   {
     title: "Tests",
     subtitle: "Nuovi quiz",
     href: "/tests",
     icon: <NavIcon name="clipboard" className="h-5 w-5" />,
+    variant: "tests",
   },
 ];
 

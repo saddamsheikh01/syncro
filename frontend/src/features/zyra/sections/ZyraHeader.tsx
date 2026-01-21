@@ -1,13 +1,9 @@
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
-import { Badge } from "@/components/elements/Badge";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
 
-const ZyraOrb = () => (
-  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 text-accent">
-    <span className="text-lg font-semibold">Z</span>
-  </span>
-);
+const ZyraOrb = () => <ZyraMark size="md" />;
 
 export interface ZyraHeaderProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -30,8 +26,16 @@ export const ZyraHeader = ({
       <ZyraOrb />
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          {statusLabel ? <Badge size="sm">{statusLabel}</Badge> : null}
+          <h3 className="text-lg font-semibold text-foreground">
+            <span className="bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent">
+              {title}
+            </span>
+          </h3>
+          {statusLabel ? (
+            <span className="rounded-full border border-border/60 bg-surface-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground">
+              {statusLabel}
+            </span>
+          ) : null}
         </div>
         {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
       </div>

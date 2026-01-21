@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import type { AdminRole } from "../../../types/admin";
 import { Select } from "@/components/elements/Select";
+import { Logo } from "@/components/elements/Logo";
 
 const ADMIN_ROLES: AdminRole[] = ["ADMIN", "SUPER_ADMIN"];
 const ADMIN_ROLE_OPTIONS = ADMIN_ROLES.map((roleItem) => ({
@@ -45,8 +46,8 @@ export const AdminRegister = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col justify-center px-6 py-14">
         <div className="mb-10">
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft text-base font-semibold text-accent">
-            S
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft">
+            <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Registrazione Admin

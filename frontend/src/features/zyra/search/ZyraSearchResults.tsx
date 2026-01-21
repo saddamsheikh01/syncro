@@ -7,6 +7,7 @@ import type {
 import type { PostResponse } from "@/types/social";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
 export interface ZyraSearchResultsProps {
   places: PlaceSummaryResponse[];
@@ -32,21 +33,28 @@ export const ZyraSearchResults = ({
   return (
     <div
       className={cx(
-        "absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-lg)] border bg-surface shadow-lg",
-        "border-zyra-border"
+        "absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-lg)] border bg-surface shadow-md",
+        "border-border"
       )}
       style={{
-        boxShadow: "0 8px 32px var(--zyra-glow), 0 4px 16px rgba(0,0,0,0.08)",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
       }}
       role="listbox"
     >
-      <div
-        className="h-1 w-full"
-        style={{
-          background:
-            "linear-gradient(90deg, var(--zyra-gradient-start), var(--zyra-gradient-mid), var(--zyra-gradient-end))",
-        }}
-      />
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <ZyraMark size="xs" glow={false} />
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zyra-text">
+              Zyra AI
+            </p>
+            <p className="text-[11px] text-subtle">Ricerca guidata dal profilo</p>
+          </div>
+        </div>
+        <span className="rounded-full border border-border/60 bg-surface-muted px-2 py-1 text-[10px] font-semibold text-zyra-text">
+          AI
+        </span>
+      </div>
 
       <div className="max-h-[400px] overflow-y-auto p-2">
         {loading && (
@@ -59,8 +67,7 @@ export const ZyraSearchResults = ({
         {showNoResults && (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full"
-              style={{ background: "var(--zyra-glow)" }}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted"
             >
               <NavIcon name="search" className="h-5 w-5 text-zyra-text" />
             </div>
@@ -90,13 +97,13 @@ export const ZyraSearchResults = ({
                       key={place.id}
                       type="button"
                       onClick={() => onResultClick("place", place.id)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                       role="option"
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted text-zyra-text">
                         <NavIcon
                           name="map-pin"
-                          className="h-4 w-4 text-muted"
+                          className="h-4 w-4"
                         />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -133,11 +140,11 @@ export const ZyraSearchResults = ({
                       key={experience.id}
                       type="button"
                       onClick={() => onResultClick("experience", experience.id)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                       role="option"
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
-                        <NavIcon name="star" className="h-4 w-4 text-muted" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted text-zyra-text">
+                        <NavIcon name="star" className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">
@@ -173,11 +180,11 @@ export const ZyraSearchResults = ({
                       key={post.id}
                       type="button"
                       onClick={() => onResultClick("post", post.id)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-zyra-glow"
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                       role="option"
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted">
-                        <NavIcon name="chat" className="h-4 w-4 text-muted" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted text-zyra-text">
+                        <NavIcon name="chat" className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">
@@ -202,10 +209,12 @@ export const ZyraSearchResults = ({
 
       {!loading && hasResults && (
         <div className="border-t border-border/60 px-3 py-2">
-          <p className="text-center text-[10px] text-subtle">
-            Powered by{" "}
-            <span className="font-semibold text-zyra-text">Zyra AI</span>
-          </p>
+          <div className="flex items-center justify-center gap-2 text-[10px] text-subtle">
+            <ZyraMark size="xs" glow={false} />
+            <span>
+              Powered by <span className="font-semibold text-zyra-text">Zyra AI</span>
+            </span>
+          </div>
         </div>
       )}
     </div>

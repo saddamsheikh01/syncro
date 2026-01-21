@@ -22,7 +22,7 @@ export const Navbar = ({
     )}
     {...props}
   >
-    <Card className="p-4">
+    <Card className="border-zyra-border/60 p-4 shadow-[0_16px_36px_var(--zyra-glow)] zyra-surface">
       <ZyraSearchBar />
     </Card>
   </header>

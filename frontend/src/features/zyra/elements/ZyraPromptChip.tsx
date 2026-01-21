@@ -33,9 +33,8 @@ export const ZyraPromptChip = ({
       className={cx(
         "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition",
         selected
-          ? "border-accent/20 bg-accent-soft text-accent"
-          : "border-border bg-surface text-foreground",
-        "hover:border-border-strong",
+          ? "border-border-strong bg-surface-muted text-foreground"
+          : "border-border bg-surface text-foreground hover:border-border-strong",
         disabled && "cursor-not-allowed opacity-60",
         className
       )}
