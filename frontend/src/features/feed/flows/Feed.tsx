@@ -13,8 +13,10 @@ import { PostComposerModal } from "@/features/social/sections/PostComposerModal"
 import { useAuth, useFeed, usePosition, useUser } from "@/hooks";
 import { uploadPostMedia } from "@/services/media";
 import { createPost } from "@/services/social";
+import { getUserSummary } from "@/services/users";
 import type { JsonValue } from "@/types/shared";
 import type { CreatePostRequest } from "@/types/social";
+import type { UserSummaryResponse } from "@/types/profile";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -59,6 +61,9 @@ export const Feed = () => {
     hasMore,
     actions: feedActions,
   } = useFeed();
+  const [authorSummaries, setAuthorSummaries] = useState<
+    Record<string, UserSummaryResponse>
+  >({});
 
   const bootstrappedRef = useRef(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -120,7 +125,12 @@ export const Feed = () => {
       authorName:
         user?.id && post.userId === user.id
           ? selfName
-          : formatAuthorName(post.userId),
+          : authorSummaries[post.userId]?.fullName ?? formatAuthorName(post.userId),
+      authorSubtitle:
+        authorSummaries[post.userId]?.city ??
+        authorSummaries[post.userId]?.country ??
+        undefined,
+      avatarUrl: authorSummaries[post.userId]?.avatarUrl ?? undefined,
       onLike: feedActions.likePost,
       onUnlike: feedActions.unlikePost,
     }));
@@ -131,7 +141,42 @@ export const Feed = () => {
     profile?.fullName,
     user?.email,
     user?.id,
+    authorSummaries,
   ]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || items.length === 0) return;
+    const uniqueIds = Array.from(new Set(items.map((post) => post.userId)));
+    const missingIds = uniqueIds.filter(
+      (id) => id && id !== user?.id && !authorSummaries[id]
+    );
+    if (missingIds.length === 0) return;
+    let active = true;
+    Promise.all(
+      missingIds.map(async (id) => {
+        try {
+          const summary = await getUserSummary(id);
+          return { id, summary };
+        } catch {
+          return null;
+        }
+      })
+    ).then((results) => {
+      if (!active) return;
+      setAuthorSummaries((prev) => {
+        const next = { ...prev };
+        results.forEach((item) => {
+          if (item?.summary) {
+            next[item.id] = item.summary;
+          }
+        });
+        return next;
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [items, status, user?.id, authorSummaries]);
 
   const handleLoadMore = () => {
     if (loading || !hasMore) return;

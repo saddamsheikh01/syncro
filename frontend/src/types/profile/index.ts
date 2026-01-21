@@ -50,3 +50,12 @@ export type UserPositionResponse = {
   accuracyMeters: number | null;
   updatedAt: IsoDateTime;
 };
+
+export type UserSummaryResponse = {
+  userId: Uuid;
+  fullName: string | null;
+  city: string | null;
+  country: string | null;
+  avatarUrl: string | null;
+  visibility: ProfileVisibility | null;
+};
