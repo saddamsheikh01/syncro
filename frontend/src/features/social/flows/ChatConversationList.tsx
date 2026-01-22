@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
+import { ZyraChatRecap } from "@/features/zyra/cards/ZyraChatRecap";
 import { useChat } from "@/hooks";
 import { ChatListItem } from "../lists/ChatListItem";
 import { useAuthStore } from "@/stores/auth/useAuthStore";
@@ -86,6 +87,8 @@ export const ChatConversationList = () => {
           Conversa con le persone che hai incontrato.
         </p>
       </header>
+
+      <ZyraChatRecap />
 
       {isLoading && (
         <Card className="flex items-center gap-3 p-5">

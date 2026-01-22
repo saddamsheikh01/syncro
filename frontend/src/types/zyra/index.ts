@@ -48,3 +48,10 @@ export type ZyraProfileRecapResponse = {
   recap: string;
   generatedAt: IsoDateTime;
 };
+
+export type ZyraChatRecapResponse = {
+  recap: string;
+  conversationCount: number;
+  recentContacts: string[];
+  generatedAt: IsoDateTime;
+};

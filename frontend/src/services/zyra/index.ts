@@ -1,6 +1,7 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
 import type {
+  ZyraChatRecapResponse,
   ZyraChatResponse,
   ZyraMessageRequest,
   ZyraMessageResponse,
@@ -79,6 +80,14 @@ export const createSuggestion = async (
 export const getProfileRecap = async (): Promise<ZyraProfileRecapResponse> => {
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     "/zyra/profile-recap",
+    { timeout: CHAT_TIMEOUT_MS }
+  );
+  return data;
+};
+
+export const getChatRecap = async (): Promise<ZyraChatRecapResponse> => {
+  const { data } = await apiClient.get<ZyraChatRecapResponse>(
+    "/zyra/chat-recap",
     { timeout: CHAT_TIMEOUT_MS }
   );
   return data;

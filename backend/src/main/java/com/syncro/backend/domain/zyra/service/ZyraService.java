@@ -10,6 +10,10 @@ import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.social.entity.ChatMessage;
+import com.syncro.backend.domain.social.entity.ChatParticipant;
+import com.syncro.backend.domain.social.repository.ChatMessageRepository;
+import com.syncro.backend.domain.social.repository.ChatParticipantRepository;
 import com.syncro.backend.domain.tags.entity.UserInterest;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
 import com.syncro.backend.domain.tests.entity.UserPsyProfile;
@@ -21,6 +25,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
 import com.syncro.backend.domain.zyra.entity.ZyraChatSession;
@@ -54,6 +59,8 @@ public class ZyraService {
     private final UserProfileRepository userProfileRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserPsyProfileRepository userPsyProfileRepository;
+    private final ChatParticipantRepository chatParticipantRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final ZyraChatSessionRepository sessionRepository;
     private final ZyraMessageRepository messageRepository;
     private final ZyraSuggestionRepository suggestionRepository;
@@ -68,6 +75,8 @@ public class ZyraService {
         UserProfileRepository userProfileRepository,
         UserInterestRepository userInterestRepository,
         UserPsyProfileRepository userPsyProfileRepository,
+        ChatParticipantRepository chatParticipantRepository,
+        ChatMessageRepository chatMessageRepository,
         ZyraChatSessionRepository sessionRepository,
         ZyraMessageRepository messageRepository,
         ZyraSuggestionRepository suggestionRepository,
@@ -80,6 +89,8 @@ public class ZyraService {
         this.userProfileRepository = userProfileRepository;
         this.userInterestRepository = userInterestRepository;
         this.userPsyProfileRepository = userPsyProfileRepository;
+        this.chatParticipantRepository = chatParticipantRepository;
+        this.chatMessageRepository = chatMessageRepository;
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
         this.suggestionRepository = suggestionRepository;
@@ -268,6 +279,103 @@ public class ZyraService {
             return recap != null ? recap.trim() : "Completa il tuo profilo per un riepilogo personalizzato.";
         } catch (Exception ex) {
             return "Completa il tuo profilo per un riepilogo personalizzato.";
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ZyraChatRecapResponse getChatRecap(UserPrincipal principal) {
+        User user = getUser(principal);
+
+        // Get user's recent conversations (last 5)
+        PageRequest pageable = PageRequest.of(0, 5, Sort.by(Sort.Order.desc("createdAt")));
+        List<ChatParticipant> participants = chatParticipantRepository.findByUserId(user.getId(), pageable).getContent();
+
+        if (participants.isEmpty()) {
+            return new ZyraChatRecapResponse(
+                "Non hai ancora conversazioni. Inizia a chattare con qualcuno per vedere un riepilogo qui!",
+                0,
+                List.of(),
+                java.time.Instant.now()
+            );
+        }
+
+        List<UUID> conversationIds = participants.stream()
+            .map(ChatParticipant::getConversationId)
+            .toList();
+
+        // Build conversation summaries for prompt
+        StringBuilder conversationData = new StringBuilder();
+        List<String> recentContacts = new ArrayList<>();
+
+        for (UUID conversationId : conversationIds) {
+            // Get other participant name
+            List<ChatParticipant> convParticipants = chatParticipantRepository.findAllByConversationId(conversationId);
+            ChatParticipant otherParticipant = convParticipants.stream()
+                .filter(p -> !p.getUserId().equals(user.getId()))
+                .findFirst()
+                .orElse(null);
+
+            String otherName = "Utente";
+            if (otherParticipant != null) {
+                UserProfile otherProfile = userProfileRepository.findByUserId(otherParticipant.getUserId()).orElse(null);
+                if (otherProfile != null && otherProfile.getFullName() != null) {
+                    otherName = otherProfile.getFullName();
+                }
+            }
+            recentContacts.add(otherName);
+
+            // Get last 5 messages from this conversation
+            PageRequest msgPageable = PageRequest.of(0, 5, Sort.by(Sort.Order.desc("createdAt")));
+            List<ChatMessage> messages = chatMessageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, msgPageable).getContent();
+
+            if (!messages.isEmpty()) {
+                conversationData.append("Conversazione con ").append(otherName).append(":\n");
+                List<ChatMessage> orderedMessages = new ArrayList<>(messages);
+                Collections.reverse(orderedMessages);
+                for (ChatMessage msg : orderedMessages) {
+                    String sender = msg.getUser().getId().equals(user.getId()) ? "Tu" : otherName;
+                    String content = msg.getContent().length() > 100
+                        ? msg.getContent().substring(0, 100) + "..."
+                        : msg.getContent();
+                    conversationData.append("- ").append(sender).append(": ").append(content).append("\n");
+                }
+                conversationData.append("\n");
+            }
+        }
+
+        String recap = generateChatRecap(conversationData.toString(), conversationIds.size());
+
+        return new ZyraChatRecapResponse(
+            recap,
+            conversationIds.size(),
+            recentContacts,
+            java.time.Instant.now()
+        );
+    }
+
+    private String generateChatRecap(String conversationData, int conversationCount) {
+        if (conversationData.isBlank()) {
+            return "Le tue conversazioni sono ancora vuote. Inizia a scambiare messaggi!";
+        }
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Genera un breve riepilogo delle conversazioni recenti dell'utente (2-3 frasi, tono amichevole). ");
+        prompt.append("Menziona con chi ha parlato e gli argomenti principali discussi. ");
+        prompt.append("Scrivi in seconda persona rivolgendoti all'utente. ");
+        prompt.append("Esempio: 'Hai chiacchierato con Marco di viaggi e con Sara di musica...'. ");
+        prompt.append("Ecco le conversazioni recenti:\n\n");
+        prompt.append(conversationData);
+
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi delle chat brevi e coinvolgenti."),
+            new ZyraChatMessage("user", prompt.toString())
+        );
+
+        try {
+            String recap = zyraClient.chat(messages);
+            return recap != null ? recap.trim() : "Hai " + conversationCount + " conversazioni attive.";
+        } catch (Exception ex) {
+            return "Hai " + conversationCount + " conversazioni attive.";
         }
     }
 

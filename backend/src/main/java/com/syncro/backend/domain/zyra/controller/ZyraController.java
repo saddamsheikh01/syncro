@@ -5,6 +5,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
 import com.syncro.backend.domain.zyra.service.ZyraService;
@@ -105,5 +106,13 @@ public class ZyraController {
         @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(zyraService.getProfileRecap(principal));
+    }
+
+    @GetMapping("/chat-recap")
+    @Operation(summary = "Genera recap conversazioni con Zyra")
+    public ResponseEntity<ZyraChatRecapResponse> getChatRecap(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(zyraService.getChatRecap(principal));
     }
 }
