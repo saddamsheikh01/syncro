@@ -21,6 +21,8 @@ export type NavIconName =
   | "clipboard"
   | "search"
   | "chevron-right"
+  | "chevron-left"
+  | "info"
   | "menu"
   | "x";
 
@@ -147,6 +149,15 @@ const renderIcon = (name: NavIconName) => {
       );
     case "chevron-right":
       return <path d="M9 18l6-6-6-6" />;
+    case "chevron-left":
+      return <path d="M15 18l-6-6 6-6" />;
+    case "info":
+      return (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 16v-4M12 8h.01" />
+        </>
+      );
     case "menu":
       return (
         <>
