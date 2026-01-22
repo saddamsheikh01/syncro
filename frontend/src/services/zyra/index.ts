@@ -4,6 +4,7 @@ import type {
   ZyraChatResponse,
   ZyraMessageRequest,
   ZyraMessageResponse,
+  ZyraProfileRecapResponse,
   ZyraSessionResponse,
   ZyraSuggestionRequest,
   ZyraSuggestionResponse,
@@ -71,6 +72,14 @@ export const createSuggestion = async (
   const { data } = await apiClient.post<ZyraSuggestionResponse>(
     "/zyra/suggestions",
     payload
+  );
+  return data;
+};
+
+export const getProfileRecap = async (): Promise<ZyraProfileRecapResponse> => {
+  const { data } = await apiClient.get<ZyraProfileRecapResponse>(
+    "/zyra/profile-recap",
+    { timeout: CHAT_TIMEOUT_MS }
   );
   return data;
 };

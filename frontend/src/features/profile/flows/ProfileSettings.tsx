@@ -13,6 +13,7 @@ import { Switch } from "@/components/elements/Switch";
 import { Logout } from "@/components/buttons/Logout";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
 import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard";
+import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector";
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
 import { useAnalytics, useAuth, useTags, useUser } from "@/hooks";
@@ -452,6 +453,8 @@ export const ProfileSettings = ({
         avatarUrl={avatar?.url}
         tags={summaryTags}
       />
+
+      <ZyraProfileRecap />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card className="space-y-4 p-5">

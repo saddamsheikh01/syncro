@@ -43,3 +43,8 @@ export type ZyraSuggestionResponse = {
   payload: JsonObject | null;
   createdAt: IsoDateTime;
 };
+
+export type ZyraProfileRecapResponse = {
+  recap: string;
+  generatedAt: IsoDateTime;
+};

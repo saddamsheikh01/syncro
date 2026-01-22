@@ -21,6 +21,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
 import com.syncro.backend.domain.zyra.entity.ZyraChatSession;
 import com.syncro.backend.domain.zyra.entity.ZyraMessage;
@@ -204,6 +205,70 @@ public class ZyraService {
 
         ZyraSuggestion saved = suggestionRepository.save(suggestion);
         return zyraMapper.toSuggestionResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal) {
+        User user = getUser(principal);
+        String recap = generateProfileRecap(user);
+        return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
+    }
+
+    private String generateProfileRecap(User user) {
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
+        UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Genera un breve riepilogo del profilo utente (2-3 frasi, tono amichevole e personale). ");
+        prompt.append("Scrivi in prima persona come se fosse l'utente a descriversi. ");
+        prompt.append("Esempio: 'Sono una persona curiosa che ama viaggiare...'. ");
+        prompt.append("Dati disponibili:\n");
+
+        if (profile != null) {
+            if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
+                prompt.append("- Nome: ").append(profile.getFullName()).append("\n");
+            }
+            if (profile.getCity() != null && !profile.getCity().isBlank()) {
+                prompt.append("- Citta: ").append(profile.getCity()).append("\n");
+            }
+            if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
+                prompt.append("- Paese: ").append(profile.getCountry()).append("\n");
+            }
+            if (profile.getBirthDate() != null) {
+                prompt.append("- Eta: ").append(formatAge(profile.getBirthDate())).append(" anni\n");
+            }
+            if (profile.getBio() != null && !profile.getBio().isBlank()) {
+                prompt.append("- Bio: ").append(profile.getBio()).append("\n");
+            }
+        }
+
+        if (!interests.isEmpty()) {
+            String interestNames = interests.stream()
+                .map(interest -> interest.getTag() != null ? interest.getTag().getName() : null)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
+            if (!interestNames.isBlank()) {
+                prompt.append("- Interessi: ").append(interestNames).append("\n");
+            }
+        }
+
+        if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
+            prompt.append("- Profilo psicologico: ").append(safeJson(psyProfile.getProfile())).append("\n");
+        }
+
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi profilo brevi e coinvolgenti."),
+            new ZyraChatMessage("user", prompt.toString())
+        );
+
+        try {
+            String recap = zyraClient.chat(messages);
+            return recap != null ? recap.trim() : "Completa il tuo profilo per un riepilogo personalizzato.";
+        } catch (Exception ex) {
+            return "Completa il tuo profilo per un riepilogo personalizzato.";
+        }
     }
 
     private List<ZyraChatMessage> buildPromptMessages(User user, UUID sessionId) {
