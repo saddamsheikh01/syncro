@@ -17,3 +17,4 @@ export { useProfile } from "./profile/useProfile";
 export { usePreferences } from "./preferences/usePreferences";
 export { useAdminAuth } from "./admin/useAdminAuth";
 export { useTutorial } from "./tutorial/useTutorial";
+export { useAddToHomeScreen } from "./pwa/useAddToHomeScreen";

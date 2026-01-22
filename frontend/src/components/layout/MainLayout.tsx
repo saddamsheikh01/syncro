@@ -6,6 +6,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Leftbar } from "@/components/ui/Leftbar";
 import { Rightbar } from "@/components/ui/Rightbar";
 import { MobileBar } from "@/components/ui/MobileBar";
+import { AddToHomeScreenModal } from "@/components/ui/AddToHomeScreenModal";
 import { cx } from "@/lib/classNames";
 
 export interface MainLayoutProps {
@@ -62,6 +63,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
 
       <div className="lg:hidden">
         <MobileBar position={position} />
+        <AddToHomeScreenModal />
       </div>
     </div>
   );
