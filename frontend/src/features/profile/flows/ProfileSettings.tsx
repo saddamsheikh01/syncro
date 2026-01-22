@@ -114,6 +114,7 @@ export const ProfileSettings = ({
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [bio, setBio] = useState("");
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -164,6 +165,7 @@ export const ProfileSettings = ({
     setBirthDate(profile.birthDate ?? "");
     setCity(profile.city ?? "");
     setCountry(profile.country ?? "");
+    setBio(profile.bio ?? "");
     setVisibility(profile.visibility ?? "PUBLIC");
     profileInitializedRef.current = true;
   }, [profile]);
@@ -274,6 +276,7 @@ export const ProfileSettings = ({
     const trimmedName = fullName.trim();
     const trimmedCity = city.trim();
     const trimmedCountry = country.trim();
+    const trimmedBio = bio.trim();
 
     if (!trimmedName) {
       setProfileError("Inserisci il nome completo.");
@@ -290,6 +293,7 @@ export const ProfileSettings = ({
       birthDate: birthDate || null,
       city: trimmedCity,
       country: trimmedCountry,
+      bio: trimmedBio || null,
       visibility,
     };
 
@@ -486,6 +490,20 @@ export const ProfileSettings = ({
               onChange={(event) => setCountry(event.target.value)}
               placeholder="Italia"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Biografia
+            </label>
+            <textarea
+              value={bio}
+              onChange={(event) => setBio(event.target.value)}
+              placeholder="Raccontaci qualcosa di te..."
+              maxLength={500}
+              rows={4}
+              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="text-xs text-subtle">{bio.length}/500 caratteri</p>
           </div>
           <Button
             size="sm"

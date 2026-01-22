@@ -12,6 +12,7 @@ public record UserProfileResponse(
     Integer age,
     String city,
     String country,
+    String bio,
     String visibility,
     Instant createdAt,
     Instant updatedAt

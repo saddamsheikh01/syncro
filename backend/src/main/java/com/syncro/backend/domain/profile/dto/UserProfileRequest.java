@@ -10,6 +10,7 @@ public record UserProfileRequest(
     @Past LocalDate birthDate,
     @Size(max = 120) String city,
     @Size(max = 120) String country,
+    @Size(max = 500) String bio,
     @Pattern(regexp = "PUBLIC|PARTIAL|PRIVATE") String visibility
 ) {
 }

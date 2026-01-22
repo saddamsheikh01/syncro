@@ -69,6 +69,9 @@ public class UserProfileService {
         if (request.country() != null) {
             profile.setCountry(normalizeText(request.country()));
         }
+        if (request.bio() != null) {
+            profile.setBio(normalizeText(request.bio()));
+        }
         if (request.visibility() != null) {
             profile.setVisibility(parseVisibility(request.visibility()));
         }

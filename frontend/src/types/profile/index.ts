@@ -7,6 +7,7 @@ export type UserProfileRequest = {
   birthDate?: IsoDate | null;
   city?: string | null;
   country?: string | null;
+  bio?: string | null;
   visibility?: ProfileVisibility | null;
 };
 
@@ -18,6 +19,7 @@ export type UserProfileResponse = {
   age: number | null;
   city: string | null;
   country: string | null;
+  bio: string | null;
   visibility: ProfileVisibility;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;

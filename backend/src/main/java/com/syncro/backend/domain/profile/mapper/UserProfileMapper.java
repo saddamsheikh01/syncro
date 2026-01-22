@@ -21,6 +21,7 @@ public class UserProfileMapper {
             age,
             profile.getCity(),
             profile.getCountry(),
+            profile.getBio(),
             profile.getVisibility().name(),
             profile.getCreatedAt(),
             profile.getUpdatedAt()

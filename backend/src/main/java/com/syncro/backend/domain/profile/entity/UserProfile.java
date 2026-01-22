@@ -42,6 +42,9 @@ public class UserProfile {
     @Column(name = "country")
     private String country;
 
+    @Column(name = "bio", length = 500)
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "visibility", nullable = false)
     private ProfileVisibility visibility;
@@ -115,6 +118,14 @@ public class UserProfile {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     public ProfileVisibility getVisibility() {
