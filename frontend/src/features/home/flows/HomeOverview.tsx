@@ -29,11 +29,14 @@ import {
   useMatches,
   useAnalytics,
   useZyra,
+  useTutorial,
 } from "@/hooks";
+import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 
 const RECO_PAGE_SIZE = 8;
 const MATCH_LIMIT = 5;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
+const TUTORIAL_DELAY_MS = 800;
 const DISTANCE_EPSILON = 0.000001;
 
 const formatDuration = (minutes: number | null): string | undefined => {
@@ -154,8 +157,16 @@ export const HomeOverview = () => {
     actions: zyraActions,
   } = useZyra();
   const { actions: analyticsActions } = useAnalytics();
+  const {
+    currentStep: tutorialStep,
+    isOpen: tutorialOpen,
+    completed: tutorialCompleted,
+    skipped: tutorialSkipped,
+    actions: tutorialActions,
+  } = useTutorial();
 
   const bootstrappedRef = useRef(false);
+  const tutorialTriggeredRef = useRef(false);
   const locationFetchRef = useRef<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationModalLoading, setLocationModalLoading] = useState(false);
@@ -164,7 +175,8 @@ export const HomeOverview = () => {
     authActions.hydrate();
     positionActions.hydrate();
     userActions.hydrateLanguage?.();
-  }, [authActions, positionActions, userActions]);
+    tutorialActions.hydrate();
+  }, [authActions, positionActions, userActions, tutorialActions]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -232,7 +244,22 @@ export const HomeOverview = () => {
 
   useEffect(() => {
     if (status !== "authenticated") return;
+    if (tutorialTriggeredRef.current) return;
+    if (tutorialCompleted || tutorialSkipped) return;
+
+    tutorialTriggeredRef.current = true;
+
+    const timer = setTimeout(() => {
+      tutorialActions.open();
+    }, TUTORIAL_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [status, tutorialCompleted, tutorialSkipped, tutorialActions]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
     if (hasPosition) return;
+    if (tutorialOpen) return;
 
     const dismissed = localStorage.getItem(LOCATION_MODAL_DISMISSED_KEY);
     if (dismissed === "true") return;
@@ -242,7 +269,7 @@ export const HomeOverview = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [status, hasPosition]);
+  }, [status, hasPosition, tutorialOpen]);
 
   const handleLocationModalClose = () => {
     localStorage.setItem(LOCATION_MODAL_DISMISSED_KEY, "true");
@@ -648,6 +675,17 @@ export const HomeOverview = () => {
         onClose={handleLocationModalClose}
         onActivate={handleLocationActivate}
         loading={locationModalLoading}
+      />
+
+      <TutorialModal
+        open={tutorialOpen}
+        currentStep={tutorialStep}
+        onNext={tutorialActions.nextStep}
+        onPrevious={tutorialActions.previousStep}
+        onSkip={tutorialActions.skip}
+        onClose={tutorialActions.close}
+        onComplete={tutorialActions.complete}
+        onStepClick={tutorialActions.goToStep}
       />
     </div>
   );
