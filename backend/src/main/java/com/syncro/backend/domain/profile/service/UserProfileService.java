@@ -14,6 +14,8 @@ import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,6 +88,15 @@ public class UserProfileService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
         return profileMapper.toSummary(targetUser.getId(), profile);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserSummaryResponse> searchUsers(String q, Pageable pageable) {
+        if (q == null || q.trim().length() < 2) {
+            return Page.empty(pageable);
+        }
+        return profileRepository.searchByNameOrCity(q.trim(), ProfileVisibility.PUBLIC, pageable)
+            .map(profile -> profileMapper.toSummary(profile.getUser().getId(), profile));
     }
 
     private User getUser(UserPrincipal principal) {

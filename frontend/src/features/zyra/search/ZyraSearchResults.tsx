@@ -5,29 +5,33 @@ import type {
   ExperienceSummaryResponse,
 } from "@/types/catalog";
 import type { PostResponse } from "@/types/social";
+import type { UserSearchResult } from "@/types/search";
 import { cx } from "@/lib/classNames";
+import { Avatar } from "@/components/elements/Avatar";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
 export interface ZyraSearchResultsProps {
   places: PlaceSummaryResponse[];
   experiences: ExperienceSummaryResponse[];
+  users: UserSearchResult[];
   posts: PostResponse[];
   loading: boolean;
   query: string;
-  onResultClick: (type: "place" | "experience" | "post", id: string) => void;
+  onResultClick: (type: "place" | "experience" | "user" | "post", id: string) => void;
 }
 
 export const ZyraSearchResults = ({
   places,
   experiences,
+  users,
   posts,
   loading,
   query,
   onResultClick,
 }: ZyraSearchResultsProps) => {
   const hasResults =
-    places.length > 0 || experiences.length > 0 || posts.length > 0;
+    places.length > 0 || experiences.length > 0 || users.length > 0 || posts.length > 0;
   const showNoResults = !loading && query.length >= 2 && !hasResults;
 
   return (
@@ -153,6 +157,48 @@ export const ZyraSearchResults = ({
                         {experience.category && (
                           <p className="truncate text-xs text-subtle">
                             {experience.category.name}
+                          </p>
+                        )}
+                      </div>
+                      <NavIcon
+                        name="chevron-right"
+                        className="h-4 w-4 shrink-0 text-subtle"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {users.length > 0 && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <NavIcon name="users" className="h-3.5 w-3.5 text-zyra-text" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
+                    Utenti
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {users.map((user) => (
+                    <button
+                      key={user.userId}
+                      type="button"
+                      onClick={() => onResultClick("user", user.userId)}
+                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
+                      role="option"
+                    >
+                      <Avatar
+                        name={user.fullName ?? "Utente"}
+                        src={user.avatarUrl ?? undefined}
+                        size="sm"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {user.fullName ?? "Utente"}
+                        </p>
+                        {(user.city || user.country) && (
+                          <p className="truncate text-xs text-subtle">
+                            {[user.city, user.country].filter(Boolean).join(", ")}
                           </p>
                         )}
                       </div>

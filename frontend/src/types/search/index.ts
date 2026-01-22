@@ -1,15 +1,11 @@
 import type { Uuid } from "../shared";
 import type { PlaceSummaryResponse, ExperienceSummaryResponse } from "../catalog";
 import type { PostResponse } from "../social";
+import type { UserSummaryResponse } from "../profile";
 
 export type SearchResultType = "PLACE" | "EXPERIENCE" | "USER" | "POST";
 
-export type UserSearchResult = {
-  id: Uuid;
-  fullName: string | null;
-  city: string | null;
-  country: string | null;
-};
+export type UserSearchResult = UserSummaryResponse;
 
 export type SearchResult = {
   type: SearchResultType;

@@ -19,13 +19,13 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { query, isOpen, loading, places, experiences, posts } =
+  const { query, isOpen, loading, places, experiences, users, posts } =
     useSearchStore();
   const [localQuery, setLocalQuery] = useState(query);
   const [isFocused, setIsFocused] = useState(false);
 
   const hasResults =
-    places.length > 0 || experiences.length > 0 || posts.length > 0;
+    places.length > 0 || experiences.length > 0 || users.length > 0 || posts.length > 0;
   const showDropdown =
     isOpen && (hasResults || loading || localQuery.length >= 2);
 
@@ -61,7 +61,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   };
 
   const handleResultClick = (
-    type: "place" | "experience" | "post",
+    type: "place" | "experience" | "user" | "post",
     id: string
   ) => {
     searchActions.setOpen(false);
@@ -72,6 +72,8 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
       router.push(`/places/${id}`);
     } else if (type === "experience") {
       router.push(`/experiences/${id}`);
+    } else if (type === "user") {
+      router.push(`/chat?user=${id}`);
     } else {
       router.push(`/feed?post=${id}`);
     }
@@ -162,6 +164,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
         <ZyraSearchResults
           places={places}
           experiences={experiences}
+          users={users}
           posts={posts}
           loading={loading}
           query={localQuery}
