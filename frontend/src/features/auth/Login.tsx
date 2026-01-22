@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 
+const DEV_CREDENTIALS = {
+  email: "riccardoc19@gmail.com",
+  password: "Dadodado98",
+};
+
+const isLocalhost = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1";
+};
+
 export const Login = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
@@ -15,6 +26,10 @@ export const Login = () => {
 
   useEffect(() => {
     actions.hydrate();
+    if (isLocalhost()) {
+      setEmail(DEV_CREDENTIALS.email);
+      setPassword(DEV_CREDENTIALS.password);
+    }
   }, [actions]);
 
   useEffect(() => {
