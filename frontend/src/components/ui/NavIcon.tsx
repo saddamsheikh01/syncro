@@ -20,7 +20,9 @@ export type NavIconName =
   | "bell"
   | "clipboard"
   | "search"
-  | "chevron-right";
+  | "chevron-right"
+  | "menu"
+  | "x";
 
 export interface NavIconProps {
   name: NavIconName;
@@ -145,6 +147,21 @@ const renderIcon = (name: NavIconName) => {
       );
     case "chevron-right":
       return <path d="M9 18l6-6-6-6" />;
+    case "menu":
+      return (
+        <>
+          <path d="M4 6h16" />
+          <path d="M4 12h16" />
+          <path d="M4 18h16" />
+        </>
+      );
+    case "x":
+      return (
+        <>
+          <path d="M18 6L6 18" />
+          <path d="M6 6l12 12" />
+        </>
+      );
     default:
       return <circle cx="12" cy="12" r="4" />;
   }

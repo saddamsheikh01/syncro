@@ -1,0 +1,150 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cx } from "@/lib/classNames";
+import { NavIcon } from "@/components/ui/NavIcon";
+import type { NavIconName } from "@/components/ui/NavIcon";
+import { Logout } from "@/components/buttons/Logout";
+
+type DrawerMenuItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: NavIconName;
+};
+
+const DRAWER_ITEMS: DrawerMenuItem[] = [
+  { id: "matches", label: "Match", href: "/matches", icon: "spark" },
+  { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
+  { id: "feed", label: "Feed", href: "/feed", icon: "document" },
+  { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
+  { id: "experiences", label: "Esperienze", href: "/experiences", icon: "spark" },
+  { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
+  { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
+];
+
+export interface MobileDrawerProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  const isActive = (href: string) => {
+    const normalizedPath = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+    const normalizedHref = href.endsWith("/") ? href.slice(0, -1) : href;
+    return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`);
+  };
+
+  return (
+    <div
+      className={cx(
+        "fixed inset-0 z-50",
+        open ? "pointer-events-auto" : "pointer-events-none"
+      )}
+    >
+      {/* Backdrop */}
+      <div
+        className={cx(
+          "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+          open ? "opacity-100" : "opacity-0"
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel */}
+      <div
+        className={cx(
+          "absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-[var(--radius-xl)] border-t border-border/70 bg-surface shadow-xl transition-transform duration-300 ease-out",
+          open ? "translate-y-0" : "translate-y-full"
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu di navigazione"
+      >
+        {/* Handle indicator */}
+        <div className="flex justify-center py-3">
+          <div className="h-1 w-10 rounded-full bg-border" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/50 px-5 pb-4">
+          <h2 className="text-lg font-semibold text-foreground">Menu</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted transition-colors hover:bg-surface-muted/80 hover:text-foreground"
+            aria-label="Chiudi menu"
+          >
+            <NavIcon name="x" className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Navigation items */}
+        <nav className="overflow-y-auto p-4" aria-label="Menu secondario">
+          <ul className="space-y-1">
+            {DRAWER_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <li key={item.id}>
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    className={cx(
+                      "flex items-center gap-4 rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-accent-soft text-accent"
+                        : "text-foreground hover:bg-surface-muted"
+                    )}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <span
+                      className={cx(
+                        "flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
+                        active
+                          ? "border-accent/30 bg-accent-soft text-accent"
+                          : "border-border bg-surface text-muted"
+                      )}
+                    >
+                      <NavIcon name={item.icon} className="h-5 w-5" />
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout section */}
+        <div className="border-t border-border/50 p-4">
+          <Logout fullWidth size="md" />
+        </div>
+      </div>
+    </div>
+  );
+};
