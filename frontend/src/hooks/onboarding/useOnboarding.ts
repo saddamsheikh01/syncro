@@ -14,14 +14,16 @@ export type OnboardingStep = {
   completed: boolean;
 };
 
+// Onboarding semplificato: solo step 1 (profilo)
+// Step 2 (interessi) e step 3 (preferenze) sono disponibili in /settings
 const buildSteps = (
   hasProfile: boolean,
-  hasInterests: boolean,
-  hasPreferences: boolean
+  _hasInterests: boolean,
+  _hasPreferences: boolean
 ): OnboardingStep[] => [
   { id: 1, key: "profile", completed: hasProfile },
-  { id: 2, key: "interests", completed: hasInterests },
-  { id: 3, key: "preferences", completed: hasPreferences },
+  // { id: 2, key: "interests", completed: hasInterests },
+  // { id: 3, key: "preferences", completed: hasPreferences },
 ];
 
 export const useOnboarding = () => {

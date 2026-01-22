@@ -10,6 +10,7 @@ export interface TutorialStepContentProps {
 }
 
 const iconColorClasses: Record<TutorialStepIcon, string> = {
+  setup: "bg-gradient-to-br from-amber-500 to-orange-500 text-white",
   welcome: "bg-gradient-to-br from-zyra-start via-zyra-mid to-zyra-end text-white",
   home: "bg-accent-soft text-accent",
   map: "bg-[var(--qa-map-bg)] text-[var(--qa-map-gradient-start)]",
@@ -22,6 +23,22 @@ const iconColorClasses: Record<TutorialStepIcon, string> = {
 
 const renderStepIcon = (icon: TutorialStepIcon) => {
   switch (icon) {
+    case "setup":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-8 w-8"
+          aria-hidden="true"
+        >
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+      );
     case "welcome":
       return (
         <svg

@@ -112,7 +112,9 @@ export const OnboardingStep1 = () => {
         await actions.updateUser({ language: selectedLanguage });
       }
       onboardingActions.completeStep(1);
-      router.push("/onboarding/step-2");
+      // Onboarding semplificato: redirect diretto a home
+      // router.push("/onboarding/step-2");
+      router.push("/home");
     } catch (submitError) {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
@@ -131,7 +133,7 @@ export const OnboardingStep1 = () => {
           title="Completa il tuo profilo"
           subtitle="Aggiungi i dati principali per personalizzare l'esperienza."
           step={1}
-          totalSteps={3}
+          totalSteps={1}
         />
 
         <Card className="space-y-4 p-5">

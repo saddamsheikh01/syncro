@@ -1,4 +1,5 @@
 export type TutorialStepIcon =
+  | "setup"
   | "welcome"
   | "home"
   | "map"
@@ -17,6 +18,15 @@ export type TutorialStep = {
 };
 
 export const tutorialSteps: TutorialStep[] = [
+  {
+    id: "setup",
+    icon: "setup",
+    title: "Completa il tuo Profilo",
+    description:
+      "Per ottenere il massimo da Syncro, completa il tuo profilo nelle Impostazioni. Aggiungi i tuoi interessi, imposta le preferenze di match e attiva la posizione.",
+    highlight:
+      "Un profilo completo ti permette di ricevere match piu accurati e suggerimenti personalizzati. Vai su Impostazioni per completarlo!",
+  },
   {
     id: "welcome",
     icon: "welcome",

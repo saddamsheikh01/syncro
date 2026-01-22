@@ -42,19 +42,19 @@ export const OnboardingProgressCard = () => {
         id: "profile",
         label: "Completa il profilo",
         completed: Boolean(profile),
-        href: "/onboarding/step-1",
+        href: "/settings",
       },
       {
         id: "interests",
         label: "Seleziona interessi",
         completed: Boolean(interests?.tags?.length),
-        href: "/onboarding/step-2",
+        href: "/settings",
       },
       {
         id: "preferences",
         label: "Imposta preferenze",
         completed: Boolean(preferences),
-        href: "/onboarding/step-3",
+        href: "/settings",
       },
       {
         id: "position",
