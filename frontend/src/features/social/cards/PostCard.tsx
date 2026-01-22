@@ -140,6 +140,7 @@ export const PostCard = ({
         count: post.likeCount,
         active: post.likedByMe,
         icon: LIKE_ICON,
+        variant: "like" as const,
       },
     ],
     [post.likeCount, post.likedByMe]

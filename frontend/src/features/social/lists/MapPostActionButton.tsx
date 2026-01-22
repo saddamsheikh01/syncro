@@ -1,6 +1,7 @@
 "use client";
 
 import { PostActionButton } from "@/features/social/elements/PostActionButton";
+import type { PostActionVariant } from "@/features/social/elements/PostActionButton";
 import { cx } from "@/lib/classNames";
 import type { ReactNode } from "react";
 
@@ -11,6 +12,7 @@ export interface PostActionItem {
   icon?: ReactNode;
   active?: boolean;
   disabled?: boolean;
+  variant?: PostActionVariant;
 }
 
 export interface MapPostActionButtonProps {
@@ -33,6 +35,7 @@ export const MapPostActionButton = ({
         icon={item.icon}
         active={item.active}
         disabled={item.disabled}
+        variant={item.variant}
         onToggleState={(nextActive) => onItemToggle?.(item.id, nextActive)}
       />
     ))}

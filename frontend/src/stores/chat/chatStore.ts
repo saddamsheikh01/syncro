@@ -52,13 +52,44 @@ const updateMessages = (
   }));
 };
 
+const getConversationSortKey = (conversation: ChatConversationResponse): number => {
+  const lastMessageDate = conversation.lastMessage?.createdAt;
+  const timestamp = lastMessageDate
+    ? new Date(lastMessageDate).getTime()
+    : new Date(conversation.createdAt).getTime();
+  return timestamp;
+};
+
+const sortConversations = (
+  conversations: ChatConversationResponse[]
+): ChatConversationResponse[] => {
+  return [...conversations].sort(
+    (a, b) => getConversationSortKey(b) - getConversationSortKey(a)
+  );
+};
+
 const addConversation = (conversation: ChatConversationResponse) => {
   chatStore.setState((state) => {
     const exists = state.conversations.some((item) => item.id === conversation.id);
+    if (exists) return state;
     return {
-      conversations: exists
-        ? state.conversations
-        : [conversation, ...state.conversations],
+      conversations: sortConversations([conversation, ...state.conversations]),
+    };
+  });
+};
+
+const updateConversationLastMessage = (
+  conversationId: Uuid,
+  message: ChatMessageResponse
+) => {
+  chatStore.setState((state) => {
+    const updated = state.conversations.map((conv) =>
+      conv.id === conversationId
+        ? { ...conv, lastMessage: message }
+        : conv
+    );
+    return {
+      conversations: sortConversations(updated),
     };
   });
 };
@@ -76,7 +107,7 @@ export const chatActions = {
     try {
       const response = await getConversations(params);
       chatStore.setState({
-        conversations: response.content,
+        conversations: sortConversations(response.content),
         loadingConversations: false,
       });
       return response.content;
@@ -138,6 +169,7 @@ export const chatActions = {
     try {
       const message = await sendMessage(conversationId, payload);
       updateMessages(conversationId, [message], true);
+      updateConversationLastMessage(conversationId, message);
       chatStore.setState({ sendingMessage: false });
       return message;
     } catch (error) {
