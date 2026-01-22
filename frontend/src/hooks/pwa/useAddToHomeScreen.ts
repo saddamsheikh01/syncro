@@ -17,6 +17,7 @@ interface AddToHomeScreenState {
   isStandalone: boolean;
   dismiss: () => void;
   dismissPermanently: () => void;
+  forceShow: () => void;
 }
 
 const STORAGE_KEY = "syncro_a2hs_dismissed";
@@ -118,11 +119,16 @@ export const useAddToHomeScreen = (): AddToHomeScreenState => {
     setState((prev) => ({ ...prev, shouldShow: false }));
   }, []);
 
+  const forceShow = useCallback(() => {
+    setState((prev) => ({ ...prev, shouldShow: true }));
+  }, []);
+
   return {
     shouldShow: state.mounted && state.shouldShow,
     deviceType: state.deviceType,
     isStandalone: state.isStandalone,
     dismiss,
     dismissPermanently,
+    forceShow,
   };
 };

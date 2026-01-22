@@ -5,6 +5,7 @@ import { cx } from "@/lib/classNames";
 import { Menu } from "@/components/ui/Menu";
 import { Logout } from "@/components/buttons/Logout";
 import { Logo } from "@/components/elements/Logo";
+import { DevTools } from "@/components/ui/DevTools";
 
 const LogoutIcon = () => (
   <svg
@@ -51,6 +52,9 @@ export const Leftbar = ({
       </div>
 
       <Menu className="flex-1 overflow-y-auto pr-1" collapsed={collapsed} />
+
+      {/* Dev Tools (solo localhost) */}
+      <DevTools collapsed={collapsed} />
 
       {/* Logout button */}
       <div
