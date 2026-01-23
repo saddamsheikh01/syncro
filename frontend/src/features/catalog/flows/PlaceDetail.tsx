@@ -8,6 +8,10 @@ import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
+import { StarRating } from "@/components/elements/StarRating";
+import { PriceLevel } from "@/components/elements/PriceLevel";
+import { OpeningHours } from "@/components/elements/OpeningHours";
+import { PhotoGallery } from "@/components/elements/PhotoGallery";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
 import { useCatalog, useFavorites, usePosition } from "@/hooks";
 import { isUuid } from "@/lib/validators";
@@ -28,20 +32,24 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const [savingFavorite, setSavingFavorite] = useState(false);
 
   const distanceKm = useMemo(() => {
+    const currentPosition = position;
+    const currentPlace = placeDetail;
     if (
       !hasPosition ||
-      !position?.latitude ||
-      !position?.longitude ||
-      !placeDetail?.latitude ||
-      !placeDetail?.longitude
+      !currentPosition ||
+      !currentPlace ||
+      currentPosition.latitude === null ||
+      currentPosition.longitude === null ||
+      currentPlace.latitude === null ||
+      currentPlace.longitude === null
     ) {
       return null;
     }
     return calculateDistanceKm(
-      position.latitude,
-      position.longitude,
-      placeDetail.latitude,
-      placeDetail.longitude
+      currentPosition.latitude,
+      currentPosition.longitude,
+      currentPlace.latitude,
+      currentPlace.longitude
     );
   }, [hasPosition, position, placeDetail]);
 
@@ -127,7 +135,8 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   }
 
   const affiliationLink = placeDetail.affiliationLinks?.[0];
-  const hasCoordinates = placeDetail.latitude && placeDetail.longitude;
+  const hasCoordinates =
+    placeDetail.latitude !== null && placeDetail.longitude !== null;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
@@ -140,9 +149,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       </button>
 
       <Card className="space-y-4 p-5">
-        <div className="overflow-hidden rounded-[var(--radius-lg)] bg-surface-muted">
-          <div className="h-48 w-full" />
-        </div>
+        {/* Galleria foto */}
+        <PhotoGallery
+          photos={placeDetail.photos?.length ? placeDetail.photos : (placeDetail.imageUrl ? [placeDetail.imageUrl] : [])}
+          alt={placeDetail.name}
+        />
 
         <div className="space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -150,9 +161,26 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               <h1 className="text-2xl font-semibold text-foreground">
                 {placeDetail.name}
               </h1>
+              {/* Indirizzo */}
+              {placeDetail.address && (
+                <p className="text-sm text-muted">{placeDetail.address}</p>
+              )}
             </div>
             {placeDetail.category && (
               <Badge tone="accent">{placeDetail.category.name}</Badge>
+            )}
+          </div>
+
+          {/* Rating e prezzo */}
+          <div className="flex flex-wrap items-center gap-4">
+            {placeDetail.googleRating !== null && placeDetail.googleRating !== undefined && (
+              <StarRating
+                rating={placeDetail.googleRating}
+                reviewCount={placeDetail.googleReviewCount ?? undefined}
+              />
+            )}
+            {placeDetail.priceLevel !== null && placeDetail.priceLevel !== undefined && (
+              <PriceLevel level={placeDetail.priceLevel} showLabel />
             )}
           </div>
         </div>
@@ -168,6 +196,61 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 {tag.name}
               </Tag>
             ))}
+          </div>
+        )}
+
+        {/* Orari di apertura */}
+        {placeDetail.openingHours && (
+          <OpeningHours data={placeDetail.openingHours} />
+        )}
+
+        {/* Contatti */}
+        {(placeDetail.phone || placeDetail.website) && (
+          <div className="space-y-2 border-t border-border pt-4">
+            {placeDetail.phone && (
+              <a
+                href={`tel:${placeDetail.phone}`}
+                className="flex items-center gap-2 text-sm text-accent hover:underline"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                {placeDetail.phone}
+              </a>
+            )}
+            {placeDetail.website && (
+              <a
+                href={placeDetail.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-accent hover:underline"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                Sito web
+              </a>
+            )}
           </div>
         )}
 

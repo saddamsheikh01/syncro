@@ -4,6 +4,7 @@ import type { TagResponse } from "../tags";
 export type CatalogSource =
   | "MANUAL"
   | "API"
+  | "GOOGLE"
   | "GETYOURGUIDE"
   | "VIATOR"
   | "MUSEMENT"
@@ -17,6 +18,19 @@ export type ExperienceProvider =
   | "CIVITATIS"
   | "TIQETS"
   | "OTHER";
+
+export type OpeningHoursPeriod = {
+  openDay?: number;
+  openTime?: string;
+  closeDay?: number;
+  closeTime?: string;
+};
+
+export type OpeningHours = {
+  openNow?: boolean;
+  weekdayText?: string[];
+  periods?: OpeningHoursPeriod[];
+};
 
 export type CategoryResponse = {
   id: Uuid;
@@ -32,6 +46,16 @@ export type PlaceSummaryResponse = {
   longitude: number | null;
   category: CategoryResponse | null;
   source: CatalogSource;
+  // Google Maps
+  googlePlaceId: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  imageUrl: string | null;
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  priceLevel: number | null;
+  isActive: boolean | null;
 };
 
 export type PlaceReferenceResponse = {
@@ -58,6 +82,23 @@ export type PlaceDetailResponse = {
   source: CatalogSource;
   tags: TagResponse[];
   affiliationLinks: AffiliationLinkResponse[];
+  // Google Maps
+  googlePlaceId: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  postalCode: string | null;
+  phone: string | null;
+  website: string | null;
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  priceLevel: number | null;
+  imageUrl: string | null;
+  photos: string[];
+  openingHours: OpeningHours | null;
+  googleTypes: string[];
+  isActive: boolean | null;
+  lastSyncedAt: IsoDateTime | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 };
@@ -136,6 +177,22 @@ export type AdminPlaceRequest = {
   categoryId?: Uuid | null;
   source?: CatalogSource | null;
   tagIds?: Uuid[] | null;
+  // Google Maps
+  googlePlaceId?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  priceLevel?: number | null;
+  imageUrl?: string | null;
+  photos?: string[] | null;
+  openingHours?: OpeningHours | null;
+  googleTypes?: string[] | null;
+  isActive?: boolean | null;
 };
 
 export type AdminPlaceUpdateRequest = {
@@ -146,6 +203,22 @@ export type AdminPlaceUpdateRequest = {
   categoryId?: Uuid | null;
   source?: CatalogSource | null;
   tagIds?: Uuid[] | null;
+  // Google Maps
+  googlePlaceId?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  priceLevel?: number | null;
+  imageUrl?: string | null;
+  photos?: string[] | null;
+  openingHours?: OpeningHours | null;
+  googleTypes?: string[] | null;
+  isActive?: boolean | null;
 };
 
 export type AdminExperienceRequest = {

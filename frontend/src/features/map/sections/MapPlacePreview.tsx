@@ -1,8 +1,10 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import Image from "next/image";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
+import { StarRating } from "@/components/elements/StarRating";
 import { DistanceBadge } from "@/features/catalog/elements/DistanceBadge";
 import { PlaceMetaRow } from "@/features/catalog/elements/PlaceMetaRow";
 import { cx } from "@/lib/classNames";
@@ -14,6 +16,9 @@ export interface MapPlacePreviewProps
   category?: string;
   distanceKm?: number;
   ratingLabel?: string;
+  googleRating?: number;
+  googleReviewCount?: number;
+  imageUrl?: string;
   metaItems?: string[];
   tags?: string[];
   media?: ReactNode;
@@ -31,6 +36,9 @@ export const MapPlacePreview = ({
   category,
   distanceKm,
   ratingLabel,
+  googleRating,
+  googleReviewCount,
+  imageUrl,
   metaItems = [],
   tags = [],
   media,
@@ -64,8 +72,31 @@ export const MapPlacePreview = ({
       </button>
     ) : null}
     <div className="flex flex-wrap gap-4">
-      <div className="h-24 w-24 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
-        {media ?? <div className="h-full w-full" />}
+      <div className="relative h-24 w-24 overflow-hidden rounded-[var(--radius-md)] bg-surface-muted">
+        {media ?? (imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={title}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-border"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+        ))}
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-3 pr-6">
@@ -82,6 +113,13 @@ export const MapPlacePreview = ({
         <div className="flex flex-wrap items-center gap-2">
           {typeof distanceKm === "number" ? (
             <DistanceBadge distanceKm={distanceKm} />
+          ) : null}
+          {googleRating !== undefined ? (
+            <StarRating
+              rating={googleRating}
+              reviewCount={googleReviewCount}
+              size="sm"
+            />
           ) : null}
           {ratingLabel ? (
             <span className="text-xs font-semibold text-foreground">

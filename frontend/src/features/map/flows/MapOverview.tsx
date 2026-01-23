@@ -13,17 +13,18 @@ import { MapPlacePreview } from "@/features/map/sections/MapPlacePreview";
 import { MapLegend } from "@/features/map/sections/MapLegend";
 import type { LegendItemData } from "@/features/map/lists/MapLegendItem";
 import type { SelectOption } from "@/components/elements/Select";
+import type { PlaceResult } from "@/components/elements/PlacesAutocomplete";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
 import type { PlaceSummaryResponse } from "@/types/catalog";
 import type { RecommendationResponse } from "@/types/matches";
 import { useCatalog, usePosition, useMatches } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 
-// Import dinamico per MapContainer (evita SSR issues con Leaflet)
-const MapContainer = dynamic(
+// Import dinamico per GoogleMapContainer (evita SSR issues)
+const GoogleMapContainer = dynamic(
   () =>
-    import("@/features/map/components/MapContainer").then(
-      (mod) => mod.MapContainer
+    import("@/features/map/components/GoogleMapContainer").then(
+      (mod) => mod.GoogleMapContainer
     ),
   {
     ssr: false,
@@ -79,6 +80,10 @@ export const MapOverview = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDistance, setSelectedDistance] = useState<string>("25");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchLocation, setSearchLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [forYouMode, setForYouMode] = useState(false);
   const [gpsWatchId, setGpsWatchId] = useState<number | null>(null);
@@ -122,13 +127,28 @@ export const MapOverview = () => {
       q: searchQuery || undefined,
     };
 
-    // Applica filtro distanza solo se NON c'è una ricerca testuale
-    // Questo permette di cercare luoghi in altre città
-    if (!searchQuery) {
+    const currentPosition = position;
+    const hasSearchLocation =
+      searchLocation?.latitude !== undefined &&
+      searchLocation?.longitude !== undefined;
+    const canUseUserPosition =
+      hasPosition &&
+      currentPosition?.latitude !== null &&
+      currentPosition?.longitude !== null;
+
+    // Applica filtro distanza:
+    // - se ho una location da autocomplete
+    // - oppure se non sto facendo una ricerca testuale
+    const shouldUseRadius = hasSearchLocation || !searchQuery;
+
+    if (shouldUseRadius) {
       params.radiusKm = selectedDistance ? Number(selectedDistance) : undefined;
-      if (hasPosition && position?.latitude && position?.longitude) {
-        params.lat = position.latitude;
-        params.lng = position.longitude;
+      if (hasSearchLocation) {
+        params.lat = searchLocation?.latitude;
+        params.lng = searchLocation?.longitude;
+      } else if (canUseUserPosition && currentPosition) {
+        params.lat = currentPosition.latitude;
+        params.lng = currentPosition.longitude;
       }
     }
 
@@ -142,6 +162,7 @@ export const MapOverview = () => {
     selectedCategory,
     selectedDistance,
     searchQuery,
+    searchLocation,
     forYouMode,
   ]);
 
@@ -151,8 +172,21 @@ export const MapOverview = () => {
       clearTimeout(searchTimeoutRef.current);
     }
     searchTimeoutRef.current = setTimeout(() => {
+      setSearchLocation(null);
       setSearchQuery(value);
     }, 400);
+  }, []);
+
+  const handlePlaceSearchSelect = useCallback((place: PlaceResult) => {
+    setSearchLocation({ latitude: place.latitude, longitude: place.longitude });
+    setSearchQuery("");
+    setSelectedPlace(null);
+    setSelectedRecommendation(null);
+  }, []);
+
+  const handleAutocompleteClear = useCallback(() => {
+    setSearchLocation(null);
+    setSearchQuery("");
   }, []);
 
   // Richiedi permessi posizione
@@ -282,19 +316,21 @@ export const MapOverview = () => {
 
   // Calcola distanza per il luogo selezionato
   const selectedPlaceDistance = useMemo(() => {
+    const currentPosition = position;
     if (
       !selectedPlace ||
       !hasPosition ||
-      !position?.latitude ||
-      !position?.longitude ||
-      !selectedPlace.latitude ||
-      !selectedPlace.longitude
+      !currentPosition ||
+      currentPosition.latitude === null ||
+      currentPosition.longitude === null ||
+      selectedPlace.latitude === null ||
+      selectedPlace.longitude === null
     ) {
       return undefined;
     }
     return calculateDistanceKm(
-      position.latitude,
-      position.longitude,
+      currentPosition.latitude,
+      currentPosition.longitude,
       selectedPlace.latitude,
       selectedPlace.longitude
     );
@@ -302,10 +338,19 @@ export const MapOverview = () => {
 
   // Posizione utente per la mappa
   const userPositionForMap = useMemo(() => {
-    if (!hasPosition || !position?.latitude || !position?.longitude) {
+    const currentPosition = position;
+    if (
+      !hasPosition ||
+      !currentPosition ||
+      currentPosition.latitude === null ||
+      currentPosition.longitude === null
+    ) {
       return null;
     }
-    return { latitude: position.latitude, longitude: position.longitude };
+    return {
+      latitude: currentPosition.latitude,
+      longitude: currentPosition.longitude,
+    };
   }, [hasPosition, position]);
 
   // Luoghi da mostrare sulla mappa (normali o raccomandati)
@@ -456,6 +501,9 @@ export const MapOverview = () => {
               onCategoryChange={(val) => setSelectedCategory(val || null)}
               onDistanceChange={(val) => setSelectedDistance(val || "25")}
               onSearchChange={handleSearchChange}
+              onPlaceSelect={handlePlaceSearchSelect}
+              onAutocompleteClear={handleAutocompleteClear}
+              userPosition={userPositionForMap}
               showAction={false}
             />
           </aside>
@@ -493,7 +541,7 @@ export const MapOverview = () => {
             </div>
           )}
 
-          <MapContainer
+          <GoogleMapContainer
             places={displayPlaces}
             userPosition={userPositionForMap}
             selectedPlaceId={selectedPlace?.id}
@@ -555,6 +603,9 @@ export const MapOverview = () => {
               category={selectedPlace.category?.name}
               distanceKm={selectedPlaceDistance}
               ratingLabel={selectedPlaceScore !== null ? `${Math.round(selectedPlaceScore)}% compatibile` : undefined}
+              googleRating={selectedPlace.googleRating ?? undefined}
+              googleReviewCount={selectedPlace.googleReviewCount ?? undefined}
+              imageUrl={selectedPlace.imageUrl ?? undefined}
               primaryActionLabel="Dettagli"
               secondaryActionLabel="Indicazioni"
               onPrimaryAction={() => {

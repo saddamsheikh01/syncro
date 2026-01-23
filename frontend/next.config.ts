@@ -6,6 +6,20 @@ const resolveBackendBaseUrl = () => {
 };
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "maps.googleapis.com",
+        pathname: "/maps/api/place/photo**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
+    ],
+  },
   async rewrites() {
     const backendBaseUrl = resolveBackendBaseUrl();
 

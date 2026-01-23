@@ -6,6 +6,8 @@ import { Card } from "@/components/elements/Card";
 import { Input } from "@/components/elements/Input";
 import { Select } from "@/components/elements/Select";
 import type { SelectOption } from "@/components/elements/Select";
+import { PlacesAutocomplete } from "@/components/elements/PlacesAutocomplete";
+import type { PlaceResult } from "@/components/elements/PlacesAutocomplete";
 import { MapFilterChip } from "@/features/map/lists/MapFilterChip";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
 import { cx } from "@/lib/classNames";
@@ -24,6 +26,11 @@ export interface MapFilterPanelProps
   onCategoryChange?: (value: string | null) => void;
   onDistanceChange?: (value: string | null) => void;
   onSearchChange?: (value: string) => void;
+  // Autocomplete Google
+  useAutocomplete?: boolean;
+  onPlaceSelect?: (place: PlaceResult) => void;
+  onAutocompleteClear?: () => void;
+  userPosition?: { latitude: number; longitude: number } | null;
   actionLabel?: string;
   onActionClick?: () => void;
   showAction?: boolean;
@@ -43,6 +50,10 @@ export const MapFilterPanel = ({
   onCategoryChange,
   onDistanceChange,
   onSearchChange,
+  useAutocomplete = true,
+  onPlaceSelect,
+  onAutocompleteClear,
+  userPosition,
   actionLabel = "Applica filtri",
   onActionClick,
   showAction = true,
@@ -53,11 +64,31 @@ export const MapFilterPanel = ({
       <h4 className="text-base font-semibold text-foreground">{title}</h4>
       {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
     </div>
-    <Input
-      label="Ricerca"
-      placeholder={searchPlaceholder}
-      onChange={(e) => onSearchChange?.(e.target.value)}
-    />
+    {useAutocomplete ? (
+      <div className="space-y-1">
+        <label className="block text-xs font-medium text-muted">Ricerca</label>
+        <PlacesAutocomplete
+          placeholder={searchPlaceholder}
+          onPlaceSelect={onPlaceSelect}
+          onClear={onAutocompleteClear}
+          locationBias={
+            userPosition
+              ? {
+                  lat: userPosition.latitude,
+                  lng: userPosition.longitude,
+                  radius: 50000,
+                }
+              : undefined
+          }
+        />
+      </div>
+    ) : (
+      <Input
+        label="Ricerca"
+        placeholder={searchPlaceholder}
+        onChange={(e) => onSearchChange?.(e.target.value)}
+      />
+    )}
     <div className="grid gap-3 sm:grid-cols-2">
       <Select
         label="Categoria"
