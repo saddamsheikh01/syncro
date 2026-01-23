@@ -19,6 +19,7 @@ import com.syncro.backend.domain.social.mapper.ChatMapper;
 import com.syncro.backend.domain.social.repository.ChatConversationRepository;
 import com.syncro.backend.domain.social.repository.ChatMessageRepository;
 import com.syncro.backend.domain.social.repository.ChatParticipantRepository;
+import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ public class ChatService {
     private final ChatParticipantRepository participantRepository;
     private final ChatMessageRepository messageRepository;
     private final ChatMapper chatMapper;
+    private final NotificationService notificationService;
 
     public ChatService(
         UserRepository userRepository,
@@ -49,7 +51,8 @@ public class ChatService {
         ChatConversationRepository conversationRepository,
         ChatParticipantRepository participantRepository,
         ChatMessageRepository messageRepository,
-        ChatMapper chatMapper
+        ChatMapper chatMapper,
+        NotificationService notificationService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
@@ -57,6 +60,7 @@ public class ChatService {
         this.participantRepository = participantRepository;
         this.messageRepository = messageRepository;
         this.chatMapper = chatMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -160,6 +164,12 @@ public class ChatService {
         message.setUser(user);
         message.setContent(content);
         ChatMessage saved = messageRepository.save(message);
+        List<UUID> recipientIds = participantRepository.findAllByConversationId(conversationId)
+            .stream()
+            .map(ChatParticipant::getUserId)
+            .filter(userId -> !userId.equals(user.getId()))
+            .toList();
+        notificationService.createMessageNotifications(conversationId, saved, recipientIds);
         return chatMapper.toMessageResponse(saved);
     }
 
