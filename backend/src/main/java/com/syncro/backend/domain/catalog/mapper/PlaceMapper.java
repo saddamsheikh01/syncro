@@ -21,7 +21,17 @@ public class PlaceMapper {
             place.getLatitude(),
             place.getLongitude(),
             category,
-            place.getSource()
+            place.getSource(),
+            // Google Maps
+            place.getGooglePlaceId(),
+            place.getAddress(),
+            place.getCity(),
+            place.getCountry(),
+            place.getImageUrl(),
+            place.getGoogleRating(),
+            place.getGoogleReviewCount(),
+            place.getPriceLevel(),
+            place.getIsActive()
         );
     }
 
@@ -41,6 +51,23 @@ public class PlaceMapper {
             place.getSource(),
             tags,
             affiliationLinks,
+            // Google Maps
+            place.getGooglePlaceId(),
+            place.getAddress(),
+            place.getCity(),
+            place.getCountry(),
+            place.getPostalCode(),
+            place.getPhone(),
+            place.getWebsite(),
+            place.getGoogleRating(),
+            place.getGoogleReviewCount(),
+            place.getPriceLevel(),
+            place.getImageUrl(),
+            place.getPhotos(),
+            place.getOpeningHours(),
+            place.getGoogleTypes(),
+            place.getIsActive(),
+            place.getLastSyncedAt(),
             place.getCreatedAt(),
             place.getUpdatedAt()
         );

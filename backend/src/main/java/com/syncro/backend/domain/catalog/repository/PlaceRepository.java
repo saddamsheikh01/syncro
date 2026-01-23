@@ -2,6 +2,7 @@ package com.syncro.backend.domain.catalog.repository;
 
 import com.syncro.backend.domain.catalog.entity.Place;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -112,4 +113,19 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
         @Param("q") String q,
         Pageable pageable
     );
+
+    // Metodi per Google Maps
+    Optional<Place> findByGooglePlaceId(String googlePlaceId);
+
+    List<Place> findByIsActiveTrue();
+
+    Page<Place> findByIsActiveTrue(Pageable pageable);
+
+    List<Place> findByCity(String city);
+
+    List<Place> findByCityAndIsActiveTrue(String city);
+
+    long countByGooglePlaceIdIsNotNull();
+
+    long countByIsActiveTrue();
 }

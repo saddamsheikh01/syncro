@@ -5,6 +5,10 @@ spring:
     default: dev
 
 app:
+  google-maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+    base-url: https://maps.googleapis.com/maps/api
+    timeout-seconds: 30
   zyra:
     system-prompt: |
       Sei Zyra, l'assistente AI di Syncro. Rispondi in modo chiaro, empatico e sintetico.

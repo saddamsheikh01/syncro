@@ -35,6 +35,8 @@ app:
   media:
     storage-dir: ${MEDIA_STORAGE_PATH}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:8080}/media}
+  google-maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
   zyra:
     provider: ${ZYRA_PROVIDER:OLLAMA}
     base-url: ${ZYRA_BASE_URL:http://localhost:11434}
