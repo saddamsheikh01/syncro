@@ -191,3 +191,65 @@ summary {
 .snap-x > * {
   scroll-snap-align: start;
 }
+
+.notification-in {
+  animation: notification-in-mobile 320ms ease-out both;
+}
+
+.notification-out {
+  animation: notification-out-mobile 220ms ease-in both;
+}
+
+@keyframes notification-in-mobile {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notification-out-mobile {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (min-width: 768px) {
+  .notification-in {
+    animation: notification-in-desktop 320ms ease-out both;
+  }
+
+  .notification-out {
+    animation: notification-out-desktop 220ms ease-in both;
+  }
+
+  @keyframes notification-in-desktop {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes notification-out-desktop {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+  }
+}

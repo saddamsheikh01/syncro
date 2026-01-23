@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { cx } from "@/lib/classNames";
-import { useTutorial } from "@/hooks";
+import { useTutorial, useUi } from "@/hooks";
 
 const STORAGE_KEY_A2HS = "syncro_a2hs_dismissed";
 
@@ -37,6 +37,7 @@ export interface DevToolsProps {
 export const DevTools = ({ collapsed = false }: DevToolsProps) => {
   const isDev = useIsLocalhost();
   const { actions: tutorialActions } = useTutorial();
+  const { actions: uiActions } = useUi();
 
   if (!isDev) return null;
 
@@ -55,6 +56,15 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
     // Nota: questo triggera anche il tutorial se non completato
     localStorage.removeItem(STORAGE_KEY_A2HS);
     alert("localStorage A2HS rimosso. Ricarica la pagina per vedere la modale.");
+  };
+
+  const handleTestNotification = () => {
+    uiActions.pushToast({
+      title: "Notifica di test",
+      message: "Questa e una notifica di esempio.",
+      tone: "info",
+      durationMs: 4500,
+    });
   };
 
   return (
@@ -145,6 +155,26 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
               Reset Add to Home
+            </button>
+            <button
+              type="button"
+              onClick={handleTestNotification}
+              className="flex w-full items-center gap-2 rounded-[var(--radius-md)] bg-surface-muted px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-muted/80 hover:text-foreground"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M12 5a4 4 0 0 0-4 4v3.5L6.5 15h11L16 12.5V9a4 4 0 0 0-4-4z" />
+                <path d="M10 19a2 2 0 0 0 4 0" />
+              </svg>
+              Notifica test
             </button>
           </div>
         </>

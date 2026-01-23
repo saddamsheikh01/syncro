@@ -8,6 +8,7 @@ import { Rightbar } from "@/components/ui/Rightbar";
 import { MobileBar } from "@/components/ui/MobileBar";
 import { AddToHomeScreenModal } from "@/components/ui/AddToHomeScreenModal";
 import { CookieConsentDrawer } from "@/components/ui/CookieConsentDrawer";
+import { NotificationStack } from "@/components/ui/NotificationStack";
 import { cx } from "@/lib/classNames";
 
 export interface MainLayoutProps {
@@ -68,6 +69,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
       </div>
 
       <CookieConsentDrawer />
+      <NotificationStack />
     </div>
   );
 };

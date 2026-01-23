@@ -5,8 +5,17 @@ export type ToastTone = "info" | "success" | "warning" | "error";
 
 export type Toast = {
   id: string;
+  title?: string;
   message: string;
   tone: ToastTone;
+  durationMs?: number;
+};
+
+type ToastInput = {
+  title?: string;
+  message: string;
+  tone?: ToastTone;
+  durationMs?: number;
 };
 
 export type ModalState = {
@@ -34,8 +43,18 @@ const generateId = () => {
 };
 
 export const uiActions = {
-  pushToast: (message: string, tone: ToastTone = "info") => {
-    const toast: Toast = { id: generateId(), message, tone };
+  pushToast: (messageOrPayload: string | ToastInput, tone: ToastTone = "info") => {
+    const payload: ToastInput =
+      typeof messageOrPayload === "string"
+        ? { message: messageOrPayload, tone }
+        : messageOrPayload;
+    const toast: Toast = {
+      id: generateId(),
+      title: payload.title,
+      message: payload.message,
+      tone: payload.tone ?? "info",
+      durationMs: payload.durationMs,
+    };
     uiStore.setState((state) => ({ toasts: [...state.toasts, toast] }));
     return toast;
   },
