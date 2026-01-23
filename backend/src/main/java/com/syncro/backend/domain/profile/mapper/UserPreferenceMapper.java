@@ -13,6 +13,10 @@ public class UserPreferenceMapper {
             preferences.getUser().getId(),
             preferences.getMatchmakingFilters(),
             preferences.getFeedPreferences(),
+            preferences.getPrivacyPolicyAccepted(),
+            preferences.getPrivacyPolicyAcceptedAt(),
+            preferences.getNewsletterConsent(),
+            preferences.getNewsletterConsentAt(),
             preferences.getCreatedAt(),
             preferences.getUpdatedAt()
         );

@@ -9,6 +9,10 @@ public record UserPreferencesResponse(
     UUID userId,
     Map<String, Object> matchmakingFilters,
     Map<String, Object> feedPreferences,
+    Boolean privacyPolicyAccepted,
+    Instant privacyPolicyAcceptedAt,
+    Boolean newsletterConsent,
+    Instant newsletterConsentAt,
     Instant createdAt,
     Instant updatedAt
 ) {

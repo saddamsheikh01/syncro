@@ -45,6 +45,18 @@ public class UserPreference {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "privacy_policy_accepted", nullable = false)
+    private Boolean privacyPolicyAccepted = false;
+
+    @Column(name = "privacy_policy_accepted_at")
+    private Instant privacyPolicyAcceptedAt;
+
+    @Column(name = "newsletter_consent", nullable = false)
+    private Boolean newsletterConsent = false;
+
+    @Column(name = "newsletter_consent_at")
+    private Instant newsletterConsentAt;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
@@ -111,5 +123,37 @@ public class UserPreference {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getPrivacyPolicyAccepted() {
+        return privacyPolicyAccepted;
+    }
+
+    public void setPrivacyPolicyAccepted(Boolean privacyPolicyAccepted) {
+        this.privacyPolicyAccepted = privacyPolicyAccepted;
+    }
+
+    public Instant getPrivacyPolicyAcceptedAt() {
+        return privacyPolicyAcceptedAt;
+    }
+
+    public void setPrivacyPolicyAcceptedAt(Instant privacyPolicyAcceptedAt) {
+        this.privacyPolicyAcceptedAt = privacyPolicyAcceptedAt;
+    }
+
+    public Boolean getNewsletterConsent() {
+        return newsletterConsent;
+    }
+
+    public void setNewsletterConsent(Boolean newsletterConsent) {
+        this.newsletterConsent = newsletterConsent;
+    }
+
+    public Instant getNewsletterConsentAt() {
+        return newsletterConsentAt;
+    }
+
+    public void setNewsletterConsentAt(Instant newsletterConsentAt) {
+        this.newsletterConsentAt = newsletterConsentAt;
     }
 }

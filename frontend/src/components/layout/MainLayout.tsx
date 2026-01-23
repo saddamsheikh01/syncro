@@ -7,6 +7,7 @@ import { Leftbar } from "@/components/ui/Leftbar";
 import { Rightbar } from "@/components/ui/Rightbar";
 import { MobileBar } from "@/components/ui/MobileBar";
 import { AddToHomeScreenModal } from "@/components/ui/AddToHomeScreenModal";
+import { CookieConsentDrawer } from "@/components/ui/CookieConsentDrawer";
 import { cx } from "@/lib/classNames";
 
 export interface MainLayoutProps {
@@ -65,6 +66,8 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
         <MobileBar position={position} />
         <AddToHomeScreenModal />
       </div>
+
+      <CookieConsentDrawer />
     </div>
   );
 };

@@ -28,6 +28,8 @@ export type UserProfileResponse = {
 export type UserPreferencesRequest = {
   matchmakingFilters?: JsonObject | null;
   feedPreferences?: JsonObject | null;
+  privacyPolicyAccepted?: boolean | null;
+  newsletterConsent?: boolean | null;
 };
 
 export type UserPreferencesResponse = {
@@ -35,6 +37,10 @@ export type UserPreferencesResponse = {
   userId: Uuid;
   matchmakingFilters: JsonObject;
   feedPreferences: JsonObject;
+  privacyPolicyAccepted: boolean;
+  privacyPolicyAcceptedAt: IsoDateTime | null;
+  newsletterConsent: boolean;
+  newsletterConsentAt: IsoDateTime | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 };

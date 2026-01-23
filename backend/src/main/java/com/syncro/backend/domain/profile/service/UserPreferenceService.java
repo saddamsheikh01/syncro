@@ -10,6 +10,7 @@ import com.syncro.backend.domain.profile.entity.UserPreference;
 import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
 import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
 import com.syncro.backend.security.UserPrincipal;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +58,26 @@ public class UserPreferenceService {
         }
         if (request.feedPreferences() != null) {
             preferences.setFeedPreferences(request.feedPreferences());
+        }
+
+        // Gestione privacy policy consent con timestamp
+        if (request.privacyPolicyAccepted() != null) {
+            Boolean currentValue = preferences.getPrivacyPolicyAccepted();
+            if (!request.privacyPolicyAccepted().equals(currentValue)) {
+                preferences.setPrivacyPolicyAccepted(request.privacyPolicyAccepted());
+                if (Boolean.TRUE.equals(request.privacyPolicyAccepted())) {
+                    preferences.setPrivacyPolicyAcceptedAt(Instant.now());
+                }
+            }
+        }
+
+        // Gestione newsletter consent con timestamp
+        if (request.newsletterConsent() != null) {
+            Boolean currentValue = preferences.getNewsletterConsent();
+            if (!request.newsletterConsent().equals(currentValue)) {
+                preferences.setNewsletterConsent(request.newsletterConsent());
+                preferences.setNewsletterConsentAt(Instant.now());
+            }
         }
 
         UserPreference saved = preferenceRepository.save(preferences);
