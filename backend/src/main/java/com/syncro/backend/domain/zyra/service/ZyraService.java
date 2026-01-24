@@ -8,6 +8,7 @@ import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.ZyraProperties;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.entity.ChatMessage;
@@ -222,6 +223,19 @@ public class ZyraService {
     public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal) {
         User user = getUser(principal);
         String recap = generateProfileRecap(user);
+        return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
+    }
+
+    @Transactional(readOnly = true)
+    public ZyraProfileRecapResponse getProfileRecapForUser(UserPrincipal principal, UUID userId) {
+        getUser(principal);
+        if (userId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        User target = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        ensureProfilePublic(target.getId());
+        String recap = generateProfileRecap(target);
         return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
     }
 
@@ -541,5 +555,15 @@ public class ZyraService {
         UUID userId = principal.userId();
         return userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+    }
+
+    private void ensureProfilePublic(UUID userId) {
+        UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null) {
+            throw new NotFoundException("Profilo non disponibile");
+        }
+        if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
+            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+        }
     }
 }

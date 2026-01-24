@@ -4,6 +4,9 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import com.syncro.backend.domain.media.repository.MediaObjectRepository;
+import com.syncro.backend.domain.profile.dto.UserPublicProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserProfileRequest;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
@@ -25,17 +28,20 @@ public class UserProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final UserProfileMapper profileMapper;
+    private final MediaObjectRepository mediaObjectRepository;
     private final OnboardingService onboardingService;
 
     public UserProfileService(
         UserRepository userRepository,
         UserProfileRepository profileRepository,
         UserProfileMapper profileMapper,
+        MediaObjectRepository mediaObjectRepository,
         OnboardingService onboardingService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.profileMapper = profileMapper;
+        this.mediaObjectRepository = mediaObjectRepository;
         this.onboardingService = onboardingService;
     }
 
@@ -90,7 +96,27 @@ public class UserProfileService {
         User targetUser = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
-        return profileMapper.toSummary(targetUser.getId(), profile);
+        String avatarUrl = resolveAvatarUrl(targetUser.getId());
+        return profileMapper.toSummary(targetUser.getId(), profile, avatarUrl);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPublicProfileResponse getPublicProfile(UserPrincipal principal, UUID userId) {
+        getUser(principal);
+        if (userId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        User targetUser = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
+        if (profile == null) {
+            throw new NotFoundException("Profilo non disponibile");
+        }
+        if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
+            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+        }
+        String avatarUrl = resolveAvatarUrl(targetUser.getId());
+        return profileMapper.toPublicProfile(targetUser.getId(), profile, avatarUrl);
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +125,11 @@ public class UserProfileService {
             return Page.empty(pageable);
         }
         return profileRepository.searchByNameOrCity(q.trim(), ProfileVisibility.PUBLIC, pageable)
-            .map(profile -> profileMapper.toSummary(profile.getUser().getId(), profile));
+            .map(profile -> {
+                UUID userId = profile.getUser().getId();
+                String avatarUrl = resolveAvatarUrl(userId);
+                return profileMapper.toSummary(userId, profile, avatarUrl);
+            });
     }
 
     private User getUser(UserPrincipal principal) {
@@ -117,5 +147,15 @@ public class UserProfileService {
 
     private String normalizeText(String value) {
         return value.trim();
+    }
+
+    private String resolveAvatarUrl(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return mediaObjectRepository
+            .findFirstByOwnerTypeAndOwnerIdOrderByCreatedAtDesc(MediaOwnerType.USER_PROFILE, userId)
+            .map(media -> media.getUrl())
+            .orElse(null);
     }
 }

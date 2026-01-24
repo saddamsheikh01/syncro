@@ -34,4 +34,19 @@ public interface UserMatchScoreRepository extends JpaRepository<UserMatchScore, 
         @Param("tagIds") List<UUID> tagIds,
         @Param("limit") int limit
     );
+
+    @Query(
+        value = """
+            SELECT COUNT(*)
+            FROM user_interests ui
+            JOIN user_interests ui2 ON ui.tag_id = ui2.tag_id
+            WHERE ui.user_id = :userId
+              AND ui2.user_id = :otherUserId
+            """,
+        nativeQuery = true
+    )
+    int countSharedInterests(
+        @Param("userId") UUID userId,
+        @Param("otherUserId") UUID otherUserId
+    );
 }

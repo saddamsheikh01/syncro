@@ -11,6 +11,8 @@ import com.syncro.backend.domain.matchmaking.mapper.UserMatchMapper;
 import com.syncro.backend.domain.matchmaking.repository.MatchExplanationRepository;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchCandidateProjection;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchScoreRepository;
+import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
@@ -43,6 +45,7 @@ public class UserMatchService {
     private final UserMatchMapper userMatchMapper;
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
+    private final MediaObjectRepository mediaObjectRepository;
 
     public UserMatchService(
         UserRepository userRepository,
@@ -51,7 +54,8 @@ public class UserMatchService {
         MatchExplanationRepository matchExplanationRepository,
         UserMatchMapper userMatchMapper,
         UserProfileRepository userProfileRepository,
-        UserProfileMapper userProfileMapper
+        UserProfileMapper userProfileMapper,
+        MediaObjectRepository mediaObjectRepository
     ) {
         this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
@@ -60,6 +64,7 @@ public class UserMatchService {
         this.userMatchMapper = userMatchMapper;
         this.userProfileRepository = userProfileRepository;
         this.userProfileMapper = userProfileMapper;
+        this.mediaObjectRepository = mediaObjectRepository;
     }
 
     @Transactional
@@ -81,6 +86,37 @@ public class UserMatchService {
             existing = userMatchScoreRepository.findByUserId(user.getId(), pageable);
         }
         return mapResponses(existing, user.getId());
+    }
+
+    @Transactional
+    public UserMatchResponse getMatchWithUser(UserPrincipal principal, UUID otherUserId) {
+        User user = getUser(principal);
+        if (otherUserId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        if (otherUserId.equals(user.getId())) {
+            throw new NotFoundException("Utente non valido");
+        }
+        userRepository.findById(otherUserId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        UUID userAId = orderFirst(user.getId(), otherUserId);
+        UUID userBId = orderSecond(user.getId(), otherUserId);
+        UserMatchScore match = userMatchScoreRepository
+            .findByUserAIdAndUserBId(userAId, userBId)
+            .orElse(null);
+
+        if (match == null) {
+            int sharedCount = userMatchScoreRepository.countSharedInterests(user.getId(), otherUserId);
+            if (sharedCount <= 0) {
+                throw new NotFoundException("Match non disponibile");
+            }
+            upsertMatch(user.getId(), otherUserId, sharedCount);
+            match = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
+                .orElseThrow(() -> new NotFoundException("Match non disponibile"));
+        }
+
+        return mapSingleResponse(match, user.getId());
     }
 
     private void computeMatches(User user, int page, int size) {
@@ -152,6 +188,20 @@ public class UserMatchService {
         });
     }
 
+    private UserMatchResponse mapSingleResponse(UserMatchScore match, UUID userId) {
+        String explanation = loadExplanations(List.of(match)).get(match.getId());
+        if (explanation == null) {
+            explanation = buildExplanation(match);
+        }
+        UUID otherUserId = resolveOtherUserId(match, userId);
+        UserProfile profile = otherUserId != null
+            ? userProfileRepository.findByUserId(otherUserId).orElse(null)
+            : null;
+        String avatarUrl = resolveAvatarUrl(otherUserId);
+        UserSummaryResponse summary = userProfileMapper.toSummary(otherUserId, profile, avatarUrl);
+        return userMatchMapper.toResponse(match, userId, explanation, summary);
+    }
+
     private String buildExplanation(UserMatchScore match) {
         if (match.getBreakdown() == null) {
             return "Match basato su interessi condivisi";
@@ -201,7 +251,10 @@ public class UserMatchService {
         return userIds.stream()
             .collect(Collectors.toMap(
                 id -> id,
-                id -> userProfileMapper.toSummary(id, profiles.get(id))
+                id -> {
+                    String avatarUrl = resolveAvatarUrl(id);
+                    return userProfileMapper.toSummary(id, profiles.get(id), avatarUrl);
+                }
             ));
     }
 
@@ -227,6 +280,16 @@ public class UserMatchService {
             return matchScore.getUserBId();
         }
         return matchScore.getUserAId();
+    }
+
+    private String resolveAvatarUrl(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return mediaObjectRepository
+            .findFirstByOwnerTypeAndOwnerIdOrderByCreatedAtDesc(MediaOwnerType.USER_PROFILE, userId)
+            .map(media -> media.getUrl())
+            .orElse(null);
     }
 
     private User getUser(UserPrincipal principal) {

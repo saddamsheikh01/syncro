@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.profile.controller;
 
+import com.syncro.backend.domain.profile.dto.UserPublicProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
 import com.syncro.backend.domain.profile.service.UserProfileService;
 import com.syncro.backend.security.UserPrincipal;
@@ -33,5 +34,14 @@ public class UserSummaryController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(userProfileService.getUserSummary(principal, userId));
+    }
+
+    @GetMapping("/{userId}/profile")
+    @Operation(summary = "Profilo pubblico utente")
+    public ResponseEntity<UserPublicProfileResponse> getUserProfile(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(userProfileService.getPublicProfile(principal, userId));
     }
 }

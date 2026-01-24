@@ -6,6 +6,9 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.profile.entity.ProfileVisibility;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.CreatePostRequest;
 import com.syncro.backend.domain.social.dto.PostResponse;
 import com.syncro.backend.domain.social.entity.Post;
@@ -30,17 +33,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostService {
 
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostMapper postMapper;
 
     public PostService(
         UserRepository userRepository,
+        UserProfileRepository userProfileRepository,
         PostRepository postRepository,
         PostLikeRepository postLikeRepository,
         PostMapper postMapper
     ) {
         this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
         this.postMapper = postMapper;
@@ -93,6 +99,26 @@ public class PostService {
         }
         PageRequest pageable = PageRequest.of(page, size);
         Page<Post> posts = postRepository.searchByContent(query.trim(), pageable);
+        return mapFeed(posts, user.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getUserPosts(
+        UserPrincipal principal,
+        UUID targetUserId,
+        int page,
+        int size
+    ) {
+        User user = getUser(principal);
+        if (targetUserId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        userRepository.findById(targetUserId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        ensureProfilePublic(targetUserId);
+
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(targetUserId, pageable);
         return mapFeed(posts, user.getId());
     }
 
@@ -162,6 +188,16 @@ public class PostService {
         }
         if (radiusKm != null && radiusKm <= 0) {
             throw new BadRequestException("Raggio non valido");
+        }
+    }
+
+    private void ensureProfilePublic(UUID userId) {
+        UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null) {
+            throw new NotFoundException("Profilo non disponibile");
+        }
+        if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
+            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
         }
     }
 

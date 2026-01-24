@@ -76,4 +76,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         nativeQuery = true
     )
     Page<Post> searchByContent(@Param("q") String q, Pageable pageable);
+
+    Page<Post> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 }

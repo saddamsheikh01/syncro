@@ -108,6 +108,15 @@ public class ZyraController {
         return ResponseEntity.ok(zyraService.getProfileRecap(principal));
     }
 
+    @GetMapping("/profile-recap/{userId}")
+    @Operation(summary = "Genera recap profilo utente con Zyra")
+    public ResponseEntity<ZyraProfileRecapResponse> getProfileRecapForUser(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(zyraService.getProfileRecapForUser(principal, userId));
+    }
+
     @GetMapping("/chat-recap")
     @Operation(summary = "Genera recap conversazioni con Zyra")
     public ResponseEntity<ZyraChatRecapResponse> getChatRecap(
