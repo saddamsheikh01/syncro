@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -62,7 +63,19 @@ const getOtherParticipantAvatar = (
   return other?.avatarUrl ?? undefined;
 };
 
+const getOtherParticipantId = (
+  conversation: ChatConversationResponse,
+  currentUserId: string | null
+): string | null => {
+  if (!currentUserId) return null;
+  const other = conversation.participants.find(
+    (p) => p.userId !== currentUserId
+  );
+  return other?.userId ?? null;
+};
+
 export const ChatConversationList = () => {
+  const router = useRouter();
   const { conversations, loadingConversations, error, actions } = useChat();
   const userId = useAuthStore((state) => state.user?.id ?? null);
 
@@ -127,6 +140,7 @@ export const ChatConversationList = () => {
           {conversations.map((conversation) => {
             const name = getOtherParticipantName(conversation, userId);
             const avatarUrl = getOtherParticipantAvatar(conversation, userId);
+            const otherId = getOtherParticipantId(conversation, userId);
             const lastMessage = conversation.lastMessage;
             const messagePreview = lastMessage?.content ?? "Nessun messaggio";
             const timeLabel = lastMessage
@@ -141,6 +155,9 @@ export const ChatConversationList = () => {
                 timeLabel={timeLabel}
                 avatarUrl={avatarUrl}
                 href={`/chat/${conversation.id}`}
+                onProfileClick={
+                  otherId ? () => router.push(`/profile/${otherId}`) : undefined
+                }
               />
             );
           })}

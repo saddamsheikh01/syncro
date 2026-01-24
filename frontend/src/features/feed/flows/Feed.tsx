@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/elements/Badge";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -45,6 +46,7 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export const Feed = () => {
+  const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { preferences, profile, language, actions: userActions } = useUser();
   const {
@@ -133,6 +135,7 @@ export const Feed = () => {
       avatarUrl: authorSummaries[post.userId]?.avatarUrl ?? undefined,
       onLike: feedActions.likePost,
       onUnlike: feedActions.unlikePost,
+      onProfileClick: () => router.push(`/profile/${post.userId}`),
     }));
   }, [
     feedActions.likePost,
@@ -142,6 +145,7 @@ export const Feed = () => {
     user?.email,
     user?.id,
     authorSummaries,
+    router,
   ]);
 
   useEffect(() => {

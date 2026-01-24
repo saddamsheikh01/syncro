@@ -85,6 +85,16 @@ export const getProfileRecap = async (): Promise<ZyraProfileRecapResponse> => {
   return data;
 };
 
+export const getProfileRecapForUser = async (
+  userId: Uuid
+): Promise<ZyraProfileRecapResponse> => {
+  const { data } = await apiClient.get<ZyraProfileRecapResponse>(
+    `/zyra/profile-recap/${userId}`,
+    { timeout: CHAT_TIMEOUT_MS }
+  );
+  return data;
+};
+
 export const getChatRecap = async (): Promise<ZyraChatRecapResponse> => {
   const { data } = await apiClient.get<ZyraChatRecapResponse>(
     "/zyra/chat-recap",

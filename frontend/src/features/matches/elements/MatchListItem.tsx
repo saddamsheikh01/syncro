@@ -1,9 +1,10 @@
 "use client";
 
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, KeyboardEvent, MouseEvent } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { Badge } from "@/components/elements/Badge";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
+import { NavIcon } from "@/components/ui/NavIcon";
 import type { UserMatchResponse } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 
@@ -12,6 +13,8 @@ export interface MatchListItemProps
   match: UserMatchResponse;
   selected?: boolean;
   onSelectMatch?: (matchId: string) => void;
+  onProfileClick?: () => void;
+  profileLabel?: string;
 }
 
 const formatName = (userId: string) => {
@@ -62,6 +65,8 @@ export const MatchListItem = ({
   match,
   selected = false,
   onSelectMatch,
+  onProfileClick,
+  profileLabel,
   ...props
 }: MatchListItemProps) => {
   const name = getDisplayName(match);
@@ -70,13 +75,34 @@ export const MatchListItem = ({
   const updatedLabel = formatUpdatedAt(match.updatedAt);
   const sharedTags = match.breakdown?.["sharedTags"];
   const location = formatLocation(match);
+  const isSelectable = Boolean(onSelectMatch);
+
+  const handleSelect = () => {
+    if (!onSelectMatch) return;
+    onSelectMatch(match.matchId);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onSelectMatch) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelectMatch(match.matchId);
+    }
+  };
+
+  const handleProfileClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onProfileClick?.();
+  };
 
   return (
     <div {...props}>
-      <button
-        type="button"
-        className="w-full text-left"
-        onClick={() => onSelectMatch?.(match.matchId)}
+      <div
+        role={isSelectable ? "button" : undefined}
+        tabIndex={isSelectable ? 0 : undefined}
+        className={cx(isSelectable && "w-full cursor-pointer text-left")}
+        onClick={isSelectable ? handleSelect : undefined}
+        onKeyDown={isSelectable ? handleKeyDown : undefined}
       >
         <div
           className={cx(
@@ -130,10 +156,20 @@ export const MatchListItem = ({
 
           {/* Score */}
           <div className="flex flex-col items-end gap-2">
+            {onProfileClick ? (
+              <button
+                type="button"
+                onClick={handleProfileClick}
+                aria-label={profileLabel ?? `Apri profilo di ${name}`}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                <NavIcon name="user" className="h-4 w-4" />
+              </button>
+            ) : null}
             <MatchScoreBadge score={score} />
           </div>
         </div>
-      </button>
+      </div>
     </div>
   );
 };

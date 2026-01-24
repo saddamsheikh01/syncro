@@ -17,6 +17,8 @@ export interface ChatHeaderProps
   showBack?: boolean;
   onBack?: () => void;
   onInfoClick?: () => void;
+  onProfileClick?: () => void;
+  profileLabel?: string;
 }
 
 export const ChatHeader = ({
@@ -31,6 +33,8 @@ export const ChatHeader = ({
   showBack = false,
   onBack,
   onInfoClick,
+  onProfileClick,
+  profileLabel,
   ...props
 }: ChatHeaderProps) => (
   <div
@@ -49,36 +53,78 @@ export const ChatHeader = ({
         </button>
       ) : null}
 
-      <div className="relative shrink-0">
-        <Avatar name={name} src={avatarUrl} size="md" />
-        {isOnline ? (
-          <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success ring-2 ring-card">
-            <span className="h-1.5 w-1.5 rounded-full bg-white" />
-          </span>
-        ) : null}
-      </div>
-
-      <div className="min-w-0">
-        <p className="truncate text-base font-semibold text-foreground">{name}</p>
-        <div className="flex items-center gap-1.5">
-          {isTyping ? (
-            <span className="flex items-center gap-1 text-xs text-accent">
-              <span className="flex gap-0.5">
-                <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.3s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-accent" />
+      {onProfileClick ? (
+        <button
+          type="button"
+          onClick={onProfileClick}
+          aria-label={profileLabel ?? `Apri profilo di ${name}`}
+          className="flex min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-[var(--radius-lg)]"
+        >
+          <div className="relative shrink-0">
+            <Avatar name={name} src={avatarUrl} size="md" />
+            {isOnline ? (
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success ring-2 ring-card">
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
               </span>
-              <span>sta scrivendo</span>
-            </span>
-          ) : isOnline ? (
-            <span className="text-xs text-success">Online</span>
-          ) : lastSeen ? (
-            <span className="text-xs text-subtle">{lastSeen}</span>
-          ) : subtitle ? (
-            <span className="text-xs text-subtle">{subtitle}</span>
-          ) : null}
-        </div>
-      </div>
+            ) : null}
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-foreground">{name}</p>
+            <div className="flex items-center gap-1.5">
+              {isTyping ? (
+                <span className="flex items-center gap-1 text-xs text-accent">
+                  <span className="flex gap-0.5">
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.3s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent" />
+                  </span>
+                  <span>sta scrivendo</span>
+                </span>
+              ) : isOnline ? (
+                <span className="text-xs text-success">Online</span>
+              ) : lastSeen ? (
+                <span className="text-xs text-subtle">{lastSeen}</span>
+              ) : subtitle ? (
+                <span className="text-xs text-subtle">{subtitle}</span>
+              ) : null}
+            </div>
+          </div>
+        </button>
+      ) : (
+        <>
+          <div className="relative shrink-0">
+            <Avatar name={name} src={avatarUrl} size="md" />
+            {isOnline ? (
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success ring-2 ring-card">
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+              </span>
+            ) : null}
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-foreground">{name}</p>
+            <div className="flex items-center gap-1.5">
+              {isTyping ? (
+                <span className="flex items-center gap-1 text-xs text-accent">
+                  <span className="flex gap-0.5">
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.3s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
+                    <span className="h-1 w-1 animate-bounce rounded-full bg-accent" />
+                  </span>
+                  <span>sta scrivendo</span>
+                </span>
+              ) : isOnline ? (
+                <span className="text-xs text-success">Online</span>
+              ) : lastSeen ? (
+                <span className="text-xs text-subtle">{lastSeen}</span>
+              ) : subtitle ? (
+                <span className="text-xs text-subtle">{subtitle}</span>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
     </div>
 
     <div className="flex shrink-0 items-center gap-2">

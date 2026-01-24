@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -126,6 +127,7 @@ const QUICK_ACTIONS: Array<{
 ];
 
 export const HomeOverview = () => {
+  const router = useRouter();
   const { status, actions: authActions } = useAuth();
   const { actions: userActions } = useUser();
   const {
@@ -610,6 +612,7 @@ export const HomeOverview = () => {
                 "Affinita calcolata sugli interessi condivisi."
               }
               matchScore={matchSpotlight.scoreTotal ?? undefined}
+              profileHref={`/profile/${matchSpotlight.userId}`}
               actionHref={`/chat`}
               actionLabel="Scrivi"
             />
@@ -617,7 +620,11 @@ export const HomeOverview = () => {
             <div className="space-y-3">
               {otherMatches.length > 0 ? (
                 otherMatches.map((match) => (
-                  <MatchListItem key={match.matchId} match={match} />
+                  <MatchListItem
+                    key={match.matchId}
+                    match={match}
+                    onProfileClick={() => router.push(`/profile/${match.userId}`)}
+                  />
                 ))
               ) : (
                 <Card className="p-4 text-sm text-muted">

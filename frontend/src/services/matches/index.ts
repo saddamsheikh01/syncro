@@ -30,6 +30,15 @@ export const getUserMatches = async (
   return data;
 };
 
+export const getMatchWithUser = async (
+  userId: string
+): Promise<UserMatchResponse> => {
+  const { data } = await apiClient.get<UserMatchResponse>(
+    `/matches/users/${userId}`
+  );
+  return data;
+};
+
 export const getRecommendations = async (
   params: RecommendationsParams = {}
 ): Promise<PageResponse<RecommendationResponse>> => {

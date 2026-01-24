@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, MouseEvent } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
@@ -15,6 +15,8 @@ export interface ChatListItemProps
   isTyping?: boolean;
   href?: string;
   onPress?: () => void;
+  onProfileClick?: () => void;
+  profileLabel?: string;
 }
 
 export const ChatListItem = ({
@@ -28,9 +30,16 @@ export const ChatListItem = ({
   isTyping,
   href,
   onPress,
+  onProfileClick,
+  profileLabel,
   ...props
 }: ChatListItemProps) => {
   const hasUnread = typeof unreadCount === "number" && unreadCount > 0;
+  const handleProfileClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onProfileClick?.();
+  };
 
   const card = (
     <div
@@ -104,6 +113,16 @@ export const ChatListItem = ({
 
       {/* Unread badge or chevron */}
       <div className="flex shrink-0 items-center gap-2">
+        {onProfileClick ? (
+          <button
+            type="button"
+            onClick={handleProfileClick}
+            aria-label={profileLabel ?? `Apri profilo di ${name}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+          >
+            <NavIcon name="user" className="h-4 w-4" />
+          </button>
+        ) : null}
         {hasUnread ? (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}

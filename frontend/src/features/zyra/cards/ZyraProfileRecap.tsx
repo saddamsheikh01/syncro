@@ -1,45 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
-import { getProfileRecap } from "@/services/zyra";
+import { getProfileRecap, getProfileRecapForUser } from "@/services/zyra";
 
 export interface ZyraProfileRecapProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   title?: string;
+  userId?: string;
 }
 
 export const ZyraProfileRecap = ({
   className,
   title = "Il tuo profilo secondo Zyra",
+  userId,
   ...props
 }: ZyraProfileRecapProps) => {
   const [recap, setRecap] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const loadedRef = useRef(false);
 
-  const fetchRecap = async () => {
+  const fetchRecap = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await getProfileRecap();
+      const response = userId
+        ? await getProfileRecapForUser(userId)
+        : await getProfileRecap();
       setRecap(response.recap);
     } catch {
       setError("Impossibile generare il riepilogo. Riprova.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
     fetchRecap();
-  }, []);
+  }, [fetchRecap]);
 
   return (
     <div
@@ -69,7 +70,11 @@ export const ZyraProfileRecap = ({
           {loading ? (
             <div className="flex items-center gap-2 py-2 text-subtle">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-zyra-text border-t-transparent" />
-              <span className="text-sm">Zyra sta analizzando il tuo profilo...</span>
+              <span className="text-sm">
+                {userId
+                  ? "Zyra sta analizzando questo profilo..."
+                  : "Zyra sta analizzando il tuo profilo..."}
+              </span>
             </div>
           ) : error ? (
             <div className="space-y-3">
@@ -86,7 +91,9 @@ export const ZyraProfileRecap = ({
         {!loading && !error && recap ? (
           <div className="flex items-center justify-between border-t border-border/40 pt-3">
             <p className="text-[10px] text-subtle">
-              Generato da Zyra in base al tuo profilo
+              {userId
+                ? "Generato da Zyra in base al profilo"
+                : "Generato da Zyra in base al tuo profilo"}
             </p>
             <Button
               size="sm"

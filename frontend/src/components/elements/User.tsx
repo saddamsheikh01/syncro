@@ -50,7 +50,7 @@ export const User = () => {
 
   return (
     <Link
-      href="/settings"
+      href="/profile"
       className="group relative flex items-center gap-4 rounded-[var(--radius-xl)] border border-border/40 bg-gradient-to-br from-surface to-surface-muted p-4 shadow-sm transition-all duration-200 hover:border-accent/30 hover:shadow-md"
     >
       <div className="relative">

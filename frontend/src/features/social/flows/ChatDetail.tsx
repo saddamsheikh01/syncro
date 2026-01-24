@@ -25,7 +25,7 @@ const getOtherParticipant = (
   currentUserId: string | null
 ) => {
   if (!conversation || !currentUserId) {
-    return { name: "Utente", avatarUrl: undefined };
+    return { userId: null, name: "Utente", avatarUrl: undefined };
   }
 
   const other = conversation.participants.find(
@@ -33,6 +33,7 @@ const getOtherParticipant = (
   );
 
   return {
+    userId: other?.userId ?? null,
     name: other?.fullName ?? "Utente",
     avatarUrl: other?.avatarUrl ?? undefined,
   };
@@ -94,6 +95,11 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
     actions.fetchMessages(conversationId, { size: PAGE_SIZE }).catch(() => undefined);
   }, [actions, conversationId]);
 
+  const handleProfileOpen = useCallback(() => {
+    if (!otherParticipant.userId) return;
+    router.push(`/profile/${otherParticipant.userId}`);
+  }, [otherParticipant.userId, router]);
+
   if (initialLoading) {
     return (
       <div className="flex h-full flex-col">
@@ -123,6 +129,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
             avatarUrl={otherParticipant.avatarUrl}
             showBack
             onBack={handleBack}
+            onProfileClick={otherParticipant.userId ? handleProfileOpen : undefined}
           />
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
@@ -146,6 +153,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
           avatarUrl={otherParticipant.avatarUrl}
           showBack
           onBack={handleBack}
+          onProfileClick={otherParticipant.userId ? handleProfileOpen : undefined}
         />
       </div>
 

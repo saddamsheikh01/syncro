@@ -237,6 +237,7 @@ export const MatchesOverview = () => {
                 match={match}
                 selected={selectedMatch?.matchId === match.matchId}
                 onSelectMatch={setSelectedMatchId}
+                onProfileClick={() => router.push(`/profile/${match.userId}`)}
               />
             ))}
           </div>
@@ -262,8 +263,8 @@ export const MatchesOverview = () => {
               primaryActionLabel="Inizia chat"
               onPrimaryAction={handleStartChat}
               primaryActionDisabled={startingChat || loadingConversations}
-              secondaryActionLabel="Aggiorna match"
-              onSecondaryAction={handleRefresh}
+              secondaryActionLabel="Vedi profilo"
+              onSecondaryAction={() => router.push(`/profile/${selectedMatch.userId}`)}
             />
           ) : (
             <Card className="p-5">

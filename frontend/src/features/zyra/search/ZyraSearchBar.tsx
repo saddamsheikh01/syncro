@@ -73,7 +73,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
     } else if (type === "experience") {
       router.push(`/experiences/${id}`);
     } else if (type === "user") {
-      router.push(`/chat?user=${id}`);
+      router.push(`/profile/${id}`);
     } else {
       router.push(`/feed?post=${id}`);
     }

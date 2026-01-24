@@ -1,6 +1,10 @@
 import { apiClient } from "../axiosConfig";
 import type { UpdateUserRequest, UserResponse } from "../../types/auth";
-import type { UserSummaryResponse } from "../../types/profile";
+import type {
+  UserPublicProfileResponse,
+  UserSummaryResponse,
+} from "../../types/profile";
+import type { PostResponse } from "../../types/social";
 import type { PageResponse } from "../../types/shared";
 
 export type UserSearchParams = {
@@ -26,6 +30,26 @@ export const getUserSummary = async (
 ): Promise<UserSummaryResponse> => {
   const { data } = await apiClient.get<UserSummaryResponse>(
     `/users/${userId}/summary`
+  );
+  return data;
+};
+
+export const getUserProfile = async (
+  userId: string
+): Promise<UserPublicProfileResponse> => {
+  const { data } = await apiClient.get<UserPublicProfileResponse>(
+    `/users/${userId}/profile`
+  );
+  return data;
+};
+
+export const getUserPosts = async (
+  userId: string,
+  params: { page?: number; size?: number } = {}
+): Promise<PageResponse<PostResponse>> => {
+  const { data } = await apiClient.get<PageResponse<PostResponse>>(
+    `/users/${userId}/posts`,
+    { params }
   );
   return data;
 };

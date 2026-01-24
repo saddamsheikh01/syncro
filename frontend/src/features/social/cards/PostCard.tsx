@@ -47,6 +47,7 @@ export interface PostCardProps
   matchScore?: number;
   showMedia?: boolean;
   mediaLimit?: number;
+  onProfileClick?: () => void;
   onLike?: (postId: string) => void;
   onUnlike?: (postId: string) => void;
 }
@@ -87,6 +88,7 @@ export const PostCard = ({
   matchScore,
   showMedia = true,
   mediaLimit = 4,
+  onProfileClick,
   onLike,
   onUnlike,
   ...props
@@ -163,6 +165,7 @@ export const PostCard = ({
         timeLabel={createdDate || undefined}
         avatarUrl={avatarUrl ?? undefined}
         matchScore={matchScore}
+        onProfileClick={onProfileClick}
       />
 
       <div className="space-y-1">

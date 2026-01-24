@@ -2,9 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
 import { useChat, useAuth } from "@/hooks";
 import { cx } from "@/lib/classNames";
+import { NavIcon } from "@/components/ui/NavIcon";
 
 const ChatIcon = () => (
   <svg
@@ -36,6 +38,7 @@ const formatTime = (isoDate: string) => {
 };
 
 export const RecentChatsCard = () => {
+  const router = useRouter();
   const { user } = useAuth();
   const { conversations, loadingConversations, actions } = useChat();
   const fetchedRef = useRef(false);
@@ -91,6 +94,7 @@ export const RecentChatsCard = () => {
           const otherParticipant = conversation.participants?.find(
             (p) => p.userId !== user?.id
           );
+          const otherParticipantId = otherParticipant?.userId ?? null;
           const name = otherParticipant?.fullName || "Utente";
           const lastMessage = conversation.lastMessage?.content || "Nessun messaggio";
           const time = conversation.lastMessage?.createdAt
@@ -100,13 +104,22 @@ export const RecentChatsCard = () => {
             : "";
 
           return (
-            <Link
+            <div
               key={conversation.id}
-              href={`/chat?id=${conversation.id}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`Apri chat con ${name}`}
               className={cx(
                 "group flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 transition-colors",
                 "hover:bg-surface-muted"
               )}
+              onClick={() => router.push(`/chat?id=${conversation.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/chat?id=${conversation.id}`);
+                }
+              }}
             >
               <Avatar
                 name={name}
@@ -118,11 +131,26 @@ export const RecentChatsCard = () => {
                   <p className="truncate text-xs font-medium text-foreground">
                     {name}
                   </p>
-                  <span className="shrink-0 text-[10px] text-muted">{time}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 text-[10px] text-muted">{time}</span>
+                    {otherParticipantId ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          router.push(`/profile/${otherParticipantId}`);
+                        }}
+                        aria-label={`Apri profilo di ${name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+                      >
+                        <NavIcon name="user" className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="truncate text-[11px] text-muted">{lastMessage}</p>
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>

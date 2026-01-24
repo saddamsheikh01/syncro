@@ -17,6 +17,7 @@ export interface ZyraMatchOfDayCardProps
   matchScore?: number;
   actionLabel?: string;
   actionHref?: string;
+  profileHref?: string;
 }
 
 export const ZyraMatchOfDayCard = ({
@@ -28,6 +29,7 @@ export const ZyraMatchOfDayCard = ({
   matchScore,
   actionLabel = "Apri",
   actionHref,
+  profileHref,
   ...props
 }: ZyraMatchOfDayCardProps) => (
   <div
@@ -50,30 +52,59 @@ export const ZyraMatchOfDayCard = ({
 
       {/* User info */}
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="relative">
-            <div className="rounded-full bg-gradient-to-br from-zyra-start to-zyra-end p-0.5">
-              <Avatar
-                name={title}
-                src={avatarUrl}
-                size="lg"
-                className="border-2 border-zyra-border/70 text-zyra-text zyra-surface-soft"
-              />
+        {profileHref ? (
+          <Link href={profileHref} className="group flex min-w-0 items-center gap-4">
+            <div className="relative">
+              <div className="rounded-full bg-gradient-to-br from-zyra-start to-zyra-end p-0.5">
+                <Avatar
+                  name={title}
+                  src={avatarUrl}
+                  size="lg"
+                  className="border-2 border-zyra-border/70 text-zyra-text zyra-surface-soft"
+                />
+              </div>
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <p className="truncate text-lg font-semibold text-foreground transition-colors group-hover:text-zyra-text">
+                {title}
+              </p>
+              {subtitle ? (
+                <p className="flex items-center gap-1.5 text-sm text-muted">
+                  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+          </Link>
+        ) : (
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="relative">
+              <div className="rounded-full bg-gradient-to-br from-zyra-start to-zyra-end p-0.5">
+                <Avatar
+                  name={title}
+                  src={avatarUrl}
+                  size="lg"
+                  className="border-2 border-zyra-border/70 text-zyra-text zyra-surface-soft"
+                />
+              </div>
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <p className="truncate text-lg font-semibold text-foreground">{title}</p>
+              {subtitle ? (
+                <p className="flex items-center gap-1.5 text-sm text-muted">
+                  <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {subtitle}
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className="min-w-0 space-y-1.5">
-            <p className="truncate text-lg font-semibold text-foreground">{title}</p>
-            {subtitle ? (
-              <p className="flex items-center gap-1.5 text-sm text-muted">
-                <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-        </div>
+        )}
         {typeof matchScore === "number" ? (
           <MatchScoreBadge score={matchScore} />
         ) : null}

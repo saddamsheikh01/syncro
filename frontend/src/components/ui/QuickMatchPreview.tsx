@@ -52,6 +52,8 @@ export const QuickMatchPreview = () => {
     .join(", ");
   const score = Math.round(match.scoreTotal ?? 0);
 
+  const profileHref = `/profile/${match.userId}`;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -66,7 +68,7 @@ export const QuickMatchPreview = () => {
         </Link>
       </div>
       <Link
-        href="/matches"
+        href={profileHref}
         className={cx(
           "group flex items-center gap-3 rounded-[var(--radius-lg)] border border-qa-match-border/50 p-3 transition-all duration-300",
           "hover:border-qa-match-border hover:shadow-[0_6px_20px_var(--qa-match-glow)]",

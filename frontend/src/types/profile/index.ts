@@ -67,3 +67,14 @@ export type UserSummaryResponse = {
   avatarUrl: string | null;
   visibility: ProfileVisibility | null;
 };
+
+export type UserPublicProfileResponse = {
+  userId: Uuid;
+  fullName: string | null;
+  age: number | null;
+  city: string | null;
+  country: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  visibility: ProfileVisibility | null;
+};
