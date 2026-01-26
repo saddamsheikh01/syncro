@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { HTMLAttributes } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/buttons/Button";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
@@ -84,7 +86,42 @@ export const ZyraProfileRecap = ({
               </Button>
             </div>
           ) : recap ? (
-            <p className="text-sm leading-relaxed text-foreground">{recap}</p>
+            <div className="space-y-2 text-sm leading-relaxed text-foreground">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: (props) => <p className="text-inherit" {...props} />,
+                  ul: (props) => (
+                    <ul className="list-disc space-y-1 pl-4 text-inherit" {...props} />
+                  ),
+                  ol: (props) => (
+                    <ol className="list-decimal space-y-1 pl-4 text-inherit" {...props} />
+                  ),
+                  li: (props) => <li className="text-inherit" {...props} />,
+                  a: (props) => (
+                    <a
+                      {...props}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline decoration-current/40 transition hover:decoration-current"
+                    />
+                  ),
+                  strong: (props) => <strong className="font-semibold" {...props} />,
+                  em: (props) => <em className="italic" {...props} />,
+                  blockquote: (props) => (
+                    <blockquote className="border-l-2 border-border-strong pl-3 text-inherit" {...props} />
+                  ),
+                  code: (props) => (
+                    <code className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[12px]" {...props} />
+                  ),
+                  pre: (props) => (
+                    <pre className="overflow-x-auto rounded-[var(--radius-md)] bg-surface-muted p-3 text-[12px]" {...props} />
+                  ),
+                }}
+              >
+                {recap}
+              </ReactMarkdown>
+            </div>
           ) : null}
         </div>
 

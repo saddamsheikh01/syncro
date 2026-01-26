@@ -1,4 +1,6 @@
 import type { HTMLAttributes } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cx } from "@/lib/classNames";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
@@ -45,7 +47,77 @@ export const ZyraMessageBubble = ({
             <span>Zyra</span>
           </div>
         ) : null}
-        <p>{message}</p>
+        <div className="space-y-2 text-sm leading-relaxed">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: (props) => (
+                <p className="text-inherit" {...props} />
+              ),
+              ul: (props) => (
+                <ul className="list-disc space-y-1 pl-4 text-inherit" {...props} />
+              ),
+              ol: (props) => (
+                <ol className="list-decimal space-y-1 pl-4 text-inherit" {...props} />
+              ),
+              li: (props) => (
+                <li className="text-inherit" {...props} />
+              ),
+              a: (props) => (
+                <a
+                  {...props}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-inherit underline decoration-current/40 transition hover:decoration-current"
+                />
+              ),
+              strong: (props) => (
+                <strong className="font-semibold text-inherit" {...props} />
+              ),
+              em: (props) => (
+                <em className="italic text-inherit" {...props} />
+              ),
+              blockquote: (props) => (
+                <blockquote
+                  className={cx(
+                    "border-l-2 pl-3 text-inherit",
+                    isUser ? "border-white/40" : "border-border-strong"
+                  )}
+                  {...props}
+                />
+              ),
+              code: (props) => {
+                const { className, ...rest } = props;
+                const isInline = !className;
+                return (
+                  <code
+                    className={cx(
+                      "rounded px-1.5 py-0.5 font-mono text-[12px]",
+                      isInline
+                        ? isUser
+                          ? "bg-white/20"
+                          : "bg-surface-muted"
+                        : "block whitespace-pre-wrap",
+                      className
+                    )}
+                    {...rest}
+                  />
+                );
+              },
+              pre: (props) => (
+                <pre
+                  className={cx(
+                    "overflow-x-auto rounded-[var(--radius-md)] p-3 text-[12px]",
+                    isUser ? "bg-white/10 text-accent-contrast" : "bg-surface-muted"
+                  )}
+                  {...props}
+                />
+              ),
+            }}
+          >
+            {message}
+          </ReactMarkdown>
+        </div>
         {timestamp || statusLabel ? (
           <div
             className={cx(

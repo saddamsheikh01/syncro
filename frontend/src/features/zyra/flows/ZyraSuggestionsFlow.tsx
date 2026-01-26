@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -124,7 +126,36 @@ export const ZyraSuggestionsFlow = () => {
                     <p className="text-sm font-semibold text-foreground">
                       {getSuggestionTitle(suggestion)}
                     </p>
-                    <p className="text-sm text-muted">{message}</p>
+                    <div className="space-y-2 text-sm text-muted">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: (props) => <p className="text-inherit" {...props} />,
+                          ul: (props) => (
+                            <ul className="list-disc space-y-1 pl-4 text-inherit" {...props} />
+                          ),
+                          ol: (props) => (
+                            <ol className="list-decimal space-y-1 pl-4 text-inherit" {...props} />
+                          ),
+                          li: (props) => <li className="text-inherit" {...props} />,
+                          a: (props) => (
+                            <a
+                              {...props}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline decoration-current/40 transition hover:decoration-current"
+                            />
+                          ),
+                          strong: (props) => <strong className="font-semibold" {...props} />,
+                          em: (props) => <em className="italic" {...props} />,
+                          code: (props) => (
+                            <code className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[12px]" {...props} />
+                          ),
+                        }}
+                      >
+                        {message}
+                      </ReactMarkdown>
+                    </div>
                     {context ? (
                       <p className="text-xs text-subtle">Contesto: {context}</p>
                     ) : null}

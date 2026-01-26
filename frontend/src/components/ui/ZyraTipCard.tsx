@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { useZyra } from "@/hooks";
 import { cx } from "@/lib/classNames";
@@ -70,7 +72,36 @@ export const ZyraTipCard = () => {
           </p>
           <ArrowIcon />
         </div>
-        <p className="line-clamp-2 text-xs text-muted">{message}</p>
+        <div className="line-clamp-2 text-xs text-muted">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: (props) => <span {...props} />,
+              strong: (props) => <strong className="font-semibold" {...props} />,
+              em: (props) => <em className="italic" {...props} />,
+              ul: (props) => <span {...props} />,
+              ol: (props) => <span {...props} />,
+              li: (props) => (
+                <span className="after:content-[' ']" {...props}>
+                  • {props.children}
+                </span>
+              ),
+              a: (props) => (
+                <a
+                  {...props}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline decoration-current/40 hover:decoration-current"
+                />
+              ),
+              code: (props) => (
+                <code className="rounded bg-surface-muted px-1 py-0.5 font-mono text-[11px]" {...props} />
+              ),
+            }}
+          >
+            {message}
+          </ReactMarkdown>
+        </div>
       </div>
     </Link>
   );
