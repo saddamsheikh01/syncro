@@ -1,4 +1,4 @@
-import { getPlaces, getExperiences } from "../catalog";
+import { getPlaces } from "../catalog";
 import { searchPosts } from "../social";
 import { searchUsers } from "../users";
 import type { GlobalSearchResponse } from "../../types/search";
@@ -17,16 +17,15 @@ export const globalSearch = async (
     return { places: [], experiences: [], users: [], posts: [] };
   }
 
-  const [placesResult, experiencesResult, usersResult, postsResult] = await Promise.all([
+  const [placesResult, usersResult, postsResult] = await Promise.all([
     getPlaces({ q, size: limit }),
-    getExperiences({ q, size: limit }),
     searchUsers({ q, size: limit }),
     searchPosts({ q, size: limit }),
   ]);
 
   return {
     places: placesResult.content,
-    experiences: experiencesResult.content,
+    experiences: [],
     users: usersResult.content,
     posts: postsResult.content,
   };

@@ -7,7 +7,7 @@ import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
 
-export type SearchResultType = "USER" | "PLACE" | "EXPERIENCE";
+export type SearchResultType = "USER" | "PLACE";
 
 export interface SearchResultItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
@@ -24,8 +24,7 @@ export interface SearchResultItemProps
 
 const getTypeLabel = (type: SearchResultType) => {
   if (type === "USER") return "Utente";
-  if (type === "PLACE") return "Luogo";
-  return "Esperienza";
+  return "Luogo";
 };
 
 export const SearchResultItem = ({

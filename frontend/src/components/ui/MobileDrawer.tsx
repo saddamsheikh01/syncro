@@ -20,7 +20,6 @@ const DRAWER_ITEMS: DrawerMenuItem[] = [
   { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
   { id: "feed", label: "Feed", href: "/feed", icon: "document" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
-  { id: "experiences", label: "Esperienze", href: "/experiences", icon: "spark" },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
   { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
 ];

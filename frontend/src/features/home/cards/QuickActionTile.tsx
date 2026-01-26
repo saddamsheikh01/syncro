@@ -7,7 +7,6 @@ import { cx } from "@/lib/classNames";
 export type QuickActionVariant =
   | "map"
   | "match"
-  | "experiences"
   | "places"
   | "feed"
   | "chat"
@@ -57,18 +56,6 @@ const VARIANT_STYLES: Record<
     iconStyle: {
       background:
         "linear-gradient(135deg, var(--qa-match-gradient-start), var(--qa-match-gradient-end))",
-    },
-  },
-  experiences: {
-    card: "border-[var(--qa-experiences-border)] hover:shadow-[0_8px_30px_var(--qa-experiences-glow)]",
-    iconWrapper: "text-white",
-    cardStyle: {
-      background:
-        "linear-gradient(135deg, var(--qa-experiences-bg) 0%, transparent 60%)",
-    },
-    iconStyle: {
-      background:
-        "linear-gradient(135deg, var(--qa-experiences-gradient-start), var(--qa-experiences-gradient-end))",
     },
   },
   places: {

@@ -23,15 +23,9 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
-  {
-    id: "experiences",
-    label: "Esperienze",
-    href: "/experiences",
-    icon: "spark",
-  },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
-  { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
   { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
+  { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
 ];
 
 const normalizePath = (path: string) =>
@@ -79,7 +73,7 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
               isZyra && !active
                 ? "text-zyra-text/80 hover:bg-zyra-glow/40 hover:text-zyra-text"
                 : null,
-              collapsed && "justify-center px-2"
+              collapsed && "justify-center px-2",
             )}
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
@@ -89,9 +83,9 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
                 "flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground transition",
                 !isZyra &&
                   (active
-                  ? "border-accent/30 bg-accent-soft text-accent"
-                  : "group-hover:border-border-strong"),
-                isZyra && "border-transparent bg-transparent"
+                    ? "border-accent/30 bg-accent-soft text-accent"
+                    : "group-hover:border-border-strong"),
+                isZyra && "border-transparent bg-transparent",
               )}
             >
               {isZyra ? (
@@ -104,7 +98,7 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
               className={cx(
                 collapsed ? "sr-only" : "truncate",
                 isZyra &&
-                  "bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent"
+                  "bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent",
               )}
             >
               {item.label}

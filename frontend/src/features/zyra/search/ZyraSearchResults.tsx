@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  PlaceSummaryResponse,
-  ExperienceSummaryResponse,
-} from "@/types/catalog";
+import type { PlaceSummaryResponse } from "@/types/catalog";
 import type { PostResponse } from "@/types/social";
 import type { UserSearchResult } from "@/types/search";
 import { cx } from "@/lib/classNames";
@@ -13,25 +10,22 @@ import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 
 export interface ZyraSearchResultsProps {
   places: PlaceSummaryResponse[];
-  experiences: ExperienceSummaryResponse[];
   users: UserSearchResult[];
   posts: PostResponse[];
   loading: boolean;
   query: string;
-  onResultClick: (type: "place" | "experience" | "user" | "post", id: string) => void;
+  onResultClick: (type: "place" | "user" | "post", id: string) => void;
 }
 
 export const ZyraSearchResults = ({
   places,
-  experiences,
   users,
   posts,
   loading,
   query,
   onResultClick,
 }: ZyraSearchResultsProps) => {
-  const hasResults =
-    places.length > 0 || experiences.length > 0 || users.length > 0 || posts.length > 0;
+  const hasResults = places.length > 0 || users.length > 0 || posts.length > 0;
   const showNoResults = !loading && query.length >= 2 && !hasResults;
 
   return (
@@ -117,46 +111,6 @@ export const ZyraSearchResults = ({
                         {place.category && (
                           <p className="truncate text-xs text-subtle">
                             {place.category.name}
-                          </p>
-                        )}
-                      </div>
-                      <NavIcon
-                        name="chevron-right"
-                        className="h-4 w-4 shrink-0 text-subtle"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {experiences.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <NavIcon name="star" className="h-3.5 w-3.5 text-zyra-text" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Esperienze
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {experiences.map((experience) => (
-                    <button
-                      key={experience.id}
-                      type="button"
-                      onClick={() => onResultClick("experience", experience.id)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
-                      role="option"
-                    >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-muted text-zyra-text">
-                        <NavIcon name="star" className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {experience.name}
-                        </p>
-                        {experience.category && (
-                          <p className="truncate text-xs text-subtle">
-                            {experience.category.name}
                           </p>
                         )}
                       </div>

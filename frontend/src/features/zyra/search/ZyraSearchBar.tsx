@@ -19,13 +19,11 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { query, isOpen, loading, places, experiences, users, posts } =
-    useSearchStore();
+  const { query, isOpen, loading, places, users, posts } = useSearchStore();
   const [localQuery, setLocalQuery] = useState(query);
   const [isFocused, setIsFocused] = useState(false);
 
-  const hasResults =
-    places.length > 0 || experiences.length > 0 || users.length > 0 || posts.length > 0;
+  const hasResults = places.length > 0 || users.length > 0 || posts.length > 0;
   const showDropdown =
     isOpen && (hasResults || loading || localQuery.length >= 2);
 
@@ -61,7 +59,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   };
 
   const handleResultClick = (
-    type: "place" | "experience" | "user" | "post",
+    type: "place" | "user" | "post",
     id: string
   ) => {
     searchActions.setOpen(false);
@@ -70,8 +68,6 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
 
     if (type === "place") {
       router.push(`/places/${id}`);
-    } else if (type === "experience") {
-      router.push(`/experiences/${id}`);
     } else if (type === "user") {
       router.push(`/profile/${id}`);
     } else {
@@ -135,7 +131,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Chiedi a Zyra o cerca luoghi, esperienze, persone..."
+              placeholder="Chiedi a Zyra o cerca luoghi, persone o post..."
               className="w-full bg-transparent text-sm text-foreground placeholder:text-subtle focus:outline-none"
               aria-label="Chiedi a Zyra"
               aria-expanded={showDropdown}
@@ -163,7 +159,6 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
       {showDropdown && (
         <ZyraSearchResults
           places={places}
-          experiences={experiences}
           users={users}
           posts={posts}
           loading={loading}

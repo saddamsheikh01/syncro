@@ -18,7 +18,6 @@ import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { MapPermissionScreen } from "@/features/map/sections/MapPermissionScreen";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
-import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
 import { MatchListItem } from "@/features/matches/elements/MatchListItem";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { calculateDistanceKm } from "@/lib/geo";
@@ -39,26 +38,6 @@ const MATCH_LIMIT = 5;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
 const TUTORIAL_DELAY_MS = 800;
 const DISTANCE_EPSILON = 0.000001;
-
-const formatDuration = (minutes: number | null): string | undefined => {
-  if (!minutes) return undefined;
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
-};
-
-const formatPrice = (
-  price: number | null,
-  currency: string | null,
-): string | undefined => {
-  if (price == null) return undefined;
-  const curr = currency ?? "EUR";
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: curr,
-  }).format(price);
-};
 
 const QUICK_ACTIONS: Array<{
   title: string;
@@ -81,13 +60,6 @@ const QUICK_ACTIONS: Array<{
     href: "/matches",
     icon: <NavIcon name="spark" className="h-5 w-5" />,
     variant: "match",
-  },
-  {
-    title: "Esperienze",
-    subtitle: "Per te",
-    href: "/experiences",
-    icon: <NavIcon name="spark" className="h-5 w-5" />,
-    variant: "experiences",
   },
   {
     title: "Luoghi",
@@ -138,7 +110,6 @@ export const HomeOverview = () => {
     actions: positionActions,
   } = usePosition();
   const {
-    experiences,
     places,
     loading: catalogLoading,
     error: catalogError,
@@ -148,7 +119,6 @@ export const HomeOverview = () => {
     userMatches,
     loadingUserMatches,
     recommendations,
-    loadingRecommendations,
     error: matchesError,
     actions: matchesActions,
   } = useMatches();
@@ -196,9 +166,6 @@ export const HomeOverview = () => {
       .fetchRecommendations({ size: RECO_PAGE_SIZE })
       .catch(() => undefined);
 
-    catalogActions
-      .fetchExperiences({ size: RECO_PAGE_SIZE })
-      .catch(() => undefined);
     catalogActions.fetchPlaces({ size: RECO_PAGE_SIZE, source: "GOOGLE" }).catch(() => undefined);
 
     zyraActions.fetchSuggestions({ size: 10 }).catch(() => undefined);
@@ -228,13 +195,6 @@ export const HomeOverview = () => {
     if (locationFetchRef.current === key) return;
     locationFetchRef.current = key;
 
-    catalogActions
-      .fetchExperiences({
-        size: RECO_PAGE_SIZE,
-        lat: position.latitude,
-        lng: position.longitude,
-      })
-      .catch(() => undefined);
     catalogActions
       .fetchPlaces({
         size: RECO_PAGE_SIZE,
@@ -311,14 +271,6 @@ export const HomeOverview = () => {
     );
   };
 
-  const recommendationExperiences = useMemo(
-    () =>
-      recommendations
-        .filter((rec) => rec.type === "EXPERIENCE" && rec.experience)
-        .map((rec) => rec.experience!),
-    [recommendations],
-  );
-
   const recommendationPlaces = useMemo(
     () =>
       recommendations
@@ -326,64 +278,6 @@ export const HomeOverview = () => {
         .map((rec) => rec.place!),
     [recommendations],
   );
-
-  const experienceCards = useMemo(() => {
-    const source =
-      hasPosition && experiences.length > 0
-        ? experiences
-        : recommendationExperiences.length
-          ? recommendationExperiences
-          : experiences;
-    const items = source.map((exp) => {
-      let distanceKm: number | undefined;
-      if (
-        hasPosition &&
-        position?.latitude != null &&
-        position?.longitude != null &&
-        exp.place?.latitude != null &&
-        exp.place?.longitude != null
-      ) {
-        distanceKm = calculateDistanceKm(
-          position.latitude,
-          position.longitude,
-          exp.place.latitude,
-          exp.place.longitude,
-        );
-      }
-
-      return {
-        title: exp.name,
-        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
-        category: exp.category?.name ?? undefined,
-        href: `/experiences/${exp.id}`,
-        imageUrl: exp.imageUrl ?? undefined,
-        priceLabel: formatPrice(exp.price, exp.priceCurrency),
-        originalPriceLabel:
-          exp.originalPrice && exp.price && exp.originalPrice > exp.price
-            ? formatPrice(exp.originalPrice, exp.priceCurrency)
-            : undefined,
-        rating: exp.rating ?? undefined,
-        reviewCount: exp.reviewCount ?? undefined,
-        durationLabel: formatDuration(exp.durationMinutes),
-        provider: exp.provider ?? undefined,
-        distanceKm,
-      };
-    });
-
-    if (hasPosition) {
-      return [...items].sort((a, b) => {
-        if (a.distanceKm == null && b.distanceKm == null) return 0;
-        if (a.distanceKm == null) return 1;
-        if (b.distanceKm == null) return -1;
-        if (Math.abs(a.distanceKm - b.distanceKm) < DISTANCE_EPSILON) {
-          return 0;
-        }
-        return a.distanceKm - b.distanceKm;
-      });
-    }
-
-    return items;
-  }, [experiences, hasPosition, position, recommendationExperiences]);
 
   const placeCards = useMemo(() => {
     const list =
@@ -442,11 +336,6 @@ export const HomeOverview = () => {
   const otherMatches =
     userMatches.length > 1 ? userMatches.slice(1, MATCH_LIMIT) : [];
 
-  const isRecoLoading = hasPosition
-    ? catalogLoading && experiences.length === 0
-    : loadingRecommendations &&
-      experiences.length === 0 &&
-      recommendationExperiences.length === 0;
   const isPlacesLoading = hasPosition
     ? catalogLoading && places.length === 0
     : catalogLoading && places.length === 0 && recommendationPlaces.length === 0;
@@ -497,47 +386,6 @@ export const HomeOverview = () => {
             <QuickActionTile key={action.title} {...action} />
           ))}
         </div>
-      </section>
-
-      <section className="space-y-4">
-        <ForYouSectionHeader
-          title="Esperienze consigliate"
-          subtitle="Selezionate per te in base al profilo e alle preferenze."
-          actionLabel="Vedi tutte"
-          actionHref="/experiences"
-        />
-
-        {isRecoLoading ? (
-          <Card className="flex items-center gap-3 p-4">
-            <Loader size="sm" />
-            <p className="text-sm text-muted">Caricamento esperienze...</p>
-          </Card>
-        ) : matchesError ? (
-          <ErrorState
-            title="Impossibile caricare le esperienze"
-            description={matchesError.message}
-          />
-        ) : experienceCards.length === 0 ? (
-          <EmptyState
-            title="Nessuna esperienza"
-            description="Aggiungi interessi o completa i test per suggerimenti migliori."
-          />
-        ) : (
-          <RecommendationRow
-            title="Per te"
-            subtitle="Attivita da provare subito."
-            actionLabel="Apri mappa"
-            actionHref="/map"
-          >
-            {experienceCards.map((item, index) => (
-              <ExperienceListItem
-                key={`${item.title}-${index}`}
-                className="min-w-[260px]"
-                {...item}
-              />
-            ))}
-          </RecommendationRow>
-        )}
       </section>
 
       <section className="space-y-4">

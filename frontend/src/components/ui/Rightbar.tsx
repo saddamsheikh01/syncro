@@ -43,7 +43,7 @@ export const Rightbar = ({
       {/* Recent chats */}
       <RecentChatsCard />
 
-      {/* Nearby places/experiences */}
+      {/* Nearby places */}
       <NearbyHighlight />
 
       {/* Profile stats */}

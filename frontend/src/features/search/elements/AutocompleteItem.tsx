@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 import { Badge } from "@/components/elements/Badge";
 import { cx } from "@/lib/classNames";
 
-export type AutocompleteType = "USER" | "PLACE" | "EXPERIENCE";
+export type AutocompleteType = "USER" | "PLACE";
 
 export interface AutocompleteItemProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
@@ -13,7 +13,6 @@ export interface AutocompleteItemProps extends HTMLAttributes<HTMLDivElement> {
 const getTypeLabel = (type?: AutocompleteType) => {
   if (type === "USER") return "Utente";
   if (type === "PLACE") return "Luogo";
-  if (type === "EXPERIENCE") return "Esperienza";
   return undefined;
 };
 
