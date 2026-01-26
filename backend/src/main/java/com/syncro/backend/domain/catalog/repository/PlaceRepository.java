@@ -1,6 +1,8 @@
 package com.syncro.backend.domain.catalog.repository;
 
+import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Place;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +19,7 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
             SELECT p.*
             FROM places p
             WHERE (:categoryId IS NULL OR p.category_id = :categoryId)
+              AND (:source IS NULL OR p.source = :source)
               AND (
                   :q IS NULL
                   OR p.name ILIKE CONCAT('%', :q, '%')
@@ -70,6 +73,7 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
             SELECT COUNT(*)
             FROM places p
             WHERE (:categoryId IS NULL OR p.category_id = :categoryId)
+              AND (:source IS NULL OR p.source = :source)
               AND (
                   :q IS NULL
                   OR p.name ILIKE CONCAT('%', :q, '%')
@@ -111,6 +115,7 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,
         @Param("q") String q,
+        @Param("source") String source,
         Pageable pageable
     );
 
@@ -128,4 +133,32 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
     long countByGooglePlaceIdIsNotNull();
 
     long countByIsActiveTrue();
+
+    /**
+     * Conta i luoghi Google sincronizzati nell'area dopo una certa data.
+     */
+    @Query(
+        value = """
+            SELECT COUNT(*)
+            FROM places p
+            WHERE p.source = 'GOOGLE'
+              AND p.last_synced_at >= :since
+              AND p.latitude IS NOT NULL
+              AND p.longitude IS NOT NULL
+              AND (
+                  6371 * acos(least(1, greatest(-1,
+                      cos(radians(:lat)) * cos(radians(p.latitude))
+                      * cos(radians(p.longitude) - radians(:lng))
+                      + sin(radians(:lat)) * sin(radians(p.latitude))
+                  )))
+              ) <= :radiusKm
+            """,
+        nativeQuery = true
+    )
+    long countGooglePlacesInAreaSyncedAfter(
+        @Param("lat") double lat,
+        @Param("lng") double lng,
+        @Param("radiusKm") double radiusKm,
+        @Param("since") Instant since
+    );
 }

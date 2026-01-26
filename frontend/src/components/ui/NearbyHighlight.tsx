@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCatalog, usePosition } from "@/hooks";
+import { StarRating } from "@/components/elements/StarRating";
 import { calculateDistanceKm } from "@/lib/geo";
 import { cx } from "@/lib/classNames";
 
@@ -28,21 +29,13 @@ const formatDistance = (km: number) => {
 
 export const NearbyHighlight = () => {
   const { position, hasPosition } = usePosition();
-  const { experiences, places, loading, actions } = useCatalog();
+  const { places, loading, actions } = useCatalog();
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (fetchedRef.current || !hasPosition) return;
     if (!position?.latitude || !position?.longitude) return;
     fetchedRef.current = true;
-
-    actions
-      .fetchExperiences({
-        size: 1,
-        lat: position.latitude,
-        lng: position.longitude,
-      })
-      .catch(() => undefined);
 
     actions
       .fetchPlaces({
@@ -55,28 +48,19 @@ export const NearbyHighlight = () => {
 
   if (!hasPosition) return null;
 
-  const experience = experiences[0];
   const place = places[0];
 
-  // Calculate distances and pick closest
-  let item: { type: "experience" | "place"; name: string; location?: string; distance?: number; href: string; imageUrl?: string } | null = null;
-
-  if (experience && position?.latitude && position?.longitude) {
-    const expLat = experience.place?.latitude;
-    const expLng = experience.place?.longitude;
-    const distance = expLat != null && expLng != null
-      ? calculateDistanceKm(position.latitude, position.longitude, expLat, expLng)
-      : undefined;
-
-    item = {
-      type: "experience",
-      name: experience.name,
-      location: experience.locationName ?? experience.place?.name ?? undefined,
-      distance,
-      href: `/experiences/${experience.id}`,
-      imageUrl: experience.imageUrl ?? undefined,
-    };
-  }
+  // Calculate distance and build item (solo luoghi per ora)
+  let item: {
+    type: "place";
+    name: string;
+    location?: string;
+    distance?: number;
+    href: string;
+    imageUrl?: string;
+    rating?: number;
+    reviewCount?: number;
+  } | null = null;
 
   if (place && position?.latitude && position?.longitude) {
     const placeLat = place.latitude;
@@ -85,15 +69,16 @@ export const NearbyHighlight = () => {
       ? calculateDistanceKm(position.latitude, position.longitude, placeLat, placeLng)
       : undefined;
 
-    if (!item || (placeDistance != null && item.distance != null && placeDistance < item.distance)) {
-      item = {
-        type: "place",
-        name: place.name,
-        location: place.description ?? undefined,
-        distance: placeDistance,
-        href: `/places/${place.id}`,
-      };
-    }
+    item = {
+      type: "place",
+      name: place.name,
+      location: place.address ?? place.city ?? undefined,
+      distance: placeDistance,
+      href: `/places/${place.id}`,
+      imageUrl: place.imageUrl ?? undefined,
+      rating: place.googleRating ?? undefined,
+      reviewCount: place.googleReviewCount ?? undefined,
+    };
   }
 
   if (loading && !item) {
@@ -161,6 +146,15 @@ export const NearbyHighlight = () => {
                 </span>
               )}
             </div>
+            {typeof item.rating === "number" && (
+              <div className="mt-1">
+                <StarRating
+                  rating={item.rating}
+                  reviewCount={item.reviewCount}
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
         </div>
       </Link>

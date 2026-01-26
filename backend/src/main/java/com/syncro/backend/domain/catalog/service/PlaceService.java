@@ -6,6 +6,7 @@ import com.syncro.backend.domain.catalog.dto.AffiliationLinkResponse;
 import com.syncro.backend.domain.catalog.dto.CategoryResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceSummaryResponse;
+import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Category;
 import com.syncro.backend.domain.catalog.entity.Place;
 import com.syncro.backend.domain.catalog.entity.PlaceTag;
@@ -16,10 +17,14 @@ import com.syncro.backend.domain.catalog.repository.AffiliationLinkRepository;
 import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceTagRepository;
+import com.syncro.backend.domain.external.googlemaps.GoogleMapsConfig;
+import com.syncro.backend.domain.external.googlemaps.GoogleMapsSyncService;
 import com.syncro.backend.domain.tags.dto.TagResponse;
 import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.mapper.TagMapper;
 import com.syncro.backend.domain.tags.repository.TagRepository;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +32,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -35,7 +42,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlaceService {
 
+    private static final Logger log = LoggerFactory.getLogger(PlaceService.class);
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+    // Configurazione auto-sync Google Maps
+    private static final Duration SYNC_CACHE_TTL = Duration.ofHours(24);
+    private static final double DEFAULT_SYNC_RADIUS_KM = 5.0;
+    private static final int DEFAULT_SYNC_RADIUS_METERS = 5000;
+    private static final int DEFAULT_SYNC_MAX_RESULTS = 20;
+    private static final String DEFAULT_SYNC_TYPE = "point_of_interest";
 
     private final PlaceRepository placeRepository;
     private final CategoryRepository categoryRepository;
@@ -46,6 +61,8 @@ public class PlaceService {
     private final CategoryMapper categoryMapper;
     private final TagMapper tagMapper;
     private final AffiliationLinkMapper affiliationLinkMapper;
+    private final GoogleMapsSyncService googleMapsSyncService;
+    private final GoogleMapsConfig googleMapsConfig;
 
     public PlaceService(
         PlaceRepository placeRepository,
@@ -56,7 +73,9 @@ public class PlaceService {
         PlaceMapper placeMapper,
         CategoryMapper categoryMapper,
         TagMapper tagMapper,
-        AffiliationLinkMapper affiliationLinkMapper
+        AffiliationLinkMapper affiliationLinkMapper,
+        GoogleMapsSyncService googleMapsSyncService,
+        GoogleMapsConfig googleMapsConfig
     ) {
         this.placeRepository = placeRepository;
         this.categoryRepository = categoryRepository;
@@ -67,9 +86,11 @@ public class PlaceService {
         this.categoryMapper = categoryMapper;
         this.tagMapper = tagMapper;
         this.affiliationLinkMapper = affiliationLinkMapper;
+        this.googleMapsSyncService = googleMapsSyncService;
+        this.googleMapsConfig = googleMapsConfig;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<PlaceSummaryResponse> getPlaces(
         UUID categoryId,
         List<UUID> tagIds,
@@ -77,13 +98,21 @@ public class PlaceService {
         Double longitude,
         Double radiusKm,
         String query,
+        CatalogSource source,
         int page,
         int size
     ) {
         validateCoordinates(latitude, longitude, radiusKm);
+
+        // Auto-sync da Google Maps se richiesto source=GOOGLE e coordinate presenti
+        if (source == CatalogSource.GOOGLE && latitude != null && longitude != null) {
+            autoSyncFromGoogleMapsIfNeeded(latitude, longitude, radiusKm);
+        }
+
         String normalizedQuery = normalizeOptional(query);
         boolean tagFilter = tagIds != null && !tagIds.isEmpty();
         List<UUID> normalizedTags = normalizeTagIds(tagIds, tagFilter);
+        String sourceValue = source != null ? source.name() : null;
         PageRequest pageable = PageRequest.of(page, size);
         Page<Place> places = placeRepository.searchPlaces(
             categoryId,
@@ -93,6 +122,7 @@ public class PlaceService {
             longitude,
             radiusKm,
             normalizedQuery,
+            sourceValue,
             pageable
         );
         Map<UUID, CategoryResponse> categories = loadCategories(places.getContent());
@@ -100,6 +130,50 @@ public class PlaceService {
             place,
             mapCategory(categories, place.getCategory())
         ));
+    }
+
+    /**
+     * Sincronizza automaticamente i luoghi da Google Maps se:
+     * - La API key è configurata
+     * - Non ci sono luoghi Google nell'area sincronizzati di recente
+     */
+    private void autoSyncFromGoogleMapsIfNeeded(Double latitude, Double longitude, Double radiusKm) {
+        if (!googleMapsConfig.isConfigured()) {
+            log.debug("Auto-sync Google Maps saltato: API key non configurata");
+            return;
+        }
+
+        double searchRadiusKm = radiusKm != null ? radiusKm : DEFAULT_SYNC_RADIUS_KM;
+        Instant syncThreshold = Instant.now().minus(SYNC_CACHE_TTL);
+
+        long freshPlacesCount = placeRepository.countGooglePlacesInAreaSyncedAfter(
+            latitude, longitude, searchRadiusKm, syncThreshold
+        );
+
+        if (freshPlacesCount > 0) {
+            log.debug("Auto-sync Google Maps saltato: {} luoghi freschi nell'area", freshPlacesCount);
+            return;
+        }
+
+        log.info("Auto-sync Google Maps: lat={}, lng={}, radiusKm={}", latitude, longitude, searchRadiusKm);
+
+        int radiusMeters = radiusKm != null
+            ? (int) (radiusKm * 1000)
+            : DEFAULT_SYNC_RADIUS_METERS;
+
+        try {
+            GoogleMapsSyncService.SyncResult result = googleMapsSyncService.syncNearbyPlaces(
+                latitude,
+                longitude,
+                radiusMeters,
+                DEFAULT_SYNC_TYPE,
+                DEFAULT_SYNC_MAX_RESULTS
+            );
+            log.info("Auto-sync completato: creati={}, aggiornati={}, errori={}",
+                result.created(), result.updated(), result.errors());
+        } catch (Exception e) {
+            log.error("Errore durante auto-sync Google Maps: {}", e.getMessage(), e);
+        }
     }
 
     @Transactional(readOnly = true)

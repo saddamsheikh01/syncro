@@ -14,6 +14,8 @@ export type CategoryListParams = {
   size?: number;
 };
 
+export type CatalogSource = "MANUAL" | "API" | "GOOGLE" | "GETYOURGUIDE" | "VIATOR" | "MUSEMENT" | "CIVITATIS" | "TIQETS";
+
 export type CatalogSearchParams = {
   categoryId?: Uuid;
   tagIds?: Uuid[];
@@ -21,6 +23,7 @@ export type CatalogSearchParams = {
   lng?: number;
   radiusKm?: number;
   q?: string;
+  source?: CatalogSource;
   page?: number;
   size?: number;
 };

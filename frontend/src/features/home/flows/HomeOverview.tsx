@@ -199,7 +199,7 @@ export const HomeOverview = () => {
     catalogActions
       .fetchExperiences({ size: RECO_PAGE_SIZE })
       .catch(() => undefined);
-    catalogActions.fetchPlaces({ size: RECO_PAGE_SIZE }).catch(() => undefined);
+    catalogActions.fetchPlaces({ size: RECO_PAGE_SIZE, source: "GOOGLE" }).catch(() => undefined);
 
     zyraActions.fetchSuggestions({ size: 10 }).catch(() => undefined);
     analyticsActions
@@ -240,6 +240,7 @@ export const HomeOverview = () => {
         size: RECO_PAGE_SIZE,
         lat: position.latitude,
         lng: position.longitude,
+        source: "GOOGLE",
       })
       .catch(() => undefined);
   }, [catalogActions, hasPosition, position?.latitude, position?.longitude]);
@@ -411,9 +412,13 @@ export const HomeOverview = () => {
       return {
         title: place.name,
         subtitle: place.description ?? undefined,
+        address: place.address ?? undefined,
         category: place.category?.name ?? undefined,
         metaItems: place.source ? [place.source] : [],
         distanceKm,
+        imageUrl: place.imageUrl ?? undefined,
+        rating: place.googleRating ?? undefined,
+        reviewCount: place.googleReviewCount ?? undefined,
         href: `/places/${place.id}`,
       };
     });

@@ -81,10 +81,10 @@ export const PlacesOverview = () => {
         let distanceKm: number | undefined;
         if (
           hasPosition &&
-          position?.latitude &&
-          position?.longitude &&
-          place.latitude &&
-          place.longitude
+          position?.latitude != null &&
+          position?.longitude != null &&
+          place.latitude != null &&
+          place.longitude != null
         ) {
           distanceKm = calculateDistanceKm(
             position.latitude,
@@ -96,9 +96,14 @@ export const PlacesOverview = () => {
         return {
           title: place.name,
           subtitle: place.description ?? undefined,
+          address: place.address ?? undefined,
           category: place.category?.name ?? undefined,
+          metaItems: place.source ? [place.source] : [],
           href: `/places/${place.id}`,
           distanceKm,
+          imageUrl: place.imageUrl ?? undefined,
+          rating: place.googleRating ?? undefined,
+          reviewCount: place.googleReviewCount ?? undefined,
         };
       }),
     [places, hasPosition, position]
