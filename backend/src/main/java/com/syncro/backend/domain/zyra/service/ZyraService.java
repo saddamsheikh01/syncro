@@ -27,6 +27,7 @@ import com.syncro.backend.domain.tests.entity.UserPsyProfile;
 import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.zyra.client.ZyraChatMessage;
 import com.syncro.backend.domain.zyra.client.ZyraClient;
+import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
 import com.syncro.backend.domain.zyra.dto.ZyraChatResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
@@ -70,6 +71,7 @@ public class ZyraService {
     private final PlaceRepository placeRepository;
     private final PlaceTagRepository placeTagRepository;
     private final TagRepository tagRepository;
+    private final ZyraRecapCache recapCache;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ZyraChatSessionRepository sessionRepository;
@@ -89,6 +91,7 @@ public class ZyraService {
         PlaceRepository placeRepository,
         PlaceTagRepository placeTagRepository,
         TagRepository tagRepository,
+        ZyraRecapCache recapCache,
         ChatParticipantRepository chatParticipantRepository,
         ChatMessageRepository chatMessageRepository,
         ZyraChatSessionRepository sessionRepository,
@@ -106,6 +109,7 @@ public class ZyraService {
         this.placeRepository = placeRepository;
         this.placeTagRepository = placeTagRepository;
         this.tagRepository = tagRepository;
+        this.recapCache = recapCache;
         this.chatParticipantRepository = chatParticipantRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.sessionRepository = sessionRepository;
@@ -251,8 +255,14 @@ public class ZyraService {
     @Transactional(readOnly = true)
     public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal) {
         User user = getUser(principal);
-        String recap = generateProfileRecap(user);
-        return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
+        return recapCache.getProfileRecap(user.getId())
+            .map(entry -> new ZyraProfileRecapResponse(entry.recap(), entry.generatedAt()))
+            .orElseGet(() -> {
+                String recap = generateProfileRecap(user);
+                java.time.Instant generatedAt = java.time.Instant.now();
+                recapCache.putProfileRecap(user.getId(), recap, generatedAt);
+                return new ZyraProfileRecapResponse(recap, generatedAt);
+            });
     }
 
     @Transactional(readOnly = true)
@@ -264,8 +274,14 @@ public class ZyraService {
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         ensureProfilePublic(target.getId());
-        String recap = generateProfileRecap(target);
-        return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
+        return recapCache.getProfileRecap(target.getId())
+            .map(entry -> new ZyraProfileRecapResponse(entry.recap(), entry.generatedAt()))
+            .orElseGet(() -> {
+                String recap = generateProfileRecap(target);
+                java.time.Instant generatedAt = java.time.Instant.now();
+                recapCache.putProfileRecap(target.getId(), recap, generatedAt);
+                return new ZyraProfileRecapResponse(recap, generatedAt);
+            });
     }
 
     @Transactional(readOnly = true)
@@ -276,8 +292,14 @@ public class ZyraService {
         }
         Place place = placeRepository.findById(placeId)
             .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
-        String recap = generatePlaceRecap(user, place);
-        return new ZyraPlaceRecapResponse(recap, java.time.Instant.now());
+        return recapCache.getPlaceRecap(user.getId(), placeId)
+            .map(entry -> new ZyraPlaceRecapResponse(entry.recap(), entry.generatedAt()))
+            .orElseGet(() -> {
+                String recap = generatePlaceRecap(user, place);
+                java.time.Instant generatedAt = java.time.Instant.now();
+                recapCache.putPlaceRecap(user.getId(), placeId, recap, generatedAt);
+                return new ZyraPlaceRecapResponse(recap, generatedAt);
+            });
     }
 
     private String generateProfileRecap(User user) {
@@ -442,18 +464,24 @@ public class ZyraService {
     @Transactional(readOnly = true)
     public ZyraChatRecapResponse getChatRecap(UserPrincipal principal) {
         User user = getUser(principal);
+        return recapCache.getChatRecap(user.getId())
+            .orElseGet(() -> buildChatRecap(user));
+    }
 
+    private ZyraChatRecapResponse buildChatRecap(User user) {
         // Get user's recent conversations (last 5)
         PageRequest pageable = PageRequest.of(0, 5, Sort.by(Sort.Order.desc("createdAt")));
         List<ChatParticipant> participants = chatParticipantRepository.findByUserId(user.getId(), pageable).getContent();
 
         if (participants.isEmpty()) {
-            return new ZyraChatRecapResponse(
+            ZyraChatRecapResponse response = new ZyraChatRecapResponse(
                 "Non hai ancora conversazioni. Inizia a chattare con qualcuno per vedere un riepilogo qui!",
                 0,
                 List.of(),
                 java.time.Instant.now()
             );
+            recapCache.putChatRecap(user.getId(), response);
+            return response;
         }
 
         List<UUID> conversationIds = participants.stream()
@@ -502,12 +530,14 @@ public class ZyraService {
 
         String recap = generateChatRecap(conversationData.toString(), conversationIds.size());
 
-        return new ZyraChatRecapResponse(
+        ZyraChatRecapResponse response = new ZyraChatRecapResponse(
             recap,
             conversationIds.size(),
             recentContacts,
             java.time.Instant.now()
         );
+        recapCache.putChatRecap(user.getId(), response);
+        return response;
     }
 
     private String generateChatRecap(String conversationData, int conversationCount) {

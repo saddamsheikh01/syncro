@@ -39,3 +39,7 @@ app:
     model: ${ZYRA_MODEL:gpt5}
     api-key: ${OPENAI_API_KEY}
     max-history: ${ZYRA_MAX_HISTORY:10}
+    profile-recap-cache-ttl-minutes: ${ZYRA_PROFILE_RECAP_TTL_MINUTES:720}
+    place-recap-cache-ttl-minutes: ${ZYRA_PLACE_RECAP_TTL_MINUTES:720}
+    chat-recap-cache-ttl-minutes: ${ZYRA_CHAT_RECAP_TTL_MINUTES:15}
+    recap-cache-max-entries: ${ZYRA_RECAP_CACHE_MAX_ENTRIES:2000}
