@@ -5,6 +5,7 @@ import type {
   ZyraChatResponse,
   ZyraMessageRequest,
   ZyraMessageResponse,
+  ZyraPlaceRecapResponse,
   ZyraProfileRecapResponse,
   ZyraSessionResponse,
   ZyraSuggestionRequest,
@@ -98,6 +99,16 @@ export const getProfileRecapForUser = async (
 ): Promise<ZyraProfileRecapResponse> => {
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     `/zyra/profile-recap/${userId}`,
+    { timeout: CHAT_TIMEOUT_MS }
+  );
+  return data;
+};
+
+export const getPlaceRecap = async (
+  placeId: Uuid
+): Promise<ZyraPlaceRecapResponse> => {
+  const { data } = await apiClient.get<ZyraPlaceRecapResponse>(
+    `/zyra/place-recap/${placeId}`,
     { timeout: CHAT_TIMEOUT_MS }
   );
   return data;

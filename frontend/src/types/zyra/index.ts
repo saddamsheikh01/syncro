@@ -49,6 +49,11 @@ export type ZyraProfileRecapResponse = {
   generatedAt: IsoDateTime;
 };
 
+export type ZyraPlaceRecapResponse = {
+  recap: string;
+  generatedAt: IsoDateTime;
+};
+
 export type ZyraChatRecapResponse = {
   recap: string;
   conversationCount: number;

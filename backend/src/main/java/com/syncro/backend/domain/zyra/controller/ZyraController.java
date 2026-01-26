@@ -3,6 +3,7 @@ package com.syncro.backend.domain.zyra.controller;
 import com.syncro.backend.domain.zyra.dto.ZyraChatResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
+import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
@@ -135,6 +136,15 @@ public class ZyraController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(zyraService.getProfileRecapForUser(principal, userId));
+    }
+
+    @GetMapping("/place-recap/{placeId}")
+    @Operation(summary = "Genera recap luogo con Zyra")
+    public ResponseEntity<ZyraPlaceRecapResponse> getPlaceRecap(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID placeId
+    ) {
+        return ResponseEntity.ok(zyraService.getPlaceRecap(principal, placeId));
     }
 
     @GetMapping("/chat-recap")

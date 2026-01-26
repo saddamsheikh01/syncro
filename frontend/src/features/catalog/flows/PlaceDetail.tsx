@@ -13,6 +13,7 @@ import { PriceLevel } from "@/components/elements/PriceLevel";
 import { OpeningHours } from "@/components/elements/OpeningHours";
 import { PhotoGallery } from "@/components/elements/PhotoGallery";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
+import { ZyraPlaceRecap } from "@/features/zyra/cards/ZyraPlaceRecap";
 import { useCatalog, useFavorites, usePosition } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 import { calculateDistanceKm, formatDistanceKm } from "@/lib/geo";
@@ -299,6 +300,8 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
             ))}
           </div>
         )}
+
+        <ZyraPlaceRecap placeId={placeDetail.id} placeName={placeDetail.name} />
 
         {/* Orari di apertura */}
         {placeDetail.openingHours && (

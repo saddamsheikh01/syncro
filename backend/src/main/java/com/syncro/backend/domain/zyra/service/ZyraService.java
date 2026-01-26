@@ -8,6 +8,10 @@ import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.ZyraProperties;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.catalog.entity.Place;
+import com.syncro.backend.domain.catalog.entity.PlaceTag;
+import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.catalog.repository.PlaceTagRepository;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
@@ -16,7 +20,9 @@ import com.syncro.backend.domain.social.entity.ChatParticipant;
 import com.syncro.backend.domain.social.repository.ChatMessageRepository;
 import com.syncro.backend.domain.social.repository.ChatParticipantRepository;
 import com.syncro.backend.domain.tags.entity.UserInterest;
+import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
+import com.syncro.backend.domain.tags.repository.TagRepository;
 import com.syncro.backend.domain.tests.entity.UserPsyProfile;
 import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.zyra.client.ZyraChatMessage;
@@ -24,6 +30,7 @@ import com.syncro.backend.domain.zyra.client.ZyraClient;
 import com.syncro.backend.domain.zyra.dto.ZyraChatResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
+import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
@@ -60,6 +67,9 @@ public class ZyraService {
     private final UserProfileRepository userProfileRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserPsyProfileRepository userPsyProfileRepository;
+    private final PlaceRepository placeRepository;
+    private final PlaceTagRepository placeTagRepository;
+    private final TagRepository tagRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ZyraChatSessionRepository sessionRepository;
@@ -76,6 +86,9 @@ public class ZyraService {
         UserProfileRepository userProfileRepository,
         UserInterestRepository userInterestRepository,
         UserPsyProfileRepository userPsyProfileRepository,
+        PlaceRepository placeRepository,
+        PlaceTagRepository placeTagRepository,
+        TagRepository tagRepository,
         ChatParticipantRepository chatParticipantRepository,
         ChatMessageRepository chatMessageRepository,
         ZyraChatSessionRepository sessionRepository,
@@ -90,6 +103,9 @@ public class ZyraService {
         this.userProfileRepository = userProfileRepository;
         this.userInterestRepository = userInterestRepository;
         this.userPsyProfileRepository = userPsyProfileRepository;
+        this.placeRepository = placeRepository;
+        this.placeTagRepository = placeTagRepository;
+        this.tagRepository = tagRepository;
         this.chatParticipantRepository = chatParticipantRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.sessionRepository = sessionRepository;
@@ -252,6 +268,18 @@ public class ZyraService {
         return new ZyraProfileRecapResponse(recap, java.time.Instant.now());
     }
 
+    @Transactional(readOnly = true)
+    public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId) {
+        User user = getUser(principal);
+        if (placeId == null) {
+            throw new NotFoundException("Luogo non valido");
+        }
+        Place place = placeRepository.findById(placeId)
+            .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
+        String recap = generatePlaceRecap(user, place);
+        return new ZyraPlaceRecapResponse(recap, java.time.Instant.now());
+    }
+
     private String generateProfileRecap(User user) {
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
@@ -310,6 +338,104 @@ public class ZyraService {
             return recap != null ? recap.trim() : "Completa il tuo profilo per un riepilogo personalizzato.";
         } catch (Exception ex) {
             return "Completa il tuo profilo per un riepilogo personalizzato.";
+        }
+    }
+
+    private String generatePlaceRecap(User user, Place place) {
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
+        List<String> placeTags = loadPlaceTags(place.getId());
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Genera un breve riepilogo (2-3 frasi) che spiega quanto questo luogo e adatto all'utente. ");
+        prompt.append("Confronta interessi e profilo con le caratteristiche del luogo. ");
+        prompt.append("Se mancano dati, rimani generico e non inventare. ");
+        prompt.append("Tono amichevole e diretto. Nessuna lista.\n");
+        prompt.append("Dati utente:\n");
+
+        if (profile != null) {
+            if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
+                prompt.append("- Nome: ").append(profile.getFullName()).append("\n");
+            }
+            if (profile.getCity() != null && !profile.getCity().isBlank()) {
+                prompt.append("- Citta: ").append(profile.getCity()).append("\n");
+            }
+            if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
+                prompt.append("- Paese: ").append(profile.getCountry()).append("\n");
+            }
+            if (profile.getBirthDate() != null) {
+                prompt.append("- Eta: ").append(formatAge(profile.getBirthDate())).append(" anni\n");
+            }
+            String jobLabel = buildJobLabel(profile);
+            if (jobLabel != null) {
+                prompt.append("- Lavoro: ").append(jobLabel).append("\n");
+            }
+            if (profile.getBio() != null && !profile.getBio().isBlank()) {
+                prompt.append("- Bio: ").append(profile.getBio()).append("\n");
+            }
+        }
+
+        if (!interests.isEmpty()) {
+            String interestNames = interests.stream()
+                .map(interest -> interest.getTag() != null ? interest.getTag().getName() : null)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
+            if (!interestNames.isBlank()) {
+                prompt.append("- Interessi: ").append(interestNames).append("\n");
+            }
+        }
+
+        prompt.append("Dati luogo:\n");
+        prompt.append("- Nome: ").append(place.getName()).append("\n");
+        if (place.getCategory() != null && place.getCategory().getName() != null) {
+            prompt.append("- Categoria: ").append(place.getCategory().getName()).append("\n");
+        }
+        if (place.getDescription() != null && !place.getDescription().isBlank()) {
+            prompt.append("- Descrizione: ").append(place.getDescription()).append("\n");
+        }
+        if (place.getCity() != null && !place.getCity().isBlank()) {
+            prompt.append("- Citta: ").append(place.getCity()).append("\n");
+        }
+        if (place.getAddress() != null && !place.getAddress().isBlank()) {
+            prompt.append("- Indirizzo: ").append(place.getAddress()).append("\n");
+        }
+        if (!placeTags.isEmpty()) {
+            prompt.append("- Tag: ").append(String.join(", ", placeTags)).append("\n");
+        }
+        if (place.getGoogleTypes() != null && !place.getGoogleTypes().isEmpty()) {
+            String types = place.getGoogleTypes().stream()
+                .filter(type -> type != null && !type.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
+            if (!types.isBlank()) {
+                prompt.append("- Tipi Google: ").append(types).append("\n");
+            }
+        }
+        if (place.getGoogleRating() != null) {
+            prompt.append("- Rating Google: ").append(place.getGoogleRating()).append("\n");
+        }
+        if (place.getGoogleReviewCount() != null && place.getGoogleReviewCount() > 0) {
+            prompt.append("- Recensioni: ").append(place.getGoogleReviewCount()).append("\n");
+        }
+        if (place.getPriceLevel() != null) {
+            prompt.append("- Prezzo: ").append(formatPriceLevel(place.getPriceLevel())).append("\n");
+        }
+        Boolean openNow = extractOpenNow(place.getOpeningHours());
+        if (openNow != null) {
+            prompt.append("- Stato attuale: ").append(openNow ? "Aperto ora" : "Chiuso ora").append("\n");
+        }
+
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi brevi e utili."),
+            new ZyraChatMessage("user", prompt.toString())
+        );
+
+        try {
+            String recap = zyraClient.chat(messages);
+            return recap != null ? recap.trim() : "Luogo interessante: aggiorna il profilo per un match piu preciso.";
+        } catch (Exception ex) {
+            return "Luogo interessante: aggiorna il profilo per un match piu preciso.";
         }
     }
 
@@ -511,6 +637,55 @@ public class ZyraService {
         }
         String normalized = value.trim();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private List<String> loadPlaceTags(UUID placeId) {
+        if (placeId == null) {
+            return Collections.emptyList();
+        }
+        List<PlaceTag> links = placeTagRepository.findAllByPlaceId(placeId);
+        if (links.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UUID> tagIds = links.stream()
+            .map(PlaceTag::getTagId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+        if (tagIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Tag> tags = tagRepository.findAllById(tagIds);
+        return tags.stream()
+            .map(Tag::getName)
+            .filter(name -> name != null && !name.isBlank())
+            .distinct()
+            .collect(Collectors.toList());
+    }
+
+    private String formatPriceLevel(Integer level) {
+        if (level == null) {
+            return null;
+        }
+        return switch (level) {
+            case 0 -> "Gratis";
+            case 1 -> "Economico";
+            case 2 -> "Medio";
+            case 3 -> "Costoso";
+            case 4 -> "Molto costoso";
+            default -> "Non disponibile";
+        };
+    }
+
+    private Boolean extractOpenNow(Map<String, Object> openingHours) {
+        if (openingHours == null || openingHours.isEmpty()) {
+            return null;
+        }
+        Object openNow = openingHours.get("openNow");
+        if (openNow instanceof Boolean value) {
+            return value;
+        }
+        return null;
     }
 
     private String buildJobLabel(UserProfile profile) {
