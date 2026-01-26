@@ -8,6 +8,8 @@ public record UserPublicProfileResponse(
     Integer age,
     String city,
     String country,
+    String jobTitle,
+    String companyName,
     String bio,
     String avatarUrl,
     String visibility

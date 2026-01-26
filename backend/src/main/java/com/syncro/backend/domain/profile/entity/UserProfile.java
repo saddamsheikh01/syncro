@@ -42,6 +42,12 @@ public class UserProfile {
     @Column(name = "country")
     private String country;
 
+    @Column(name = "job_title", length = 120)
+    private String jobTitle;
+
+    @Column(name = "company_name", length = 160)
+    private String companyName;
+
     @Column(name = "bio", length = 500)
     private String bio;
 
@@ -118,6 +124,22 @@ public class UserProfile {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public String getJobTitle() {
+        return jobTitle;
+    }
+
+    public void setJobTitle(String jobTitle) {
+        this.jobTitle = jobTitle;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
     }
 
     public String getBio() {

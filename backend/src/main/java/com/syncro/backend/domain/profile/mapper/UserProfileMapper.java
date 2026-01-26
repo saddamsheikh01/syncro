@@ -22,6 +22,8 @@ public class UserProfileMapper {
             age,
             profile.getCity(),
             profile.getCountry(),
+            profile.getJobTitle(),
+            profile.getCompanyName(),
             profile.getBio(),
             profile.getVisibility().name(),
             profile.getCreatedAt(),
@@ -49,7 +51,18 @@ public class UserProfileMapper {
 
     public UserPublicProfileResponse toPublicProfile(UUID userId, UserProfile profile, String avatarUrl) {
         if (profile == null) {
-            return new UserPublicProfileResponse(userId, null, null, null, null, null, avatarUrl, null);
+            return new UserPublicProfileResponse(
+                userId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                avatarUrl,
+                null
+            );
         }
         Integer age = calculateAge(profile.getBirthDate());
         return new UserPublicProfileResponse(
@@ -58,6 +71,8 @@ public class UserProfileMapper {
             age,
             profile.getCity(),
             profile.getCountry(),
+            profile.getJobTitle(),
+            profile.getCompanyName(),
             profile.getBio(),
             avatarUrl,
             profile.getVisibility() != null ? profile.getVisibility().name() : null

@@ -115,6 +115,8 @@ export const ProfileSettings = ({
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [bio, setBio] = useState("");
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -166,6 +168,8 @@ export const ProfileSettings = ({
     setBirthDate(profile.birthDate ?? "");
     setCity(profile.city ?? "");
     setCountry(profile.country ?? "");
+    setJobTitle(profile.jobTitle ?? "");
+    setCompanyName(profile.companyName ?? "");
     setBio(profile.bio ?? "");
     setVisibility(profile.visibility ?? "PUBLIC");
     profileInitializedRef.current = true;
@@ -277,6 +281,8 @@ export const ProfileSettings = ({
     const trimmedName = fullName.trim();
     const trimmedCity = city.trim();
     const trimmedCountry = country.trim();
+    const trimmedJobTitle = jobTitle.trim();
+    const trimmedCompanyName = companyName.trim();
     const trimmedBio = bio.trim();
 
     if (!trimmedName) {
@@ -294,6 +300,8 @@ export const ProfileSettings = ({
       birthDate: birthDate || null,
       city: trimmedCity,
       country: trimmedCountry,
+      jobTitle: trimmedJobTitle,
+      companyName: trimmedCompanyName,
       bio: trimmedBio || null,
       visibility,
     };
@@ -304,6 +312,8 @@ export const ProfileSettings = ({
       setFullName(trimmedName);
       setCity(trimmedCity);
       setCountry(trimmedCountry);
+      setJobTitle(trimmedJobTitle);
+      setCompanyName(trimmedCompanyName);
     } catch (saveError) {
       setProfileError(
         resolveErrorMessage(saveError, "Errore durante il salvataggio.")
@@ -450,6 +460,8 @@ export const ProfileSettings = ({
       <ProfileSummaryCard
         name={displayName}
         location={locationLabel || undefined}
+        jobTitle={jobTitle || undefined}
+        companyName={companyName || undefined}
         avatarUrl={avatar?.url}
         tags={summaryTags}
       />
@@ -492,6 +504,20 @@ export const ProfileSettings = ({
               value={country}
               onChange={(event) => setCountry(event.target.value)}
               placeholder="Italia"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Posizione lavorativa"
+              value={jobTitle}
+              onChange={(event) => setJobTitle(event.target.value)}
+              placeholder="Product Designer"
+            />
+            <Input
+              label="Azienda"
+              value={companyName}
+              onChange={(event) => setCompanyName(event.target.value)}
+              placeholder="Syncro"
             />
           </div>
           <div className="space-y-2">

@@ -75,6 +75,12 @@ public class UserProfileService {
         if (request.country() != null) {
             profile.setCountry(normalizeText(request.country()));
         }
+        if (request.jobTitle() != null) {
+            profile.setJobTitle(normalizeOptionalText(request.jobTitle()));
+        }
+        if (request.companyName() != null) {
+            profile.setCompanyName(normalizeOptionalText(request.companyName()));
+        }
         if (request.bio() != null) {
             profile.setBio(normalizeText(request.bio()));
         }
@@ -147,6 +153,11 @@ public class UserProfileService {
 
     private String normalizeText(String value) {
         return value.trim();
+    }
+
+    private String normalizeOptionalText(String value) {
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
     }
 
     private String resolveAvatarUrl(UUID userId) {

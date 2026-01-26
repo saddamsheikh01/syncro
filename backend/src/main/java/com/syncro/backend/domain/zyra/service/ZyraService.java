@@ -279,6 +279,10 @@ public class ZyraService {
             if (profile.getBio() != null && !profile.getBio().isBlank()) {
                 prompt.append("- Bio: ").append(profile.getBio()).append("\n");
             }
+            String jobLabel = buildJobLabel(profile);
+            if (jobLabel != null) {
+                prompt.append("- Lavoro: ").append(jobLabel).append("\n");
+            }
         }
 
         if (!interests.isEmpty()) {
@@ -440,6 +444,10 @@ public class ZyraService {
             builder.append("- citta: ").append(safeValue(profile.getCity())).append("\n");
             builder.append("- paese: ").append(safeValue(profile.getCountry())).append("\n");
             builder.append("- eta: ").append(formatAge(profile.getBirthDate())).append("\n");
+            String jobLabel = buildJobLabel(profile);
+            if (jobLabel != null) {
+                builder.append("- lavoro: ").append(jobLabel).append("\n");
+            }
         }
 
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
@@ -503,6 +511,21 @@ public class ZyraService {
         }
         String normalized = value.trim();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private String buildJobLabel(UserProfile profile) {
+        if (profile == null) {
+            return null;
+        }
+        String title = normalizeOptional(profile.getJobTitle());
+        String company = normalizeOptional(profile.getCompanyName());
+        if (title == null && company == null) {
+            return null;
+        }
+        if (title != null && company != null) {
+            return title + " @ " + company;
+        }
+        return title != null ? title : company;
     }
 
     private String safeValue(String value) {

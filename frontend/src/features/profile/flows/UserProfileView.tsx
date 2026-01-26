@@ -283,6 +283,8 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       <ProfileSummaryCard
         name={displayName}
         location={locationLabel}
+        jobTitle={profile.jobTitle ?? undefined}
+        companyName={profile.companyName ?? undefined}
         bio={profile.bio ?? undefined}
         avatarUrl={profile.avatarUrl ?? undefined}
         matchScore={match?.scoreTotal ?? undefined}

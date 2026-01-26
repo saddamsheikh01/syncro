@@ -7,6 +7,8 @@ export type UserProfileRequest = {
   birthDate?: IsoDate | null;
   city?: string | null;
   country?: string | null;
+  jobTitle?: string | null;
+  companyName?: string | null;
   bio?: string | null;
   visibility?: ProfileVisibility | null;
 };
@@ -19,6 +21,8 @@ export type UserProfileResponse = {
   age: number | null;
   city: string | null;
   country: string | null;
+  jobTitle: string | null;
+  companyName: string | null;
   bio: string | null;
   visibility: ProfileVisibility;
   createdAt: IsoDateTime;
@@ -74,6 +78,8 @@ export type UserPublicProfileResponse = {
   age: number | null;
   city: string | null;
   country: string | null;
+  jobTitle: string | null;
+  companyName: string | null;
   bio: string | null;
   avatarUrl: string | null;
   visibility: ProfileVisibility | null;

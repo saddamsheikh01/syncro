@@ -12,6 +12,8 @@ public record UserProfileResponse(
     Integer age,
     String city,
     String country,
+    String jobTitle,
+    String companyName,
     String bio,
     String visibility,
     Instant createdAt,
