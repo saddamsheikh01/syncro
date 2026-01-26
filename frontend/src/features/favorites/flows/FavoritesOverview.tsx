@@ -8,8 +8,10 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { useFavorites, usePosition } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
-import type { FavoriteItemCardProps } from "../cards/FavoriteItemCard";
-import { FavoriteItemCard } from "../cards/FavoriteItemCard";
+import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
+import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
+import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
+import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
 import type { FavoriteResponse, FavoriteType } from "@/types/favorites";
 
 const PAGE_SIZE = 10;
@@ -57,6 +59,26 @@ const resolveDistance = (
   return undefined;
 };
 
+const formatDuration = (minutes: number | null): string | undefined => {
+  if (!minutes) return undefined;
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+};
+
+const formatPrice = (
+  price: number | null,
+  currency: string | null
+): string | undefined => {
+  if (price == null) return undefined;
+  const curr = currency ?? "EUR";
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: curr,
+  }).format(price);
+};
+
 export const FavoritesOverview = () => {
   const { items, pageInfo, loading, error, hasMore, actions } = useFavorites();
   const {
@@ -95,34 +117,44 @@ export const FavoritesOverview = () => {
           position?.longitude ?? null
         );
 
-        const title =
-          favorite.type === "PLACE"
-            ? favorite.place?.name ?? "Luogo"
-            : favorite.experience?.name ?? "Esperienza";
+        if (favorite.type === "PLACE") {
+          const place = favorite.place;
+          const cardProps: PlaceListItemProps = {
+            title: place?.name ?? "Luogo",
+            subtitle: place?.description ?? undefined,
+            address: place?.address ?? undefined,
+            category: place?.category?.name ?? undefined,
+            metaItems: place?.source ? [place.source] : [],
+            distanceKm,
+            imageUrl: place?.imageUrl ?? undefined,
+            rating: place?.googleRating ?? undefined,
+            reviewCount: place?.googleReviewCount ?? undefined,
+            href: place ? `/places/${place.id}` : undefined,
+          };
+          return { favorite, kind: "place" as const, cardProps };
+        }
 
-        const subtitle =
-          favorite.type === "PLACE"
-            ? favorite.place?.category?.name ?? undefined
-            : favorite.experience?.place?.name ??
-              favorite.experience?.category?.name ??
-              undefined;
-
-        const href =
-          favorite.type === "PLACE" && favorite.place
-            ? `/places/${favorite.place.id}`
-            : favorite.type === "EXPERIENCE" && favorite.experience
-              ? `/experiences/${favorite.experience.id}`
-              : undefined;
-
-        const cardProps: FavoriteItemCardProps = {
-          title,
-          subtitle,
-          typeLabel: favorite.type,
+        const experience = favorite.experience;
+        const cardProps: ExperienceListItemProps = {
+          title: experience?.name ?? "Esperienza",
+          subtitle: experience?.locationName ?? experience?.place?.name ?? undefined,
+          category: experience?.category?.name ?? undefined,
+          href: experience ? `/experiences/${experience.id}` : undefined,
+          imageUrl: experience?.imageUrl ?? undefined,
+          priceLabel: formatPrice(experience?.price ?? null, experience?.priceCurrency ?? null),
+          originalPriceLabel:
+            experience?.originalPrice &&
+            experience?.price &&
+            experience.originalPrice > experience.price
+              ? formatPrice(experience.originalPrice, experience.priceCurrency ?? null)
+              : undefined,
+          rating: experience?.rating ?? undefined,
+          reviewCount: experience?.reviewCount ?? undefined,
+          durationLabel: formatDuration(experience?.durationMinutes ?? null),
+          provider: experience?.provider ?? undefined,
           distanceKm,
-          href,
         };
-
-        return { favorite, cardProps };
+        return { favorite, kind: "experience" as const, cardProps };
       }),
     [canComputeDistance, items, position?.latitude, position?.longitude]
   );
@@ -256,9 +288,13 @@ export const FavoritesOverview = () => {
       {items.length > 0 && (
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {mappedFavorites.map(({ favorite, cardProps }, index) => (
+            {mappedFavorites.map(({ favorite, kind, cardProps }, index) => (
               <div key={`${favorite.id}-${index}`} className="relative">
-                <FavoriteItemCard {...cardProps} className="h-full" />
+                {kind === "place" ? (
+                  <PlaceListItem {...cardProps} className="h-full" />
+                ) : (
+                  <ExperienceListItem {...cardProps} className="h-full" />
+                )}
                 <div className="absolute right-4 top-4 z-10">
                   <Button
                     size="sm"

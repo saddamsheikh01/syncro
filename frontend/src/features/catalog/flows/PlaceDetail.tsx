@@ -21,6 +21,12 @@ export interface PlaceDetailProps {
   placeId: string;
 }
 
+const formatGoogleType = (value: string) =>
+  value
+    .trim()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
 export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const router = useRouter();
   const { placeDetail, loading, error, actions } = useCatalog();
@@ -28,8 +34,10 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const { position, hasPosition } = usePosition();
   const bootstrappedRef = useRef(false);
   const favoritesBootstrappedRef = useRef(false);
+  const copyTimeoutRef = useRef<number | null>(null);
   const isValidId = isUuid(placeId);
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   const distanceKm = useMemo(() => {
     const currentPosition = position;
@@ -57,6 +65,74 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     () => favorites.some((fav) => fav.place?.id === placeId),
     [favorites, placeId]
   );
+
+  const googleTypeLabel = useMemo(() => {
+    const value = placeDetail?.googleTypes?.[0];
+    return value ? formatGoogleType(value) : null;
+  }, [placeDetail?.googleTypes]);
+
+  const googleMapsUrl = useMemo(() => {
+    if (!placeDetail) return null;
+    const base = "https://www.google.com/maps";
+    if (placeDetail.googlePlaceId) {
+      return `${base}/search/?api=1&query=${encodeURIComponent(placeDetail.name)}&query_place_id=${placeDetail.googlePlaceId}`;
+    }
+    if (placeDetail.latitude != null && placeDetail.longitude != null) {
+      return `${base}?q=${placeDetail.latitude},${placeDetail.longitude}`;
+    }
+    if (placeDetail.address) {
+      return `${base}/search/?api=1&query=${encodeURIComponent(placeDetail.address)}`;
+    }
+    return null;
+  }, [placeDetail]);
+
+  const googleDirectionsUrl = useMemo(() => {
+    if (!placeDetail) return null;
+    const base = "https://www.google.com/maps/dir/?api=1";
+    if (placeDetail.googlePlaceId) {
+      return `${base}&destination=${encodeURIComponent(placeDetail.name)}&destination_place_id=${placeDetail.googlePlaceId}`;
+    }
+    if (placeDetail.latitude != null && placeDetail.longitude != null) {
+      return `${base}&destination=${placeDetail.latitude},${placeDetail.longitude}`;
+    }
+    if (placeDetail.address) {
+      return `${base}&destination=${encodeURIComponent(placeDetail.address)}`;
+    }
+    return null;
+  }, [placeDetail]);
+
+  const handleOpenExternal = useCallback((url: string | null) => {
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  const handleCopy = useCallback(async (value: string, message: string) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopyFeedback(message);
+    } catch {
+      setCopyFeedback("Impossibile copiare");
+    } finally {
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopyFeedback(null);
+      }, 2200);
+    }
+  }, []);
 
   const handleToggleFavorite = useCallback(async () => {
     if (savingFavorite) return;
@@ -90,6 +166,14 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     favoritesBootstrappedRef.current = true;
     favoritesActions.fetchFavorites({ type: "PLACE" }).catch(() => undefined);
   }, [favoritesActions]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isValidId) {
     return (
@@ -137,6 +221,9 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const affiliationLink = placeDetail.affiliationLinks?.[0];
   const hasCoordinates =
     placeDetail.latitude !== null && placeDetail.longitude !== null;
+  const hasAddress = Boolean(placeDetail.address);
+  const showPositionCard = hasCoordinates || hasAddress;
+  const openNow = placeDetail.openingHours?.openNow;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
@@ -157,7 +244,8 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
 
         <div className="space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
+            <div className="space-y-2">
+              <div className="space-y-1">
               <h1 className="text-2xl font-semibold text-foreground">
                 {placeDetail.name}
               </h1>
@@ -165,10 +253,23 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               {placeDetail.address && (
                 <p className="text-sm text-muted">{placeDetail.address}</p>
               )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {placeDetail.category && (
+                  <Badge tone="accent">{placeDetail.category.name}</Badge>
+                )}
+                {openNow !== undefined && (
+                  <Badge tone={openNow ? "success" : "danger"} size="sm">
+                    {openNow ? "Aperto ora" : "Chiuso ora"}
+                  </Badge>
+                )}
+                {googleTypeLabel && (
+                  <Badge tone="neutral" size="sm">
+                    {googleTypeLabel}
+                  </Badge>
+                )}
+              </div>
             </div>
-            {placeDetail.category && (
-              <Badge tone="accent">{placeDetail.category.name}</Badge>
-            )}
           </div>
 
           {/* Rating e prezzo */}
@@ -263,16 +364,19 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
         )}
 
         <div className="flex flex-wrap gap-3 pt-2">
-          {hasCoordinates && (
+          {googleMapsUrl && (
             <Button
-              onClick={() =>
-                window.open(
-                  `https://www.google.com/maps?q=${placeDetail.latitude},${placeDetail.longitude}`,
-                  "_blank"
-                )
-              }
+              onClick={() => handleOpenExternal(googleMapsUrl)}
             >
               Apri in Google Maps
+            </Button>
+          )}
+          {googleDirectionsUrl && (
+            <Button
+              variant="secondary"
+              onClick={() => handleOpenExternal(googleDirectionsUrl)}
+            >
+              Indicazioni
             </Button>
           )}
           <Button
@@ -299,18 +403,53 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
         </div>
       </Card>
 
-      {hasCoordinates && (
+      {showPositionCard && (
         <Card className="space-y-3 p-5">
           <h3 className="text-base font-semibold text-foreground">Posizione</h3>
-          {distanceKm !== null && (
+          {distanceKm !== null && hasCoordinates && (
             <p className="text-sm font-medium text-accent">
               A {formatDistanceKm(distanceKm)} da te
             </p>
           )}
-          <p className="text-sm text-muted">
-            Coordinate: {placeDetail.latitude?.toFixed(6)},{" "}
-            {placeDetail.longitude?.toFixed(6)}
-          </p>
+          {hasAddress && (
+            <p className="text-sm text-muted">{placeDetail.address}</p>
+          )}
+          {hasCoordinates && (
+            <p className="text-sm text-muted">
+              Coordinate: {placeDetail.latitude?.toFixed(6)},{" "}
+              {placeDetail.longitude?.toFixed(6)}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {hasAddress && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  handleCopy(placeDetail.address ?? "", "Indirizzo copiato")
+                }
+              >
+                Copia indirizzo
+              </Button>
+            )}
+            {hasCoordinates && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  handleCopy(
+                    `${placeDetail.latitude?.toFixed(6)}, ${placeDetail.longitude?.toFixed(6)}`,
+                    "Coordinate copiate"
+                  )
+                }
+              >
+                Copia coordinate
+              </Button>
+            )}
+          </div>
+          {copyFeedback && (
+            <p className="text-xs text-success">{copyFeedback}</p>
+          )}
         </Card>
       )}
     </div>
