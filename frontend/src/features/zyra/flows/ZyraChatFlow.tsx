@@ -6,6 +6,7 @@ import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Textarea } from "@/components/elements/Textarea";
+import { Modal } from "@/components/ui/Modal";
 import { ZyraPromptChip } from "@/features/zyra/elements/ZyraPromptChip";
 import { MapZyraMessageBubble } from "@/features/zyra/lists/MapZyraMessageBubble";
 import { ZyraHeader } from "@/features/zyra/sections/ZyraHeader";
@@ -51,6 +52,8 @@ export const ZyraChatFlow = () => {
 
   const [initializing, setInitializing] = useState(true);
   const [composerValue, setComposerValue] = useState("");
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [messagePages, setMessagePages] = useState<
     Record<string, { page: number; hasMore: boolean }>
   >({});
@@ -144,6 +147,25 @@ export const ZyraChatFlow = () => {
 
   const handleSelectSession = (sessionId: string) => {
     actions.setActiveSession(sessionId);
+  };
+
+  const handleDeleteSession = async () => {
+    if (!pendingDeleteId || deletingSessionId) return;
+    setDeletingSessionId(pendingDeleteId);
+    try {
+      await actions.deleteSession(pendingDeleteId);
+      loadedSessions.current.delete(pendingDeleteId);
+      setMessagePages((prev) => {
+        const next = { ...prev };
+        delete next[pendingDeleteId];
+        return next;
+      });
+    } catch {
+      // gestito dallo store
+    } finally {
+      setDeletingSessionId(null);
+      setPendingDeleteId(null);
+    }
   };
 
   const handleNewSession = async () => {
@@ -248,29 +270,60 @@ export const ZyraChatFlow = () => {
                 );
 
                 return (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => handleSelectSession(session.id)}
                     className={cx(
-                      "flex items-center justify-between px-4 py-3 text-left transition",
+                      "flex items-center justify-between gap-3 px-4 py-3 transition",
                       isActive
-                        ? "bg-surface-muted text-foreground"
-                        : "hover:bg-surface-muted"
+                        ? "border-l-2 border-zyra-border bg-zyra-glow/40 text-foreground"
+                        : "border-l-2 border-transparent hover:bg-surface-muted"
                     )}
                   >
-                    <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectSession(session.id)}
+                      className="min-w-0 flex-1 text-left"
+                    >
                       <p className="truncate text-sm font-semibold">
                         {displayName}
                       </p>
-                      <p className="text-xs text-subtle">{createdAtLabel}</p>
+                      <div className="flex items-center gap-2 text-xs text-subtle">
+                        <span>{createdAtLabel}</span>
+                        {isActive ? (
+                          <span className="h-1.5 w-1.5 rounded-full bg-zyra-text" />
+                        ) : null}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setPendingDeleteId(session.id)}
+                        loading={deletingSessionId === session.id}
+                        loadingText="Elimino..."
+                        className="h-8 w-8 p-0"
+                        aria-label="Elimina chat"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4h8v2" />
+                          <path d="M6 6l1 14h10l1-14" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
+                      </Button>
                     </div>
-                    {isActive ? (
-                      <span className="text-[11px] font-semibold uppercase tracking-wide">
-                        Attiva
-                      </span>
-                    ) : null}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -437,6 +490,23 @@ export const ZyraChatFlow = () => {
           ) : null}
         </Card>
       </div>
+
+      <Modal
+        open={pendingDeleteId !== null}
+        title="Eliminare la chat?"
+        description="Questa azione e definitiva. I messaggi della sessione verranno rimossi."
+        onClose={() => setPendingDeleteId(null)}
+        secondaryAction={{
+          label: "Annulla",
+          variant: "secondary",
+          onClick: () => setPendingDeleteId(null),
+        }}
+        primaryAction={{
+          label: "Elimina",
+          variant: "danger",
+          onClick: handleDeleteSession,
+        }}
+      />
     </div>
   );
 };

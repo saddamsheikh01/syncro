@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,6 +68,25 @@ public class ZyraController {
         @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(zyraService.getMessages(principal, sessionId, page, size));
+    }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    @Operation(summary = "Elimina sessione Zyra")
+    public ResponseEntity<Void> deleteSession(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID sessionId
+    ) {
+        zyraService.deleteSession(principal, sessionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/sessions")
+    @Operation(summary = "Elimina tutte le sessioni Zyra")
+    public ResponseEntity<Void> deleteAllSessions(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        zyraService.deleteAllSessions(principal);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/sessions/{sessionId}/messages")

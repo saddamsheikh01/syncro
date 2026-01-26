@@ -6,10 +6,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
+import { Modal } from "@/components/ui/Modal";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { cx } from "@/lib/classNames";
-import { getChatRecap } from "@/services/zyra";
+import { deleteAllSessions, getChatRecap } from "@/services/zyra";
 import type { ZyraChatRecapResponse } from "@/types/zyra";
 
 export interface ZyraChatRecapProps extends Omit<
@@ -27,6 +28,8 @@ export const ZyraChatRecap = ({
   const [data, setData] = useState<ZyraChatRecapResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const loadedRef = useRef(false);
 
   const fetchRecap = async () => {
@@ -47,6 +50,19 @@ export const ZyraChatRecap = ({
     loadedRef.current = true;
     fetchRecap();
   }, []);
+
+  const handleDeleteAll = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteAllSessions();
+      await fetchRecap();
+    } catch {
+      setError("Impossibile eliminare le chat. Riprova.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div
@@ -164,17 +180,49 @@ export const ZyraChatRecap = ({
             <p className="text-[10px] text-subtle">
               Generato da Zyra in base alle tue conversazioni
             </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={fetchRecap}
-              className="text-zyra-text hover:bg-zyra-surface-soft"
-            >
-              Aggiorna
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={fetchRecap}
+                className="text-zyra-text hover:bg-zyra-surface-soft"
+              >
+                Aggiorna
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmOpen(true)}
+                loading={deleting}
+                loadingText="Elimino..."
+                className="text-danger hover:bg-danger/10"
+              >
+                Elimina chat Zyra
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>
+
+      <Modal
+        open={confirmOpen}
+        title="Eliminare tutte le chat Zyra?"
+        description="Questa azione e definitiva. Tutte le sessioni Zyra verranno eliminate."
+        onClose={() => setConfirmOpen(false)}
+        secondaryAction={{
+          label: "Annulla",
+          variant: "secondary",
+          onClick: () => setConfirmOpen(false),
+        }}
+        primaryAction={{
+          label: "Elimina tutto",
+          variant: "danger",
+          onClick: async () => {
+            setConfirmOpen(false);
+            await handleDeleteAll();
+          },
+        }}
+      />
     </div>
   );
 };

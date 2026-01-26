@@ -134,6 +134,19 @@ public class ZyraService {
     }
 
     @Transactional
+    public void deleteSession(UserPrincipal principal, UUID sessionId) {
+        User user = getUser(principal);
+        ZyraChatSession session = getSession(user.getId(), sessionId);
+        sessionRepository.delete(session);
+    }
+
+    @Transactional
+    public void deleteAllSessions(UserPrincipal principal) {
+        User user = getUser(principal);
+        sessionRepository.deleteByUserId(user.getId());
+    }
+
+    @Transactional
     public ZyraChatResponse sendMessage(
         UserPrincipal principal,
         UUID sessionId,

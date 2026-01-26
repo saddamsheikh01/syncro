@@ -16,6 +16,8 @@ export const useZyra = () => {
       sendMessage: zyraActions.sendMessage,
       fetchSuggestions: zyraActions.fetchSuggestions,
       createSuggestion: zyraActions.createSuggestion,
+      deleteSession: zyraActions.deleteSession,
+      deleteAllSessions: zyraActions.deleteAllSessions,
     }),
     []
   );

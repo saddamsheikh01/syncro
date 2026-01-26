@@ -12,6 +12,8 @@ import type { PageParams } from "../../services/zyra";
 import {
   createSession,
   createSuggestion,
+  deleteAllSessions,
+  deleteSession,
   getMessages,
   getSessions,
   getSuggestions,
@@ -193,6 +195,46 @@ export const zyraActions = {
       return response;
     } catch (error) {
       zyraStore.setState({ loadingSuggestions: false, error: error as ApiError });
+      throw error;
+    }
+  },
+
+  deleteSession: async (sessionId: Uuid): Promise<void> => {
+    zyraStore.setState({ loadingSessions: true, error: null });
+
+    try {
+      await deleteSession(sessionId);
+      zyraStore.setState((state) => {
+        const nextSessions = state.sessions.filter((session) => session.id !== sessionId);
+        const { [sessionId]: _removed, ...restMessages } = state.messagesBySession;
+        const nextActive =
+          state.activeSessionId === sessionId ? nextSessions[0]?.id ?? null : state.activeSessionId;
+        return {
+          sessions: nextSessions,
+          messagesBySession: restMessages,
+          activeSessionId: nextActive,
+          loadingSessions: false,
+        };
+      });
+    } catch (error) {
+      zyraStore.setState({ loadingSessions: false, error: error as ApiError });
+      throw error;
+    }
+  },
+
+  deleteAllSessions: async (): Promise<void> => {
+    zyraStore.setState({ loadingSessions: true, error: null });
+
+    try {
+      await deleteAllSessions();
+      zyraStore.setState({
+        sessions: [],
+        messagesBySession: {},
+        activeSessionId: null,
+        loadingSessions: false,
+      });
+    } catch (error) {
+      zyraStore.setState({ loadingSessions: false, error: error as ApiError });
       throw error;
     }
   },

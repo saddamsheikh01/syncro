@@ -12,4 +12,6 @@ public interface ZyraChatSessionRepository extends JpaRepository<ZyraChatSession
     Page<ZyraChatSession> findByUserId(UUID userId, Pageable pageable);
 
     Optional<ZyraChatSession> findByIdAndUserId(UUID id, UUID userId);
+
+    long deleteByUserId(UUID userId);
 }

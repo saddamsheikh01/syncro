@@ -57,6 +57,14 @@ export const sendMessage = async (
   return data;
 };
 
+export const deleteSession = async (sessionId: Uuid): Promise<void> => {
+  await apiClient.delete(`/zyra/sessions/${sessionId}`);
+};
+
+export const deleteAllSessions = async (): Promise<void> => {
+  await apiClient.delete("/zyra/sessions");
+};
+
 export const getSuggestions = async (
   params: PageParams = {}
 ): Promise<PageResponse<ZyraSuggestionResponse>> => {
