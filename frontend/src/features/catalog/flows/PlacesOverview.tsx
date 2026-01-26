@@ -7,12 +7,46 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { Input } from "@/components/elements/Input";
+import { Select } from "@/components/elements/Select";
+import type { SelectOption } from "@/components/elements/Select";
+import { Switch } from "@/components/elements/Switch";
 import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
 import { useCatalog, usePosition } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
+import type { CatalogSource } from "@/services/catalog";
 
 const PAGE_SIZE = 10;
+const GOOGLE_TYPE_OPTIONS: SelectOption[] = [
+  { value: "all", label: "Tutti i tipi" },
+  { value: "restaurant", label: "Ristoranti" },
+  { value: "cafe", label: "Caffetterie" },
+  { value: "bar", label: "Bar & cocktail" },
+  { value: "bakery", label: "Pasticcerie" },
+  { value: "museum", label: "Musei" },
+  { value: "art_gallery", label: "Gallerie d'arte" },
+  { value: "park", label: "Parchi" },
+  { value: "tourist_attraction", label: "Attrazioni" },
+  { value: "shopping_mall", label: "Shopping" },
+  { value: "spa", label: "Spa & benessere" },
+  { value: "gym", label: "Palestre" },
+];
+const RATING_OPTIONS: SelectOption[] = [
+  { value: "all", label: "Qualsiasi rating" },
+  { value: "4.5", label: "4.5+ eccellente" },
+  { value: "4.0", label: "4.0+ ottimo" },
+  { value: "3.5", label: "3.5+ buono" },
+  { value: "3.0", label: "3.0+ discreto" },
+];
+
+type PlaceFilterOverrides = {
+  search?: string;
+  categoryId?: string | null;
+  googleType?: string;
+  openNowOnly?: boolean;
+  minRating?: string;
+  page?: number;
+};
 
 export const PlacesOverview = () => {
   const {
@@ -28,52 +62,103 @@ export const PlacesOverview = () => {
   const bootstrappedRef = useRef(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [googleType, setGoogleType] = useState("all");
+  const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [minRating, setMinRating] = useState("all");
+
+  const buildParams = useCallback(
+    (overrides: PlaceFilterOverrides = {}) => {
+      const nextSearch = overrides.search ?? search;
+      const nextCategory = overrides.categoryId ?? selectedCategory;
+      const nextGoogleType = overrides.googleType ?? googleType;
+      const nextOpenNow = overrides.openNowOnly ?? openNowOnly;
+      const nextMinRating = overrides.minRating ?? minRating;
+      const hasGoogleType = nextGoogleType !== "all";
+      const hasMinRating = nextMinRating !== "all";
+      const googleFiltersActive = hasGoogleType || nextOpenNow || hasMinRating;
+
+      const source: CatalogSource | undefined = googleFiltersActive ? "GOOGLE" : undefined;
+
+      return {
+        q: nextSearch || undefined,
+        categoryId: nextCategory || undefined,
+        googleTypes: hasGoogleType ? [nextGoogleType] : undefined,
+        openNow: nextOpenNow ? true : undefined,
+        minRating: hasMinRating ? Number(nextMinRating) : undefined,
+        source,
+        lat: hasPosition ? position?.latitude ?? undefined : undefined,
+        lng: hasPosition ? position?.longitude ?? undefined : undefined,
+        page: overrides.page,
+        size: PAGE_SIZE,
+      };
+    },
+    [googleType, minRating, openNowOnly, position, search, selectedCategory, hasPosition]
+  );
+
+  const fetchPlaces = useCallback(
+    (
+      overrides: PlaceFilterOverrides = {},
+      options: { append?: boolean } = {}
+    ) => {
+      actions.fetchPlaces(buildParams(overrides), options).catch(() => undefined);
+    },
+    [actions, buildParams]
+  );
 
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
     actions.fetchCategories({ size: 50 }).catch(() => undefined);
-    actions.fetchPlaces({ size: PAGE_SIZE }).catch(() => undefined);
-  }, [actions]);
+    fetchPlaces();
+  }, [actions, fetchPlaces]);
 
   const handleSearch = useCallback(() => {
-    actions
-      .fetchPlaces({
-        q: search || undefined,
-        categoryId: selectedCategory || undefined,
-        size: PAGE_SIZE,
-      })
-      .catch(() => undefined);
-  }, [actions, search, selectedCategory]);
+    fetchPlaces({ search });
+  }, [fetchPlaces, search]);
 
   const handleCategoryChange = useCallback(
     (categoryId: string | null) => {
       setSelectedCategory(categoryId);
-      actions
-        .fetchPlaces({
-          q: search || undefined,
-          categoryId: categoryId || undefined,
-          size: PAGE_SIZE,
-        })
-        .catch(() => undefined);
+      fetchPlaces({ categoryId, search });
     },
-    [actions, search]
+    [fetchPlaces, search]
   );
 
   const handleLoadMore = useCallback(() => {
     if (!hasMorePlaces || loading) return;
-    actions
-      .fetchPlaces(
-        {
-          q: search || undefined,
-          categoryId: selectedCategory || undefined,
-          page: placesPage.page + 1,
-          size: PAGE_SIZE,
-        },
-        { append: true }
-      )
-      .catch(() => undefined);
-  }, [actions, hasMorePlaces, loading, search, selectedCategory, placesPage.page]);
+    fetchPlaces(
+      {
+        search,
+        categoryId: selectedCategory,
+        page: placesPage.page + 1,
+      },
+      { append: true }
+    );
+  }, [fetchPlaces, hasMorePlaces, loading, search, selectedCategory, placesPage.page]);
+
+  const handleGoogleTypeChange = useCallback(
+    (value: string) => {
+      setGoogleType(value);
+      fetchPlaces({ googleType: value, search });
+    },
+    [fetchPlaces, search]
+  );
+
+  const handleRatingChange = useCallback(
+    (value: string) => {
+      setMinRating(value);
+      fetchPlaces({ minRating: value, search });
+    },
+    [fetchPlaces, search]
+  );
+
+  const handleOpenNowChange = useCallback(
+    (checked: boolean) => {
+      setOpenNowOnly(checked);
+      fetchPlaces({ openNowOnly: checked, search });
+    },
+    [fetchPlaces, search]
+  );
 
   const placeItems: PlaceListItemProps[] = useMemo(
     () =>
@@ -167,6 +252,29 @@ export const PlacesOverview = () => {
             ))}
           </div>
         )}
+        <div className="grid gap-3 md:grid-cols-3">
+          <Select
+            label="Tipo (Google)"
+            options={GOOGLE_TYPE_OPTIONS}
+            value={googleType}
+            onValueChange={handleGoogleTypeChange}
+          />
+          <Select
+            label="Rating minimo"
+            options={RATING_OPTIONS}
+            value={minRating}
+            onValueChange={handleRatingChange}
+          />
+          <Switch
+            label="Aperti ora"
+            description="Mostra solo luoghi aperti."
+            checked={openNowOnly}
+            onChange={(event) => handleOpenNowChange(event.target.checked)}
+          />
+        </div>
+        <p className="text-xs text-subtle">
+          I filtri Google usano i dati sincronizzati da Google Maps.
+        </p>
       </Card>
 
       {isInitialLoading && (

@@ -44,6 +44,7 @@ public class PlaceService {
 
     private static final Logger log = LoggerFactory.getLogger(PlaceService.class);
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final String DUMMY_GOOGLE_TYPE = "__none__";
 
     // Configurazione auto-sync Google Maps
     private static final Duration SYNC_CACHE_TTL = Duration.ofHours(24);
@@ -94,6 +95,9 @@ public class PlaceService {
     public Page<PlaceSummaryResponse> getPlaces(
         UUID categoryId,
         List<UUID> tagIds,
+        List<String> googleTypes,
+        Boolean openNow,
+        Double minRating,
         Double latitude,
         Double longitude,
         Double radiusKm,
@@ -103,21 +107,32 @@ public class PlaceService {
         int size
     ) {
         validateCoordinates(latitude, longitude, radiusKm);
+        validateGoogleFilters(minRating);
 
         // Auto-sync da Google Maps se richiesto source=GOOGLE e coordinate presenti
         if (source == CatalogSource.GOOGLE && latitude != null && longitude != null) {
-            autoSyncFromGoogleMapsIfNeeded(latitude, longitude, radiusKm);
+            String requestedType = normalizeGoogleTypes(googleTypes).stream().findFirst().orElse(null);
+            autoSyncFromGoogleMapsIfNeeded(latitude, longitude, radiusKm, requestedType);
         }
 
         String normalizedQuery = normalizeOptional(query);
         boolean tagFilter = tagIds != null && !tagIds.isEmpty();
         List<UUID> normalizedTags = normalizeTagIds(tagIds, tagFilter);
+        List<String> normalizedGoogleTypes = normalizeGoogleTypes(googleTypes);
+        boolean googleTypeFilter = !normalizedGoogleTypes.isEmpty();
+        if (!googleTypeFilter) {
+            normalizedGoogleTypes = List.of(DUMMY_GOOGLE_TYPE);
+        }
         String sourceValue = source != null ? source.name() : null;
         PageRequest pageable = PageRequest.of(page, size);
         Page<Place> places = placeRepository.searchPlaces(
             categoryId,
             normalizedTags,
             tagFilter,
+            normalizedGoogleTypes,
+            googleTypeFilter,
+            openNow,
+            minRating,
             latitude,
             longitude,
             radiusKm,
@@ -137,7 +152,12 @@ public class PlaceService {
      * - La API key è configurata
      * - Non ci sono luoghi Google nell'area sincronizzati di recente
      */
-    private void autoSyncFromGoogleMapsIfNeeded(Double latitude, Double longitude, Double radiusKm) {
+    private void autoSyncFromGoogleMapsIfNeeded(
+        Double latitude,
+        Double longitude,
+        Double radiusKm,
+        String requestedType
+    ) {
         if (!googleMapsConfig.isConfigured()) {
             log.debug("Auto-sync Google Maps saltato: API key non configurata");
             return;
@@ -160,13 +180,17 @@ public class PlaceService {
         int radiusMeters = radiusKm != null
             ? (int) (radiusKm * 1000)
             : DEFAULT_SYNC_RADIUS_METERS;
+        String syncType = normalizeOptional(requestedType);
+        if (syncType == null) {
+            syncType = DEFAULT_SYNC_TYPE;
+        }
 
         try {
             GoogleMapsSyncService.SyncResult result = googleMapsSyncService.syncNearbyPlaces(
                 latitude,
                 longitude,
                 radiusMeters,
-                DEFAULT_SYNC_TYPE,
+                syncType,
                 DEFAULT_SYNC_MAX_RESULTS
             );
             log.info("Auto-sync completato: creati={}, aggiornati={}, errori={}",
@@ -241,6 +265,12 @@ public class PlaceService {
         }
     }
 
+    private void validateGoogleFilters(Double minRating) {
+        if (minRating != null && (minRating < 0 || minRating > 5)) {
+            throw new BadRequestException("Rating minimo non valido");
+        }
+    }
+
     private String normalizeOptional(String value) {
         if (value == null) {
             return null;
@@ -254,5 +284,16 @@ public class PlaceService {
             return List.of(DUMMY_TAG_ID);
         }
         return ids.stream().distinct().toList();
+    }
+
+    private List<String> normalizeGoogleTypes(List<String> googleTypes) {
+        if (googleTypes == null) {
+            return List.of();
+        }
+        return googleTypes.stream()
+            .filter(value -> value != null && !value.trim().isBlank())
+            .map(value -> value.trim().toLowerCase())
+            .distinct()
+            .toList();
     }
 }

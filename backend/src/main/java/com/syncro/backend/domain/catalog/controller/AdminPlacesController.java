@@ -7,6 +7,7 @@ import com.syncro.backend.domain.catalog.dto.AdminPlaceUpdateRequest;
 import com.syncro.backend.domain.catalog.dto.AffiliationLinkResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceSummaryResponse;
+import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.service.AdminPlaceService;
 import com.syncro.backend.domain.catalog.service.AffiliationLinkService;
 import com.syncro.backend.security.AdminPrincipal;
@@ -53,10 +54,14 @@ public class AdminPlacesController {
         @AuthenticationPrincipal AdminPrincipal principal,
         @RequestParam(required = false) UUID categoryId,
         @RequestParam(required = false) List<UUID> tagIds,
+        @RequestParam(required = false) List<String> googleTypes,
+        @RequestParam(required = false) Boolean openNow,
+        @RequestParam(required = false) Double minRating,
         @RequestParam(required = false) Double lat,
         @RequestParam(required = false) Double lng,
         @RequestParam(required = false) Double radiusKm,
         @RequestParam(required = false) String q,
+        @RequestParam(required = false) CatalogSource source,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
@@ -64,10 +69,14 @@ public class AdminPlacesController {
             principal,
             categoryId,
             tagIds,
+            googleTypes,
+            openNow,
+            minRating,
             lat,
             lng,
             radiusKm,
             q,
+            source,
             page,
             size
         ));

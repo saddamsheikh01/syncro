@@ -55,15 +55,32 @@ public class AdminPlaceService {
         AdminPrincipal principal,
         UUID categoryId,
         List<UUID> tagIds,
+        List<String> googleTypes,
+        Boolean openNow,
+        Double minRating,
         Double latitude,
         Double longitude,
         Double radiusKm,
         String query,
+        CatalogSource source,
         int page,
         int size
     ) {
         ensureAdmin(principal);
-        return placeService.getPlaces(categoryId, tagIds, latitude, longitude, radiusKm, query, page, size);
+        return placeService.getPlaces(
+            categoryId,
+            tagIds,
+            googleTypes,
+            openNow,
+            minRating,
+            latitude,
+            longitude,
+            radiusKm,
+            query,
+            source,
+            page,
+            size
+        );
     }
 
     @Transactional(readOnly = true)

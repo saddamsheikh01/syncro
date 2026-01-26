@@ -35,6 +35,22 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
                   )
               )
               AND (
+                  :googleTypeFilter = false
+                  OR EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements_text(p.google_types) gt
+                      WHERE gt IN (:googleTypes)
+                  )
+              )
+              AND (
+                  :openNow IS NULL
+                  OR (p.opening_hours ->> 'openNow')::boolean = :openNow
+              )
+              AND (
+                  :minRating IS NULL
+                  OR p.google_rating >= :minRating
+              )
+              AND (
                   :lat IS NULL
                   OR :lng IS NULL
                   OR :radiusKm IS NULL
@@ -89,6 +105,22 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
                   )
               )
               AND (
+                  :googleTypeFilter = false
+                  OR EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements_text(p.google_types) gt
+                      WHERE gt IN (:googleTypes)
+                  )
+              )
+              AND (
+                  :openNow IS NULL
+                  OR (p.opening_hours ->> 'openNow')::boolean = :openNow
+              )
+              AND (
+                  :minRating IS NULL
+                  OR p.google_rating >= :minRating
+              )
+              AND (
                   :lat IS NULL
                   OR :lng IS NULL
                   OR :radiusKm IS NULL
@@ -111,6 +143,10 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
         @Param("categoryId") UUID categoryId,
         @Param("tagIds") List<UUID> tagIds,
         @Param("tagFilter") boolean tagFilter,
+        @Param("googleTypes") List<String> googleTypes,
+        @Param("googleTypeFilter") boolean googleTypeFilter,
+        @Param("openNow") Boolean openNow,
+        @Param("minRating") Double minRating,
         @Param("lat") Double lat,
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,

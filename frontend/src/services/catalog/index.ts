@@ -19,6 +19,9 @@ export type CatalogSource = "MANUAL" | "API" | "GOOGLE" | "GETYOURGUIDE" | "VIAT
 export type CatalogSearchParams = {
   categoryId?: Uuid;
   tagIds?: Uuid[];
+  googleTypes?: string[];
+  openNow?: boolean;
+  minRating?: number;
   lat?: number;
   lng?: number;
   radiusKm?: number;

@@ -34,6 +34,9 @@ public class PlacesController {
     public ResponseEntity<Page<PlaceSummaryResponse>> getPlaces(
         @RequestParam(required = false) UUID categoryId,
         @RequestParam(required = false) List<UUID> tagIds,
+        @RequestParam(required = false) List<String> googleTypes,
+        @RequestParam(required = false) Boolean openNow,
+        @RequestParam(required = false) Double minRating,
         @RequestParam(required = false) Double lat,
         @RequestParam(required = false) Double lng,
         @RequestParam(required = false) Double radiusKm,
@@ -45,6 +48,9 @@ public class PlacesController {
         return ResponseEntity.ok(placeService.getPlaces(
             categoryId,
             tagIds,
+            googleTypes,
+            openNow,
+            minRating,
             lat,
             lng,
             radiusKm,
