@@ -6,16 +6,19 @@ import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { MapTestListItem } from "@/features/tests/lists/MapTestListItem";
+import { TestsHelperCard } from "@/features/tests/cards/TestsHelperCard";
 import { useTests } from "@/hooks";
 
 export const TestsOverview = () => {
-  const { tests, loading, error, actions } = useTests();
+  const { tests, loading, error, completedCount, countLoading, actions } =
+    useTests();
   const bootstrappedRef = useRef(false);
 
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
     actions.fetchTests().catch(() => undefined);
+    actions.fetchCompletedCount().catch(() => undefined);
   }, [actions]);
 
   const testItems = useMemo(
@@ -47,15 +50,11 @@ export const TestsOverview = () => {
         </p>
       </header>
 
-      <Card className="space-y-2 p-5">
-        <h2 className="text-base font-semibold text-foreground">
-          Come funziona
-        </h2>
-        <p className="text-sm text-muted">
-          Ogni risposta aggiorna il tuo profilo psicologico e le affinità
-          suggerite. I test sono brevi e puoi completarli quando vuoi.
-        </p>
-      </Card>
+      <TestsHelperCard
+        completedCount={completedCount}
+        totalTests={tests.length}
+        loading={countLoading && completedCount == null}
+      />
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">
