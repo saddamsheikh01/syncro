@@ -27,7 +27,6 @@ import {
   usePosition,
   useCatalog,
   useMatches,
-  useAnalytics,
   useZyra,
   useTutorial,
 } from "@/hooks";
@@ -128,7 +127,6 @@ export const HomeOverview = () => {
     error: zyraError,
     actions: zyraActions,
   } = useZyra();
-  const { actions: analyticsActions } = useAnalytics();
   const {
     currentStep: tutorialStep,
     isOpen: tutorialOpen,
@@ -169,9 +167,6 @@ export const HomeOverview = () => {
     catalogActions.fetchPlaces({ size: RECO_PAGE_SIZE, source: "GOOGLE" }).catch(() => undefined);
 
     zyraActions.fetchSuggestions({ size: 10 }).catch(() => undefined);
-    analyticsActions
-      .trackEvent({ eventType: "APP_OPEN" })
-      .catch(() => undefined);
   }, [
     status,
     userActions,
@@ -179,7 +174,6 @@ export const HomeOverview = () => {
     matchesActions,
     catalogActions,
     zyraActions,
-    analyticsActions,
   ]);
 
   useEffect(() => {

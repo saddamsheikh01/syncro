@@ -17,7 +17,7 @@ import type { PlaceResult } from "@/components/elements/PlacesAutocomplete";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
 import type { PlaceSummaryResponse } from "@/types/catalog";
 import type { RecommendationResponse } from "@/types/matches";
-import { useCatalog, usePosition, useMatches } from "@/hooks";
+import { useAnalytics, useCatalog, usePosition, useMatches } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 
 // Import dinamico per GoogleMapContainer (evita SSR issues)
@@ -72,6 +72,7 @@ export const MapOverview = () => {
     error: matchesError,
     actions: matchesActions,
   } = useMatches();
+  const { actions: analyticsActions } = useAnalytics();
 
   const [selectedPlace, setSelectedPlace] =
     useState<PlaceSummaryResponse | null>(null);
@@ -93,6 +94,15 @@ export const MapOverview = () => {
 
   const bootstrappedRef = useRef(false);
   const forYouFetchedRef = useRef(false);
+  const analyticsTrackedRef = useRef(false);
+
+  // Traccia evento MAP_OPENED quando la mappa è visibile
+  useEffect(() => {
+    if (permission !== "granted") return;
+    if (analyticsTrackedRef.current) return;
+    analyticsTrackedRef.current = true;
+    analyticsActions.trackEvent({ eventType: "MAP_OPENED" }).catch(() => undefined);
+  }, [permission, analyticsActions]);
 
   // Carica categorie all'avvio
   useEffect(() => {

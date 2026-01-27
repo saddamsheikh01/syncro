@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -11,7 +11,7 @@ import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard"
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
-import { useAuth, useChat } from "@/hooks";
+import { useAnalytics, useAuth, useChat } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserPosts, getUserProfile } from "@/services/users";
 import { likePost, unlikePost } from "@/services/social";
@@ -45,6 +45,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { actions: chatActions, loadingConversations } = useChat();
+  const { actions: analyticsActions } = useAnalytics();
 
   const [profile, setProfile] = useState<UserPublicProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -60,11 +61,25 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
+  const analyticsTrackedRef = useRef(false);
 
   useEffect(() => {
     authActions.hydrate();
     authActions.fetchMe().catch(() => undefined);
   }, [authActions]);
+
+  // Traccia PROFILE_VIEWED quando il profilo è caricato
+  useEffect(() => {
+    if (!profile) return;
+    if (analyticsTrackedRef.current) return;
+    analyticsTrackedRef.current = true;
+    analyticsActions
+      .trackEvent({
+        eventType: "PROFILE_VIEWED",
+        payload: { profileUserId: profile.userId },
+      })
+      .catch(() => undefined);
+  }, [profile, analyticsActions]);
 
   useEffect(() => {
     if (!userId) return;
