@@ -52,10 +52,9 @@ export const TestListItem = ({
     <Card
       className={cx(
         "relative flex flex-col gap-4 p-4",
-        completed && [
-          "border-success/40 bg-success/5 shadow-[0_14px_28px_rgba(24,169,87,0.08)]",
-          "before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,_rgba(24,169,87,0.16),_transparent_70%)] before:opacity-60",
-        ],
+        completed
+          ? "border-success/40 bg-success/5 shadow-[0_14px_28px_rgba(24,169,87,0.08)] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,_rgba(24,169,87,0.16),_transparent_70%)] before:opacity-60"
+          : undefined,
         className
       )}
       {...props}
