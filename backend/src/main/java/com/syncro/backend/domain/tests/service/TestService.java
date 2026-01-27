@@ -298,6 +298,9 @@ public class TestService {
         if (definition.getScoringStrategy() == TestScoringStrategy.CLUSTER_SCORE) {
             return buildClusterScorePayload(definition, optionsByQuestion, optionsById, answersByQuestion);
         }
+        if (definition.getScoringStrategy() == TestScoringStrategy.AXES_SCORE) {
+            return buildAxesScorePayload(definition, optionsById, answersByQuestion);
+        }
         return buildSingleScorePayload(questions, optionsByQuestion, optionsById, answersByQuestion);
     }
 
@@ -408,6 +411,154 @@ public class TestService {
             return null;
         }
         return String.valueOf(value).trim();
+    }
+
+    private Map<String, Object> buildAxesScorePayload(
+        TestDefinition definition,
+        Map<UUID, TestAnswerOption> optionsById,
+        Map<UUID, List<UUID>> answersByQuestion
+    ) {
+        Map<String, Integer> axesScores = new HashMap<>();
+
+        answersByQuestion.values().stream()
+            .flatMap(List::stream)
+            .forEach(optionId -> {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option == null) {
+                    return;
+                }
+                Map<String, Integer> axes = readAxes(option.getMetadata());
+                axes.forEach((axis, value) -> axesScores.merge(axis, value, Integer::sum));
+            });
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("axes", axesScores);
+
+        Map<String, Object> profile = resolveAxesProfile(axesScores, definition);
+        if (!profile.isEmpty()) {
+            payload.put("profile", profile);
+        }
+
+        return payload;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Integer> readAxes(Map<String, Object> metadata) {
+        if (metadata == null) {
+            return Map.of();
+        }
+        Object axes = metadata.get("axes");
+        if (!(axes instanceof Map<?, ?> axesMap)) {
+            return Map.of();
+        }
+        Map<String, Integer> result = new HashMap<>();
+        axesMap.forEach((key, value) -> {
+            if (key instanceof String axisName && value instanceof Number number) {
+                result.put(axisName, number.intValue());
+            }
+        });
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> resolveAxesProfile(
+        Map<String, Integer> axesScores,
+        TestDefinition definition
+    ) {
+        if (axesScores.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> config = definition.getConfig();
+        if (config == null) {
+            return Map.of();
+        }
+        Object profilesObj = config.get("profiles");
+        if (!(profilesObj instanceof Map<?, ?> profilesMap)) {
+            return Map.of();
+        }
+
+        String selectedCode = null;
+        Map<String, Object> selectedProfile = null;
+
+        for (Map.Entry<?, ?> entry : profilesMap.entrySet()) {
+            if (!(entry.getKey() instanceof String code)) continue;
+            if (!(entry.getValue() instanceof Map<?, ?> profileData)) continue;
+
+            Object conditionObj = profileData.get("condition");
+            if (conditionObj == null) continue;
+            String condition = String.valueOf(conditionObj);
+
+            if ("DEFAULT".equalsIgnoreCase(condition)) {
+                if (selectedCode == null) {
+                    selectedCode = code;
+                    selectedProfile = (Map<String, Object>) profileData;
+                }
+                continue;
+            }
+
+            if (evaluateCondition(condition, axesScores)) {
+                selectedCode = code;
+                selectedProfile = (Map<String, Object>) profileData;
+                break;
+            }
+        }
+
+        if (selectedCode == null || selectedProfile == null) {
+            return Map.of();
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", selectedCode);
+        if (selectedProfile.get("name") != null) {
+            result.put("name", selectedProfile.get("name"));
+        }
+        if (selectedProfile.get("description") != null) {
+            result.put("description", selectedProfile.get("description"));
+        }
+        return result;
+    }
+
+    private boolean evaluateCondition(String condition, Map<String, Integer> axesScores) {
+        if (condition == null || condition.isBlank()) {
+            return false;
+        }
+        String[] parts = condition.split("\\s+AND\\s+", -1);
+        for (String part : parts) {
+            if (!evaluateSingleCondition(part.trim(), axesScores)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean evaluateSingleCondition(String expr, Map<String, Integer> axesScores) {
+        String[] geqParts = expr.split(">=", 2);
+        if (geqParts.length == 2) {
+            String axis = geqParts[0].trim();
+            int threshold = parseIntSafe(geqParts[1].trim());
+            return axesScores.getOrDefault(axis, 0) >= threshold;
+        }
+        String[] ltParts = expr.split("<", 2);
+        if (ltParts.length == 2) {
+            String axis = ltParts[0].trim();
+            int threshold = parseIntSafe(ltParts[1].trim());
+            return axesScores.getOrDefault(axis, 0) < threshold;
+        }
+        String[] gtParts = expr.split(">", 2);
+        if (gtParts.length == 2) {
+            String axis = gtParts[0].trim();
+            int threshold = parseIntSafe(gtParts[1].trim());
+            return axesScores.getOrDefault(axis, 0) > threshold;
+        }
+        return false;
+    }
+
+    private int parseIntSafe(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private Map<String, Object> resolveInterestProfile(
@@ -558,6 +709,14 @@ public class TestService {
             }
             if (clusters != null) {
                 dimension.put("score", clusters);
+            }
+            if (scorePayload.get("profile") != null) {
+                dimension.put("profile", scorePayload.get("profile"));
+            }
+        } else if (definition.getScoringStrategy() == TestScoringStrategy.AXES_SCORE) {
+            Object axes = scorePayload.get("axes");
+            if (axes != null) {
+                dimension.put("score", axes);
             }
             if (scorePayload.get("profile") != null) {
                 dimension.put("profile", scorePayload.get("profile"));
