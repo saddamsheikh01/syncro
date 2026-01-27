@@ -9,7 +9,10 @@ export type TestType =
   | "ASTRO"
   | "OTHER";
 
-export type TestScoringStrategy = "SINGLE_SCORE" | "CLUSTER_SCORE";
+export type TestScoringStrategy =
+  | "SINGLE_SCORE"
+  | "CLUSTER_SCORE"
+  | "AXES_SCORE";
 
 export type TestQuestionType = "SINGLE" | "MULTI";
 
@@ -57,6 +60,10 @@ export type TestAnswerRequest = {
 
 export type TestSubmissionRequest = {
   answers: TestAnswerRequest[];
+};
+
+export type TestCountResponse = {
+  count: number;
 };
 
 export type AdminTestDefinitionRequest = {

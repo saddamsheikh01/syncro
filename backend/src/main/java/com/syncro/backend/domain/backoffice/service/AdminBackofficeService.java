@@ -21,6 +21,8 @@ import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
+import com.syncro.backend.domain.tests.dto.TestCountResponse;
+import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.security.AdminPrincipal;
 import java.util.Locale;
 import java.util.UUID;
@@ -40,6 +42,7 @@ public class AdminBackofficeService {
     private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
     private final AdminAuthMapper adminAuthMapper;
+    private final UserTestSubmissionRepository userTestSubmissionRepository;
 
     public AdminBackofficeService(
         UserRepository userRepository,
@@ -47,7 +50,8 @@ public class AdminBackofficeService {
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         AuthMapper authMapper,
-        AdminAuthMapper adminAuthMapper
+        AdminAuthMapper adminAuthMapper,
+        UserTestSubmissionRepository userTestSubmissionRepository
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
@@ -55,6 +59,7 @@ public class AdminBackofficeService {
         this.passwordEncoder = passwordEncoder;
         this.authMapper = authMapper;
         this.adminAuthMapper = adminAuthMapper;
+        this.userTestSubmissionRepository = userTestSubmissionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +87,15 @@ public class AdminBackofficeService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         return authMapper.toUserResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public TestCountResponse getUserTestsCount(AdminPrincipal principal, UUID userId) {
+        ensureSuperAdmin(principal);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(user.getId());
+        return new TestCountResponse(count);
     }
 
     @Transactional

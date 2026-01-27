@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -13,10 +14,11 @@ import { Switch } from "@/components/elements/Switch";
 import { Logout } from "@/components/buttons/Logout";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
 import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard";
+import { TestCountCard } from "@/components/ui/TestCountCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector";
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
-import { useAnalytics, useAuth, useTags, useUser } from "@/hooks";
+import { useAnalytics, useAuth, useTags, useTests, useUser } from "@/hooks";
 import { getMediaByOwner, uploadMedia } from "@/services/media";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
@@ -87,8 +89,10 @@ export const ProfileSettings = ({
   title = "Profilo",
   subtitle = "Gestisci il tuo profilo e le preferenze principali.",
 }: ProfileSettingsProps) => {
+  const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
+  const { completedCount, countLoading, actions: testsActions } = useTests();
   const {
     profile,
     preferences,
@@ -151,7 +155,8 @@ export const ProfileSettings = ({
     userActions.fetchPreferences().catch(() => undefined);
     tagsActions.fetchTags().catch(() => undefined);
     tagsActions.fetchUserInterests().catch(() => undefined);
-  }, [authActions, tagsActions, userActions]);
+    testsActions.fetchCompletedCount().catch(() => undefined);
+  }, [authActions, tagsActions, testsActions, userActions]);
 
   useEffect(() => {
     if (analyticsTrackedRef.current) return;
@@ -446,6 +451,13 @@ export const ProfileSettings = ({
     profileError ?? preferencesError ?? interestsError ?? avatarError;
   const baseError = error?.message ?? tagsError?.message;
   const showError = mergedError || baseError;
+  const testsDescription = countLoading
+    ? "Sto calcolando i test completati."
+    : completedCount === 0
+      ? "Completa il primo micro-test per attivare Zyra."
+      : completedCount != null && completedCount < 3
+        ? "Continua con altri test per affinare il profilo."
+        : "Ottimo lavoro: il tuo profilo è ben definito.";
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
@@ -464,6 +476,22 @@ export const ProfileSettings = ({
         companyName={companyName || undefined}
         avatarUrl={avatar?.url}
         tags={summaryTags}
+      />
+
+      <TestCountCard
+        title="I tuoi test"
+        count={completedCount}
+        loading={countLoading}
+        description={testsDescription}
+        action={
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => router.push("/tests")}
+          >
+            Vai ai test
+          </Button>
+        }
       />
 
       <ZyraProfileRecap />

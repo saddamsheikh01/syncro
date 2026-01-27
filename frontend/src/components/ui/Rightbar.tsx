@@ -8,6 +8,7 @@ import { QuickMatchPreview } from "@/components/ui/QuickMatchPreview";
 import { RecentChatsCard } from "@/components/ui/RecentChatsCard";
 import { NearbyHighlight } from "@/components/ui/NearbyHighlight";
 import { ProfileStatsCard } from "@/components/ui/ProfileStatsCard";
+import { TestsEncouragementCard } from "@/components/ui/TestsEncouragementCard";
 import { cx } from "@/lib/classNames";
 
 export interface RightbarProps extends HTMLAttributes<HTMLElement> {
@@ -20,11 +21,7 @@ export const Rightbar = ({
   ...props
 }: RightbarProps) => (
   <aside
-    className={cx(
-      position,
-      "right-4 top-4 bottom-4 z-30 w-[320px]",
-      className
-    )}
+    className={cx(position, "right-4 top-4 bottom-4 z-30 w-[320px]", className)}
     {...props}
   >
     <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-[var(--radius-xl)] border border-border/70 bg-surface p-4 shadow-md">
@@ -37,6 +34,9 @@ export const Rightbar = ({
       {/* Zyra AI tip */}
       <ZyraTipCard />
 
+      {/* Tests encouragement */}
+      <TestsEncouragementCard />
+
       {/* Match of the day preview */}
       <QuickMatchPreview />
 
@@ -46,8 +46,8 @@ export const Rightbar = ({
       {/* Nearby places */}
       <NearbyHighlight />
 
-      {/* Profile stats */}
-      <ProfileStatsCard />
+      {/* Profile stats
+      <ProfileStatsCard /> */}
     </div>
   </aside>
 );

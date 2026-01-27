@@ -1,5 +1,6 @@
 import { apiClient } from "../axiosConfig";
 import type {
+  TestCountResponse,
   TestDetailResponse,
   TestListResponse,
   TestSubmissionRequest,
@@ -21,4 +22,18 @@ export const submitTest = async (
   payload: TestSubmissionRequest
 ): Promise<void> => {
   await apiClient.post(`/tests/${testId}/submit`, payload);
+};
+
+export const getMyTestsCount = async (): Promise<TestCountResponse> => {
+  const { data } = await apiClient.get<TestCountResponse>("/tests/count");
+  return data;
+};
+
+export const getUserTestsCount = async (
+  userId: Uuid
+): Promise<TestCountResponse> => {
+  const { data } = await apiClient.get<TestCountResponse>(
+    `/tests/users/${userId}/count`
+  );
+  return data;
 };

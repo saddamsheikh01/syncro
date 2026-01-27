@@ -13,6 +13,8 @@ export const useTests = () => {
       fetchTest: testsActions.fetchTest,
       submitTest: testsActions.submitTest,
       clearActiveTest: testsActions.clearActiveTest,
+      fetchCompletedCount: testsActions.fetchCompletedCount,
+      fetchUserCompletedCount: testsActions.fetchUserCompletedCount,
     }),
     []
   );

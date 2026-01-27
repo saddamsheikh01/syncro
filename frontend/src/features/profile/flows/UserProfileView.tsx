@@ -11,8 +11,10 @@ import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard"
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
+import { TestCountCard } from "@/components/ui/TestCountCard";
 import { useAnalytics, useAuth, useChat } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
+import { getUserTestsCount } from "@/services/tests";
 import { getUserPosts, getUserProfile } from "@/services/users";
 import { likePost, unlikePost } from "@/services/social";
 import type { UserPublicProfileResponse } from "@/types/profile";
@@ -54,6 +56,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const [match, setMatch] = useState<UserMatchResponse | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
+
+  const [testsCount, setTestsCount] = useState<number | null>(null);
+  const [testsCountLoading, setTestsCountLoading] = useState(false);
 
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [postsPage, setPostsPage] = useState(0);
@@ -98,6 +103,8 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     setPostsError(null);
     setPostsHasMore(false);
     setPostsPage(0);
+    setTestsCount(null);
+    setTestsCountLoading(false);
 
     getUserProfile(userId)
       .then((response) => {
@@ -109,6 +116,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         if (!active) return;
         setMatchLoading(true);
         setPostsLoading(true);
+        setTestsCountLoading(true);
 
         const matchPromise = getMatchWithUser(userId)
           .then((response) => {
@@ -122,6 +130,20 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           .finally(() => {
             if (!active) return;
             setMatchLoading(false);
+          });
+
+        const testsCountPromise = getUserTestsCount(userId)
+          .then((response) => {
+            if (!active) return;
+            setTestsCount(response.count);
+          })
+          .catch(() => {
+            if (!active) return;
+            setTestsCount(null);
+          })
+          .finally(() => {
+            if (!active) return;
+            setTestsCountLoading(false);
           });
 
         const postsPromise = getUserPosts(userId, { page: 0, size: PAGE_SIZE })
@@ -140,7 +162,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             setPostsLoading(false);
           });
 
-        return Promise.all([matchPromise, postsPromise]);
+        return Promise.all([matchPromise, postsPromise, testsCountPromise]);
       })
       .catch((error) => {
         if (!active) return;
@@ -303,6 +325,18 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         bio={profile.bio ?? undefined}
         avatarUrl={profile.avatarUrl ?? undefined}
         matchScore={match?.scoreTotal ?? undefined}
+      />
+
+      <TestCountCard
+        title="Test completati"
+        count={testsCount}
+        loading={testsCountLoading}
+        description={
+          testsCountLoading
+            ? "Sto recuperando i test completati."
+            : `Questo profilo ha completato ${testsCount ?? 0} test.`
+        }
+        variant="compact"
       />
 
       <ZyraProfileRecap

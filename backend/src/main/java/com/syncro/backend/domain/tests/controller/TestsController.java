@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.tests.controller;
 
+import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.dto.TestDetailResponse;
 import com.syncro.backend.domain.tests.dto.TestListResponse;
 import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
@@ -42,6 +43,23 @@ public class TestsController {
     @Operation(summary = "Dettaglio test")
     public ResponseEntity<TestDetailResponse> getTest(@PathVariable UUID testId) {
         return ResponseEntity.ok(testService.getTest(testId));
+    }
+
+    @GetMapping("/count")
+    @Operation(summary = "Conteggio test unici completati (utente autenticato)")
+    public ResponseEntity<TestCountResponse> getMyCompletedTestsCount(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(testService.getMyCompletedTestsCount(principal));
+    }
+
+    @GetMapping("/users/{userId}/count")
+    @Operation(summary = "Conteggio test unici completati (utente target)")
+    public ResponseEntity<TestCountResponse> getUserCompletedTestsCount(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(testService.getUserCompletedTestsCount(principal, userId));
     }
 
     @PostMapping("/{testId}/submit")

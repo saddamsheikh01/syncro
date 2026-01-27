@@ -1,11 +1,18 @@
 import type { ApiError } from "../../types/api";
 import type {
+  TestCountResponse,
   TestDetailResponse,
   TestListResponse,
   TestSubmissionRequest,
   TestSummaryResponse,
 } from "../../types/tests";
-import { getTest, getTests, submitTest } from "../../services/tests";
+import {
+  getMyTestsCount,
+  getTest,
+  getTests,
+  getUserTestsCount,
+  submitTest,
+} from "../../services/tests";
 import type { Uuid } from "../../types/shared";
 import { createStore } from "../utils/createStore";
 
@@ -14,6 +21,10 @@ export type TestsState = {
   activeTest: TestDetailResponse | null;
   loading: boolean;
   error: ApiError | null;
+  completedCount: number | null;
+  userCompletedCounts: Record<Uuid, number>;
+  countLoading: boolean;
+  countError: ApiError | null;
 };
 
 const initialState: TestsState = {
@@ -21,6 +32,10 @@ const initialState: TestsState = {
   activeTest: null,
   loading: false,
   error: null,
+  completedCount: null,
+  userCompletedCounts: {},
+  countLoading: false,
+  countError: null,
 };
 
 export const testsStore = createStore<TestsState>(initialState);
@@ -69,5 +84,56 @@ export const testsActions = {
 
   clearActiveTest: () => {
     testsStore.setState({ activeTest: null });
+  },
+
+  fetchCompletedCount: async (): Promise<TestCountResponse> => {
+    const current = testsStore.getState();
+    if (current.countLoading) {
+      return { count: current.completedCount ?? 0 };
+    }
+    if (current.completedCount != null) {
+      return { count: current.completedCount };
+    }
+    testsStore.setState({ countLoading: true, countError: null });
+
+    try {
+      const response = await getMyTestsCount();
+      testsStore.setState({
+        completedCount: response.count,
+        countLoading: false,
+      });
+      return response;
+    } catch (error) {
+      testsStore.setState({ countLoading: false, countError: error as ApiError });
+      throw error;
+    }
+  },
+
+  fetchUserCompletedCount: async (
+    userId: Uuid
+  ): Promise<TestCountResponse> => {
+    const current = testsStore.getState();
+    if (current.countLoading) {
+      return { count: current.userCompletedCounts[userId] ?? 0 };
+    }
+    if (current.userCompletedCounts[userId] != null) {
+      return { count: current.userCompletedCounts[userId] };
+    }
+    testsStore.setState({ countLoading: true, countError: null });
+
+    try {
+      const response = await getUserTestsCount(userId);
+      testsStore.setState((state) => ({
+        userCompletedCounts: {
+          ...state.userCompletedCounts,
+          [userId]: response.count,
+        },
+        countLoading: false,
+      }));
+      return response;
+    } catch (error) {
+      testsStore.setState({ countLoading: false, countError: error as ApiError });
+      throw error;
+    }
   },
 };

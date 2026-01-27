@@ -43,7 +43,7 @@ const StatItem = ({ icon, value, label, color }: StatItemProps) => (
 export const ProfileStatsCard = () => {
   const { userMatches, actions: matchActions } = useMatches();
   const { interests, actions: tagsActions } = useTags();
-  const { tests, actions: testsActions } = useTests();
+  const { completedCount, countLoading, actions: testsActions } = useTests();
 
   const fetchedRef = useRef(false);
 
@@ -53,12 +53,13 @@ export const ProfileStatsCard = () => {
 
     matchActions.fetchUserMatches({ size: 100 }).catch(() => undefined);
     tagsActions.fetchUserInterests().catch(() => undefined);
-    testsActions.fetchTests().catch(() => undefined);
+    testsActions.fetchCompletedCount().catch(() => undefined);
   }, [matchActions, tagsActions, testsActions]);
 
   const matchCount = userMatches.length;
   const interestCount = interests?.tags?.length ?? 0;
-  const testCount = tests?.length ?? 0;
+  const testCount =
+    countLoading && completedCount == null ? "..." : completedCount ?? 0;
 
   return (
     <div className="space-y-3">

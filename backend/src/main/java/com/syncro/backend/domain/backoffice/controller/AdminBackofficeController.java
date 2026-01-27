@@ -7,6 +7,7 @@ import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
+import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.security.AdminPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -69,6 +70,15 @@ public class AdminBackofficeController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(adminBackofficeService.getUser(principal, userId));
+    }
+
+    @GetMapping("/users/{userId}/tests/count")
+    @Operation(summary = "Conteggio test unici completati dall'utente")
+    public ResponseEntity<TestCountResponse> getUserTestsCount(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(adminBackofficeService.getUserTestsCount(principal, userId));
     }
 
     @PostMapping("/users")

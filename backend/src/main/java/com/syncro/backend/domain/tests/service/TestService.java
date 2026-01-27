@@ -6,6 +6,7 @@ import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.tests.dto.TestAnswerRequest;
+import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.dto.TestDetailResponse;
 import com.syncro.backend.domain.tests.dto.TestListResponse;
 import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
@@ -25,6 +26,9 @@ import com.syncro.backend.domain.tests.repository.TestQuestionRepository;
 import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
+import com.syncro.backend.domain.profile.entity.ProfileVisibility;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -49,6 +53,7 @@ public class TestService {
     private final UserTestAnswerRepository userTestAnswerRepository;
     private final UserPsyProfileRepository userPsyProfileRepository;
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final TestMapper testMapper;
 
     public TestService(
@@ -59,6 +64,7 @@ public class TestService {
         UserTestAnswerRepository userTestAnswerRepository,
         UserPsyProfileRepository userPsyProfileRepository,
         UserRepository userRepository,
+        UserProfileRepository userProfileRepository,
         TestMapper testMapper
     ) {
         this.testDefinitionRepository = testDefinitionRepository;
@@ -68,6 +74,7 @@ public class TestService {
         this.userTestAnswerRepository = userTestAnswerRepository;
         this.userPsyProfileRepository = userPsyProfileRepository;
         this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
         this.testMapper = testMapper;
     }
 
@@ -84,6 +91,31 @@ public class TestService {
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = loadOptionsByQuestion(questions);
         return testMapper.toDetailResponse(definition, questions, optionsByQuestion);
+    }
+
+    @Transactional(readOnly = true)
+    public TestCountResponse getMyCompletedTestsCount(UserPrincipal principal) {
+        User user = getUser(principal);
+        long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(user.getId());
+        return new TestCountResponse(count);
+    }
+
+    @Transactional(readOnly = true)
+    public TestCountResponse getUserCompletedTestsCount(UserPrincipal principal, UUID userId) {
+        User requester = getUser(principal);
+        if (userId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        if (!userId.equals(requester.getId())) {
+            UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("Profilo non disponibile"));
+            if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
+                throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+            }
+        }
+        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(userId);
+        return new TestCountResponse(count);
     }
 
     @Transactional
