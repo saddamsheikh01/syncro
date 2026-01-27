@@ -35,14 +35,19 @@ public class TestsController {
 
     @GetMapping
     @Operation(summary = "Lista test attivi")
-    public ResponseEntity<TestListResponse> getTests() {
-        return ResponseEntity.ok(testService.getTests());
+    public ResponseEntity<TestListResponse> getTests(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(testService.getTests(principal));
     }
 
     @GetMapping("/{testId}")
     @Operation(summary = "Dettaglio test")
-    public ResponseEntity<TestDetailResponse> getTest(@PathVariable UUID testId) {
-        return ResponseEntity.ok(testService.getTest(testId));
+    public ResponseEntity<TestDetailResponse> getTest(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID testId
+    ) {
+        return ResponseEntity.ok(testService.getTest(principal, testId));
     }
 
     @GetMapping("/count")

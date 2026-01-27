@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.tests.service;
 
 import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
@@ -83,18 +84,32 @@ public class TestService {
     }
 
     @Transactional(readOnly = true)
-    public TestListResponse getTests() {
+    public TestListResponse getTests(UserPrincipal principal) {
+        User user = getUser(principal);
         List<TestDefinition> tests = testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc();
-        return new TestListResponse(tests.stream().map(testMapper::toSummaryResponse).toList());
+        List<UUID> completedIds = userTestSubmissionRepository
+            .findDistinctTestDefinitionIdsByUserId(user.getId());
+        java.util.Set<UUID> completedSet = new java.util.HashSet<>(completedIds);
+        return new TestListResponse(
+            tests.stream()
+                .map(definition -> testMapper.toSummaryResponse(
+                    definition,
+                    completedSet.contains(definition.getId())
+                ))
+                .toList()
+        );
     }
 
     @Transactional(readOnly = true)
-    public TestDetailResponse getTest(UUID testId) {
+    public TestDetailResponse getTest(UserPrincipal principal, UUID testId) {
+        User user = getUser(principal);
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = loadOptionsByQuestion(questions);
-        return testMapper.toDetailResponse(definition, questions, optionsByQuestion);
+        boolean completed = userTestSubmissionRepository
+            .existsByUser_IdAndTestDefinition_Id(user.getId(), testId);
+        return testMapper.toDetailResponse(definition, questions, optionsByQuestion, completed);
     }
 
     @Transactional(readOnly = true)
@@ -127,6 +142,9 @@ public class TestService {
         User user = getUser(principal);
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
+        if (userTestSubmissionRepository.existsByUser_IdAndTestDefinition_Id(user.getId(), testId)) {
+            throw new ConflictException("Test gia completato");
+        }
 
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         if (questions.isEmpty()) {

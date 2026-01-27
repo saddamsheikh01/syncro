@@ -26,9 +26,10 @@ export const TestsOverview = () => {
       tests.map((test) => ({
         title: test.title,
         description: test.description ?? undefined,
-        href: `/tests/${test.id}`,
+        href: test.completed ? undefined : `/tests/${test.id}`,
         statusLabel: "Micro-test",
         actionLabel: "Inizia",
+        completed: test.completed,
       })),
     [tests]
   );

@@ -21,19 +21,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class TestMapper {
 
-    public TestSummaryResponse toSummaryResponse(TestDefinition definition) {
+    public TestSummaryResponse toSummaryResponse(TestDefinition definition, boolean completed) {
         return new TestSummaryResponse(
             definition.getId(),
             definition.getTitle(),
             definition.getDescription(),
-            definition.getTestType()
+            definition.getTestType(),
+            completed
         );
     }
 
     public TestDetailResponse toDetailResponse(
         TestDefinition definition,
         List<TestQuestion> questions,
-        Map<UUID, List<TestAnswerOption>> optionsByQuestion
+        Map<UUID, List<TestAnswerOption>> optionsByQuestion,
+        boolean completed
     ) {
         List<TestQuestionResponse> questionResponses = questions.stream()
             .map(question -> new TestQuestionResponse(
@@ -57,6 +59,7 @@ public class TestMapper {
             definition.getTitle(),
             definition.getDescription(),
             definition.getTestType(),
+            completed,
             definition.getScoringStrategy(),
             definition.getConfig(),
             questionResponses

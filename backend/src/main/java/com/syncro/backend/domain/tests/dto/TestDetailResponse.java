@@ -11,6 +11,7 @@ public record TestDetailResponse(
     String title,
     String description,
     TestType testType,
+    boolean completed,
     TestScoringStrategy scoringStrategy,
     Map<String, Object> config,
     List<TestQuestionResponse> questions

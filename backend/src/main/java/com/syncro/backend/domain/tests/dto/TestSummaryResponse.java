@@ -7,6 +7,7 @@ public record TestSummaryResponse(
     UUID id,
     String title,
     String description,
-    TestType testType
+    TestType testType,
+    boolean completed
 ) {
 }

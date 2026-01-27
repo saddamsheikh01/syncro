@@ -19,4 +19,13 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
     long countDistinctTestDefinitionIdByUserId(@Param("userId") UUID userId);
 
     List<UserTestSubmission> findByUser_IdOrderBySubmittedAtDesc(UUID userId);
+
+    boolean existsByUser_IdAndTestDefinition_Id(UUID userId, UUID testId);
+
+    @Query("""
+        select distinct s.testDefinition.id
+        from UserTestSubmission s
+        where s.user.id = :userId
+        """)
+    List<UUID> findDistinctTestDefinitionIdsByUserId(@Param("userId") UUID userId);
 }

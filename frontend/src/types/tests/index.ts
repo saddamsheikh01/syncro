@@ -21,6 +21,7 @@ export type TestSummaryResponse = {
   title: string;
   description: string | null;
   testType: TestType;
+  completed: boolean;
 };
 
 export type TestListResponse = {
@@ -48,6 +49,7 @@ export type TestDetailResponse = {
   title: string;
   description: string | null;
   testType: TestType;
+  completed: boolean;
   scoringStrategy: TestScoringStrategy;
   config: JsonObject;
   questions: TestQuestionResponse[];

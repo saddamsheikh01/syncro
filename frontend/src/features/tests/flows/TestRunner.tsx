@@ -12,6 +12,7 @@ import { QuestionCard } from "@/features/tests/cards/QuestionCard";
 import { MapAnswerOptionCard } from "@/features/tests/lists/MapAnswerOptionCard";
 import { SubmissionProgress } from "@/features/tests/elements/SubmissionProgress";
 import type { TestQuestionResponse } from "@/types/tests";
+import type { ApiError } from "@/types/api";
 import { useTests } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 
@@ -146,8 +147,12 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           .filter((answer) => answer.answerOptionIds.length > 0),
       });
       setSubmitted(true);
-    } catch {
-      setSubmitError("Errore durante l'invio del test.");
+    } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? (error as ApiError).message
+          : null;
+      setSubmitError(message ?? "Errore durante l'invio del test.");
     } finally {
       setSubmitting(false);
     }
@@ -190,6 +195,30 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
   if (!activeTest) {
     return null;
+  }
+
+  if (activeTest.completed) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+        <Card className="space-y-4 p-6">
+          <h1 className="text-2xl font-semibold text-foreground">
+            Test gia completato
+          </h1>
+          <p className="text-sm text-muted">
+            Hai gia completato questo micro-test. Puoi continuare con gli altri
+            test disponibili.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={() => router.push("/tests")}>
+              Torna ai micro-test
+            </Button>
+            <Button onClick={() => router.push("/profile")}>
+              Vai al profilo
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!questions.length) {
