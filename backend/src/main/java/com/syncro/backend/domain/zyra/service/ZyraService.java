@@ -24,7 +24,11 @@ import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
 import com.syncro.backend.domain.tags.repository.TagRepository;
 import com.syncro.backend.domain.tests.entity.UserPsyProfile;
+import com.syncro.backend.domain.tests.entity.UserTestAnswer;
+import com.syncro.backend.domain.tests.entity.UserTestSubmission;
 import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
+import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
+import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.domain.zyra.client.ZyraChatMessage;
 import com.syncro.backend.domain.zyra.client.ZyraClient;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
@@ -49,7 +53,10 @@ import com.syncro.backend.security.UserPrincipal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,10 +71,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ZyraService {
 
+    private static final int MAX_TEST_RECAPS = 6;
+    private static final int MAX_QUESTIONS_PER_TEST = 3;
+    private static final int MAX_OPTIONS_PER_QUESTION = 2;
+    private static final int MAX_QUESTION_TEXT = 80;
+
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final UserInterestRepository userInterestRepository;
     private final UserPsyProfileRepository userPsyProfileRepository;
+    private final UserTestSubmissionRepository userTestSubmissionRepository;
+    private final UserTestAnswerRepository userTestAnswerRepository;
     private final PlaceRepository placeRepository;
     private final PlaceTagRepository placeTagRepository;
     private final TagRepository tagRepository;
@@ -88,6 +102,8 @@ public class ZyraService {
         UserProfileRepository userProfileRepository,
         UserInterestRepository userInterestRepository,
         UserPsyProfileRepository userPsyProfileRepository,
+        UserTestSubmissionRepository userTestSubmissionRepository,
+        UserTestAnswerRepository userTestAnswerRepository,
         PlaceRepository placeRepository,
         PlaceTagRepository placeTagRepository,
         TagRepository tagRepository,
@@ -106,6 +122,8 @@ public class ZyraService {
         this.userProfileRepository = userProfileRepository;
         this.userInterestRepository = userInterestRepository;
         this.userPsyProfileRepository = userPsyProfileRepository;
+        this.userTestSubmissionRepository = userTestSubmissionRepository;
+        this.userTestAnswerRepository = userTestAnswerRepository;
         this.placeRepository = placeRepository;
         this.placeTagRepository = placeTagRepository;
         this.tagRepository = tagRepository;
@@ -306,11 +324,13 @@ public class ZyraService {
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        List<String> testSummaries = buildTestSummaries(user);
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("Genera un breve riepilogo del profilo utente (2-3 frasi, tono amichevole e personale). ");
         prompt.append("Scrivi in prima persona come se fosse l'utente a descriversi. ");
         prompt.append("Esempio: 'Sono una persona curiosa che ama viaggiare...'. ");
+        prompt.append("Includi anche un breve cenno ai test completati e alle risposte principali, senza elencare tutto. ");
         prompt.append("Dati disponibili:\n");
 
         if (profile != null) {
@@ -350,6 +370,11 @@ public class ZyraService {
             prompt.append("- Profilo psicologico: ").append(safeJson(psyProfile.getProfile())).append("\n");
         }
 
+        if (testSummaries != null && !testSummaries.isEmpty()) {
+            prompt.append("- Test completati (riassunto per test):\n");
+            testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
+        }
+
         List<ZyraChatMessage> messages = List.of(
             new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi profilo brevi e coinvolgenti."),
             new ZyraChatMessage("user", prompt.toString())
@@ -360,6 +385,200 @@ public class ZyraService {
             return recap != null ? recap.trim() : "Completa il tuo profilo per un riepilogo personalizzato.";
         } catch (Exception ex) {
             return "Completa il tuo profilo per un riepilogo personalizzato.";
+        }
+    }
+
+    private List<String> buildTestSummaries(User user) {
+        if (user == null || user.getId() == null) {
+            return List.of();
+        }
+        List<UserTestSubmission> submissions = userTestSubmissionRepository
+            .findByUser_IdOrderBySubmittedAtDesc(user.getId());
+        if (submissions.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, UserTestSubmission> latestByTest = new LinkedHashMap<>();
+        for (UserTestSubmission submission : submissions) {
+            if (submission == null || submission.getTestDefinition() == null) {
+                continue;
+            }
+            UUID testId = submission.getTestDefinition().getId();
+            if (testId == null || latestByTest.containsKey(testId)) {
+                continue;
+            }
+            latestByTest.put(testId, submission);
+            if (latestByTest.size() >= MAX_TEST_RECAPS) {
+                break;
+            }
+        }
+        if (latestByTest.isEmpty()) {
+            return List.of();
+        }
+        List<UserTestSubmission> latestSubmissions = new ArrayList<>(latestByTest.values());
+        List<UUID> submissionIds = latestSubmissions.stream()
+            .map(UserTestSubmission::getId)
+            .filter(id -> id != null)
+            .toList();
+        Map<UUID, List<UserTestAnswer>> answersBySubmission = submissionIds.isEmpty()
+            ? Map.of()
+            : userTestAnswerRepository.findBySubmission_IdIn(submissionIds).stream()
+                .collect(Collectors.groupingBy(answer -> answer.getSubmission().getId()));
+
+        List<String> summaries = new ArrayList<>();
+        for (UserTestSubmission submission : latestSubmissions) {
+            List<UserTestAnswer> answers = answersBySubmission.getOrDefault(submission.getId(), List.of());
+            String summary = buildTestSummary(submission, answers);
+            if (summary != null && !summary.isBlank()) {
+                summaries.add(summary);
+            }
+        }
+        return summaries;
+    }
+
+    private String buildTestSummary(UserTestSubmission submission, List<UserTestAnswer> answers) {
+        if (submission == null) {
+            return null;
+        }
+        String title = submission.getTestDefinition() != null
+            ? normalizeOptional(submission.getTestDefinition().getTitle())
+            : null;
+        String profileLabel = readProfileLabel(submission.getScorePayload());
+        String answersSummary = buildAnswersSummary(answers);
+
+        StringBuilder summary = new StringBuilder();
+        summary.append(title != null ? title : "Test");
+        if (profileLabel != null) {
+            summary.append(": profilo ").append(profileLabel);
+        }
+        if (answersSummary != null) {
+            summary.append(profileLabel != null ? ". " : ": ");
+            summary.append("Risposte chiave: ").append(answersSummary);
+        }
+        return summary.toString();
+    }
+
+    private String readProfileLabel(Map<String, Object> scorePayload) {
+        if (scorePayload == null) {
+            return null;
+        }
+        Object profileObj = scorePayload.get("profile");
+        if (!(profileObj instanceof Map<?, ?> profileMap)) {
+            return null;
+        }
+        String name = readText(profileMap, "name");
+        if (name != null) {
+            return name;
+        }
+        String label = readText(profileMap, "label");
+        if (label != null) {
+            return label;
+        }
+        String code = readText(profileMap, "code");
+        return code;
+    }
+
+    private String readText(Map<?, ?> map, String key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isBlank() ? null : text;
+    }
+
+    private String buildAnswersSummary(List<UserTestAnswer> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return null;
+        }
+        List<QuestionSummary> summaries = summarizeAnswers(answers);
+        if (summaries.isEmpty()) {
+            return null;
+        }
+        return summaries.stream()
+            .limit(MAX_QUESTIONS_PER_TEST)
+            .map(summary -> {
+                String question = shortenText(normalizeOptional(summary.question()), MAX_QUESTION_TEXT);
+                String options = summary.options().stream()
+                    .filter(option -> option != null && !option.isBlank())
+                    .limit(MAX_OPTIONS_PER_QUESTION)
+                    .collect(Collectors.joining(", "));
+                if (options.isBlank()) {
+                    return null;
+                }
+                return question != null ? question + " -> " + options : options;
+            })
+            .filter(value -> value != null && !value.isBlank())
+            .collect(Collectors.joining("; "));
+    }
+
+    private List<QuestionSummary> summarizeAnswers(List<UserTestAnswer> answers) {
+        Map<UUID, QuestionSummaryBuilder> builders = new HashMap<>();
+        for (UserTestAnswer answer : answers) {
+            if (answer == null || answer.getQuestion() == null || answer.getAnswerOption() == null) {
+                continue;
+            }
+            UUID questionId = answer.getQuestion().getId();
+            if (questionId == null) {
+                continue;
+            }
+            String questionText = normalizeOptional(answer.getQuestion().getQuestion());
+            int position = answer.getQuestion().getPosition();
+            String optionLabel = normalizeOptional(answer.getAnswerOption().getLabel());
+            if (optionLabel == null) {
+                continue;
+            }
+            QuestionSummaryBuilder builder = builders.computeIfAbsent(
+                questionId,
+                id -> new QuestionSummaryBuilder(questionText, position)
+            );
+            builder.addOption(optionLabel);
+        }
+        return builders.values().stream()
+            .sorted(Comparator.comparingInt(QuestionSummaryBuilder::position))
+            .map(QuestionSummaryBuilder::toSummary)
+            .toList();
+    }
+
+    private String shortenText(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() <= maxLength) {
+            return trimmed;
+        }
+        int safeLength = Math.max(0, maxLength - 3);
+        return trimmed.substring(0, safeLength) + "...";
+    }
+
+    private record QuestionSummary(String question, int position, List<String> options) {
+    }
+
+    private static final class QuestionSummaryBuilder {
+        private final String question;
+        private final int position;
+        private final LinkedHashSet<String> options = new LinkedHashSet<>();
+
+        private QuestionSummaryBuilder(String question, int position) {
+            this.question = question;
+            this.position = position;
+        }
+
+        private void addOption(String option) {
+            if (option != null && !option.isBlank()) {
+                options.add(option.trim());
+            }
+        }
+
+        private int position() {
+            return position;
+        }
+
+        private QuestionSummary toSummary() {
+            return new QuestionSummary(question, position, new ArrayList<>(options));
         }
     }
 

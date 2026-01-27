@@ -29,6 +29,7 @@ import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -54,6 +55,7 @@ public class TestService {
     private final UserPsyProfileRepository userPsyProfileRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ZyraRecapCache recapCache;
     private final TestMapper testMapper;
 
     public TestService(
@@ -65,6 +67,7 @@ public class TestService {
         UserPsyProfileRepository userPsyProfileRepository,
         UserRepository userRepository,
         UserProfileRepository userProfileRepository,
+        ZyraRecapCache recapCache,
         TestMapper testMapper
     ) {
         this.testDefinitionRepository = testDefinitionRepository;
@@ -75,6 +78,7 @@ public class TestService {
         this.userPsyProfileRepository = userPsyProfileRepository;
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
+        this.recapCache = recapCache;
         this.testMapper = testMapper;
     }
 
@@ -220,6 +224,7 @@ public class TestService {
         updateProfileDimensions(profileData, definition, scorePayload, confidence);
         profile.setProfile(profileData);
         userPsyProfileRepository.save(profile);
+        recapCache.invalidateUser(user.getId());
     }
 
     private User getUser(UserPrincipal principal) {
