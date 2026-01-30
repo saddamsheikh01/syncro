@@ -160,8 +160,8 @@ export const ZyraSuggestionsFlow = () => {
                       <p className="text-xs text-subtle">Contesto: {context}</p>
                     ) : null}
                   </div>
-                  <span className="shrink-0 text-[11px] uppercase tracking-wide text-subtle">
-                    {suggestion.suggestionType.replaceAll("_", " ")}
+                  <span className="shrink-0 rounded-full border border-zyra-border/50 bg-zyra-glow/30 px-2 py-0.5 text-[10px] font-medium text-zyra-text">
+                    {getSuggestionTitle(suggestion)}
                   </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">

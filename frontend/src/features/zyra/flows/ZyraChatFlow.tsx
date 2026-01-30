@@ -26,6 +26,7 @@ const DEFAULT_QUICK_PROMPTS: string[] = [
 
 const mapMessages = (messages: ZyraMessageResponse[]) =>
   [...messages]
+    .filter((message) => message.role !== "SYSTEM")
     .sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
