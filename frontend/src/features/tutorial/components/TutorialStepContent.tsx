@@ -11,14 +11,7 @@ export interface TutorialStepContentProps {
 
 const iconColorClasses: Record<TutorialStepIcon, string> = {
   setup: "bg-gradient-to-br from-amber-500 to-orange-500 text-white",
-  welcome: "bg-gradient-to-br from-zyra-start via-zyra-mid to-zyra-end text-white",
-  home: "bg-accent-soft text-accent",
-  map: "bg-[var(--qa-map-bg)] text-[var(--qa-map-gradient-start)]",
-  match: "bg-[var(--qa-match-bg)] text-[var(--qa-match-gradient-start)]",
-  feed: "bg-[var(--qa-feed-bg)] text-[var(--qa-feed-gradient-start)]",
-  chat: "bg-[var(--qa-chat-bg)] text-[var(--qa-chat-gradient-start)]",
   tests: "bg-[var(--qa-tests-bg)] text-[var(--qa-tests-gradient-start)]",
-  profile: "bg-surface-muted text-foreground",
 };
 
 const renderStepIcon = (icon: TutorialStepIcon) => {
@@ -39,35 +32,8 @@ const renderStepIcon = (icon: TutorialStepIcon) => {
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       );
-    case "welcome":
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-8 w-8"
-          aria-hidden="true"
-        >
-          <path d="M12 3l2.6 5.4 6 .9-4.3 4.2 1 6-5.3-2.9-5.3 2.9 1-6-4.3-4.2 6-.9L12 3z" />
-        </svg>
-      );
-    case "home":
-      return <NavIcon name="home" className="h-8 w-8" />;
-    case "map":
-      return <NavIcon name="map" className="h-8 w-8" />;
-    case "match":
-      return <NavIcon name="spark" className="h-8 w-8" />;
-    case "feed":
-      return <NavIcon name="chat" className="h-8 w-8" />;
-    case "chat":
-      return <NavIcon name="chat" className="h-8 w-8" />;
     case "tests":
       return <NavIcon name="clipboard" className="h-8 w-8" />;
-    case "profile":
-      return <NavIcon name="user" className="h-8 w-8" />;
     default:
       return <NavIcon name="star" className="h-8 w-8" />;
   }

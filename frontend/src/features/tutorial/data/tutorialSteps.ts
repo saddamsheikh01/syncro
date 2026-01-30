@@ -1,13 +1,4 @@
-export type TutorialStepIcon =
-  | "setup"
-  | "welcome"
-  | "home"
-  | "map"
-  | "match"
-  | "feed"
-  | "chat"
-  | "tests"
-  | "profile";
+export type TutorialStepIcon = "setup" | "tests";
 
 export type TutorialStep = {
   id: string;
@@ -21,68 +12,17 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: "setup",
     icon: "setup",
-    title: "Completa il tuo Profilo",
+    title: "Completa il tuo profilo",
     description:
-      "Per ottenere il massimo da Syncro, completa il tuo profilo nelle Impostazioni. Aggiungi le tue passioni, imposta le preferenze di match e attiva la posizione.",
-    highlight:
-      "Un profilo completo ti permette di ricevere match piu accurati e suggerimenti personalizzati. Vai su Impostazioni per completarlo!",
-  },
-  {
-    id: "welcome",
-    icon: "welcome",
-    title: "Benvenuto su Syncro",
-    description:
-      "Syncro ti aiuta a connetterti con persone affini, scoprire luoghi ed esperienze su misura per te. Lascia che ti guidiamo attraverso le funzionalita principali.",
-  },
-  {
-    id: "home",
-    icon: "home",
-    title: "La tua Home",
-    description:
-      "Qui trovi suggerimenti personalizzati, match del giorno e accesso rapido a tutte le sezioni. Tutto basato sul tuo profilo e le tue passioni.",
-  },
-  {
-    id: "map",
-    icon: "map",
-    title: "Esplora la Mappa",
-    description:
-      "Scopri luoghi ed esperienze vicino a te. Attiva la posizione per vedere suggerimenti basati sulla tua area geografica.",
-  },
-  {
-    id: "match",
-    icon: "match",
-    title: "I tuoi Match",
-    description:
-      "Trova persone con passioni simili alle tue. L'affinita viene calcolata in base al profilo, passioni condivise e risultati dei test.",
-  },
-  {
-    id: "feed",
-    icon: "feed",
-    title: "Feed della Community",
-    description:
-      "Scopri cosa succede intorno a te. Post, foto e aggiornamenti dalle persone nelle vicinanze.",
-  },
-  {
-    id: "chat",
-    icon: "chat",
-    title: "Chat e Messaggi",
-    description:
-      "Inizia conversazioni con i tuoi match. Scambia messaggi e organizza incontri in modo semplice.",
+      "Aggiungi le tue passioni e le informazioni chiave: bastano pochi minuti per rendere il profilo davvero utile.",
+    highlight: "Vai su Impostazioni e completa il profilo.",
   },
   {
     id: "tests",
     icon: "tests",
-    title: "Test di Personalita",
+    title: "Inizia i test",
     description:
-      "Completa i test per migliorare i tuoi match. Piu test completi, piu accurate saranno le affinita calcolate con gli altri utenti.",
-    highlight:
-      "I test sono fondamentali per ottenere match di qualita. Ti consigliamo di completarli tutti.",
-  },
-  {
-    id: "profile",
-    icon: "profile",
-    title: "Il tuo Profilo",
-    description:
-      "Personalizza il tuo profilo, gestisci le preferenze e controlla la visibilita. Un profilo completo attira piu match.",
+      "I micro‑test migliorano i match e aiutano Zyra a capire meglio chi sei.",
+    highlight: "Ti consigliamo di iniziare dai primi test disponibili.",
   },
 ];
