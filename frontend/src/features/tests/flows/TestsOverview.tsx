@@ -47,6 +47,7 @@ export const TestsOverview = () => {
     () =>
       tests.map((test) => ({
         emoji: getTestEmoji(test.testType, test.title),
+        testType: test.testType,
         title: test.title,
         description: test.description ?? undefined,
         href: `/tests/${test.id}`,
