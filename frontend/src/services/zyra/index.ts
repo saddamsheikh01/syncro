@@ -10,6 +10,7 @@ import type {
   ZyraSessionResponse,
   ZyraSuggestionRequest,
   ZyraSuggestionResponse,
+  ZyraTestRecapResponse,
 } from "../../types/zyra";
 import type { PageResponse, Uuid } from "../../types/shared";
 
@@ -117,6 +118,16 @@ export const getPlaceRecap = async (
 export const getChatRecap = async (): Promise<ZyraChatRecapResponse> => {
   const { data } = await apiClient.get<ZyraChatRecapResponse>(
     "/zyra/chat-recap",
+    { timeout: CHAT_TIMEOUT_MS }
+  );
+  return data;
+};
+
+export const getTestRecap = async (
+  submissionId: Uuid
+): Promise<ZyraTestRecapResponse> => {
+  const { data } = await apiClient.get<ZyraTestRecapResponse>(
+    `/zyra/test-recap/${submissionId}`,
     { timeout: CHAT_TIMEOUT_MS }
   );
   return data;

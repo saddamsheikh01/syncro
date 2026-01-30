@@ -4,6 +4,7 @@ import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.dto.TestDetailResponse;
 import com.syncro.backend.domain.tests.dto.TestListResponse;
 import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
+import com.syncro.backend.domain.tests.dto.TestSubmissionResponse;
 import com.syncro.backend.domain.tests.service.TestService;
 import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -70,13 +71,13 @@ public class TestsController {
 
     @PostMapping("/{testId}/submit")
     @Operation(summary = "Invia risposte al test")
-    public ResponseEntity<Void> submitTest(
+    public ResponseEntity<TestSubmissionResponse> submitTest(
         @AuthenticationPrincipal UserPrincipal principal,
         @PathVariable UUID testId,
         @Valid @RequestBody TestSubmissionRequest request
     ) {
-        testService.submitTest(principal, testId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        TestSubmissionResponse response = testService.submitTest(principal, testId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @DeleteMapping("/submissions/reset")

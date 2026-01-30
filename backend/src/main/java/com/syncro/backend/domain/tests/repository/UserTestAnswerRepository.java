@@ -13,4 +13,6 @@ public interface UserTestAnswerRepository extends JpaRepository<UserTestAnswer, 
     boolean existsByAnswerOption_Id(UUID answerOptionId);
 
     List<UserTestAnswer> findBySubmission_IdIn(Collection<UUID> submissionIds);
+
+    List<UserTestAnswer> findBySubmission_Id(UUID submissionId);
 }

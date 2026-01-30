@@ -4,6 +4,7 @@ import type {
   TestDetailResponse,
   TestListResponse,
   TestSubmissionRequest,
+  TestSubmissionResponse,
   TestSummaryResponse,
 } from "../../types/tests";
 import {
@@ -71,12 +72,13 @@ export const testsActions = {
   submitTest: async (
     testId: Uuid,
     payload: TestSubmissionRequest
-  ): Promise<void> => {
+  ): Promise<TestSubmissionResponse> => {
     testsStore.setState({ loading: true, error: null });
 
     try {
-      await submitTest(testId, payload);
+      const response = await submitTest(testId, payload);
       testsStore.setState({ loading: false });
+      return response;
     } catch (error) {
       testsStore.setState({ loading: false, error: error as ApiError });
       throw error;

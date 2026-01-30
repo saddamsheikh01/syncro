@@ -60,3 +60,11 @@ export type ZyraChatRecapResponse = {
   recentContacts: string[];
   generatedAt: IsoDateTime;
 };
+
+export type ZyraTestRecapResponse = {
+  submissionId: Uuid;
+  testTitle: string;
+  testType: string;
+  recap: string;
+  generatedAt: IsoDateTime;
+};

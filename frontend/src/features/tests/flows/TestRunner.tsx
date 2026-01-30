@@ -11,6 +11,7 @@ import { Loader } from "@/components/elements/Loader";
 import { QuestionCard } from "@/features/tests/cards/QuestionCard";
 import { MapAnswerOptionCard } from "@/features/tests/lists/MapAnswerOptionCard";
 import { SubmissionProgress } from "@/features/tests/elements/SubmissionProgress";
+import { ZyraTestRecap } from "@/features/zyra/cards/ZyraTestRecap";
 import type { TestQuestionResponse } from "@/types/tests";
 import type { ApiError } from "@/types/api";
 import { useTests } from "@/hooks";
@@ -29,6 +30,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isValidTestId = isUuid(testId);
@@ -46,6 +48,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setCurrentIndex(0);
     setAnswers({});
     setSubmitted(false);
+    setSubmissionId(null);
     setSubmitError(null);
   }, [testId, activeTest?.id]);
 
@@ -140,7 +143,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await actions.submitTest(testId, {
+      const response = await actions.submitTest(testId, {
         answers: questions
           .map((question) => ({
             questionId: question.id,
@@ -148,6 +151,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           }))
           .filter((answer) => answer.answerOptionIds.length > 0),
       });
+      setSubmissionId(response.submissionId);
       setSubmitted(true);
     } catch (error) {
       const message =
@@ -239,25 +243,36 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   if (submitted) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
-        <Card className="space-y-4 p-6">
-          <h1 className="text-2xl font-semibold text-foreground">
+        <header className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
             Test completato
-          </h1>
-          <p className="text-sm text-muted">
-            Il tuo profilo Zyra e stato aggiornato con le nuove risposte.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => router.push("/tests")}
-            >
-              Torna ai micro-test
-            </Button>
-            <Button onClick={() => router.push("/feed")}>
-              Vai al feed
-            </Button>
-          </div>
-        </Card>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {activeTest?.title ?? "Test"}
+          </h1>
+        </header>
+
+        {submissionId ? (
+          <ZyraTestRecap submissionId={submissionId} />
+        ) : (
+          <Card className="space-y-4 p-6">
+            <p className="text-sm text-muted">
+              Il tuo profilo Zyra e stato aggiornato con le nuove risposte.
+            </p>
+          </Card>
+        )}
+
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => router.push("/tests")}
+          >
+            Torna ai micro-test
+          </Button>
+          <Button onClick={() => router.push("/profile")}>
+            Vai al profilo
+          </Button>
+        </div>
       </div>
     );
   }

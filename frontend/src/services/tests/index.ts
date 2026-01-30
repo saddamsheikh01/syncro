@@ -4,6 +4,7 @@ import type {
   TestDetailResponse,
   TestListResponse,
   TestSubmissionRequest,
+  TestSubmissionResponse,
 } from "../../types/tests";
 import type { Uuid } from "../../types/shared";
 
@@ -20,8 +21,12 @@ export const getTest = async (testId: Uuid): Promise<TestDetailResponse> => {
 export const submitTest = async (
   testId: Uuid,
   payload: TestSubmissionRequest
-): Promise<void> => {
-  await apiClient.post(`/tests/${testId}/submit`, payload);
+): Promise<TestSubmissionResponse> => {
+  const { data } = await apiClient.post<TestSubmissionResponse>(
+    `/tests/${testId}/submit`,
+    payload
+  );
+  return data;
 };
 
 export const getMyTestsCount = async (): Promise<TestCountResponse> => {

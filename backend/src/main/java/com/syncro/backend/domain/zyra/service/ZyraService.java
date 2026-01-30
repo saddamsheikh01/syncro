@@ -41,6 +41,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
@@ -714,6 +715,114 @@ public class ZyraService {
         User user = getUser(principal);
         return recapCache.getChatRecap(user.getId())
             .orElseGet(() -> buildChatRecap(user));
+    }
+
+    @Transactional(readOnly = true)
+    public ZyraTestRecapResponse getTestRecap(UserPrincipal principal, UUID submissionId) {
+        User user = getUser(principal);
+        if (submissionId == null) {
+            throw new BadRequestException("ID submission non valido");
+        }
+        UserTestSubmission submission = userTestSubmissionRepository.findById(submissionId)
+            .orElseThrow(() -> new NotFoundException("Submission non trovata"));
+        if (!submission.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
+        }
+        String recap = generateTestRecap(submission);
+        String testTitle = submission.getTestDefinition() != null
+            ? submission.getTestDefinition().getTitle()
+            : "Test";
+        String testType = submission.getTestDefinition() != null
+            ? submission.getTestDefinition().getTestType().name()
+            : "OTHER";
+        return new ZyraTestRecapResponse(
+            submissionId,
+            testTitle,
+            testType,
+            recap,
+            java.time.Instant.now()
+        );
+    }
+
+    private String generateTestRecap(UserTestSubmission submission) {
+        if (submission == null || submission.getTestDefinition() == null) {
+            return "Test completato. Completa altri test per un profilo piu completo.";
+        }
+        List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_Id(submission.getId());
+        String testTitle = normalizeOptional(submission.getTestDefinition().getTitle());
+        String testDescription = normalizeOptional(submission.getTestDefinition().getDescription());
+        String testType = submission.getTestDefinition().getTestType().name();
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Sei Zyra, l'assistente AI di Syncro. L'utente ha appena completato un test. ");
+        prompt.append("Genera un riepilogo personalizzato e coinvolgente (3-5 frasi) che:\n");
+        prompt.append("1. Riassuma in modo discorsivo le scelte fatte dall'utente\n");
+        prompt.append("2. Azzardi un breve profilo della persona basandoti sulle risposte\n");
+        prompt.append("3. Sia scritto in seconda persona, rivolgendoti direttamente all'utente\n");
+        prompt.append("4. Abbia un tono amichevole, positivo e incoraggiante\n");
+        prompt.append("5. Non elenchi le domande una per una, ma sintetizzi il tutto in modo naturale\n\n");
+        prompt.append("NON usare liste puntate o numerate. Scrivi in modo discorsivo e fluido.\n");
+        prompt.append("NON ripetere le domande letteralmente, ma interpreta il significato delle risposte.\n\n");
+
+        prompt.append("Informazioni sul test:\n");
+        prompt.append("- Titolo: ").append(testTitle != null ? testTitle : "Test").append("\n");
+        if (testDescription != null) {
+            prompt.append("- Descrizione: ").append(testDescription).append("\n");
+        }
+        prompt.append("- Tipo: ").append(formatTestType(testType)).append("\n\n");
+
+        if (answers.isEmpty()) {
+            prompt.append("L'utente ha completato il test ma non ci sono risposte registrate.\n");
+        } else {
+            prompt.append("Risposte dell'utente:\n");
+            Map<UUID, List<UserTestAnswer>> answersByQuestion = answers.stream()
+                .filter(a -> a.getQuestion() != null && a.getAnswerOption() != null)
+                .collect(Collectors.groupingBy(a -> a.getQuestion().getId()));
+
+            List<Map.Entry<UUID, List<UserTestAnswer>>> sortedEntries = answersByQuestion.entrySet().stream()
+                .sorted(Comparator.comparingInt(e -> e.getValue().get(0).getQuestion().getPosition()))
+                .toList();
+
+            for (Map.Entry<UUID, List<UserTestAnswer>> entry : sortedEntries) {
+                List<UserTestAnswer> questionAnswers = entry.getValue();
+                if (questionAnswers.isEmpty()) continue;
+                String questionText = normalizeOptional(questionAnswers.get(0).getQuestion().getQuestion());
+                String selectedOptions = questionAnswers.stream()
+                    .map(a -> normalizeOptional(a.getAnswerOption().getLabel()))
+                    .filter(label -> label != null)
+                    .collect(Collectors.joining(", "));
+                if (questionText != null && !selectedOptions.isEmpty()) {
+                    prompt.append("- ").append(questionText).append(" -> ").append(selectedOptions).append("\n");
+                }
+            }
+        }
+
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", "Sei Zyra, un'assistente AI empatica e perspicace. "
+                + "Genera riepiloghi dei test che siano personali, coinvolgenti e che facciano sentire "
+                + "l'utente compreso. Evita frasi generiche."),
+            new ZyraChatMessage("user", prompt.toString())
+        );
+
+        try {
+            String recap = zyraClient.chat(messages);
+            return recap != null ? recap.trim() : "Ottimo lavoro! Hai completato il test con successo.";
+        } catch (Exception ex) {
+            return "Ottimo lavoro! Hai completato il test con successo.";
+        }
+    }
+
+    private String formatTestType(String testType) {
+        if (testType == null) return "Generale";
+        return switch (testType) {
+            case "INTERESTS" -> "Interessi e passioni";
+            case "LIFESTYLE" -> "Stile di vita";
+            case "VALUES" -> "Valori personali";
+            case "OBJECTIVES" -> "Obiettivi di vita";
+            case "PSY" -> "Profilo psicologico";
+            case "ASTRO" -> "Astrologia";
+            default -> "Generale";
+        };
     }
 
     private ZyraChatRecapResponse buildChatRecap(User user) {

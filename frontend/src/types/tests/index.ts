@@ -64,6 +64,12 @@ export type TestSubmissionRequest = {
   answers: TestAnswerRequest[];
 };
 
+export type TestSubmissionResponse = {
+  submissionId: Uuid;
+  testId: Uuid;
+  submittedAt: IsoDateTime;
+};
+
 export type TestCountResponse = {
   count: number;
 };

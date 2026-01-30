@@ -6,6 +6,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
@@ -153,5 +154,14 @@ public class ZyraController {
         @AuthenticationPrincipal UserPrincipal principal
     ) {
         return ResponseEntity.ok(zyraService.getChatRecap(principal));
+    }
+
+    @GetMapping("/test-recap/{submissionId}")
+    @Operation(summary = "Genera recap test completato con Zyra")
+    public ResponseEntity<ZyraTestRecapResponse> getTestRecap(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID submissionId
+    ) {
+        return ResponseEntity.ok(zyraService.getTestRecap(principal, submissionId));
     }
 }

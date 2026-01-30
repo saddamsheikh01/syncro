@@ -11,6 +11,7 @@ import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.dto.TestDetailResponse;
 import com.syncro.backend.domain.tests.dto.TestListResponse;
 import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
+import com.syncro.backend.domain.tests.dto.TestSubmissionResponse;
 import com.syncro.backend.domain.tests.entity.TestAnswerOption;
 import com.syncro.backend.domain.tests.entity.TestDefinition;
 import com.syncro.backend.domain.tests.entity.TestQuestion;
@@ -138,7 +139,7 @@ public class TestService {
     }
 
     @Transactional
-    public void submitTest(UserPrincipal principal, UUID testId, TestSubmissionRequest request) {
+    public TestSubmissionResponse submitTest(UserPrincipal principal, UUID testId, TestSubmissionRequest request) {
         User user = getUser(principal);
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
@@ -243,6 +244,11 @@ public class TestService {
         profile.setProfile(profileData);
         userPsyProfileRepository.save(profile);
         recapCache.invalidateUser(user.getId());
+        return new TestSubmissionResponse(
+            savedSubmission.getId(),
+            definition.getId(),
+            savedSubmission.getSubmittedAt()
+        );
     }
 
     @Transactional
