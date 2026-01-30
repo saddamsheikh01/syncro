@@ -127,7 +127,9 @@ export const Feed = () => {
       authorName:
         user?.id && post.userId === user.id
           ? selfName
-          : authorSummaries[post.userId]?.fullName ?? formatAuthorName(post.userId),
+          : authorSummaries[post.userId]?.fullName ??
+            authorSummaries[post.userId]?.username ??
+            formatAuthorName(post.userId),
       authorSubtitle:
         authorSummaries[post.userId]?.city ??
         authorSummaries[post.userId]?.country ??

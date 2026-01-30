@@ -31,16 +31,22 @@ public class UserProfileMapper {
         );
     }
 
-    public UserSummaryResponse toSummary(UUID userId, UserProfile profile) {
-        return toSummary(userId, profile, null);
+    public UserSummaryResponse toSummary(UUID userId, String username, UserProfile profile) {
+        return toSummary(userId, username, profile, null);
     }
 
-    public UserSummaryResponse toSummary(UUID userId, UserProfile profile, String avatarUrl) {
+    public UserSummaryResponse toSummary(
+        UUID userId,
+        String username,
+        UserProfile profile,
+        String avatarUrl
+    ) {
         if (profile == null) {
-            return new UserSummaryResponse(userId, null, null, null, avatarUrl, null);
+            return new UserSummaryResponse(userId, username, null, null, null, avatarUrl, null);
         }
         return new UserSummaryResponse(
             userId,
+            username,
             profile.getFullName(),
             profile.getCity(),
             profile.getCountry(),
@@ -49,10 +55,16 @@ public class UserProfileMapper {
         );
     }
 
-    public UserPublicProfileResponse toPublicProfile(UUID userId, UserProfile profile, String avatarUrl) {
+    public UserPublicProfileResponse toPublicProfile(
+        UUID userId,
+        String username,
+        UserProfile profile,
+        String avatarUrl
+    ) {
         if (profile == null) {
             return new UserPublicProfileResponse(
                 userId,
+                username,
                 null,
                 null,
                 null,
@@ -67,6 +79,7 @@ public class UserProfileMapper {
         Integer age = calculateAge(profile.getBirthDate());
         return new UserPublicProfileResponse(
             userId,
+            username,
             profile.getFullName(),
             age,
             profile.getCity(),

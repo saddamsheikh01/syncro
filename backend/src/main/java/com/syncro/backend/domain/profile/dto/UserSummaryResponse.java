@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record UserSummaryResponse(
     UUID userId,
+    String username,
     String fullName,
     String city,
     String country,

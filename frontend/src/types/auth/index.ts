@@ -14,6 +14,7 @@ export type TokenResponse = {
 export type UserResponse = {
   id: Uuid;
   email: string | null;
+  username: string | null;
   language: string;
   onboardingCompleted: boolean;
   status: UserStatus;
@@ -43,4 +44,9 @@ export type RefreshTokenRequest = {
 export type UpdateUserRequest = {
   language?: string | null;
   onboardingCompleted?: boolean | null;
+  username?: string | null;
+};
+
+export type UsernameAvailabilityResponse = {
+  available: boolean;
 };

@@ -198,7 +198,13 @@ public class UserMatchService {
             ? userProfileRepository.findByUserId(otherUserId).orElse(null)
             : null;
         String avatarUrl = resolveAvatarUrl(otherUserId);
-        UserSummaryResponse summary = userProfileMapper.toSummary(otherUserId, profile, avatarUrl);
+        String username = profile != null && profile.getUser() != null ? profile.getUser().getUsername() : null;
+        UserSummaryResponse summary = userProfileMapper.toSummary(
+            otherUserId,
+            username,
+            profile,
+            avatarUrl
+        );
         return userMatchMapper.toResponse(match, userId, explanation, summary);
     }
 
@@ -253,7 +259,10 @@ public class UserMatchService {
                 id -> id,
                 id -> {
                     String avatarUrl = resolveAvatarUrl(id);
-                    return userProfileMapper.toSummary(id, profiles.get(id), avatarUrl);
+                    UserProfile profile = profiles.get(id);
+                    String username =
+                        profile != null && profile.getUser() != null ? profile.getUser().getUsername() : null;
+                    return userProfileMapper.toSummary(id, username, profile, avatarUrl);
                 }
             ));
     }

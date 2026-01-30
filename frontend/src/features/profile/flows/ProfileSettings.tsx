@@ -20,6 +20,7 @@ import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector"
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
 import { useAnalytics, useAuth, useTags, useTests, useUser } from "@/hooks";
 import { getMediaByOwner, uploadMedia } from "@/services/media";
+import { checkUsernameAvailability } from "@/services/users";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
@@ -55,6 +56,16 @@ const GENDER_OPTIONS = [
 
 const MIN_INTERESTS = 3;
 const MAX_INTERESTS = 8;
+const USERNAME_MIN = 3;
+const USERNAME_MAX = 30;
+const USERNAME_PATTERN = new RegExp(`^[a-z0-9]{${USERNAME_MIN},${USERNAME_MAX}}$`);
+const USERNAME_RESERVED = [
+  "riccardociviero",
+  "michelasardo",
+  "admin",
+  "support",
+  "syncro",
+];
 
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -78,6 +89,22 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
     if (message) return String(message);
   }
   return fallback;
+};
+
+const normalizeUsernameInput = (value: string) => value.trim().toLowerCase();
+
+const isReservedUsername = (value: string) =>
+  USERNAME_RESERVED.some((reserved) => value.includes(reserved));
+
+const validateUsernameInput = (value: string) => {
+  if (!value) return null;
+  if (!USERNAME_PATTERN.test(value)) {
+    return `Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX} caratteri).`;
+  }
+  if (isReservedUsername(value)) {
+    return "Username non disponibile.";
+  }
+  return null;
 };
 
 export interface ProfileSettingsProps {
@@ -114,6 +141,7 @@ export const ProfileSettings = ({
   const preferencesInitializedRef = useRef(false);
   const interestsInitializedRef = useRef(false);
   const avatarInitializedRef = useRef(false);
+  const usernameInitializedRef = useRef(false);
 
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -125,6 +153,12 @@ export const ProfileSettings = ({
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameSaving, setUsernameSaving] = useState(false);
 
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
@@ -181,6 +215,12 @@ export const ProfileSettings = ({
   }, [profile]);
 
   useEffect(() => {
+    if (!user || usernameInitializedRef.current) return;
+    setUsername(user.username ?? "");
+    usernameInitializedRef.current = true;
+  }, [user]);
+
+  useEffect(() => {
     if (!preferences || preferencesInitializedRef.current) return;
     const storedFilters = (preferences.matchmakingFilters ?? {}) as Record<
       string,
@@ -235,7 +275,49 @@ export const ProfileSettings = ({
       .finally(() => setAvatarLoading(false));
   }, [user?.id]);
 
-  const displayName = profile?.fullName?.trim() || user?.email || "Profilo";
+  const normalizedUsername = normalizeUsernameInput(username);
+  const currentUsername = normalizeUsernameInput(user?.username ?? "");
+  const usernameValidationError = validateUsernameInput(normalizedUsername);
+  const isSameUsername =
+    normalizedUsername.length > 0 && normalizedUsername === currentUsername;
+
+  useEffect(() => {
+    if (!usernameInitializedRef.current) return;
+    setUsernameError(null);
+    setUsernameAvailable(null);
+    setUsernameChecking(false);
+    if (!normalizedUsername) return;
+    if (usernameValidationError) return;
+    if (isSameUsername) {
+      setUsernameAvailable(true);
+      return;
+    }
+    let active = true;
+    setUsernameChecking(true);
+    const timeout = setTimeout(() => {
+      checkUsernameAvailability(normalizedUsername)
+        .then((response) => {
+          if (!active) return;
+          setUsernameAvailable(response.available);
+        })
+        .catch(() => {
+          if (!active) return;
+          setUsernameError("Impossibile verificare lo username.");
+        })
+        .finally(() => {
+          if (!active) return;
+          setUsernameChecking(false);
+        });
+    }, 400);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [isSameUsername, normalizedUsername, usernameValidationError]);
+
+  const displayName =
+    profile?.fullName?.trim() || user?.username || user?.email || "Profilo";
   const locationLabel = [profile?.city, profile?.country]
     .filter(Boolean)
     .join(", ");
@@ -273,6 +355,30 @@ export const ProfileSettings = ({
     () => selectedTags.map((tag) => tag.label).slice(0, 6),
     [selectedTags]
   );
+
+  const usernameChanged = normalizedUsername !== currentUsername;
+  const usernameAvailabilityError =
+    !usernameValidationError && usernameAvailable === false
+      ? "Username gia in uso."
+      : null;
+  const usernameInputError =
+    usernameError ?? usernameValidationError ?? usernameAvailabilityError;
+  const usernameHint = (() => {
+    if (usernameInputError) return undefined;
+    if (!normalizedUsername) {
+      return `Facoltativo. Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX}).`;
+    }
+    if (usernameChecking) return "Verifica disponibilita in corso.";
+    if (isSameUsername) return "E il tuo username attuale.";
+    if (usernameAvailable) return "Disponibile.";
+    return `Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX}).`;
+  })();
+  const canSaveUsername =
+    usernameChanged &&
+    !usernameInputError &&
+    !usernameChecking &&
+    normalizedUsername.length > 0 &&
+    usernameAvailable === true;
 
   const handleVisibilityToggle = (index: number) => {
     const next = VISIBILITY_OPTIONS[index];
@@ -325,6 +431,35 @@ export const ProfileSettings = ({
       );
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    setUsernameError(null);
+    if (!normalizedUsername) {
+      setUsernameError("Inserisci uno username.");
+      return;
+    }
+    if (usernameValidationError) {
+      setUsernameError(usernameValidationError);
+      return;
+    }
+    if (!isSameUsername && usernameAvailable !== true) {
+      setUsernameError("Username non disponibile.");
+      return;
+    }
+
+    setUsernameSaving(true);
+    try {
+      await userActions.updateUser({ username: normalizedUsername });
+      setUsername(normalizedUsername);
+      setUsernameAvailable(true);
+    } catch (saveError) {
+      setUsernameError(
+        resolveErrorMessage(saveError, "Errore durante il salvataggio.")
+      );
+    } finally {
+      setUsernameSaving(false);
     }
   };
 
@@ -471,6 +606,7 @@ export const ProfileSettings = ({
 
       <ProfileSummaryCard
         name={displayName}
+        username={normalizedUsername || user?.username || undefined}
         location={locationLabel || undefined}
         jobTitle={jobTitle || undefined}
         companyName={companyName || undefined}
@@ -607,6 +743,40 @@ export const ProfileSettings = ({
               className="sr-only"
               onChange={handleAvatarUpload}
             />
+          </Card>
+
+          <Card className="space-y-4 p-5">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-foreground">
+                Username
+              </h3>
+              <p className="text-sm text-muted">
+                Identificativo pubblico univoco del tuo profilo.
+              </p>
+            </div>
+            <Input
+              label="Username"
+              value={username}
+              onChange={(event) =>
+                setUsername(normalizeUsernameInput(event.target.value))
+              }
+              placeholder="es. sararossi"
+              autoComplete="off"
+              maxLength={USERNAME_MAX}
+              error={usernameInputError ?? undefined}
+              hint={usernameHint}
+              rightSlot={usernameChecking ? <Loader size="sm" /> : null}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={usernameSaving}
+              loadingText="Salvataggio"
+              disabled={!canSaveUsername}
+              onClick={handleSaveUsername}
+            >
+              Salva username
+            </Button>
           </Card>
 
           <VisibilitySelector

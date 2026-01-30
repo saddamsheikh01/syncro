@@ -27,6 +27,9 @@ public class User {
     @Column(name = "phone", unique = true)
     private String phone;
 
+    @Column(name = "username")
+    private String username;
+
     @Column(name = "language", nullable = false)
     private String language;
 
@@ -83,6 +86,14 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getLanguage() {

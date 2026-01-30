@@ -1,5 +1,9 @@
 import { apiClient } from "../axiosConfig";
-import type { UpdateUserRequest, UserResponse } from "../../types/auth";
+import type {
+  UpdateUserRequest,
+  UserResponse,
+  UsernameAvailabilityResponse,
+} from "../../types/auth";
 import type {
   UserPublicProfileResponse,
   UserSummaryResponse,
@@ -22,6 +26,16 @@ export const updateCurrentUser = async (
   payload: UpdateUserRequest
 ): Promise<UserResponse> => {
   const { data } = await apiClient.patch<UserResponse>("/users/me", payload);
+  return data;
+};
+
+export const checkUsernameAvailability = async (
+  username: string
+): Promise<UsernameAvailabilityResponse> => {
+  const { data } = await apiClient.get<UsernameAvailabilityResponse>(
+    "/users/username-availability",
+    { params: { username } }
+  );
   return data;
 };
 

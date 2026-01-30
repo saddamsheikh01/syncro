@@ -43,8 +43,12 @@ export const User = () => {
   }, [user?.id]);
 
   const email = user?.email ?? "";
+  const username = user?.username?.trim() ?? "";
   const fullName = profile?.fullName?.trim() ?? "";
   const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
+  const displayName = fullName || username || email || "Utente";
+  const showUsername = Boolean(username) && username !== displayName;
+  const showEmail = Boolean(email) && email !== displayName && !location;
 
   if (!isAuthenticated) return null;
 
@@ -66,21 +70,18 @@ export const User = () => {
       </div>
 
       <div className="min-w-0 flex-1 space-y-1">
-        {fullName ? (
-          <p className="truncate text-base font-semibold text-foreground">
-            {fullName}
-          </p>
-        ) : (
-          <p className="truncate text-base font-semibold text-foreground">
-            Utente
-          </p>
-        )}
+        <p className="truncate text-base font-semibold text-foreground">
+          {displayName}
+        </p>
+        {showUsername ? (
+          <p className="truncate text-xs text-subtle">@{username}</p>
+        ) : null}
         {location ? (
           <p className="flex items-center gap-1.5 truncate text-xs text-muted">
             <NavIcon name="map-pin" className="h-3 w-3 shrink-0" />
             {location}
           </p>
-        ) : email ? (
+        ) : showEmail ? (
           <p className="truncate text-xs text-muted">{email}</p>
         ) : null}
       </div>

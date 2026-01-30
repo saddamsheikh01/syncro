@@ -25,6 +25,8 @@ const formatName = (userId: string) => {
 const getDisplayName = (match: UserMatchResponse) => {
   const fullName = match.user?.fullName?.trim();
   if (fullName) return fullName;
+  const username = match.user?.username?.trim();
+  if (username) return username;
   return formatName(match.userId);
 };
 
@@ -75,6 +77,7 @@ export const MatchListItem = ({
   const updatedLabel = formatUpdatedAt(match.updatedAt);
   const sharedTags = match.breakdown?.["sharedTags"];
   const location = formatLocation(match);
+  const username = match.user?.username?.trim() ?? "";
   const isSelectable = Boolean(onSelectMatch);
 
   const handleSelect = () => {
@@ -144,6 +147,9 @@ export const MatchListItem = ({
                 </Badge>
               )}
             </div>
+            {username ? (
+              <p className="text-xs text-subtle">@{username}</p>
+            ) : null}
             {location && (
               <p className="flex items-center gap-1 text-xs text-muted">
                 <LocationIcon />

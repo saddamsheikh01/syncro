@@ -103,7 +103,7 @@ public class UserProfileService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
         String avatarUrl = resolveAvatarUrl(targetUser.getId());
-        return profileMapper.toSummary(targetUser.getId(), profile, avatarUrl);
+        return profileMapper.toSummary(targetUser.getId(), targetUser.getUsername(), profile, avatarUrl);
     }
 
     @Transactional(readOnly = true)
@@ -122,7 +122,12 @@ public class UserProfileService {
             throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
         }
         String avatarUrl = resolveAvatarUrl(targetUser.getId());
-        return profileMapper.toPublicProfile(targetUser.getId(), profile, avatarUrl);
+        return profileMapper.toPublicProfile(
+            targetUser.getId(),
+            targetUser.getUsername(),
+            profile,
+            avatarUrl
+        );
     }
 
     @Transactional(readOnly = true)
@@ -134,7 +139,7 @@ public class UserProfileService {
             .map(profile -> {
                 UUID userId = profile.getUser().getId();
                 String avatarUrl = resolveAvatarUrl(userId);
-                return profileMapper.toSummary(userId, profile, avatarUrl);
+                return profileMapper.toSummary(userId, profile.getUser().getUsername(), profile, avatarUrl);
             });
     }
 

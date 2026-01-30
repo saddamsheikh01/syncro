@@ -182,7 +182,11 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
 
   const displayName = useMemo(() => {
     if (!profile) return "Profilo";
-    return profile.fullName?.trim() || `Utente ${profile.userId.slice(0, 6)}`;
+    return (
+      profile.fullName?.trim() ||
+      profile.username ||
+      `Utente ${profile.userId.slice(0, 6)}`
+    );
   }, [profile]);
 
   const locationLabel = useMemo(() => formatLocation(profile), [profile]);
@@ -319,6 +323,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
 
       <ProfileSummaryCard
         name={displayName}
+        username={profile.username ?? undefined}
         location={locationLabel}
         jobTitle={profile.jobTitle ?? undefined}
         companyName={profile.companyName ?? undefined}

@@ -1,20 +1,29 @@
 package com.syncro.backend.domain.auth.service;
 
+import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
 import com.syncro.backend.domain.auth.dto.UserResponse;
+import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
+
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9]{3,30}$");
+    private static final Pattern USERNAME_RESERVED_PATTERN =
+        Pattern.compile("(riccardociviero|michelasardo|admin|support|syncro)");
 
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
@@ -49,12 +58,83 @@ public class UserService {
         if (request.onboardingCompleted() != null) {
             user.setOnboardingCompleted(request.onboardingCompleted());
         }
+        if (request.username() != null) {
+            String normalized = normalizeUsername(request.username());
+            validateUsername(normalized);
+            if (!isSameUsername(user, normalized)) {
+                ensureUsernameAvailable(normalized, user.getId());
+                user.setUsername(normalized);
+            }
+        }
 
         User saved = userRepository.save(user);
         return authMapper.toUserResponse(saved);
     }
 
+    @Transactional(readOnly = true)
+    public UsernameAvailabilityResponse checkUsernameAvailability(
+        UserPrincipal principal,
+        String username
+    ) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        String normalized = normalizeUsername(username);
+        if (!isValidUsername(normalized)) {
+            return new UsernameAvailabilityResponse(false);
+        }
+        if (isReservedUsername(normalized)) {
+            return new UsernameAvailabilityResponse(false);
+        }
+        UUID userId = principal.userId();
+        Optional<User> existing = userRepository.findByUsernameIgnoreCase(normalized);
+        boolean available = existing.isEmpty() || existing.map(User::getId).get().equals(userId);
+        return new UsernameAvailabilityResponse(available);
+    }
+
     private String normalizeLanguage(String language) {
         return language.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeUsername(String username) {
+        if (username == null) {
+            return null;
+        }
+        return username.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void validateUsername(String username) {
+        if (username == null || username.isBlank()) {
+            throw new BadRequestException("Username non valido");
+        }
+        if (!isValidUsername(username)) {
+            throw new BadRequestException("Username non valido");
+        }
+        if (isReservedUsername(username)) {
+            throw new ConflictException("Username non disponibile");
+        }
+    }
+
+    private void ensureUsernameAvailable(String username, UUID userId) {
+        userRepository.findByUsernameIgnoreCase(username)
+            .filter(existing -> !existing.getId().equals(userId))
+            .ifPresent(existing -> {
+                throw new ConflictException("Username gia in uso");
+            });
+    }
+
+    private boolean isValidUsername(String username) {
+        return username != null && USERNAME_PATTERN.matcher(username).matches();
+    }
+
+    private boolean isReservedUsername(String username) {
+        return username != null && USERNAME_RESERVED_PATTERN.matcher(username).find();
+    }
+
+    private boolean isSameUsername(User user, String normalized) {
+        if (normalized == null) {
+            return user.getUsername() == null;
+        }
+        return normalized.equals(user.getUsername());
     }
 }

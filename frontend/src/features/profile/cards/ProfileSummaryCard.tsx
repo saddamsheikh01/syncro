@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 
 export interface ProfileSummaryCardProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
+  username?: string | null;
   location?: string;
   jobTitle?: string;
   companyName?: string;
@@ -20,6 +21,7 @@ export interface ProfileSummaryCardProps extends HTMLAttributes<HTMLDivElement> 
 export const ProfileSummaryCard = ({
   className,
   name,
+  username,
   location,
   jobTitle,
   companyName,
@@ -31,6 +33,10 @@ export const ProfileSummaryCard = ({
   ...props
 }: ProfileSummaryCardProps) => {
   const jobLabel = [jobTitle, companyName].filter(Boolean).join(" · ");
+  const normalizedName = name.trim().toLowerCase();
+  const normalizedUsername = username?.trim().toLowerCase();
+  const shouldShowUsername =
+    Boolean(normalizedUsername) && normalizedUsername !== normalizedName;
 
   return (
     <Card className={cx("space-y-4 p-5", className)} {...props}>
@@ -40,6 +46,9 @@ export const ProfileSummaryCard = ({
             <Avatar name={name} src={avatarUrl} size="lg" />
             <div className="min-w-0 space-y-1">
               <p className="truncate text-base font-semibold text-foreground">{name}</p>
+              {shouldShowUsername ? (
+                <p className="text-xs text-subtle">@{normalizedUsername}</p>
+              ) : null}
               {location ? (
                 <p className="text-xs text-subtle">{location}</p>
               ) : null}

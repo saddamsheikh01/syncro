@@ -24,6 +24,8 @@ const MATCH_SORT_OPTIONS = [
 const getDisplayName = (match: UserMatchResponse) => {
   const fullName = match.user?.fullName?.trim();
   if (fullName) return fullName;
+  const username = match.user?.username?.trim();
+  if (username) return username;
   const suffix = match.userId.slice(0, 6);
   return `Utente ${suffix}`;
 };

@@ -16,6 +16,7 @@ export type RecommendationResponse = {
 
 export type UserSummary = {
   userId: Uuid;
+  username: string | null;
   fullName: string | null;
   city: string | null;
   country: string | null;

@@ -65,6 +65,7 @@ export type UserPositionResponse = {
 
 export type UserSummaryResponse = {
   userId: Uuid;
+  username: string | null;
   fullName: string | null;
   city: string | null;
   country: string | null;
@@ -74,6 +75,7 @@ export type UserSummaryResponse = {
 
 export type UserPublicProfileResponse = {
   userId: Uuid;
+  username: string | null;
   fullName: string | null;
   age: number | null;
   city: string | null;

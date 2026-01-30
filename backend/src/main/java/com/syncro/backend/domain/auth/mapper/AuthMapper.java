@@ -11,6 +11,7 @@ public class AuthMapper {
         return new UserResponse(
             user.getId(),
             user.getEmail(),
+            user.getUsername(),
             user.getLanguage(),
             user.isOnboardingCompleted(),
             user.getStatus().name(),
