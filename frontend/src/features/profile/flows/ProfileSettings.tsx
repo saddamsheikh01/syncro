@@ -18,7 +18,15 @@ import { TestCountCard } from "@/components/ui/TestCountCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector";
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
-import { useAnalytics, useAuth, useTags, useTests, useUser } from "@/hooks";
+import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
+import {
+  useAnalytics,
+  useAuth,
+  useTags,
+  useTests,
+  useUser,
+  useUnsavedChanges,
+} from "@/hooks";
 import { getMediaByOwner, uploadMedia } from "@/services/media";
 import { checkUsernameAvailability } from "@/services/users";
 import type { MediaResponse } from "@/types/media";
@@ -215,6 +223,106 @@ export const ProfileSettings = ({
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Calcola se ci sono modifiche non salvate
+  const isDirty = useMemo(() => {
+    // Non considerare dirty se i dati non sono ancora stati caricati
+    if (!profileInitializedRef.current) return false;
+    if (!preferencesInitializedRef.current) return false;
+    if (!interestsInitializedRef.current) return false;
+
+    // Confronta profilo
+    const profileChanged =
+      fullName !== (profile?.fullName ?? "") ||
+      birthDate !== (profile?.birthDate ?? "") ||
+      city !== (profile?.city ?? "") ||
+      country !== (profile?.country ?? "") ||
+      jobTitle !== (profile?.jobTitle ?? "") ||
+      companyName !== (profile?.companyName ?? "") ||
+      bio !== (profile?.bio ?? "") ||
+      traitsText !== (profile?.traitsText ?? "") ||
+      lovesText !== (profile?.lovesText ?? "") ||
+      dislikesText !== (profile?.dislikesText ?? "") ||
+      goalsText !== (profile?.goalsText ?? "") ||
+      valuesText !== (profile?.valuesText ?? "") ||
+      relationshipStatus !== (profile?.relationshipStatus ?? "") ||
+      orientation !== (profile?.orientation ?? "") ||
+      childrenStatus !== (profile?.childrenStatus ?? "") ||
+      visibility !== (profile?.visibility ?? "PUBLIC");
+
+    // Confronta username
+    const usernameChanged =
+      usernameInitializedRef.current &&
+      normalizeUsernameInput(username) !==
+        normalizeUsernameInput(user?.username ?? "");
+
+    // Confronta preferenze
+    const storedFilters = (preferences?.matchmakingFilters ?? {}) as Record<
+      string,
+      JsonValue
+    >;
+    const storedFeed = (preferences?.feedPreferences ?? {}) as Record<
+      string,
+      JsonValue
+    >;
+    const preferencesChanged =
+      ageMin !== (readNumber(storedFilters.ageMin)?.toString() ?? "") ||
+      ageMax !== (readNumber(storedFilters.ageMax)?.toString() ?? "") ||
+      distanceKm !== (readNumber(storedFilters.distanceKm)?.toString() ?? "") ||
+      gender !== (readString(storedFilters.gender) ?? "ANY") ||
+      sharedInterests !== (readBoolean(storedFilters.sharedInterests) ?? true) ||
+      feedRadiusKm !== (readNumber(storedFeed.radiusKm)?.toString() ?? "") ||
+      feedOnlyNearby !== (readBoolean(storedFeed.onlyNearby) ?? true) ||
+      feedAutoTranslate !== (readBoolean(storedFeed.autoTranslate) ?? true);
+
+    // Confronta interessi
+    const originalTagIds = interests?.tags.map((tag) => tag.id) ?? [];
+    const interestsChanged =
+      selectedTagIds.length !== originalTagIds.length ||
+      !selectedTagIds.every((id) => originalTagIds.includes(id));
+
+    return (
+      profileChanged || usernameChanged || preferencesChanged || interestsChanged
+    );
+  }, [
+    profile,
+    preferences,
+    interests,
+    user?.username,
+    fullName,
+    birthDate,
+    city,
+    country,
+    jobTitle,
+    companyName,
+    bio,
+    traitsText,
+    lovesText,
+    dislikesText,
+    goalsText,
+    valuesText,
+    relationshipStatus,
+    orientation,
+    childrenStatus,
+    visibility,
+    username,
+    ageMin,
+    ageMax,
+    distanceKm,
+    gender,
+    sharedInterests,
+    feedRadiusKm,
+    feedOnlyNearby,
+    feedAutoTranslate,
+    selectedTagIds,
+  ]);
+
+  // Hook per gestire il warning di modifiche non salvate
+  const {
+    showModal: showUnsavedModal,
+    confirmNavigation,
+    cancelNavigation,
+  } = useUnsavedChanges({ isDirty });
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -1134,6 +1242,12 @@ export const ProfileSettings = ({
           </p>
         </Card>
       ) : null}
+
+      <UnsavedChangesModal
+        open={showUnsavedModal}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+      />
     </div>
   );
 };
