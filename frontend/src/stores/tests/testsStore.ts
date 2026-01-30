@@ -12,6 +12,7 @@ import {
   getTest,
   getTests,
   getUserTestsCount,
+  resetTestSubmission,
   resetMySubmissions,
   submitTest,
 } from "../../services/tests";
@@ -154,6 +155,29 @@ export const testsActions = {
           completed: false,
         })),
       });
+    } catch (error) {
+      testsStore.setState({ loading: false, error: error as ApiError });
+      throw error;
+    }
+  },
+
+  resetSubmission: async (testId: Uuid): Promise<void> => {
+    testsStore.setState({ loading: true, error: null });
+
+    try {
+      await resetTestSubmission(testId);
+      testsStore.setState((state) => ({
+        loading: false,
+        completedCount: null,
+        userCompletedCounts: {},
+        tests: state.tests.map((test) =>
+          test.id === testId ? { ...test, completed: false } : test
+        ),
+        activeTest:
+          state.activeTest && state.activeTest.id === testId
+            ? { ...state.activeTest, completed: false }
+            : state.activeTest,
+      }));
     } catch (error) {
       testsStore.setState({ loading: false, error: error as ApiError });
       throw error;

@@ -16,6 +16,7 @@ import type { TestQuestionResponse } from "@/types/tests";
 import type { ApiError } from "@/types/api";
 import { useTests } from "@/hooks";
 import { isUuid } from "@/lib/validators";
+import { getTestEmoji } from "@/lib/testEmoji";
 
 const sortQuestions = (questions: TestQuestionResponse[]) =>
   [...questions].sort((a, b) => a.position - b.position);
@@ -33,6 +34,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const isValidTestId = isUuid(testId);
 
   useEffect(() => {
@@ -164,6 +166,28 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     }
   };
 
+  const handleRetake = async () => {
+    if (resetting) return;
+    setSubmitError(null);
+    setResetting(true);
+    try {
+      await actions.resetSubmission(testId);
+      await actions.fetchTest(testId);
+      setCurrentIndex(0);
+      setAnswers({});
+      setSubmitted(false);
+      setSubmissionId(null);
+    } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? (error as ApiError).message
+          : null;
+      setSubmitError(message ?? "Errore durante il reset del test.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (!isValidTestId) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
@@ -215,6 +239,13 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
             test disponibili.
           </p>
           <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={handleRetake}
+              loading={resetting}
+              loadingText="Reset"
+            >
+              Rifai test
+            </Button>
             <Button variant="secondary" onClick={() => router.push("/tests")}>
               Torna ai micro-test
             </Button>
@@ -222,6 +253,9 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
               Vai al profilo
             </Button>
           </div>
+          {submitError ? (
+            <p className="text-sm text-danger">{submitError}</p>
+          ) : null}
         </Card>
       </div>
     );
@@ -293,6 +327,8 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       : `Puoi selezionare fino a ${maxSelections} opzioni.`
     : undefined;
 
+  const testEmoji = getTestEmoji(activeTest.testType, activeTest.title);
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
@@ -300,7 +336,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           Micro-test
         </p>
         <h1 className="text-2xl font-semibold text-foreground">
-          {activeTest.title}
+          {testEmoji ? `${testEmoji} ${activeTest.title}` : activeTest.title}
         </h1>
         {activeTest.description ? (
           <p className="text-sm text-muted">{activeTest.description}</p>

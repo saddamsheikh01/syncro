@@ -267,6 +267,26 @@ public class TestService {
         recapCache.invalidateUser(user.getId());
     }
 
+    @Transactional
+    public void resetMySubmissionForTest(UserPrincipal principal, UUID testId) {
+        User user = getUser(principal);
+        TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
+            .orElseThrow(() -> new NotFoundException("Test non trovato"));
+        UserTestSubmission submission = userTestSubmissionRepository
+            .findByUser_IdAndTestDefinition_Id(user.getId(), testId)
+            .orElse(null);
+        if (submission == null) {
+            return;
+        }
+        List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_Id(submission.getId());
+        if (!answers.isEmpty()) {
+            userTestAnswerRepository.deleteAll(answers);
+        }
+        userTestSubmissionRepository.delete(submission);
+        removeTestFromProfile(user, testId, definition.getTestType());
+        recapCache.invalidateUser(user.getId());
+    }
+
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
             throw new UnauthorizedException("Token mancante o non valido");
@@ -287,6 +307,37 @@ public class TestService {
         optionsByQuestion.values()
             .forEach(options -> options.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt())));
         return optionsByQuestion;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void removeTestFromProfile(User user, UUID testId, TestType testType) {
+        UserPsyProfile profile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile == null) {
+            return;
+        }
+        Map<String, Object> profileData = profile.getProfile();
+        if (profileData == null || profileData.isEmpty()) {
+            return;
+        }
+        Object testsValue = profileData.get("tests");
+        if (testsValue instanceof Map<?, ?> testsMap) {
+            Map<String, Object> testsData = (Map<String, Object>) testsMap;
+            testsData.remove(testId.toString());
+            if (testsData.isEmpty()) {
+                profileData.remove("tests");
+            }
+        }
+        Object dimensionsValue = profileData.get("dimensions");
+        if (dimensionsValue instanceof Map<?, ?> dimensionsMap) {
+            Map<String, Object> dimensions = (Map<String, Object>) dimensionsMap;
+            String key = testType.name().toLowerCase(Locale.ROOT);
+            dimensions.remove(key);
+            if (dimensions.isEmpty()) {
+                profileData.remove("dimensions");
+            }
+        }
+        profile.setProfile(profileData);
+        userPsyProfileRepository.save(profile);
     }
 
     @SuppressWarnings("unchecked")

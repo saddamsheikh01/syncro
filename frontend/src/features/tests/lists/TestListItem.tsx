@@ -21,6 +21,7 @@ const CheckIcon = () => (
 
 export interface TestListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
+  emoji?: string;
   title: string;
   description?: string;
   questionCount?: number;
@@ -34,6 +35,7 @@ export interface TestListItemProps
 
 export const TestListItem = ({
   className,
+  emoji,
   title,
   description,
   questionCount,
@@ -46,8 +48,13 @@ export const TestListItem = ({
   ...props
 }: TestListItemProps) => {
   const badgeTone = completed ? "success" : "accent";
-  const resolvedStatus = completed ? undefined : statusLabel;
-  const resolvedActionLabel = completed ? "Completato" : actionLabel;
+  const isRetakeAvailable = completed && Boolean(href || onPress);
+  const resolvedStatus = completed ? "Completato" : statusLabel;
+  const resolvedActionLabel = isRetakeAvailable
+    ? actionLabel
+    : completed
+      ? "Completato"
+      : actionLabel;
   const content = (
     <Card
       className={cx(
@@ -61,12 +68,21 @@ export const TestListItem = ({
     >
       <div className="relative flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h4 className="text-base font-semibold text-foreground">{title}</h4>
+          <h4 className="text-base font-semibold text-foreground">
+            {emoji ? `${emoji} ${title}` : title}
+          </h4>
           {description ? (
             <p className="text-xs text-muted">{description}</p>
           ) : null}
         </div>
-        {resolvedStatus ? <Badge tone={badgeTone}>{resolvedStatus}</Badge> : null}
+        <div className="flex flex-col items-end gap-1 text-right">
+          {resolvedStatus ? <Badge tone={badgeTone}>{resolvedStatus}</Badge> : null}
+          {isRetakeAvailable ? (
+            <span className="text-[10px] font-medium text-success">
+              Puoi rifare il test
+            </span>
+          ) : null}
+        </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 text-xs text-subtle">
@@ -80,16 +96,16 @@ export const TestListItem = ({
         <Button
           size="sm"
           variant="secondary"
-          disabled={completed}
+          disabled={completed && !isRetakeAvailable}
           className={completed ? "border-success/30 text-success" : undefined}
         >
-          {completed ? <CheckIcon /> : resolvedActionLabel}
+          {completed && !isRetakeAvailable ? <CheckIcon /> : resolvedActionLabel}
         </Button>
       </div>
     </Card>
   );
 
-  if (href && !completed) {
+  if (href && (isRetakeAvailable || !completed)) {
     return (
       <Link href={href} className="block">
         {content}
@@ -97,7 +113,7 @@ export const TestListItem = ({
     );
   }
 
-  if (onPress && !completed) {
+  if (onPress && (isRetakeAvailable || !completed)) {
     return (
       <button type="button" onClick={onPress} className="w-full text-left">
         {content}

@@ -80,6 +80,16 @@ public class TestsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @DeleteMapping("/{testId}/submissions")
+    @Operation(summary = "Reset submission del test (utente autenticato)")
+    public ResponseEntity<Void> resetMySubmissionForTest(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID testId
+    ) {
+        testService.resetMySubmissionForTest(principal, testId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/submissions/reset")
     @Operation(summary = "Reset delle submission (solo per debug)")
     public ResponseEntity<Void> resetMySubmissions(

@@ -15,6 +15,7 @@ export const useTests = () => {
       clearActiveTest: testsActions.clearActiveTest,
       fetchCompletedCount: testsActions.fetchCompletedCount,
       fetchUserCompletedCount: testsActions.fetchUserCompletedCount,
+      resetSubmission: testsActions.resetSubmission,
       resetSubmissions: testsActions.resetSubmissions,
     }),
     []

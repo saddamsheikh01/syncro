@@ -24,6 +24,11 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
 
     boolean existsByUser_IdAndTestDefinition_Id(UUID userId, UUID testId);
 
+    java.util.Optional<UserTestSubmission> findByUser_IdAndTestDefinition_Id(
+        UUID userId,
+        UUID testId
+    );
+
     @Query("""
         select distinct s.testDefinition.id
         from UserTestSubmission s

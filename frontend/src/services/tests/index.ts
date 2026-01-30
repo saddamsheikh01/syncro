@@ -46,3 +46,7 @@ export const getUserTestsCount = async (
 export const resetMySubmissions = async (): Promise<void> => {
   await apiClient.delete("/tests/submissions/reset");
 };
+
+export const resetTestSubmission = async (testId: Uuid): Promise<void> => {
+  await apiClient.delete(`/tests/${testId}/submissions`);
+};

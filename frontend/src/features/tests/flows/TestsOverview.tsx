@@ -9,6 +9,7 @@ import { Loader } from "@/components/elements/Loader";
 import { MapTestListItem } from "@/features/tests/lists/MapTestListItem";
 import { TestsHelperCard } from "@/features/tests/cards/TestsHelperCard";
 import { useTests } from "@/hooks";
+import { getTestEmoji } from "@/lib/testEmoji";
 
 const isLocalhost = () =>
   typeof window !== "undefined" &&
@@ -45,11 +46,12 @@ export const TestsOverview = () => {
   const testItems = useMemo(
     () =>
       tests.map((test) => ({
+        emoji: getTestEmoji(test.testType, test.title),
         title: test.title,
         description: test.description ?? undefined,
-        href: test.completed ? undefined : `/tests/${test.id}`,
+        href: `/tests/${test.id}`,
         statusLabel: "Micro-test",
-        actionLabel: "Inizia",
+        actionLabel: test.completed ? "Rifai" : "Inizia",
         completed: test.completed,
       })),
     [tests]
