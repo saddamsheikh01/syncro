@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from "react";
 import { cx } from "@/lib/classNames";
+import { formatInterestLabel } from "@/lib/interestEmoji";
 
 export interface InterestOptionCardProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
@@ -24,6 +25,7 @@ export const InterestOptionCard = ({
   onToggleState,
   ...props
 }: InterestOptionCardProps) => {
+  const displayLabel = formatInterestLabel(label);
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onToggleState?.(!selected);
@@ -53,7 +55,7 @@ export const InterestOptionCard = ({
         </span>
       ) : null}
       <span className="space-y-1">
-        <span className="block text-sm font-semibold">{label}</span>
+        <span className="block text-sm font-semibold">{displayLabel}</span>
         {description ? (
           <span className="block text-xs text-subtle">{description}</span>
         ) : null}

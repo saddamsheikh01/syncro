@@ -182,7 +182,7 @@ export const OnboardingStep3 = () => {
             onValueChange={setGender}
           />
           <Switch
-            label="Interessi in comune"
+            label="Passioni in comune"
             description="Mostra priorita a chi condivide i tuoi tag."
             checked={sharedInterests}
             onChange={(event) => setSharedInterests(event.target.checked)}

@@ -7,8 +7,10 @@ import { MapInterestOptionCard } from "@/features/onboarding/lists/MapInterestOp
 import type { InterestOptionItem } from "@/features/onboarding/lists/MapInterestOptionCard";
 import { cx } from "@/lib/classNames";
 
-export interface InterestPickerGridProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+export interface InterestPickerGridProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "title"
+> {
   title?: string;
   subtitle?: string;
   hint?: string;
@@ -19,7 +21,7 @@ export interface InterestPickerGridProps
 
 export const InterestPickerGrid = ({
   className,
-  title = "Interessi principali",
+  title = "Le tue passioni",
   subtitle = "Seleziona gli argomenti che ti rappresentano.",
   hint,
   items,

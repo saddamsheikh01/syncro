@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, MouseEvent } from "react";
 import { cx } from "@/lib/classNames";
+import { formatInterestLabel } from "@/lib/interestEmoji";
 
 export interface TagPillSelectableProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
@@ -20,6 +21,7 @@ export const TagPillSelectable = ({
   onToggleState,
   ...props
 }: TagPillSelectableProps) => {
+  const displayLabel = formatInterestLabel(label);
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onToggleState?.(!selected);
@@ -43,7 +45,7 @@ export const TagPillSelectable = ({
       onClick={handleClick}
       {...props}
     >
-      {label}
+      {displayLabel}
     </button>
   );
 };

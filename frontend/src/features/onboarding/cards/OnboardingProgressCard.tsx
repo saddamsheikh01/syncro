@@ -46,7 +46,7 @@ export const OnboardingProgressCard = () => {
       },
       {
         id: "interests",
-        label: "Seleziona interessi",
+        label: "Seleziona passioni",
         completed: Boolean(interests?.tags?.length),
         href: "/settings",
       },

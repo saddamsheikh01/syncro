@@ -21,7 +21,7 @@ const DEFAULT_QUICK_PROMPTS: string[] = [
   "Suggerisci il match del giorno",
   "Idee per il weekend vicino a me",
   "Consigli per fare networking in modo smart",
-  "Mostra luoghi in linea con i miei interessi",
+  "Mostra luoghi in linea con le mie passioni",
 ];
 
 const mapMessages = (messages: ZyraMessageResponse[]) =>

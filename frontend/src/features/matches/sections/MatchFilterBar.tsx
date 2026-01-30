@@ -30,7 +30,7 @@ export const MatchFilterBar = ({
   className,
   title = "Filtri match",
   subtitle = "Aggiorna le preferenze per affinita.",
-  searchPlaceholder = "Cerca persone o interessi",
+  searchPlaceholder = "Cerca persone o passioni",
   searchValue,
   onSearchChange,
   typeItems = [],

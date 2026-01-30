@@ -41,7 +41,7 @@ const mapTags = (match: UserMatchResponse): string[] => {
   const tags: string[] = [];
   const sharedTags = match.breakdown?.["sharedTags"];
   if (typeof sharedTags === "number") {
-    tags.push(`${sharedTags} interessi in comune`);
+    tags.push(`${sharedTags} passioni in comune`);
   }
   return tags;
 };
@@ -51,7 +51,7 @@ const mapInsights = (match: UserMatchResponse): MatchInsightItemProps[] => {
   const sharedTags = match.breakdown?.["sharedTags"];
   if (typeof sharedTags === "number") {
     insights.push({
-      title: "Interessi",
+      title: "Passioni",
       description: `${sharedTags} tag condivisi`,
       tone: "accent",
     });
@@ -173,7 +173,7 @@ export const MatchesOverview = () => {
           </p>
           <h1 className="text-3xl font-semibold text-foreground">Le tue compatibilita</h1>
           <p className="text-sm text-muted">
-            Suggerimenti basati sugli interessi condivisi e sul tuo profilo.
+            Suggerimenti basati sulle passioni condivise e sul tuo profilo.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -228,7 +228,7 @@ export const MatchesOverview = () => {
           {!isInitialLoading && !error && filteredMatches.length === 0 && (
             <EmptyState
               title="Nessun match disponibile"
-              description="Completa gli interessi o i test per generare nuovi suggerimenti."
+              description="Completa le passioni o i test per generare nuovi suggerimenti."
             />
           )}
 

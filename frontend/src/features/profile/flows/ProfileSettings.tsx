@@ -575,7 +575,7 @@ export const ProfileSettings = ({
     setInterestsError(null);
     if (nextSelected && selectedTagIds.length >= MAX_INTERESTS) {
       setInterestsError(
-        `Puoi scegliere al massimo ${MAX_INTERESTS} interessi.`
+        `Puoi scegliere al massimo ${MAX_INTERESTS} passioni.`
       );
       return;
     }
@@ -589,7 +589,7 @@ export const ProfileSettings = ({
     setInterestsError(null);
 
     if (selectedTagIds.length < MIN_INTERESTS) {
-      setInterestsError(`Seleziona almeno ${MIN_INTERESTS} interessi.`);
+      setInterestsError(`Seleziona almeno ${MIN_INTERESTS} passioni.`);
       return;
     }
 
@@ -880,7 +880,7 @@ export const ProfileSettings = ({
             <textarea
               value={lovesText}
               onChange={(event) => setLovesText(event.target.value)}
-              placeholder="Passioni, interessi, momenti..."
+              placeholder="Passioni, hobby, momenti..."
               maxLength={500}
               rows={3}
               className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
@@ -994,13 +994,13 @@ export const ProfileSettings = ({
         {isTagsLoading ? (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Caricamento interessi...</p>
+            <p className="text-sm text-muted">Caricamento passioni...</p>
           </Card>
         ) : (
           <InterestPickerGrid
             items={interestItems}
             maxSelections={MAX_INTERESTS}
-            hint={`Seleziona almeno ${MIN_INTERESTS} interessi.`}
+            hint={`Seleziona almeno ${MIN_INTERESTS} passioni.`}
             onItemToggle={handleInterestToggle}
           />
         )}
@@ -1017,7 +1017,7 @@ export const ProfileSettings = ({
             loadingText="Salvataggio"
             onClick={handleSaveInterests}
           >
-            Salva interessi
+            Salva passioni
           </Button>
         </div>
       </section>
@@ -1065,7 +1065,7 @@ export const ProfileSettings = ({
             onValueChange={setGender}
           />
           <Switch
-            label="Interessi in comune"
+            label="Passioni in comune"
             description="Mostra priorita a chi condivide i tuoi tag."
             checked={sharedInterests}
             onChange={(event) => setSharedInterests(event.target.checked)}

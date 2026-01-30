@@ -15,7 +15,7 @@ export type OnboardingStep = {
 };
 
 // Onboarding semplificato: solo step 1 (profilo)
-// Step 2 (interessi) e step 3 (preferenze) sono disponibili in /settings
+// Step 2 (passioni) e step 3 (preferenze) sono disponibili in /settings
 const buildSteps = (
   hasProfile: boolean,
   _hasInterests: boolean,

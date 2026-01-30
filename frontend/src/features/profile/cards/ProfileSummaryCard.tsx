@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { Tag } from "@/components/elements/Tag";
+import { formatInterestLabel } from "@/lib/interestEmoji";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
@@ -70,7 +71,7 @@ export const ProfileSummaryCard = ({
       {tags.length ? (
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <Tag key={tag}>{tag}</Tag>
+            <Tag key={tag}>{formatInterestLabel(tag)}</Tag>
           ))}
         </div>
       ) : null}

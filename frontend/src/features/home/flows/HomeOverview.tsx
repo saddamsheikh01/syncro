@@ -360,7 +360,7 @@ export const HomeOverview = () => {
       <section className="space-y-4">
         <ForYouSectionHeader
           title="Luoghi per te"
-          subtitle="Vicini e in linea con i tuoi interessi."
+          subtitle="Vicini e in linea con le tue passioni."
           actionLabel="Vedi tutti"
           actionHref="/places"
         />
@@ -401,7 +401,7 @@ export const HomeOverview = () => {
       <section className="space-y-4">
         <SectionHeader
           title="Match del giorno"
-          subtitle="Persone affini basate sui tuoi interessi e test completati."
+          subtitle="Persone affini basate sulle tue passioni e test completati."
           actionLabel="Vai ai match"
           actionHref="/matches"
         />
@@ -419,7 +419,7 @@ export const HomeOverview = () => {
         ) : !matchSpotlight ? (
           <EmptyState
             title="Nessun match disponibile"
-            description="Completa onboarding, interessi e test per generare i match."
+            description="Completa onboarding, passioni e test per generare i match."
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-[1.4fr,1fr]">
@@ -431,7 +431,7 @@ export const HomeOverview = () => {
               subtitle={matchSpotlight.user?.city ?? undefined}
               description={
                 matchSpotlight.explanation ??
-                "Affinita calcolata sugli interessi condivisi."
+                "Affinita calcolata sulle passioni condivise."
               }
               matchScore={matchSpotlight.scoreTotal ?? undefined}
               profileHref={`/profile/${matchSpotlight.userId}`}

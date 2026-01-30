@@ -75,7 +75,7 @@ export const ProfileStatsCard = () => {
         <StatItem
           icon={<HeartIcon />}
           value={interestCount}
-          label="Interessi"
+          label="Passioni"
           color="bg-qa-experiences-bg text-[var(--qa-experiences-gradient-start)]"
         />
         <div className="h-10 w-px bg-border/60" />

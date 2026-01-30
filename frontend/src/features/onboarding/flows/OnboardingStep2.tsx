@@ -61,7 +61,7 @@ export const OnboardingStep2 = () => {
     setFormError(null);
 
     if (nextSelected && selectedCount >= MAX_SELECTIONS) {
-      setFormError(`Puoi scegliere al massimo ${MAX_SELECTIONS} interessi.`);
+      setFormError(`Puoi scegliere al massimo ${MAX_SELECTIONS} passioni.`);
       return;
     }
 
@@ -74,7 +74,7 @@ export const OnboardingStep2 = () => {
     setFormError(null);
 
     if (!hasMinSelection) {
-      setFormError(`Seleziona almeno ${MIN_SELECTIONS} interessi.`);
+      setFormError(`Seleziona almeno ${MIN_SELECTIONS} passioni.`);
       return;
     }
 
@@ -98,7 +98,7 @@ export const OnboardingStep2 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Seleziona i tuoi interessi"
+          title="Seleziona le tue passioni"
           subtitle="Scegli gli argomenti che ti rappresentano di piu."
           step={2}
           totalSteps={3}
@@ -107,7 +107,7 @@ export const OnboardingStep2 = () => {
         <InterestPickerGrid
           items={interestItems}
           maxSelections={MAX_SELECTIONS}
-          hint={`Seleziona almeno ${MIN_SELECTIONS} interessi per continuare.`}
+          hint={`Seleziona almeno ${MIN_SELECTIONS} passioni per continuare.`}
           onItemToggle={handleToggle}
         />
 

@@ -3,6 +3,7 @@
 import type { TagTone } from "@/components/elements/Tag";
 import { Tag } from "@/components/elements/Tag";
 import { cx } from "@/lib/classNames";
+import { formatInterestLabel } from "@/lib/interestEmoji";
 
 export interface TagItem {
   id: string;
@@ -24,7 +25,7 @@ export const MapTag = ({ className, items, onRemove }: MapTagProps) => (
         tone={item.tone}
         onRemove={onRemove ? () => onRemove(item.id) : undefined}
       >
-        {item.label}
+        {formatInterestLabel(item.label)}
       </Tag>
     ))}
   </div>

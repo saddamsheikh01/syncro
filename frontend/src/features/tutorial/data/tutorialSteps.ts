@@ -23,7 +23,7 @@ export const tutorialSteps: TutorialStep[] = [
     icon: "setup",
     title: "Completa il tuo Profilo",
     description:
-      "Per ottenere il massimo da Syncro, completa il tuo profilo nelle Impostazioni. Aggiungi i tuoi interessi, imposta le preferenze di match e attiva la posizione.",
+      "Per ottenere il massimo da Syncro, completa il tuo profilo nelle Impostazioni. Aggiungi le tue passioni, imposta le preferenze di match e attiva la posizione.",
     highlight:
       "Un profilo completo ti permette di ricevere match piu accurati e suggerimenti personalizzati. Vai su Impostazioni per completarlo!",
   },
@@ -39,7 +39,7 @@ export const tutorialSteps: TutorialStep[] = [
     icon: "home",
     title: "La tua Home",
     description:
-      "Qui trovi suggerimenti personalizzati, match del giorno e accesso rapido a tutte le sezioni. Tutto basato sul tuo profilo e i tuoi interessi.",
+      "Qui trovi suggerimenti personalizzati, match del giorno e accesso rapido a tutte le sezioni. Tutto basato sul tuo profilo e le tue passioni.",
   },
   {
     id: "map",
@@ -53,7 +53,7 @@ export const tutorialSteps: TutorialStep[] = [
     icon: "match",
     title: "I tuoi Match",
     description:
-      "Trova persone con interessi simili ai tuoi. L'affinita viene calcolata in base al profilo, interessi condivisi e risultati dei test.",
+      "Trova persone con passioni simili alle tue. L'affinita viene calcolata in base al profilo, passioni condivise e risultati dei test.",
   },
   {
     id: "feed",
