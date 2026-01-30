@@ -66,6 +66,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const answeredCount = Object.values(answers).filter(
     (items) => items.length > 0
   ).length;
+  const hasOptionalQuestions = requiredCount < questions.length;
   const allAnswered =
     requiredCount > 0 ? answeredRequiredCount === requiredCount : answeredCount > 0;
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -293,9 +294,13 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
       <SubmissionProgress
         label="Avanzamento"
-        current={requiredCount > 0 ? answeredRequiredCount : answeredCount}
-        total={requiredCount > 0 ? requiredCount : questions.length}
-        helper="Completa tutte le domande richieste per inviare il test."
+        current={hasOptionalQuestions ? answeredCount : answeredRequiredCount}
+        total={hasOptionalQuestions ? questions.length : requiredCount}
+        helper={
+          hasOptionalQuestions
+            ? "Completa le domande che conosci: basta rispondere a quelle richieste."
+            : "Completa tutte le domande richieste per inviare il test."
+        }
       />
 
       {isInterestTest ? (
