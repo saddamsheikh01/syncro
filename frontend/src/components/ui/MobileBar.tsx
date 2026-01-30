@@ -20,9 +20,9 @@ type MobileNavItem = {
 
 const MOBILE_ITEMS: MobileNavItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
-  { id: "map", label: "Mappa", href: "/map", icon: "map" },
-  { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark", isZyra: true },
-  { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
+  { id: "matches", label: "Match", href: "/matches", icon: "spark" },
+  { id: "tests", label: "Test", href: "/tests", icon: "clipboard" },
+  { id: "profile", label: "Profilo", href: "/profile", icon: "user" },
 ];
 
 const normalizePath = (path: string) =>

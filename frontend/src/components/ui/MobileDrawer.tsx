@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
 import type { NavIconName } from "@/components/ui/NavIcon";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { Logout } from "@/components/buttons/Logout";
 
 type DrawerMenuItem = {
@@ -13,11 +14,13 @@ type DrawerMenuItem = {
   label: string;
   href: string;
   icon: NavIconName;
+  isZyra?: boolean;
 };
 
 const DRAWER_ITEMS: DrawerMenuItem[] = [
-  { id: "matches", label: "Match", href: "/matches", icon: "spark" },
-  { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
+  { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark", isZyra: true },
+  { id: "map", label: "Mappa", href: "/map", icon: "map" },
+  { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
   { id: "feed", label: "Feed", href: "/feed", icon: "document" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
@@ -78,8 +81,8 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
       {/* Drawer panel */}
       <div
         className={cx(
-          "absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-[var(--radius-xl)] border-t border-border/70 bg-surface shadow-xl transition-transform duration-300 ease-out",
-          open ? "translate-y-0" : "translate-y-full"
+          "absolute bottom-20 left-3 right-3 max-h-[70vh] rounded-[var(--radius-xl)] border border-border/70 bg-surface shadow-xl transition-transform duration-300 ease-out",
+          open ? "translate-y-0" : "translate-y-[calc(100%+5rem)]"
         )}
         role="dialog"
         aria-modal="true"
@@ -108,6 +111,8 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
           <ul className="space-y-1">
             {DRAWER_ITEMS.map((item) => {
               const active = isActive(item.href);
+              const isZyra = item.isZyra;
+
               return (
                 <li key={item.id}>
                   <Link
@@ -115,23 +120,34 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
                     onClick={onClose}
                     className={cx(
                       "flex items-center gap-4 rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-accent-soft text-accent"
-                        : "text-foreground hover:bg-surface-muted"
+                      !isZyra && active && "bg-accent-soft text-accent",
+                      !isZyra && !active && "text-foreground hover:bg-surface-muted",
+                      isZyra && active && "border border-zyra-border/70 bg-zyra-glow/50 text-zyra-text shadow-[0_0_20px_var(--zyra-glow)]",
+                      isZyra && !active && "text-zyra-text/80 hover:bg-zyra-glow/40 hover:text-zyra-text"
                     )}
                     aria-current={active ? "page" : undefined}
                   >
                     <span
                       className={cx(
                         "flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
-                        active
-                          ? "border-accent/30 bg-accent-soft text-accent"
-                          : "border-border bg-surface text-muted"
+                        !isZyra && active && "border-accent/30 bg-accent-soft text-accent",
+                        !isZyra && !active && "border-border bg-surface text-muted",
+                        isZyra && "border-transparent bg-transparent"
                       )}
                     >
-                      <NavIcon name={item.icon} className="h-5 w-5" />
+                      {isZyra ? (
+                        <ZyraMark size="sm" glow={active} />
+                      ) : (
+                        <NavIcon name={item.icon} className="h-5 w-5" />
+                      )}
                     </span>
-                    <span>{item.label}</span>
+                    <span
+                      className={cx(
+                        isZyra && "bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent"
+                      )}
+                    >
+                      {item.label}
+                    </span>
                   </Link>
                 </li>
               );

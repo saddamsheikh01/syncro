@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -16,7 +15,6 @@ import { ForYouSectionHeader } from "@/features/home/sections/ForYouSectionHeade
 import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
 import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
-import { MapPermissionScreen } from "@/features/map/sections/MapPermissionScreen";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { MatchListItem } from "@/features/matches/elements/MatchListItem";
 import { NavIcon } from "@/components/ui/NavIcon";
@@ -104,8 +102,6 @@ export const HomeOverview = () => {
   const {
     position,
     hasPosition,
-    permission,
-    loading: positionLoading,
     actions: positionActions,
   } = usePosition();
   const {
@@ -334,27 +330,6 @@ export const HomeOverview = () => {
     ? catalogLoading && places.length === 0
     : catalogLoading && places.length === 0 && recommendationPlaces.length === 0;
 
-  const handleRequestPosition = () => {
-    if (permission === "unknown") {
-      positionActions.setPermission("unknown");
-    }
-    if (navigator?.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          positionActions.setPermission("granted");
-          positionActions.setPosition({
-            userId: "",
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracyMeters: pos.coords.accuracy,
-            updatedAt: new Date().toISOString(),
-          });
-        },
-        () => positionActions.setPermission("denied"),
-      );
-    }
-  };
-
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10">
       <header className="space-y-2">
@@ -479,38 +454,6 @@ export const HomeOverview = () => {
                 </Card>
               )}
             </div>
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-4">
-        <SectionHeader
-          title="Vicino a te"
-          subtitle="Attiva la posizione per vedere suggerimenti nel raggio selezionato."
-          actionLabel="Apri mappa"
-          actionHref="/map"
-        />
-
-        {permission !== "granted" ? (
-          <MapPermissionScreen
-            primaryActionLabel={
-              positionLoading ? "Attivazione..." : "Attiva posizione"
-            }
-            secondaryActionLabel="Continua senza posizione"
-            onPrimaryAction={handleRequestPosition}
-            onSecondaryAction={() => positionActions.setPermission("granted")}
-            helper="La posizione migliora raccomandazioni e distanze."
-          />
-        ) : placeCards.length === 0 ? (
-          <EmptyState
-            title="Nessun luogo vicino"
-            description="Non ci sono risultati per quest'area."
-          />
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {placeCards.slice(0, 4).map((item, index) => (
-              <PlaceListItem key={`${item.title}-near-${index}`} {...item} />
-            ))}
           </div>
         )}
       </section>
