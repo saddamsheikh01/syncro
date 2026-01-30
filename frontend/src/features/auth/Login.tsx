@@ -34,7 +34,7 @@ export const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/test");
+      router.replace("/home");
     }
   }, [isAuthenticated, router]);
 

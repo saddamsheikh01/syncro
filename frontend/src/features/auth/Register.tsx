@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAnalytics, useAuth } from "../../hooks";
+import { useAnalytics, useAuth, useUser } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 
 export const Register = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
+  const { actions: userActions } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +21,7 @@ export const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/test");
+      router.replace("/home");
     }
   }, [isAuthenticated, router]);
 
@@ -32,7 +33,9 @@ export const Register = () => {
     try {
       await actions.register({ email, password });
       analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
-      router.push("/onboarding/step-1");
+      await userActions.updateUser({ onboardingCompleted: true });
+      analyticsActions.trackEvent({ eventType: "ONBOARDING_COMPLETED" }).catch(() => undefined);
+      router.push("/home");
     } catch {
     }
   };

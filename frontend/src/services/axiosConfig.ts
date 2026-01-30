@@ -25,9 +25,14 @@ const resolveBaseUrl = () => {
 export const API_BASE_URL = resolveBaseUrl();
 
 let accessToken: string | null = null;
+let onUnauthorized: (() => void) | null = null;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
+};
+
+export const setOnUnauthorized = (callback: (() => void) | null) => {
+  onUnauthorized = callback;
 };
 
 export const apiClient = axios.create({
@@ -106,5 +111,12 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(normalizeApiError(error))
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (onUnauthorized) {
+        onUnauthorized();
+      }
+    }
+    return Promise.reject(normalizeApiError(error));
+  }
 );
