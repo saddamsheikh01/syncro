@@ -162,7 +162,7 @@ public class TestService {
             .collect(Collectors.toMap(TestQuestion::getId, Function.identity()));
 
         Map<UUID, List<UUID>> answersByQuestion = normalizeAnswers(request.answers(), questionsById);
-        validateAnswers(questions, optionsByQuestion, optionsById, answersByQuestion);
+        validateAnswers(definition, questions, optionsByQuestion, optionsById, answersByQuestion);
 
         int answeredQuestions = (int) answersByQuestion.entrySet().stream()
             .filter(entry -> !entry.getValue().isEmpty())
@@ -245,6 +245,22 @@ public class TestService {
         recapCache.invalidateUser(user.getId());
     }
 
+    @Transactional
+    public void resetMySubmissions(UserPrincipal principal) {
+        User user = getUser(principal);
+        List<UserTestSubmission> submissions = userTestSubmissionRepository.findByUser_Id(user.getId());
+        if (submissions.isEmpty()) {
+            return;
+        }
+        List<UUID> submissionIds = submissions.stream()
+            .map(UserTestSubmission::getId)
+            .toList();
+        List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_IdIn(submissionIds);
+        userTestAnswerRepository.deleteAll(answers);
+        userTestSubmissionRepository.deleteAll(submissions);
+        recapCache.invalidateUser(user.getId());
+    }
+
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
             throw new UnauthorizedException("Token mancante o non valido");
@@ -302,11 +318,13 @@ public class TestService {
     }
 
     private void validateAnswers(
+        TestDefinition definition,
         List<TestQuestion> questions,
         Map<UUID, List<TestAnswerOption>> optionsByQuestion,
         Map<UUID, TestAnswerOption> optionsById,
         Map<UUID, List<UUID>> answersByQuestion
     ) {
+        boolean isInterestsTest = definition.getTestType() == TestType.INTERESTS;
         for (TestQuestion question : questions) {
             List<TestAnswerOption> options = optionsByQuestion.get(question.getId());
             if (options == null || options.isEmpty()) {
@@ -316,9 +334,11 @@ public class TestService {
             if (question.isRequired() && selectedOptions.isEmpty()) {
                 throw new BadRequestException("Risposte mancanti");
             }
-            int maxSelections = resolveMaxSelections(question, options);
-            if (selectedOptions.size() > maxSelections) {
-                throw new BadRequestException("Troppe risposte selezionate");
+            if (!isInterestsTest) {
+                int maxSelections = resolveMaxSelections(question, options);
+                if (selectedOptions.size() > maxSelections) {
+                    throw new BadRequestException("Troppe risposte selezionate");
+                }
             }
             if (question.getQuestionType() == TestQuestionType.SINGLE && selectedOptions.size() > 1) {
                 throw new BadRequestException("Risposte non valide");

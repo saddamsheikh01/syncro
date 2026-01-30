@@ -11,6 +11,8 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
 
     boolean existsByTestDefinitionId(UUID testId);
 
+    List<UserTestSubmission> findByUser_Id(UUID userId);
+
     @Query("""
         select count(distinct s.testDefinition.id)
         from UserTestSubmission s

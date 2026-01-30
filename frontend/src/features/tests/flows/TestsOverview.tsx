@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -9,10 +10,16 @@ import { MapTestListItem } from "@/features/tests/lists/MapTestListItem";
 import { TestsHelperCard } from "@/features/tests/cards/TestsHelperCard";
 import { useTests } from "@/hooks";
 
+const isLocalhost = () =>
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1");
+
 export const TestsOverview = () => {
   const { tests, loading, error, completedCount, countLoading, actions } =
     useTests();
   const bootstrappedRef = useRef(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (bootstrappedRef.current) return;
@@ -20,6 +27,20 @@ export const TestsOverview = () => {
     actions.fetchTests().catch(() => undefined);
     actions.fetchCompletedCount().catch(() => undefined);
   }, [actions]);
+
+  const handleResetSubmissions = async () => {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      await actions.resetSubmissions();
+      await actions.fetchTests();
+      await actions.fetchCompletedCount();
+    } catch {
+      // gestito dallo store
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const testItems = useMemo(
     () =>
@@ -56,6 +77,26 @@ export const TestsOverview = () => {
         totalTests={tests.length}
         loading={countLoading && completedCount == null}
       />
+
+      {isLocalhost() ? (
+        <Card className="flex items-center justify-between gap-3 border-dashed border-amber-500/50 bg-amber-500/5 p-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-amber-600">Debug Mode</p>
+            <p className="text-xs text-muted">
+              Azzera le tue submission per rifare i test.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleResetSubmissions}
+            loading={resetting}
+            loadingText="Reset..."
+          >
+            Reset Test
+          </Button>
+        </Card>
+      ) : null}
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">

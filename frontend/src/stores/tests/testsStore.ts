@@ -11,6 +11,7 @@ import {
   getTest,
   getTests,
   getUserTestsCount,
+  resetMySubmissions,
   submitTest,
 } from "../../services/tests";
 import type { Uuid } from "../../types/shared";
@@ -133,6 +134,26 @@ export const testsActions = {
       return response;
     } catch (error) {
       testsStore.setState({ countLoading: false, countError: error as ApiError });
+      throw error;
+    }
+  },
+
+  resetSubmissions: async (): Promise<void> => {
+    testsStore.setState({ loading: true, error: null });
+
+    try {
+      await resetMySubmissions();
+      testsStore.setState({
+        loading: false,
+        completedCount: null,
+        userCompletedCounts: {},
+        tests: testsStore.getState().tests.map((test) => ({
+          ...test,
+          completed: false,
+        })),
+      });
+    } catch (error) {
+      testsStore.setState({ loading: false, error: error as ApiError });
       throw error;
     }
   },
