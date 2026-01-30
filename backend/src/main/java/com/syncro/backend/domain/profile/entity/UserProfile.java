@@ -51,6 +51,33 @@ public class UserProfile {
     @Column(name = "bio", length = 500)
     private String bio;
 
+    @Column(name = "traits_text", length = 500)
+    private String traitsText;
+
+    @Column(name = "loves_text", length = 500)
+    private String lovesText;
+
+    @Column(name = "dislikes_text", length = 500)
+    private String dislikesText;
+
+    @Column(name = "goals_text", length = 500)
+    private String goalsText;
+
+    @Column(name = "values_text", length = 500)
+    private String valuesText;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "relationship_status")
+    private RelationshipStatus relationshipStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "orientation")
+    private Orientation orientation;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "children_status")
+    private ChildrenStatus childrenStatus;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "visibility", nullable = false)
     private ProfileVisibility visibility;
@@ -148,6 +175,70 @@ public class UserProfile {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public String getTraitsText() {
+        return traitsText;
+    }
+
+    public void setTraitsText(String traitsText) {
+        this.traitsText = traitsText;
+    }
+
+    public String getLovesText() {
+        return lovesText;
+    }
+
+    public void setLovesText(String lovesText) {
+        this.lovesText = lovesText;
+    }
+
+    public String getDislikesText() {
+        return dislikesText;
+    }
+
+    public void setDislikesText(String dislikesText) {
+        this.dislikesText = dislikesText;
+    }
+
+    public String getGoalsText() {
+        return goalsText;
+    }
+
+    public void setGoalsText(String goalsText) {
+        this.goalsText = goalsText;
+    }
+
+    public String getValuesText() {
+        return valuesText;
+    }
+
+    public void setValuesText(String valuesText) {
+        this.valuesText = valuesText;
+    }
+
+    public RelationshipStatus getRelationshipStatus() {
+        return relationshipStatus;
+    }
+
+    public void setRelationshipStatus(RelationshipStatus relationshipStatus) {
+        this.relationshipStatus = relationshipStatus;
+    }
+
+    public Orientation getOrientation() {
+        return orientation;
+    }
+
+    public void setOrientation(Orientation orientation) {
+        this.orientation = orientation;
+    }
+
+    public ChildrenStatus getChildrenStatus() {
+        return childrenStatus;
+    }
+
+    public void setChildrenStatus(ChildrenStatus childrenStatus) {
+        this.childrenStatus = childrenStatus;
     }
 
     public ProfileVisibility getVisibility() {

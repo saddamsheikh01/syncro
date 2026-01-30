@@ -67,6 +67,34 @@ const USERNAME_RESERVED = [
   "syncro",
 ];
 
+const RELATIONSHIP_OPTIONS = [
+  { value: "", label: "Non specificato" },
+  { value: "SINGLE", label: "Single" },
+  { value: "IN_RELATIONSHIP", label: "In relazione" },
+  { value: "MARRIED", label: "Sposato/a" },
+  { value: "SEPARATED", label: "Separato/a" },
+  { value: "COMPLICATED", label: "Situazione complicata" },
+  { value: "OTHER", label: "Altro" },
+];
+
+const ORIENTATION_OPTIONS = [
+  { value: "", label: "Non specificato" },
+  { value: "HETERO", label: "Etero" },
+  { value: "GAY", label: "Gay" },
+  { value: "BI", label: "Bisessuale" },
+  { value: "ASEXUAL", label: "Asessuale" },
+  { value: "OTHER", label: "Altro" },
+];
+
+const CHILDREN_OPTIONS = [
+  { value: "", label: "Non specificato" },
+  { value: "NO_CHILDREN", label: "Nessun figlio" },
+  { value: "HAS_CHILDREN", label: "Ha figli" },
+  { value: "WANTS_CHILDREN", label: "Vuole figli" },
+  { value: "DOES_NOT_WANT", label: "Non vuole figli" },
+  { value: "UNDECIDED", label: "Indeciso/a" },
+];
+
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -150,6 +178,14 @@ export const ProfileSettings = ({
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [bio, setBio] = useState("");
+  const [traitsText, setTraitsText] = useState("");
+  const [lovesText, setLovesText] = useState("");
+  const [dislikesText, setDislikesText] = useState("");
+  const [goalsText, setGoalsText] = useState("");
+  const [valuesText, setValuesText] = useState("");
+  const [relationshipStatus, setRelationshipStatus] = useState("");
+  const [orientation, setOrientation] = useState("");
+  const [childrenStatus, setChildrenStatus] = useState("");
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -210,6 +246,14 @@ export const ProfileSettings = ({
     setJobTitle(profile.jobTitle ?? "");
     setCompanyName(profile.companyName ?? "");
     setBio(profile.bio ?? "");
+    setTraitsText(profile.traitsText ?? "");
+    setLovesText(profile.lovesText ?? "");
+    setDislikesText(profile.dislikesText ?? "");
+    setGoalsText(profile.goalsText ?? "");
+    setValuesText(profile.valuesText ?? "");
+    setRelationshipStatus(profile.relationshipStatus ?? "");
+    setOrientation(profile.orientation ?? "");
+    setChildrenStatus(profile.childrenStatus ?? "");
     setVisibility(profile.visibility ?? "PUBLIC");
     profileInitializedRef.current = true;
   }, [profile]);
@@ -395,6 +439,11 @@ export const ProfileSettings = ({
     const trimmedJobTitle = jobTitle.trim();
     const trimmedCompanyName = companyName.trim();
     const trimmedBio = bio.trim();
+    const trimmedTraits = traitsText.trim();
+    const trimmedLoves = lovesText.trim();
+    const trimmedDislikes = dislikesText.trim();
+    const trimmedGoals = goalsText.trim();
+    const trimmedValues = valuesText.trim();
 
     if (!trimmedName) {
       setProfileError("Inserisci il nome completo.");
@@ -414,6 +463,14 @@ export const ProfileSettings = ({
       jobTitle: trimmedJobTitle,
       companyName: trimmedCompanyName,
       bio: trimmedBio || null,
+      traitsText: trimmedTraits,
+      lovesText: trimmedLoves,
+      dislikesText: trimmedDislikes,
+      goalsText: trimmedGoals,
+      valuesText: trimmedValues,
+      relationshipStatus,
+      orientation,
+      childrenStatus,
       visibility,
     };
 
@@ -787,6 +844,149 @@ export const ProfileSettings = ({
             }))}
             onItemToggle={handleVisibilityToggle}
           />
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="space-y-4 p-5">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">
+              Profilo personale
+            </h3>
+            <p className="text-sm text-muted">
+              Sezioni guidate per raccontarti in modo piu accurato.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Cosa mi caratterizza
+            </label>
+            <textarea
+              value={traitsText}
+              onChange={(event) => setTraitsText(event.target.value)}
+              placeholder="Descrivi il tuo tratto distintivo..."
+              maxLength={500}
+              rows={3}
+              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="text-xs text-subtle">{traitsText.length}/500</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Cosa amo
+            </label>
+            <textarea
+              value={lovesText}
+              onChange={(event) => setLovesText(event.target.value)}
+              placeholder="Passioni, interessi, momenti..."
+              maxLength={500}
+              rows={3}
+              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="text-xs text-subtle">{lovesText.length}/500</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Cosa non sopporto
+            </label>
+            <textarea
+              value={dislikesText}
+              onChange={(event) => setDislikesText(event.target.value)}
+              placeholder="Cose o situazioni che eviti..."
+              maxLength={500}
+              rows={3}
+              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="text-xs text-subtle">{dislikesText.length}/500</p>
+          </div>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="space-y-4 p-5">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-foreground">
+                Obiettivi e valori
+              </h3>
+              <p className="text-sm text-muted">
+                Cosa cerchi e quali valori ti guidano.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Cosa cerco / obiettivi di vita
+              </label>
+              <textarea
+                value={goalsText}
+                onChange={(event) => setGoalsText(event.target.value)}
+                placeholder="Obiettivi personali o di relazione..."
+                maxLength={500}
+                rows={3}
+                className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <p className="text-xs text-subtle">{goalsText.length}/500</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Il mio credo / valori
+              </label>
+              <textarea
+                value={valuesText}
+                onChange={(event) => setValuesText(event.target.value)}
+                placeholder="Valori personali e principi..."
+                maxLength={500}
+                rows={3}
+                className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <p className="text-xs text-subtle">{valuesText.length}/500</p>
+            </div>
+          </Card>
+
+          <Card className="space-y-4 p-5">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-foreground">
+                Informazioni personali
+              </h3>
+              <p className="text-sm text-muted">
+                Dettagli opzionali per un match piu preciso.
+              </p>
+            </div>
+
+            <Select
+              label="Stato relazionale"
+              options={RELATIONSHIP_OPTIONS}
+              value={relationshipStatus}
+              onValueChange={setRelationshipStatus}
+              placeholder="Seleziona"
+            />
+            <Select
+              label="Orientamento"
+              options={ORIENTATION_OPTIONS}
+              value={orientation}
+              onValueChange={setOrientation}
+              placeholder="Seleziona"
+            />
+            <Select
+              label="Figli"
+              options={CHILDREN_OPTIONS}
+              value={childrenStatus}
+              onValueChange={setChildrenStatus}
+              placeholder="Seleziona"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={profileSaving || isAuthLoading}
+              loadingText="Salvataggio"
+              onClick={handleSaveProfile}
+            >
+              Salva profilo
+            </Button>
+          </Card>
         </div>
       </section>
 

@@ -23,6 +23,31 @@ import type { UserMatchResponse } from "@/types/matches";
 
 const PAGE_SIZE = 6;
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  SINGLE: "Single",
+  IN_RELATIONSHIP: "In relazione",
+  MARRIED: "Sposato/a",
+  SEPARATED: "Separato/a",
+  COMPLICATED: "Situazione complicata",
+  OTHER: "Altro",
+};
+
+const ORIENTATION_LABELS: Record<string, string> = {
+  HETERO: "Etero",
+  GAY: "Gay",
+  BI: "Bisessuale",
+  ASEXUAL: "Asessuale",
+  OTHER: "Altro",
+};
+
+const CHILDREN_LABELS: Record<string, string> = {
+  NO_CHILDREN: "Nessun figlio",
+  HAS_CHILDREN: "Ha figli",
+  WANTS_CHILDREN: "Vuole figli",
+  DOES_NOT_WANT: "Non vuole figli",
+  UNDECIDED: "Indeciso/a",
+};
+
 const resolveErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: string }).message;
@@ -38,6 +63,9 @@ const formatLocation = (profile: UserPublicProfileResponse | null) => {
   const ageLabel = profile.age ? `${profile.age} anni` : "";
   return [location, ageLabel].filter(Boolean).join(" · ") || undefined;
 };
+
+const resolveLabel = (value: string | null | undefined, map: Record<string, string>) =>
+  value ? map[value] ?? value : null;
 
 export interface UserProfileViewProps {
   userId: string;
@@ -190,6 +218,46 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   }, [profile]);
 
   const locationLabel = useMemo(() => formatLocation(profile), [profile]);
+  const extendedSections = useMemo(
+    () => [
+      { label: "Cosa mi caratterizza", value: profile?.traitsText ?? null },
+      { label: "Cosa amo", value: profile?.lovesText ?? null },
+      { label: "Cosa non sopporto", value: profile?.dislikesText ?? null },
+      { label: "Cosa cerco", value: profile?.goalsText ?? null },
+      { label: "Valori", value: profile?.valuesText ?? null },
+    ],
+    [profile]
+  );
+  const personalSections = useMemo(
+    () => [
+      {
+        label: "Stato relazionale",
+        value: resolveLabel(profile?.relationshipStatus, RELATIONSHIP_LABELS),
+      },
+      {
+        label: "Orientamento",
+        value: resolveLabel(profile?.orientation, ORIENTATION_LABELS),
+      },
+      {
+        label: "Figli",
+        value: resolveLabel(profile?.childrenStatus, CHILDREN_LABELS),
+      },
+    ],
+    [profile]
+  );
+  const filledExtendedSections = useMemo(
+    () => extendedSections.filter((item) => item.value && item.value.trim().length > 0),
+    [extendedSections]
+  );
+  const filledPersonalSections = useMemo(
+    () => personalSections.filter((item) => item.value && item.value.trim().length > 0),
+    [personalSections]
+  );
+  const hasExtendedContent = useMemo(
+    () => filledExtendedSections.length > 0 || filledPersonalSections.length > 0,
+    [filledExtendedSections, filledPersonalSections]
+  );
+  const fallbackBio = profile?.bio?.trim();
 
   const postItems = useMemo(
     () =>
@@ -327,10 +395,65 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         location={locationLabel}
         jobTitle={profile.jobTitle ?? undefined}
         companyName={profile.companyName ?? undefined}
-        bio={profile.bio ?? undefined}
+        bio={hasExtendedContent ? undefined : profile.bio ?? undefined}
         avatarUrl={profile.avatarUrl ?? undefined}
         matchScore={match?.scoreTotal ?? undefined}
       />
+
+      {hasExtendedContent ? (
+        <section className="grid gap-6 lg:grid-cols-2">
+          {filledExtendedSections.length > 0 ? (
+            <Card className="space-y-4 p-5">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-subtle">
+                  Profilo personale
+                </p>
+                <h3 className="text-base font-semibold text-foreground">
+                  Chi e questa persona
+                </h3>
+              </div>
+              <div className="space-y-4">
+                {filledExtendedSections.map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="text-xs font-medium text-subtle">{item.label}</p>
+                    <p className="text-sm text-foreground">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
+
+          {filledPersonalSections.length > 0 ? (
+            <Card className="space-y-4 p-5">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-subtle">
+                  Informazioni personali
+                </p>
+                <h3 className="text-base font-semibold text-foreground">
+                  Dettagli opzionali
+                </h3>
+              </div>
+              <div className="space-y-3">
+                {filledPersonalSections.map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="text-xs font-medium text-subtle">{item.label}</p>
+                    <p className="text-sm text-foreground">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
+        </section>
+      ) : null}
+
+      {!hasExtendedContent && fallbackBio ? (
+        <Card className="space-y-2 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
+            Bio
+          </p>
+          <p className="text-sm text-foreground">{fallbackBio}</p>
+        </Card>
+      ) : null}
 
       <TestCountCard
         title="Test completati"

@@ -12,6 +12,14 @@ public record UserPublicProfileResponse(
     String jobTitle,
     String companyName,
     String bio,
+    String traitsText,
+    String lovesText,
+    String dislikesText,
+    String goalsText,
+    String valuesText,
+    String relationshipStatus,
+    String orientation,
+    String childrenStatus,
     String avatarUrl,
     String visibility
 ) {

@@ -12,7 +12,10 @@ import com.syncro.backend.domain.catalog.entity.Place;
 import com.syncro.backend.domain.catalog.entity.PlaceTag;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceTagRepository;
+import com.syncro.backend.domain.profile.entity.ChildrenStatus;
+import com.syncro.backend.domain.profile.entity.Orientation;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
+import com.syncro.backend.domain.profile.entity.RelationshipStatus;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.entity.ChatMessage;
@@ -283,6 +286,20 @@ public class ZyraService {
             });
     }
 
+    @Transactional
+    public void refreshProfileRecap(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        try {
+            String recap = generateProfileRecap(user);
+            java.time.Instant generatedAt = java.time.Instant.now();
+            recapCache.putProfileRecap(user.getId(), recap, generatedAt);
+        } catch (Exception ignored) {
+            // evita di bloccare il salvataggio profilo se il recap fallisce
+        }
+    }
+
     @Transactional(readOnly = true)
     public ZyraProfileRecapResponse getProfileRecapForUser(UserPrincipal principal, UUID userId) {
         getUser(principal);
@@ -328,9 +345,19 @@ public class ZyraService {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("Genera un breve riepilogo del profilo utente (2-3 frasi, tono amichevole e personale). ");
+        prompt.append("Usa in via prioritaria le sezioni guidate del profilo se presenti ");
+        prompt.append("(Cosa mi caratterizza, Cosa amo, Cosa non sopporto, Cosa cerco, Valori, ");
+        prompt.append("Stato relazionale, Orientamento, Figli). ");
+        prompt.append("Se le sezioni guidate sono vuote, usa la bio come fallback. ");
         prompt.append("Scrivi in prima persona come se fosse l'utente a descriversi. ");
         prompt.append("Esempio: 'Sono una persona curiosa che ama viaggiare...'. ");
-        prompt.append("Includi anche un breve cenno ai test completati e alle risposte principali, senza elencare tutto. ");
+        prompt.append("Non inventare dettagli mancanti e non usare liste o punti elenco. ");
+        if (testSummaries != null && !testSummaries.isEmpty()) {
+            prompt.append("Includi un cenno naturale ai test completati e alle risposte principali, ");
+            prompt.append("senza elencare tutto. ");
+        } else {
+            prompt.append("Se non risultano test completati, non menzionare i test. ");
+        }
         prompt.append("Dati disponibili:\n");
 
         if (profile != null) {
@@ -346,7 +373,8 @@ public class ZyraService {
             if (profile.getBirthDate() != null) {
                 prompt.append("- Eta: ").append(formatAge(profile.getBirthDate())).append(" anni\n");
             }
-            if (profile.getBio() != null && !profile.getBio().isBlank()) {
+            appendExtendedProfileInfo(prompt, profile);
+            if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
                 prompt.append("- Bio: ").append(profile.getBio()).append("\n");
             }
             String jobLabel = buildJobLabel(profile);
@@ -611,7 +639,8 @@ public class ZyraService {
             if (jobLabel != null) {
                 prompt.append("- Lavoro: ").append(jobLabel).append("\n");
             }
-            if (profile.getBio() != null && !profile.getBio().isBlank()) {
+            appendExtendedProfileInfo(prompt, profile);
+            if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
                 prompt.append("- Bio: ").append(profile.getBio()).append("\n");
             }
         }
@@ -823,6 +852,10 @@ public class ZyraService {
             if (jobLabel != null) {
                 builder.append("- lavoro: ").append(jobLabel).append("\n");
             }
+            appendExtendedProfileInfo(builder, profile);
+            if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
+                builder.append("- bio: ").append(profile.getBio()).append("\n");
+            }
         }
 
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
@@ -950,6 +983,100 @@ public class ZyraService {
             return title + " @ " + company;
         }
         return title != null ? title : company;
+    }
+
+    private boolean hasExtendedProfile(UserProfile profile) {
+        if (profile == null) {
+            return false;
+        }
+        return isNotBlank(profile.getTraitsText())
+            || isNotBlank(profile.getLovesText())
+            || isNotBlank(profile.getDislikesText())
+            || isNotBlank(profile.getGoalsText())
+            || isNotBlank(profile.getValuesText())
+            || profile.getRelationshipStatus() != null
+            || profile.getOrientation() != null
+            || profile.getChildrenStatus() != null;
+    }
+
+    private void appendExtendedProfileInfo(StringBuilder builder, UserProfile profile) {
+        if (profile == null) {
+            return;
+        }
+        if (isNotBlank(profile.getTraitsText())) {
+            builder.append("- Cosa mi caratterizza: ").append(profile.getTraitsText()).append("\n");
+        }
+        if (isNotBlank(profile.getLovesText())) {
+            builder.append("- Cosa amo: ").append(profile.getLovesText()).append("\n");
+        }
+        if (isNotBlank(profile.getDislikesText())) {
+            builder.append("- Cosa non sopporto: ").append(profile.getDislikesText()).append("\n");
+        }
+        if (isNotBlank(profile.getGoalsText())) {
+            builder.append("- Cosa cerco: ").append(profile.getGoalsText()).append("\n");
+        }
+        if (isNotBlank(profile.getValuesText())) {
+            builder.append("- Valori: ").append(profile.getValuesText()).append("\n");
+        }
+        if (profile.getRelationshipStatus() != null) {
+            builder.append("- Stato relazionale: ")
+                .append(formatRelationshipStatus(profile.getRelationshipStatus()))
+                .append("\n");
+        }
+        if (profile.getOrientation() != null) {
+            builder.append("- Orientamento: ")
+                .append(formatOrientation(profile.getOrientation()))
+                .append("\n");
+        }
+        if (profile.getChildrenStatus() != null) {
+            builder.append("- Figli: ")
+                .append(formatChildrenStatus(profile.getChildrenStatus()))
+                .append("\n");
+        }
+    }
+
+    private String formatRelationshipStatus(RelationshipStatus status) {
+        if (status == null) {
+            return "";
+        }
+        return switch (status) {
+            case SINGLE -> "Single";
+            case IN_RELATIONSHIP -> "In relazione";
+            case MARRIED -> "Sposato/a";
+            case SEPARATED -> "Separato/a";
+            case COMPLICATED -> "Situazione complicata";
+            case OTHER -> "Altro";
+        };
+    }
+
+    private String formatOrientation(Orientation orientation) {
+        if (orientation == null) {
+            return "";
+        }
+        return switch (orientation) {
+            case HETERO -> "Etero";
+            case GAY -> "Gay";
+            case BI -> "Bisessuale";
+            case ASEXUAL -> "Asessuale";
+            case OTHER -> "Altro";
+        };
+    }
+
+    private String formatChildrenStatus(ChildrenStatus status) {
+        if (status == null) {
+            return "";
+        }
+        return switch (status) {
+            case NO_CHILDREN -> "Nessun figlio";
+            case HAS_CHILDREN -> "Ha figli";
+            case WANTS_CHILDREN -> "Vuole figli";
+            case DOES_NOT_WANT -> "Non vuole figli";
+            case UNDECIDED -> "Indeciso/a";
+        };
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String safeValue(String value) {

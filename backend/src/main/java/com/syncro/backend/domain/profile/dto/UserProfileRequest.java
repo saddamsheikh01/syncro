@@ -13,6 +13,26 @@ public record UserProfileRequest(
     @Size(max = 120) String jobTitle,
     @Size(max = 160) String companyName,
     @Size(max = 500) String bio,
+    @Size(max = 500) String traitsText,
+    @Size(max = 500) String lovesText,
+    @Size(max = 500) String dislikesText,
+    @Size(max = 500) String goalsText,
+    @Size(max = 500) String valuesText,
+    @Pattern(
+        regexp = "^(SINGLE|IN_RELATIONSHIP|MARRIED|SEPARATED|COMPLICATED|OTHER)?$",
+        message = "Stato relazionale non valido"
+    )
+    String relationshipStatus,
+    @Pattern(
+        regexp = "^(HETERO|GAY|BI|ASEXUAL|OTHER)?$",
+        message = "Orientamento non valido"
+    )
+    String orientation,
+    @Pattern(
+        regexp = "^(NO_CHILDREN|HAS_CHILDREN|WANTS_CHILDREN|DOES_NOT_WANT|UNDECIDED)?$",
+        message = "Stato figli non valido"
+    )
+    String childrenStatus,
     @Pattern(regexp = "PUBLIC|PARTIAL|PRIVATE") String visibility
 ) {
 }

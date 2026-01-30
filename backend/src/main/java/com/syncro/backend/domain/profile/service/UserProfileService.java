@@ -10,10 +10,14 @@ import com.syncro.backend.domain.profile.dto.UserPublicProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserProfileRequest;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
+import com.syncro.backend.domain.profile.entity.ChildrenStatus;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
+import com.syncro.backend.domain.profile.entity.RelationshipStatus;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.profile.entity.Orientation;
+import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Locale;
 import java.util.UUID;
@@ -30,19 +34,22 @@ public class UserProfileService {
     private final UserProfileMapper profileMapper;
     private final MediaObjectRepository mediaObjectRepository;
     private final OnboardingService onboardingService;
+    private final ZyraService zyraService;
 
     public UserProfileService(
         UserRepository userRepository,
         UserProfileRepository profileRepository,
         UserProfileMapper profileMapper,
         MediaObjectRepository mediaObjectRepository,
-        OnboardingService onboardingService
+        OnboardingService onboardingService,
+        ZyraService zyraService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.profileMapper = profileMapper;
         this.mediaObjectRepository = mediaObjectRepository;
         this.onboardingService = onboardingService;
+        this.zyraService = zyraService;
     }
 
     @Transactional(readOnly = true)
@@ -84,12 +91,37 @@ public class UserProfileService {
         if (request.bio() != null) {
             profile.setBio(normalizeText(request.bio()));
         }
+        if (request.traitsText() != null) {
+            profile.setTraitsText(normalizeOptionalText(request.traitsText()));
+        }
+        if (request.lovesText() != null) {
+            profile.setLovesText(normalizeOptionalText(request.lovesText()));
+        }
+        if (request.dislikesText() != null) {
+            profile.setDislikesText(normalizeOptionalText(request.dislikesText()));
+        }
+        if (request.goalsText() != null) {
+            profile.setGoalsText(normalizeOptionalText(request.goalsText()));
+        }
+        if (request.valuesText() != null) {
+            profile.setValuesText(normalizeOptionalText(request.valuesText()));
+        }
+        if (request.relationshipStatus() != null) {
+            profile.setRelationshipStatus(parseRelationshipStatus(request.relationshipStatus()));
+        }
+        if (request.orientation() != null) {
+            profile.setOrientation(parseOrientation(request.orientation()));
+        }
+        if (request.childrenStatus() != null) {
+            profile.setChildrenStatus(parseChildrenStatus(request.childrenStatus()));
+        }
         if (request.visibility() != null) {
             profile.setVisibility(parseVisibility(request.visibility()));
         }
 
         UserProfile saved = profileRepository.save(profile);
         onboardingService.refreshOnboardingStatus(user);
+        zyraService.refreshProfileRecap(user);
         return profileMapper.toResponse(saved);
     }
 
@@ -154,6 +186,30 @@ public class UserProfileService {
 
     private ProfileVisibility parseVisibility(String visibility) {
         return ProfileVisibility.valueOf(visibility.trim().toUpperCase(Locale.ROOT));
+    }
+
+    private RelationshipStatus parseRelationshipStatus(String status) {
+        String normalized = normalizeOptionalText(status);
+        if (normalized == null) {
+            return null;
+        }
+        return RelationshipStatus.valueOf(normalized.toUpperCase(Locale.ROOT));
+    }
+
+    private Orientation parseOrientation(String orientation) {
+        String normalized = normalizeOptionalText(orientation);
+        if (normalized == null) {
+            return null;
+        }
+        return Orientation.valueOf(normalized.toUpperCase(Locale.ROOT));
+    }
+
+    private ChildrenStatus parseChildrenStatus(String status) {
+        String normalized = normalizeOptionalText(status);
+        if (normalized == null) {
+            return null;
+        }
+        return ChildrenStatus.valueOf(normalized.toUpperCase(Locale.ROOT));
     }
 
     private String normalizeText(String value) {

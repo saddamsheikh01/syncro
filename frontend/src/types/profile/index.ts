@@ -10,6 +10,14 @@ export type UserProfileRequest = {
   jobTitle?: string | null;
   companyName?: string | null;
   bio?: string | null;
+  traitsText?: string | null;
+  lovesText?: string | null;
+  dislikesText?: string | null;
+  goalsText?: string | null;
+  valuesText?: string | null;
+  relationshipStatus?: string | null;
+  orientation?: string | null;
+  childrenStatus?: string | null;
   visibility?: ProfileVisibility | null;
 };
 
@@ -24,6 +32,14 @@ export type UserProfileResponse = {
   jobTitle: string | null;
   companyName: string | null;
   bio: string | null;
+  traitsText: string | null;
+  lovesText: string | null;
+  dislikesText: string | null;
+  goalsText: string | null;
+  valuesText: string | null;
+  relationshipStatus: string | null;
+  orientation: string | null;
+  childrenStatus: string | null;
   visibility: ProfileVisibility;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
@@ -83,6 +99,14 @@ export type UserPublicProfileResponse = {
   jobTitle: string | null;
   companyName: string | null;
   bio: string | null;
+  traitsText: string | null;
+  lovesText: string | null;
+  dislikesText: string | null;
+  goalsText: string | null;
+  valuesText: string | null;
+  relationshipStatus: string | null;
+  orientation: string | null;
+  childrenStatus: string | null;
   avatarUrl: string | null;
   visibility: ProfileVisibility | null;
 };
