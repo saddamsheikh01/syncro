@@ -77,6 +77,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const isInitialLoading = loading && !activeTest;
   const resolveMaxSelections = (question: TestQuestionResponse) => {
     if (question.questionType === "SINGLE") return 1;
+    if (activeTest?.testType === "INTERESTS") return Infinity;
     const maxSelections = question.maxSelections ?? question.options.length;
     return Math.max(1, maxSelections);
   };
@@ -271,9 +272,9 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     currentQuestion.questionType === "MULTI";
   const maxSelections = resolveMaxSelections(currentQuestion);
   const selectionHelper = currentQuestion.questionType === "MULTI"
-    ? `Puoi selezionare fino a ${maxSelections} ${
-        isInterestTest ? "card" : "opzioni"
-      }.`
+    ? isInterestTest
+      ? "Seleziona tutti gli interessi che ti rappresentano."
+      : `Puoi selezionare fino a ${maxSelections} opzioni.`
     : undefined;
 
   return (
