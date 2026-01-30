@@ -20,16 +20,16 @@ const isLocalhost = (): boolean => {
 export const Login = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(() =>
+    isLocalhost() ? DEV_CREDENTIALS.email : ""
+  );
+  const [password, setPassword] = useState(() =>
+    isLocalhost() ? DEV_CREDENTIALS.password : ""
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     actions.hydrate();
-    if (isLocalhost()) {
-      setEmail(DEV_CREDENTIALS.email);
-      setPassword(DEV_CREDENTIALS.password);
-    }
   }, [actions]);
 
   useEffect(() => {
