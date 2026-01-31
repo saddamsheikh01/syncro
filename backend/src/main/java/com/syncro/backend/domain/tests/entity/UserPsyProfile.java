@@ -35,6 +35,24 @@ public class UserPsyProfile {
     @Column(name = "profile", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> profile;
 
+    @Column(name = "interests_score")
+    private Integer interestsScore;
+
+    @Column(name = "lifestyle_score")
+    private Integer lifestyleScore;
+
+    @Column(name = "values_score")
+    private Integer valuesScore;
+
+    @Column(name = "objectives_score")
+    private Integer objectivesScore;
+
+    @Column(name = "psy_score")
+    private Integer psyScore;
+
+    @Column(name = "astro_score")
+    private Integer astroScore;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -73,6 +91,54 @@ public class UserPsyProfile {
 
     public void setProfile(Map<String, Object> profile) {
         this.profile = profile;
+    }
+
+    public Integer getInterestsScore() {
+        return interestsScore;
+    }
+
+    public void setInterestsScore(Integer interestsScore) {
+        this.interestsScore = interestsScore;
+    }
+
+    public Integer getLifestyleScore() {
+        return lifestyleScore;
+    }
+
+    public void setLifestyleScore(Integer lifestyleScore) {
+        this.lifestyleScore = lifestyleScore;
+    }
+
+    public Integer getValuesScore() {
+        return valuesScore;
+    }
+
+    public void setValuesScore(Integer valuesScore) {
+        this.valuesScore = valuesScore;
+    }
+
+    public Integer getObjectivesScore() {
+        return objectivesScore;
+    }
+
+    public void setObjectivesScore(Integer objectivesScore) {
+        this.objectivesScore = objectivesScore;
+    }
+
+    public Integer getPsyScore() {
+        return psyScore;
+    }
+
+    public void setPsyScore(Integer psyScore) {
+        this.psyScore = psyScore;
+    }
+
+    public Integer getAstroScore() {
+        return astroScore;
+    }
+
+    public void setAstroScore(Integer astroScore) {
+        this.astroScore = astroScore;
     }
 
     public Instant getUpdatedAt() {

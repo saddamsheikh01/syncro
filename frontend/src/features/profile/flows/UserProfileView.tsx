@@ -19,9 +19,55 @@ import { getUserPosts, getUserProfile } from "@/services/users";
 import { likePost, unlikePost } from "@/services/social";
 import type { UserPublicProfileResponse } from "@/types/profile";
 import type { PostResponse } from "@/types/social";
-import type { UserMatchResponse } from "@/types/matches";
+import type { UserMatchResponse, MatchBreakdown, DimensionScores, DomainScores } from "@/types/matches";
 
 const PAGE_SIZE = 6;
+
+const DIMENSION_LABELS: Record<keyof DimensionScores, string> = {
+  interests: "Interessi",
+  lifestyle: "Stile di vita",
+  values: "Valori",
+  objectives: "Obiettivi",
+  psy: "Personalita",
+  astro: "Astrologia",
+};
+
+const DOMAIN_LABELS: Record<keyof DomainScores, string> = {
+  love: "Relazione",
+  friendship: "Amicizia",
+  work: "Lavoro",
+  projects: "Progetti",
+  hobby: "Hobby",
+  growth: "Crescita",
+};
+
+const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | null => {
+  if (!raw) return null;
+  return {
+    dimensions: raw.dimensions as DimensionScores | undefined,
+    domains: raw.domains as DomainScores | undefined,
+    sharedTags: raw.sharedTags as string[] | number | undefined,
+    distanceKm: raw.distanceKm as number | undefined,
+  };
+};
+
+const getTopDimensions = (dimensions: DimensionScores | undefined, limit = 3) => {
+  if (!dimensions) return [];
+  return Object.entries(dimensions)
+    .filter(([, v]) => typeof v === "number" && v !== null && v >= 60)
+    .map(([k, v]) => ({ key: k as keyof DimensionScores, value: v as number }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+};
+
+const getTopDomains = (domains: DomainScores | undefined, limit = 2) => {
+  if (!domains) return [];
+  return Object.entries(domains)
+    .filter(([, v]) => typeof v === "number" && v !== null && v >= 70)
+    .map(([k, v]) => ({ key: k as keyof DomainScores, value: v as number }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+};
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   SINGLE: "Single",
@@ -473,7 +519,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="space-y-3 p-5">
+        <Card className="space-y-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
@@ -494,8 +540,58 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             </div>
           ) : matchError ? (
             <p className="text-sm text-muted">{matchError}</p>
-          ) : match?.explanation ? (
-            <p className="text-sm text-muted">{match.explanation}</p>
+          ) : match ? (
+            <>
+              {match.explanation ? (
+                <p className="text-sm text-muted">{match.explanation}</p>
+              ) : null}
+              {(() => {
+                const breakdown = parseBreakdown(match.breakdown as Record<string, unknown> | null);
+                const topDimensions = getTopDimensions(breakdown?.dimensions, 3);
+                const topDomains = getTopDomains(breakdown?.domains, 2);
+                const sharedTags = breakdown?.sharedTags;
+                const hasInsights = topDimensions.length > 0 || topDomains.length > 0 ||
+                  (Array.isArray(sharedTags) && sharedTags.length > 0) ||
+                  (typeof sharedTags === "number" && sharedTags > 0);
+
+                if (!hasInsights) return null;
+
+                return (
+                  <div className="space-y-3 border-t border-border pt-3">
+                    <p className="text-xs font-semibold text-subtle">Dettagli compatibilita</p>
+                    <div className="flex flex-wrap gap-2">
+                      {topDimensions.map(({ key, value }) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
+                        >
+                          {DIMENSION_LABELS[key]}
+                          <span className="text-[10px] opacity-80">{value}%</span>
+                        </span>
+                      ))}
+                      {topDomains.map(({ key, value }) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
+                        >
+                          {DOMAIN_LABELS[key]}
+                          <span className="text-[10px] opacity-80">{value}%</span>
+                        </span>
+                      ))}
+                      {Array.isArray(sharedTags) && sharedTags.length > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-muted px-2.5 py-1 text-xs font-medium text-muted">
+                          {sharedTags.length} passioni condivise
+                        </span>
+                      ) : typeof sharedTags === "number" && sharedTags > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-muted px-2.5 py-1 text-xs font-medium text-muted">
+                          {sharedTags} passioni condivise
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           ) : (
             <p className="text-sm text-muted">
               Match non disponibile al momento.

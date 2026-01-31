@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
 
-export type BadgeTone = "neutral" | "accent" | "success" | "warning" | "danger";
+export type BadgeTone = "neutral" | "accent" | "success" | "success-light" | "caution" | "warning" | "danger";
 export type BadgeSize = "sm" | "md";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -12,9 +12,11 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral: "bg-surface-muted text-foreground",
   accent: "bg-accent-soft text-accent",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/15 text-warning",
-  danger: "bg-danger/10 text-danger",
+  success: "bg-emerald-600/15 text-emerald-600",
+  "success-light": "bg-green-500/15 text-green-600",
+  caution: "bg-yellow-500/15 text-yellow-600",
+  warning: "bg-orange-500/15 text-orange-600",
+  danger: "bg-red-500/15 text-red-600",
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {

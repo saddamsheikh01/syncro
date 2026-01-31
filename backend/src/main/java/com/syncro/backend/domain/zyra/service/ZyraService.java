@@ -345,7 +345,7 @@ public class ZyraService {
         List<String> testSummaries = buildTestSummaries(user);
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Genera un breve riepilogo del profilo utente (2-3 frasi, tono amichevole e personale). ");
+        prompt.append("Genera un breve riepilogo del profilo utente (3-4 frasi, tono amichevole e personale). ");
         prompt.append("Usa in via prioritaria le sezioni guidate del profilo se presenti ");
         prompt.append("(Cosa mi caratterizza, Cosa amo, Cosa non sopporto, Cosa cerco, Valori, ");
         prompt.append("Stato relazionale, Orientamento, Figli). ");
@@ -354,11 +354,15 @@ public class ZyraService {
         prompt.append("Esempio: 'Sono una persona curiosa che ama viaggiare...'. ");
         prompt.append("Non inventare dettagli mancanti e non usare liste o punti elenco. ");
         if (testSummaries != null && !testSummaries.isEmpty()) {
-            prompt.append("Includi un cenno naturale ai test completati e alle risposte principali, ");
-            prompt.append("senza elencare tutto. ");
+            prompt.append("Integra naturalmente i risultati dei test completati, ");
+            prompt.append("evidenziando i tratti di personalita emersi (es. 'Dai test emerge che sono...'). ");
         } else {
             prompt.append("Se non risultano test completati, non menzionare i test. ");
         }
+        prompt.append("Se presente il profilo astrologico, menzionalo brevemente in modo naturale ");
+        prompt.append("(es. 'Sono un Ariete ascendente Leone...' o 'Il mio segno zodiacale e...'). ");
+        prompt.append("Se presenti i punteggi dei test, usali per descrivere la personalita ");
+        prompt.append("(es. punteggio lifestyle alto = persona dinamica, values alto = persona con valori forti). ");
         prompt.append("Dati disponibili:\n");
 
         if (profile != null) {
@@ -397,6 +401,63 @@ public class ZyraService {
 
         if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
             prompt.append("- Profilo psicologico: ").append(safeJson(psyProfile.getProfile())).append("\n");
+        }
+
+        // Aggregated scores from tests
+        if (psyProfile != null) {
+            StringBuilder scores = new StringBuilder();
+            if (psyProfile.getInterestsScore() != null) {
+                scores.append("Interessi: ").append(psyProfile.getInterestsScore()).append("%, ");
+            }
+            if (psyProfile.getLifestyleScore() != null) {
+                scores.append("Lifestyle: ").append(psyProfile.getLifestyleScore()).append("%, ");
+            }
+            if (psyProfile.getValuesScore() != null) {
+                scores.append("Valori: ").append(psyProfile.getValuesScore()).append("%, ");
+            }
+            if (psyProfile.getObjectivesScore() != null) {
+                scores.append("Obiettivi: ").append(psyProfile.getObjectivesScore()).append("%, ");
+            }
+            if (psyProfile.getPsyScore() != null) {
+                scores.append("Personalita: ").append(psyProfile.getPsyScore()).append("%, ");
+            }
+            if (psyProfile.getAstroScore() != null) {
+                scores.append("Astrologia: ").append(psyProfile.getAstroScore()).append("%");
+            }
+            String scoresStr = scores.toString().replaceAll(", $", "");
+            if (!scoresStr.isBlank()) {
+                prompt.append("- Punteggi test completati: ").append(scoresStr).append("\n");
+            }
+        }
+
+        // Astro signs from profile
+        if (profile != null) {
+            StringBuilder astro = new StringBuilder();
+            if (profile.getZodiacSign() != null) {
+                astro.append("Segno: ").append(formatZodiacSign(profile.getZodiacSign())).append(", ");
+            }
+            if (profile.getSunSign() != null) {
+                astro.append("Sole: ").append(formatZodiacSign(profile.getSunSign())).append(", ");
+            }
+            if (profile.getMoonSign() != null) {
+                astro.append("Luna: ").append(formatZodiacSign(profile.getMoonSign())).append(", ");
+            }
+            if (profile.getAscSign() != null) {
+                astro.append("Ascendente: ").append(formatZodiacSign(profile.getAscSign())).append(", ");
+            }
+            if (profile.getVenusSign() != null) {
+                astro.append("Venere: ").append(formatZodiacSign(profile.getVenusSign())).append(", ");
+            }
+            if (profile.getMarsSign() != null) {
+                astro.append("Marte: ").append(formatZodiacSign(profile.getMarsSign()));
+            }
+            String astroStr = astro.toString().replaceAll(", $", "");
+            if (!astroStr.isBlank()) {
+                prompt.append("- Profilo astrologico: ").append(astroStr).append("\n");
+            }
+            if (profile.getGender() != null) {
+                prompt.append("- Genere: ").append(formatGender(profile.getGender())).append("\n");
+            }
         }
 
         if (testSummaries != null && !testSummaries.isEmpty()) {
@@ -614,11 +675,15 @@ public class ZyraService {
     private String generatePlaceRecap(User user, Place place) {
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
+        UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> placeTags = loadPlaceTags(place.getId());
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("Genera un breve riepilogo (2-3 frasi) che spiega quanto questo luogo e adatto all'utente. ");
-        prompt.append("Confronta interessi e profilo con le caratteristiche del luogo. ");
+        prompt.append("Confronta interessi, stile di vita e personalita dell'utente con le caratteristiche del luogo. ");
+        prompt.append("Usa i punteggi di personalita per valutare l'affinita: ");
+        prompt.append("lifestyle alto = persona dinamica/sociale, values alto = attenta ai valori/etica, ");
+        prompt.append("psy alto = persona riflessiva/introspettiva. ");
         prompt.append("Se mancano dati, rimani generico e non inventare. ");
         prompt.append("Tono amichevole e diretto. Nessuna lista.\n");
         prompt.append("Dati utente:\n");
@@ -655,6 +720,29 @@ public class ZyraService {
             if (!interestNames.isBlank()) {
                 prompt.append("- Interessi: ").append(interestNames).append("\n");
             }
+        }
+
+        // Aggregated scores from tests
+        if (psyProfile != null) {
+            StringBuilder scores = new StringBuilder();
+            if (psyProfile.getLifestyleScore() != null) {
+                scores.append("Lifestyle: ").append(psyProfile.getLifestyleScore()).append("%, ");
+            }
+            if (psyProfile.getValuesScore() != null) {
+                scores.append("Valori: ").append(psyProfile.getValuesScore()).append("%, ");
+            }
+            if (psyProfile.getPsyScore() != null) {
+                scores.append("Personalita: ").append(psyProfile.getPsyScore()).append("%");
+            }
+            String scoresStr = scores.toString().replaceAll(", $", "");
+            if (!scoresStr.isBlank()) {
+                prompt.append("- Profilo personalita: ").append(scoresStr).append("\n");
+            }
+        }
+
+        // Gender for context
+        if (profile != null && profile.getGender() != null) {
+            prompt.append("- Genere: ").append(formatGender(profile.getGender())).append("\n");
         }
 
         prompt.append("Dati luogo:\n");
@@ -986,6 +1074,54 @@ public class ZyraService {
                 .append("\n");
         }
 
+        // Aggregated scores
+        if (psyProfile != null) {
+            StringBuilder scores = new StringBuilder();
+            if (psyProfile.getInterestsScore() != null) {
+                scores.append("interessi:").append(psyProfile.getInterestsScore()).append("% ");
+            }
+            if (psyProfile.getLifestyleScore() != null) {
+                scores.append("lifestyle:").append(psyProfile.getLifestyleScore()).append("% ");
+            }
+            if (psyProfile.getValuesScore() != null) {
+                scores.append("valori:").append(psyProfile.getValuesScore()).append("% ");
+            }
+            if (psyProfile.getObjectivesScore() != null) {
+                scores.append("obiettivi:").append(psyProfile.getObjectivesScore()).append("% ");
+            }
+            if (psyProfile.getPsyScore() != null) {
+                scores.append("psy:").append(psyProfile.getPsyScore()).append("% ");
+            }
+            if (psyProfile.getAstroScore() != null) {
+                scores.append("astro:").append(psyProfile.getAstroScore()).append("%");
+            }
+            String scoresStr = scores.toString().trim();
+            if (!scoresStr.isBlank()) {
+                builder.append("- punteggi_test: ").append(scoresStr).append("\n");
+            }
+        }
+
+        // Astro signs
+        if (profile != null) {
+            StringBuilder astro = new StringBuilder();
+            if (profile.getZodiacSign() != null) {
+                astro.append(formatZodiacSign(profile.getZodiacSign())).append(" ");
+            }
+            if (profile.getAscSign() != null) {
+                astro.append("asc:").append(formatZodiacSign(profile.getAscSign())).append(" ");
+            }
+            if (profile.getMoonSign() != null) {
+                astro.append("luna:").append(formatZodiacSign(profile.getMoonSign()));
+            }
+            String astroStr = astro.toString().trim();
+            if (!astroStr.isBlank()) {
+                builder.append("- segni: ").append(astroStr).append("\n");
+            }
+            if (profile.getGender() != null) {
+                builder.append("- genere: ").append(formatGender(profile.getGender())).append("\n");
+            }
+        }
+
         return builder.toString();
     }
 
@@ -1181,6 +1317,40 @@ public class ZyraService {
             case WANTS_CHILDREN -> "Vuole figli";
             case DOES_NOT_WANT -> "Non vuole figli";
             case UNDECIDED -> "Indeciso/a";
+        };
+    }
+
+    private String formatZodiacSign(com.syncro.backend.domain.profile.entity.ZodiacSign sign) {
+        if (sign == null) {
+            return "";
+        }
+        return switch (sign) {
+            case ARIES -> "Ariete";
+            case TAURUS -> "Toro";
+            case GEMINI -> "Gemelli";
+            case CANCER -> "Cancro";
+            case LEO -> "Leone";
+            case VIRGO -> "Vergine";
+            case LIBRA -> "Bilancia";
+            case SCORPIO -> "Scorpione";
+            case SAGITTARIUS -> "Sagittario";
+            case CAPRICORN -> "Capricorno";
+            case AQUARIUS -> "Acquario";
+            case PISCES -> "Pesci";
+            case UNKNOWN -> "Non specificato";
+        };
+    }
+
+    private String formatGender(com.syncro.backend.domain.profile.entity.Gender gender) {
+        if (gender == null) {
+            return "";
+        }
+        return switch (gender) {
+            case MALE -> "Uomo";
+            case FEMALE -> "Donna";
+            case NON_BINARY -> "Non binario";
+            case OTHER -> "Altro";
+            case PREFER_NOT_TO_SAY -> "Preferisce non dirlo";
         };
     }
 

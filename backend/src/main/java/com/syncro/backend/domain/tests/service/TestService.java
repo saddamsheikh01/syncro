@@ -242,6 +242,7 @@ public class TestService {
         profileData.put("tests", testsData);
         updateProfileDimensions(profileData, definition, scorePayload, confidence);
         profile.setProfile(profileData);
+        updateAggregatedScore(profile, definition, scorePayload);
         userPsyProfileRepository.save(profile);
         recapCache.invalidateUser(user.getId());
         return new TestSubmissionResponse(
@@ -869,5 +870,94 @@ public class TestService {
             case "P5" -> "Ibrido";
             default -> "Profilo";
         };
+    }
+
+    /**
+     * Aggiorna il punteggio aggregato per il tipo di test completato.
+     * Questo permette query rapide sui punteggi senza dover parsare il JSON.
+     */
+    private void updateAggregatedScore(
+        UserPsyProfile profile,
+        TestDefinition definition,
+        Map<String, Object> scorePayload
+    ) {
+        Integer score = extractNormalizedScore(scorePayload, definition.getScoringStrategy());
+        if (score == null) {
+            return;
+        }
+
+        switch (definition.getTestType()) {
+            case INTERESTS -> profile.setInterestsScore(score);
+            case LIFESTYLE -> profile.setLifestyleScore(score);
+            case VALUES -> profile.setValuesScore(score);
+            case OBJECTIVES -> profile.setObjectivesScore(score);
+            case PSY -> profile.setPsyScore(score);
+            case ASTRO -> profile.setAstroScore(score);
+            default -> { /* OTHER: non salvare score aggregato */ }
+        }
+    }
+
+    /**
+     * Estrae il punteggio normalizzato (0-100) dal payload.
+     */
+    @SuppressWarnings("unchecked")
+    private Integer extractNormalizedScore(Map<String, Object> scorePayload, TestScoringStrategy strategy) {
+        if (scorePayload == null) {
+            return null;
+        }
+
+        // SINGLE_SCORE: usa normalizedScore direttamente
+        Object normalizedScore = scorePayload.get("normalizedScore");
+        if (normalizedScore instanceof Number) {
+            return ((Number) normalizedScore).intValue();
+        }
+
+        // CLUSTER_SCORE: calcola media dei cluster normalizzati
+        if (strategy == TestScoringStrategy.CLUSTER_SCORE) {
+            Object clusters = scorePayload.get("clustersNormalized");
+            if (clusters instanceof Map) {
+                Map<String, Object> clustersMap = (Map<String, Object>) clusters;
+                if (clustersMap.isEmpty()) {
+                    return null;
+                }
+                double sum = 0;
+                int count = 0;
+                for (Object value : clustersMap.values()) {
+                    if (value instanceof Number) {
+                        sum += ((Number) value).doubleValue();
+                        count++;
+                    }
+                }
+                return count > 0 ? (int) Math.round(sum / count) : null;
+            }
+        }
+
+        // AXES_SCORE: calcola score medio dagli assi
+        if (strategy == TestScoringStrategy.AXES_SCORE) {
+            Object axes = scorePayload.get("axes");
+            if (axes instanceof Map) {
+                Map<String, Object> axesMap = (Map<String, Object>) axes;
+                if (axesMap.isEmpty()) {
+                    return null;
+                }
+                // Per gli assi, normalizziamo assumendo un range tipico
+                double sum = 0;
+                int count = 0;
+                for (Object value : axesMap.values()) {
+                    if (value instanceof Number) {
+                        // Assumiamo che i valori degli assi siano gia in un range ragionevole
+                        // e li normalizziamo a 0-100 basandoci sul valore assoluto
+                        int axisValue = ((Number) value).intValue();
+                        // Mappa da -50/+50 tipico a 0-100
+                        int normalized = Math.max(0, Math.min(100, 50 + axisValue));
+                        sum += normalized;
+                        count++;
+                    }
+                }
+                return count > 0 ? (int) Math.round(sum / count) : null;
+            }
+        }
+
+        return null;
     }
 }

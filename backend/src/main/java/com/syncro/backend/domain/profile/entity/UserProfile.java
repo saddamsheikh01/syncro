@@ -16,6 +16,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -41,6 +42,40 @@ public class UserProfile {
 
     @Column(name = "country")
     private String country;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private Gender gender;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "zodiac_sign")
+    private ZodiacSign zodiacSign;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sun_sign")
+    private ZodiacSign sunSign;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moon_sign")
+    private ZodiacSign moonSign;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asc_sign")
+    private ZodiacSign ascSign;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "venus_sign")
+    private ZodiacSign venusSign;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mars_sign")
+    private ZodiacSign marsSign;
+
+    @Column(name = "birth_place")
+    private String birthPlace;
+
+    @Column(name = "birth_time")
+    private LocalTime birthTime;
 
     @Column(name = "job_title", length = 120)
     private String jobTitle;
@@ -151,6 +186,78 @@ public class UserProfile {
 
     public void setCountry(String country) {
         this.country = country;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    public ZodiacSign getZodiacSign() {
+        return zodiacSign;
+    }
+
+    public void setZodiacSign(ZodiacSign zodiacSign) {
+        this.zodiacSign = zodiacSign;
+    }
+
+    public ZodiacSign getSunSign() {
+        return sunSign;
+    }
+
+    public void setSunSign(ZodiacSign sunSign) {
+        this.sunSign = sunSign;
+    }
+
+    public ZodiacSign getMoonSign() {
+        return moonSign;
+    }
+
+    public void setMoonSign(ZodiacSign moonSign) {
+        this.moonSign = moonSign;
+    }
+
+    public ZodiacSign getAscSign() {
+        return ascSign;
+    }
+
+    public void setAscSign(ZodiacSign ascSign) {
+        this.ascSign = ascSign;
+    }
+
+    public ZodiacSign getVenusSign() {
+        return venusSign;
+    }
+
+    public void setVenusSign(ZodiacSign venusSign) {
+        this.venusSign = venusSign;
+    }
+
+    public ZodiacSign getMarsSign() {
+        return marsSign;
+    }
+
+    public void setMarsSign(ZodiacSign marsSign) {
+        this.marsSign = marsSign;
+    }
+
+    public String getBirthPlace() {
+        return birthPlace;
+    }
+
+    public void setBirthPlace(String birthPlace) {
+        this.birthPlace = birthPlace;
+    }
+
+    public LocalTime getBirthTime() {
+        return birthTime;
+    }
+
+    public void setBirthTime(LocalTime birthTime) {
+        this.birthTime = birthTime;
     }
 
     public String getJobTitle() {

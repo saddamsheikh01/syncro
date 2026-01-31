@@ -4,6 +4,8 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.matchmaking.dto.DimensionScores;
+import com.syncro.backend.domain.matchmaking.dto.DomainScores;
 import com.syncro.backend.domain.matchmaking.dto.UserMatchResponse;
 import com.syncro.backend.domain.matchmaking.entity.MatchExplanation;
 import com.syncro.backend.domain.matchmaking.entity.UserMatchScore;
@@ -35,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserMatchService {
 
-    private static final int SCORE_MULTIPLIER = 10;
     private static final int MIN_CANDIDATES = 20;
 
     private final UserRepository userRepository;
@@ -46,6 +47,9 @@ public class UserMatchService {
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
     private final MediaObjectRepository mediaObjectRepository;
+    private final DimensionScoreCalculator dimensionScoreCalculator;
+    private final DomainScoreCalculator domainScoreCalculator;
+    private final MatchExplanationGenerator explanationGenerator;
 
     public UserMatchService(
         UserRepository userRepository,
@@ -55,7 +59,10 @@ public class UserMatchService {
         UserMatchMapper userMatchMapper,
         UserProfileRepository userProfileRepository,
         UserProfileMapper userProfileMapper,
-        MediaObjectRepository mediaObjectRepository
+        MediaObjectRepository mediaObjectRepository,
+        DimensionScoreCalculator dimensionScoreCalculator,
+        DomainScoreCalculator domainScoreCalculator,
+        MatchExplanationGenerator explanationGenerator
     ) {
         this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
@@ -65,6 +72,9 @@ public class UserMatchService {
         this.userProfileRepository = userProfileRepository;
         this.userProfileMapper = userProfileMapper;
         this.mediaObjectRepository = mediaObjectRepository;
+        this.dimensionScoreCalculator = dimensionScoreCalculator;
+        this.domainScoreCalculator = domainScoreCalculator;
+        this.explanationGenerator = explanationGenerator;
     }
 
     @Transactional
@@ -107,11 +117,8 @@ public class UserMatchService {
             .orElse(null);
 
         if (match == null) {
-            int sharedCount = userMatchScoreRepository.countSharedInterests(user.getId(), otherUserId);
-            if (sharedCount <= 0) {
-                throw new NotFoundException("Match non disponibile");
-            }
-            upsertMatch(user.getId(), otherUserId, sharedCount);
+            // Calcola il match con il nuovo algoritmo multi-dimensionale
+            upsertMatchAdvanced(user.getId(), otherUserId);
             match = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
                 .orElseThrow(() -> new NotFoundException("Match non disponibile"));
         }
@@ -131,44 +138,108 @@ public class UserMatchService {
         List<UserMatchCandidateProjection> candidates = userMatchScoreRepository
             .findCandidates(user.getId(), tagIds, limit);
         for (UserMatchCandidateProjection candidate : candidates) {
-            upsertMatch(user.getId(), candidate.getUserId(), candidate.getSharedCount());
+            upsertMatchAdvanced(user.getId(), candidate.getUserId());
         }
     }
 
-    private void upsertMatch(UUID currentUserId, UUID otherUserId, int sharedCount) {
-        if (sharedCount <= 0) {
-            return;
-        }
+    /**
+     * Calcola e salva il match usando l'algoritmo multi-dimensionale.
+     */
+    private void upsertMatchAdvanced(UUID currentUserId, UUID otherUserId) {
         UUID userAId = orderFirst(currentUserId, otherUserId);
         UUID userBId = orderSecond(currentUserId, otherUserId);
+
+        // Calcola i punteggi per ogni dimensione
+        DimensionScores dimensions = dimensionScoreCalculator.calculate(userAId, userBId);
+
+        // Se non ci sono dimensioni disponibili, non creare il match
+        if (!dimensions.hasAnyDimension()) {
+            return;
+        }
+
+        // Calcola i punteggi per ogni dominio
+        DomainScores domains = domainScoreCalculator.calculate(dimensions);
+
+        // Calcola il punteggio totale
+        int scoreTotal = domainScoreCalculator.calculateTotalScore(domains);
+
+        // Costruisci il breakdown completo
+        Map<String, Object> breakdown = buildBreakdown(dimensions, domains);
+
+        // Genera le spiegazioni
+        String explanation = explanationGenerator.generateSingle(dimensions, domains);
+
+        // Salva il match
         UserMatchScore match = userMatchScoreRepository
             .findByUserAIdAndUserBId(userAId, userBId)
             .orElseGet(UserMatchScore::new);
         match.setUserAId(userAId);
         match.setUserBId(userBId);
-        match.setScoreTotal(sharedCount * SCORE_MULTIPLIER);
-        match.setBreakdown(Map.of("sharedTags", sharedCount));
+        match.setScoreTotal(scoreTotal);
+        match.setBreakdown(breakdown);
         UserMatchScore saved = userMatchScoreRepository.saveAndFlush(match);
-        if (saved.getId() == null) {
-            saved = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
-                .orElse(saved);
+
+        // Salva la spiegazione
+        if (saved.getId() != null) {
+            upsertExplanation(saved, explanation);
         }
-        if (saved.getId() == null) {
-            return;
-        }
-        // Explanation is computed on the fly to avoid persistence issues in demo data.
     }
 
-    private void upsertExplanation(UserMatchScore match, int sharedCount) {
-        if (match.getId() == null) {
+    /**
+     * Costruisce il breakdown completo con dimensioni e domini.
+     */
+    private Map<String, Object> buildBreakdown(DimensionScores dimensions, DomainScores domains) {
+        Map<String, Object> breakdown = new HashMap<>();
+
+        // Dimensioni
+        Map<String, Object> dimensionsMap = new HashMap<>();
+        if (dimensions.interests() != null) dimensionsMap.put("interests", dimensions.interests());
+        if (dimensions.lifestyle() != null) dimensionsMap.put("lifestyle", dimensions.lifestyle());
+        if (dimensions.values() != null) dimensionsMap.put("values", dimensions.values());
+        if (dimensions.objectives() != null) dimensionsMap.put("objectives", dimensions.objectives());
+        if (dimensions.psy() != null) dimensionsMap.put("psy", dimensions.psy());
+        if (dimensions.astro() != null) dimensionsMap.put("astro", dimensions.astro());
+        breakdown.put("dimensions", dimensionsMap);
+
+        // Domini
+        Map<String, Object> domainsMap = new HashMap<>();
+        if (domains.love() != null) domainsMap.put("love", domains.love());
+        if (domains.friendship() != null) domainsMap.put("friendship", domains.friendship());
+        if (domains.work() != null) domainsMap.put("work", domains.work());
+        if (domains.projects() != null) domainsMap.put("projects", domains.projects());
+        if (domains.hobby() != null) domainsMap.put("hobby", domains.hobby());
+        if (domains.growth() != null) domainsMap.put("growth", domains.growth());
+        breakdown.put("domains", domainsMap);
+
+        // Tag condivisi
+        if (dimensions.sharedTags() != null && !dimensions.sharedTags().isEmpty()) {
+            breakdown.put("sharedTags", dimensions.sharedTags());
+        }
+
+        // Distanza (se disponibile)
+        if (dimensions.distanceKm() != null) {
+            breakdown.put("distanceKm", dimensions.distanceKm());
+        }
+
+        return breakdown;
+    }
+
+    private void upsertExplanation(UserMatchScore match, String explanation) {
+        if (match.getId() == null || explanation == null) {
             return;
         }
-        String explanation = "Match basato su " + sharedCount + " interessi condivisi";
         MatchExplanation stored = matchExplanationRepository.findByMatchId(match.getId())
-            .orElseGet(MatchExplanation::new);
-        stored.setMatchScore(match);
-        stored.setExplanation(explanation);
-        matchExplanationRepository.save(stored);
+            .orElse(null);
+        if (stored == null) {
+            stored = new MatchExplanation();
+            stored.setMatchId(match.getId());
+            stored.setExplanation(explanation);
+            stored.setCreatedAt(java.time.Instant.now());
+            matchExplanationRepository.saveAndFlush(stored);
+        } else {
+            stored.setExplanation(explanation);
+            matchExplanationRepository.save(stored);
+        }
     }
 
     private Page<UserMatchResponse> mapResponses(Page<UserMatchScore> matches, UUID userId) {
@@ -208,15 +279,55 @@ public class UserMatchService {
         return userMatchMapper.toResponse(match, userId, explanation, summary);
     }
 
+    @SuppressWarnings("unchecked")
     private String buildExplanation(UserMatchScore match) {
         if (match.getBreakdown() == null) {
-            return "Match basato su interessi condivisi";
+            return "Match basato su compatibilita generale";
         }
+
+        // Prova a costruire una spiegazione dal breakdown avanzato
+        Object dimensionsObj = match.getBreakdown().get("dimensions");
+        if (dimensionsObj instanceof Map) {
+            Map<String, Object> dimensions = (Map<String, Object>) dimensionsObj;
+            StringBuilder sb = new StringBuilder();
+
+            // Trova la dimensione piu alta
+            String topDimension = null;
+            int topScore = 0;
+            for (Map.Entry<String, Object> entry : dimensions.entrySet()) {
+                if (entry.getValue() instanceof Number score) {
+                    if (score.intValue() > topScore) {
+                        topScore = score.intValue();
+                        topDimension = entry.getKey();
+                    }
+                }
+            }
+
+            if (topDimension != null && topScore >= 70) {
+                String label = switch (topDimension) {
+                    case "interests" -> "passioni condivise";
+                    case "lifestyle" -> "stile di vita";
+                    case "values" -> "valori";
+                    case "objectives" -> "obiettivi";
+                    case "psy" -> "personalita";
+                    case "astro" -> "compatibilita astrologica";
+                    default -> "compatibilita";
+                };
+                sb.append("Match basato su ").append(label).append(" (").append(topScore).append("%)");
+                return sb.toString();
+            }
+        }
+
+        // Fallback: cerca sharedTags
         Object shared = match.getBreakdown().get("sharedTags");
-        if (shared instanceof Number sharedCount) {
-            return "Match basato su " + sharedCount.intValue() + " interessi condivisi";
+        if (shared instanceof List sharedList && !sharedList.isEmpty()) {
+            return "Match basato su " + sharedList.size() + " passioni condivise";
         }
-        return "Match basato su interessi condivisi";
+        if (shared instanceof Number sharedCount) {
+            return "Match basato su " + sharedCount.intValue() + " passioni condivise";
+        }
+
+        return "Match basato su compatibilita generale";
     }
 
     private Map<UUID, String> loadExplanations(List<UserMatchScore> matches) {

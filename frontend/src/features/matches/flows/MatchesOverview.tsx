@@ -11,10 +11,59 @@ import { MatchFilterBar } from "@/features/matches/sections/MatchFilterBar";
 import { MatchDetailPanel } from "@/features/matches/sections/MatchDetailPanel";
 import { MatchListItem } from "@/features/matches/elements/MatchListItem";
 import type { MatchInsightItemProps } from "@/features/matches/elements/MatchInsightItem";
-import type { UserMatchResponse } from "@/types/matches";
+import type { UserMatchResponse, MatchBreakdown, DimensionScores, DomainScores } from "@/types/matches";
 import { useAnalytics, useChat, useMatches } from "@/hooks";
+import { getMatchScoreStyle } from "@/lib/matchScoreTone";
 
 const PAGE_SIZE = 20;
+
+const DIMENSION_LABELS: Record<keyof DimensionScores, string> = {
+  interests: "Interessi",
+  lifestyle: "Stile di vita",
+  values: "Valori",
+  objectives: "Obiettivi",
+  psy: "Personalita",
+  astro: "Astrologia",
+};
+
+const DOMAIN_LABELS: Record<keyof DomainScores, string> = {
+  love: "Relazione",
+  friendship: "Amicizia",
+  work: "Lavoro",
+  projects: "Progetti",
+  hobby: "Hobby",
+  growth: "Crescita",
+};
+
+const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | null => {
+  if (!raw) return null;
+  return {
+    dimensions: raw.dimensions as DimensionScores | undefined,
+    domains: raw.domains as DomainScores | undefined,
+    sharedTags: raw.sharedTags as string[] | number | undefined,
+    distanceKm: raw.distanceKm as number | undefined,
+  };
+};
+
+const getTopDimensions = (dimensions: DimensionScores | undefined, limit = 3) => {
+  if (!dimensions) return [];
+  const entries = Object.entries(dimensions)
+    .filter(([, v]) => typeof v === "number" && v !== null)
+    .map(([k, v]) => ({ key: k as keyof DimensionScores, value: v as number }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+  return entries;
+};
+
+const getTopDomains = (domains: DomainScores | undefined, limit = 2) => {
+  if (!domains) return [];
+  const entries = Object.entries(domains)
+    .filter(([, v]) => typeof v === "number" && v !== null)
+    .map(([k, v]) => ({ key: k as keyof DomainScores, value: v as number }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+  return entries;
+};
 
 const MATCH_SORT_OPTIONS = [
   { label: "Punteggio", value: "score" },
@@ -39,31 +88,84 @@ const getLocation = (match: UserMatchResponse) => {
 
 const mapTags = (match: UserMatchResponse): string[] => {
   const tags: string[] = [];
-  const sharedTags = match.breakdown?.["sharedTags"];
-  if (typeof sharedTags === "number") {
+  const breakdown = parseBreakdown(match.breakdown as Record<string, unknown> | null);
+  const sharedTags = breakdown?.sharedTags;
+
+  if (Array.isArray(sharedTags) && sharedTags.length > 0) {
+    tags.push(`${sharedTags.length} passioni in comune`);
+  } else if (typeof sharedTags === "number" && sharedTags > 0) {
     tags.push(`${sharedTags} passioni in comune`);
   }
+
+  // Aggiungi i domini top come tag
+  const topDomains = getTopDomains(breakdown?.domains, 2);
+  topDomains.forEach(({ key, value }) => {
+    if (value >= 75) {
+      tags.push(DOMAIN_LABELS[key]);
+    }
+  });
+
   return tags;
 };
 
 const mapInsights = (match: UserMatchResponse): MatchInsightItemProps[] => {
   const insights: MatchInsightItemProps[] = [];
-  const sharedTags = match.breakdown?.["sharedTags"];
-  if (typeof sharedTags === "number") {
+  const breakdown = parseBreakdown(match.breakdown as Record<string, unknown> | null);
+
+  // Dimensioni top (interessi, valori, etc.)
+  const topDimensions = getTopDimensions(breakdown?.dimensions, 3);
+  topDimensions.forEach(({ key, value }) => {
+    if (value >= 40) {
+      const { tone, emoji } = getMatchScoreStyle(value);
+      insights.push({
+        title: DIMENSION_LABELS[key],
+        description: `${emoji} ${value}%`,
+        tone,
+      });
+    }
+  });
+
+  // Tag condivisi
+  const sharedTags = breakdown?.sharedTags;
+  if (Array.isArray(sharedTags) && sharedTags.length > 0) {
+    const preview = sharedTags.slice(0, 3).join(", ");
+    const suffix = sharedTags.length > 3 ? ` e altri ${sharedTags.length - 3}` : "";
+    insights.push({
+      title: "Passioni condivise",
+      description: preview + suffix,
+      tone: "accent",
+    });
+  } else if (typeof sharedTags === "number" && sharedTags > 0) {
     insights.push({
       title: "Passioni",
       description: `${sharedTags} tag condivisi`,
       tone: "accent",
     });
   }
-  if (match.explanation) {
+
+  // Domini top (amicizia, lavoro, etc.)
+  const topDomains = getTopDomains(breakdown?.domains, 2);
+  topDomains.forEach(({ key, value }) => {
+    if (value >= 50) {
+      const { tone, emoji } = getMatchScoreStyle(value);
+      insights.push({
+        title: `Ottimi per ${DOMAIN_LABELS[key].toLowerCase()}`,
+        description: `${emoji} ${value}%`,
+        tone,
+      });
+    }
+  });
+
+  // Spiegazione generale
+  if (match.explanation && insights.length < 4) {
     insights.push({
-      title: "Perché questo match",
+      title: "Perche questo match",
       description: match.explanation,
       tone: "neutral",
     });
   }
-  return insights;
+
+  return insights.slice(0, 5); // Limita a 5 insights
 };
 
 export const MatchesOverview = () => {

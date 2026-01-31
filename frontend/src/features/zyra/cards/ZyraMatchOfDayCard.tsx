@@ -4,9 +4,18 @@ import Link from "next/link";
 import type { HTMLAttributes } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
+import { Tag } from "@/components/elements/Tag";
+import type { BadgeTone } from "@/components/elements/Badge";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
+import { formatInterestLabel } from "@/lib/interestEmoji";
+
+export interface MatchInsightBadge {
+  label: string;
+  value: number;
+  tone: BadgeTone;
+}
 
 export interface ZyraMatchOfDayCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -15,10 +24,31 @@ export interface ZyraMatchOfDayCardProps
   description?: string;
   avatarUrl?: string;
   matchScore?: number;
+  insights?: MatchInsightBadge[];
+  sharedTags?: string[];
   actionLabel?: string;
   actionHref?: string;
   profileHref?: string;
 }
+
+const getToneClasses = (tone: BadgeTone): string => {
+  switch (tone) {
+    case "success":
+      return "bg-emerald-600/15 text-emerald-600 border-emerald-600/30";
+    case "success-light":
+      return "bg-green-500/15 text-green-600 border-green-500/30";
+    case "caution":
+      return "bg-yellow-500/15 text-yellow-600 border-yellow-500/30";
+    case "warning":
+      return "bg-orange-500/15 text-orange-600 border-orange-500/30";
+    case "danger":
+      return "bg-red-500/15 text-red-600 border-red-500/30";
+    case "accent":
+      return "bg-accent/10 text-accent border-accent/30";
+    default:
+      return "bg-surface-muted text-muted border-border";
+  }
+};
 
 export const ZyraMatchOfDayCard = ({
   className,
@@ -27,6 +57,8 @@ export const ZyraMatchOfDayCard = ({
   description,
   avatarUrl,
   matchScore,
+  insights = [],
+  sharedTags = [],
   actionLabel = "Apri",
   actionHref,
   profileHref,
@@ -113,6 +145,40 @@ export const ZyraMatchOfDayCard = ({
       {/* Description */}
       {description ? (
         <p className="text-sm leading-relaxed text-muted">{description}</p>
+      ) : null}
+
+      {/* Shared tags */}
+      {sharedTags.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {sharedTags.slice(0, 4).map((tag) => (
+            <Tag key={tag} tone="accent">
+              {formatInterestLabel(tag)}
+            </Tag>
+          ))}
+          {sharedTags.length > 4 && (
+            <span className="inline-flex items-center rounded-full bg-surface-muted px-2 py-0.5 text-xs text-muted">
+              +{sharedTags.length - 4}
+            </span>
+          )}
+        </div>
+      ) : null}
+
+      {/* Insights badges */}
+      {insights.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {insights.slice(0, 3).map((insight) => (
+            <span
+              key={insight.label}
+              className={cx(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                getToneClasses(insight.tone)
+              )}
+            >
+              {insight.label}
+              <span className="font-semibold">{insight.value}%</span>
+            </span>
+          ))}
+        </div>
       ) : null}
 
       {/* Action button */}

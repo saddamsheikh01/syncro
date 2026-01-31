@@ -3,10 +3,12 @@
 import type { HTMLAttributes, KeyboardEvent, MouseEvent } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { Badge } from "@/components/elements/Badge";
+import { Tag } from "@/components/elements/Tag";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { NavIcon } from "@/components/ui/NavIcon";
 import type { UserMatchResponse } from "@/types/matches";
 import { cx } from "@/lib/classNames";
+import { formatInterestLabel } from "@/lib/interestEmoji";
 
 export interface MatchListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick" | "onSelect"> {
@@ -75,7 +77,17 @@ export const MatchListItem = ({
   const score = match.scoreTotal ?? 0;
   const explanation = match.explanation ?? "Affinita calcolata sulle passioni condivise.";
   const updatedLabel = formatUpdatedAt(match.updatedAt);
-  const sharedTags = match.breakdown?.["sharedTags"];
+  const rawSharedTags = match.breakdown?.["sharedTags"];
+  const sharedTagsArray: string[] = Array.isArray(rawSharedTags)
+    ? rawSharedTags.filter((t): t is string => typeof t === "string")
+    : [];
+  const sharedTagsCount = sharedTagsArray.length > 0
+    ? sharedTagsArray.length
+    : typeof rawSharedTags === "number"
+    ? rawSharedTags
+    : 0;
+  const sharedTagsPreview = sharedTagsArray.slice(0, 3);
+  const hasMoreTags = sharedTagsArray.length > 3;
   const location = formatLocation(match);
   const username = match.user?.username?.trim() ?? "";
   const isSelectable = Boolean(onSelectMatch);
@@ -141,11 +153,24 @@ export const MatchListItem = ({
               <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
                 {name}
               </p>
-              {typeof sharedTags === "number" && sharedTags > 0 && (
+              {sharedTagsPreview.length > 0 ? (
+                <>
+                  {sharedTagsPreview.map((tag) => (
+                    <Tag key={tag} tone="accent">
+                      {formatInterestLabel(tag)}
+                    </Tag>
+                  ))}
+                  {hasMoreTags && (
+                    <Badge tone="neutral" size="sm">
+                      +{sharedTagsArray.length - 3}
+                    </Badge>
+                  )}
+                </>
+              ) : sharedTagsCount > 0 ? (
                 <Badge tone="accent" size="sm">
-                  {sharedTags} in comune
+                  {sharedTagsCount} in comune
                 </Badge>
-              )}
+              ) : null}
             </div>
             {username ? (
               <p className="text-xs text-subtle">@{username}</p>
