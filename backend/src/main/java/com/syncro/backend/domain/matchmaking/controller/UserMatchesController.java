@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,5 +47,14 @@ public class UserMatchesController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(userMatchService.getMatchWithUser(principal, userId));
+    }
+
+    @PostMapping("/{userId}/refresh")
+    @Operation(summary = "Ricalcola match con utente")
+    public ResponseEntity<UserMatchResponse> refreshMatchWithUser(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(userMatchService.refreshMatchWithUser(principal, userId));
     }
 }

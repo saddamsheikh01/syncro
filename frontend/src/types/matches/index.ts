@@ -36,6 +36,9 @@ export type MatchBreakdown = {
   domains?: DomainScores;
   sharedTags?: string[] | number;
   distanceKm?: number | null;
+  completeness?: number;
+  availableDimensions?: number;
+  totalDimensions?: number;
 };
 
 export type RecommendationType = "PLACE" | "EXPERIENCE";

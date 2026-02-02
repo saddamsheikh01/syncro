@@ -64,6 +64,55 @@ const LocationIcon = () => (
   </svg>
 );
 
+const DIMENSION_LABELS: Record<string, string> = {
+  interests: "interessi",
+  lifestyle: "stile di vita",
+  values: "valori",
+  objectives: "obiettivi",
+  psy: "personalita",
+  astro: "astrologia",
+};
+
+const buildMatchSummary = (match: UserMatchResponse): string => {
+  const breakdown = match.breakdown as Record<string, unknown> | null;
+  const parts: string[] = [];
+
+  // Passioni condivise
+  const sharedTags = breakdown?.sharedTags;
+  const sharedCount = Array.isArray(sharedTags) ? sharedTags.length : typeof sharedTags === "number" ? sharedTags : 0;
+
+  if (sharedCount > 0) {
+    const sharedList = Array.isArray(sharedTags) ? sharedTags.slice(0, 3).join(", ") : "";
+    if (sharedList) {
+      const suffix = sharedCount > 3 ? "..." : "";
+      parts.push(`${sharedCount} passioni in comune: ${sharedList}${suffix}`);
+    } else {
+      parts.push(`${sharedCount} passioni in comune`);
+    }
+  }
+
+  // Altre dimensioni analizzate (escluso interests che e gia mostrato come passioni)
+  const dimensions = breakdown?.dimensions as Record<string, number | null> | undefined;
+  if (dimensions) {
+    const analyzedDimensions = Object.entries(dimensions)
+      .filter(([key, value]) => key !== "interests" && typeof value === "number" && value !== null)
+      .map(([key]) => DIMENSION_LABELS[key] || key);
+
+    if (analyzedDimensions.length > 0) {
+      const dimText = analyzedDimensions.length === 1
+        ? `analisi ${analyzedDimensions[0]}`
+        : `analisi ${analyzedDimensions.slice(0, 2).join(", ")}${analyzedDimensions.length > 2 ? ` +${analyzedDimensions.length - 2}` : ""}`;
+      parts.push(dimText);
+    }
+  }
+
+  if (parts.length === 0) {
+    return match.explanation ?? "Affinita calcolata sul profilo";
+  }
+
+  return parts.join(" · ");
+};
+
 export const MatchListItem = ({
   className,
   match,
@@ -75,21 +124,16 @@ export const MatchListItem = ({
 }: MatchListItemProps) => {
   const name = getDisplayName(match);
   const score = match.scoreTotal ?? 0;
-  const explanation = match.explanation ?? "Affinita calcolata sulle passioni condivise.";
+  const matchSummary = buildMatchSummary(match);
   const updatedLabel = formatUpdatedAt(match.updatedAt);
-  const rawSharedTags = match.breakdown?.["sharedTags"];
+  const breakdown = match.breakdown as Record<string, unknown> | null;
+  const rawSharedTags = breakdown?.sharedTags;
   const sharedTagsArray: string[] = Array.isArray(rawSharedTags)
     ? rawSharedTags.filter((t): t is string => typeof t === "string")
     : [];
-  const sharedTagsCount = sharedTagsArray.length > 0
-    ? sharedTagsArray.length
-    : typeof rawSharedTags === "number"
-    ? rawSharedTags
-    : 0;
   const sharedTagsPreview = sharedTagsArray.slice(0, 3);
   const hasMoreTags = sharedTagsArray.length > 3;
   const location = formatLocation(match);
-  const username = match.user?.username?.trim() ?? "";
   const isSelectable = Boolean(onSelectMatch);
 
   const handleSelect = () => {
@@ -166,23 +210,16 @@ export const MatchListItem = ({
                     </Badge>
                   )}
                 </>
-              ) : sharedTagsCount > 0 ? (
-                <Badge tone="accent" size="sm">
-                  {sharedTagsCount} in comune
-                </Badge>
               ) : null}
             </div>
-            {username ? (
-              <p className="text-xs text-subtle">@{username}</p>
-            ) : null}
             {location && (
               <p className="flex items-center gap-1 text-xs text-muted">
                 <LocationIcon />
                 {location}
               </p>
             )}
-            <p className="line-clamp-2 text-xs text-subtle">{explanation}</p>
-            <p className="text-[11px] text-muted">{updatedLabel}</p>
+            <p className="text-xs text-muted">{matchSummary}</p>
+            <p className="text-[11px] text-subtle">{updatedLabel}</p>
           </div>
 
           {/* Score */}

@@ -22,6 +22,8 @@ import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.tags.entity.UserInterest;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
 import com.syncro.backend.security.UserPrincipal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserMatchService {
 
     private static final int MIN_CANDIDATES = 20;
+    private static final int STALE_DAYS = 7;
 
     private final UserRepository userRepository;
     private final UserInterestRepository userInterestRepository;
@@ -91,8 +94,16 @@ public class UserMatchService {
             Sort.by(Sort.Order.desc("scoreTotal"), Sort.Order.desc("updatedAt"))
         );
         Page<UserMatchScore> existing = userMatchScoreRepository.findByUserId(user.getId(), pageable);
-        if (refresh || existing.isEmpty()) {
+
+        // Verifica se ci sono match obsoleti da ricalcolare
+        boolean hasStaleMatches = existing.getContent().stream().anyMatch(this::isMatchStale);
+
+        if (refresh || existing.isEmpty() || hasStaleMatches) {
             computeMatches(user, page, size);
+            // Ricalcola anche i match stale esistenti
+            if (hasStaleMatches) {
+                refreshStaleMatches(existing.getContent(), user.getId());
+            }
             existing = userMatchScoreRepository.findByUserId(user.getId(), pageable);
         }
         return mapResponses(existing, user.getId());
@@ -124,6 +135,80 @@ public class UserMatchService {
         }
 
         return mapSingleResponse(match, user.getId());
+    }
+
+    /**
+     * Forza il ricalcolo del match con un utente specifico.
+     */
+    @Transactional
+    public UserMatchResponse refreshMatchWithUser(UserPrincipal principal, UUID otherUserId) {
+        User user = getUser(principal);
+        if (otherUserId == null) {
+            throw new NotFoundException("Utente non valido");
+        }
+        if (otherUserId.equals(user.getId())) {
+            throw new NotFoundException("Utente non valido");
+        }
+        userRepository.findById(otherUserId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        // Forza il ricalcolo
+        upsertMatchAdvanced(user.getId(), otherUserId);
+
+        // Recupera e restituisci il match aggiornato
+        UUID userAId = orderFirst(user.getId(), otherUserId);
+        UUID userBId = orderSecond(user.getId(), otherUserId);
+        UserMatchScore match = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
+            .orElseThrow(() -> new NotFoundException("Match non disponibile"));
+
+        return mapSingleResponse(match, user.getId());
+    }
+
+    /**
+     * Verifica se un match e obsoleto e necessita di ricalcolo.
+     * Un match e considerato stale se:
+     * - scoreTotal e null o 0
+     * - breakdown non contiene "dimensions"
+     * - e piu vecchio di STALE_DAYS giorni
+     */
+    private boolean isMatchStale(UserMatchScore match) {
+        // Match con score 0 o null sono sempre stale
+        if (match.getScoreTotal() == null || match.getScoreTotal() == 0) {
+            return true;
+        }
+
+        // Match senza breakdown con dimensions sono stale
+        Map<String, Object> breakdown = match.getBreakdown();
+        if (breakdown == null || breakdown.isEmpty()) {
+            return true;
+        }
+        if (!breakdown.containsKey("dimensions")) {
+            return true;
+        }
+
+        // Match piu vecchi di STALE_DAYS giorni sono stale
+        if (match.getUpdatedAt() != null) {
+            Instant threshold = Instant.now().minus(STALE_DAYS, ChronoUnit.DAYS);
+            if (match.getUpdatedAt().isBefore(threshold)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Ricalcola i match obsoleti nella lista.
+     */
+    private void refreshStaleMatches(List<UserMatchScore> matches, UUID currentUserId) {
+        for (UserMatchScore match : matches) {
+            if (isMatchStale(match)) {
+                UUID otherUserId = resolveOtherUserId(match, currentUserId);
+                if (otherUserId != null) {
+                    upsertMatchAdvanced(currentUserId, otherUserId);
+                }
+            }
+        }
     }
 
     private void computeMatches(User user, int page, int size) {
@@ -220,6 +305,14 @@ public class UserMatchService {
         if (dimensions.distanceKm() != null) {
             breakdown.put("distanceKm", dimensions.distanceKm());
         }
+
+        // Informazioni sulla completezza del match
+        int totalDimensions = 6;
+        int availableDimensions = dimensions.availableCount();
+        int completeness = (int) Math.round(100.0 * availableDimensions / totalDimensions);
+        breakdown.put("completeness", completeness);
+        breakdown.put("availableDimensions", availableDimensions);
+        breakdown.put("totalDimensions", totalDimensions);
 
         return breakdown;
     }

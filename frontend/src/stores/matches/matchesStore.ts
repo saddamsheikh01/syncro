@@ -8,7 +8,7 @@ import type {
   RecommendationsParams,
   UserMatchesParams,
 } from "../../services/matches";
-import { getRecommendations, getUserMatches } from "../../services/matches";
+import { getRecommendations, getUserMatches, refreshUserMatch } from "../../services/matches";
 import { createStore } from "../utils/createStore";
 import type { PageInfo } from "../catalog/catalogStore";
 
@@ -93,6 +93,27 @@ export const matchesActions = {
     } catch (error) {
       matchesStore.setState({
         loadingRecommendations: false,
+        error: error as ApiError,
+      });
+      throw error;
+    }
+  },
+
+  refreshMatch: async (userId: string): Promise<UserMatchResponse> => {
+    matchesStore.setState({ loadingUserMatches: true, error: null });
+
+    try {
+      const updatedMatch = await refreshUserMatch(userId);
+      matchesStore.setState((state) => ({
+        userMatches: state.userMatches.map((m) =>
+          m.userId === userId ? updatedMatch : m
+        ),
+        loadingUserMatches: false,
+      }));
+      return updatedMatch;
+    } catch (error) {
+      matchesStore.setState({
+        loadingUserMatches: false,
         error: error as ApiError,
       });
       throw error;
