@@ -173,102 +173,102 @@ export const MatchesOverview = () => {
         </div>
       </header>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr,1fr]">
-        <div className="space-y-4">
-          <MatchFilterBar
-            searchValue={search}
-            onSearchChange={setSearch}
-            sortOptions={MATCH_SORT_OPTIONS}
-            sortValue={sortValue}
-            onSortChange={setSortValue}
-            subtitle="Filtra i risultati o cambia l'ordinamento."
-          />
-
-          {isInitialLoading && (
-            <Card className="flex items-center gap-3 p-5">
-              <Loader size="sm" />
-              <p className="text-sm text-muted">Caricamento match...</p>
-            </Card>
-          )}
-
-          {error && !isInitialLoading && (
-            <div className="space-y-3">
-              <ErrorState
-                title="Impossibile caricare i match"
-                description={error.message}
+      {/* Dettaglio match selezionato in alto */}
+      <div className="mt-8">
+        {selectedMatch ? (
+          (() => {
+            const breakdown = parseBreakdown(selectedMatch.breakdown as Record<string, unknown> | null);
+            const sharedTags = breakdown?.sharedTags;
+            const sharedPassions = Array.isArray(sharedTags) ? sharedTags : [];
+            return (
+              <MatchDetailPanel
+                name={getDisplayName(selectedMatch)}
+                location={getLocation(selectedMatch)}
+                avatarUrl={selectedMatch.user?.avatarUrl ?? undefined}
+                matchScore={selectedMatch.scoreTotal ?? 0}
+                sharedPassions={sharedPassions}
+                breakdown={breakdown}
+                primaryActionLabel="Inizia chat"
+                onPrimaryAction={handleStartChat}
+                primaryActionDisabled={startingChat || loadingConversations}
+                secondaryActionLabel="Vedi profilo"
+                onSecondaryAction={() => router.push(`/profile/${selectedMatch.userId}`)}
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => matchesActions.fetchUserMatches({ size: PAGE_SIZE }).catch(() => undefined)}
-                disabled={loadingUserMatches}
-              >
-                Riprova
-              </Button>
-            </div>
-          )}
+            );
+          })()
+        ) : (
+          <Card className="p-5">
+            <p className="text-sm font-semibold text-foreground">
+              Seleziona un match per vedere i dettagli
+            </p>
+            <p className="text-sm text-muted">
+              Qui troverai spiegazioni e azioni rapide per contattare l&apos;utente.
+            </p>
+          </Card>
+        )}
+      </div>
 
-          {!isInitialLoading && !error && filteredMatches.length === 0 && (
-            <EmptyState
-              title="Nessun match disponibile"
-              description="Completa le passioni o i test per generare nuovi suggerimenti."
-            />
-          )}
+      {/* Lista match */}
+      <div className="mt-6 space-y-4">
+        <MatchFilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          sortOptions={MATCH_SORT_OPTIONS}
+          sortValue={sortValue}
+          onSortChange={setSortValue}
+          subtitle="Filtra i risultati o cambia l'ordinamento."
+        />
 
+        {isInitialLoading && (
+          <Card className="flex items-center gap-3 p-5">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">Caricamento match...</p>
+          </Card>
+        )}
+
+        {error && !isInitialLoading && (
           <div className="space-y-3">
-            {filteredMatches.map((match) => (
-              <MatchListItem
-                key={match.matchId}
-                match={match}
-                selected={selectedMatch?.matchId === match.matchId}
-                onSelectMatch={setSelectedMatchId}
-                onProfileClick={() => router.push(`/profile/${match.userId}`)}
-              />
-            ))}
+            <ErrorState
+              title="Impossibile caricare i match"
+              description={error.message}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => matchesActions.fetchUserMatches({ size: PAGE_SIZE }).catch(() => undefined)}
+              disabled={loadingUserMatches}
+            >
+              Riprova
+            </Button>
           </div>
+        )}
 
-          {hasMoreUserMatches && !loadingUserMatches && filteredMatches.length > 0 ? (
-            <div className="flex justify-center">
-              <Button variant="secondary" onClick={handleLoadMore}>
-                Mostra altri
-              </Button>
-            </div>
-          ) : null}
+        {!isInitialLoading && !error && filteredMatches.length === 0 && (
+          <EmptyState
+            title="Nessun match disponibile"
+            description="Completa le passioni o i test per generare nuovi suggerimenti."
+          />
+        )}
+
+        <div className="space-y-3">
+          {filteredMatches.map((match) => (
+            <MatchListItem
+              key={match.matchId}
+              match={match}
+              selected={selectedMatch?.matchId === match.matchId}
+              onSelectMatch={setSelectedMatchId}
+              onProfileClick={() => router.push(`/profile/${match.userId}`)}
+            />
+          ))}
         </div>
 
-        <aside className="space-y-3">
-          {selectedMatch ? (
-            (() => {
-              const breakdown = parseBreakdown(selectedMatch.breakdown as Record<string, unknown> | null);
-              const sharedTags = breakdown?.sharedTags;
-              const sharedPassions = Array.isArray(sharedTags) ? sharedTags : [];
-              return (
-                <MatchDetailPanel
-                  name={getDisplayName(selectedMatch)}
-                  location={getLocation(selectedMatch)}
-                  avatarUrl={selectedMatch.user?.avatarUrl ?? undefined}
-                  matchScore={selectedMatch.scoreTotal ?? 0}
-                  sharedPassions={sharedPassions}
-                  breakdown={breakdown}
-                  primaryActionLabel="Inizia chat"
-                  onPrimaryAction={handleStartChat}
-                  primaryActionDisabled={startingChat || loadingConversations}
-                  secondaryActionLabel="Vedi profilo"
-                  onSecondaryAction={() => router.push(`/profile/${selectedMatch.userId}`)}
-                />
-              );
-            })()
-          ) : (
-            <Card className="p-5">
-              <p className="text-sm font-semibold text-foreground">
-                Seleziona un match per vedere i dettagli
-              </p>
-              <p className="text-sm text-muted">
-                Qui troverai spiegazioni e azioni rapide per contattare l&apos;utente.
-              </p>
-            </Card>
-          )}
-        </aside>
+        {hasMoreUserMatches && !loadingUserMatches && filteredMatches.length > 0 ? (
+          <div className="flex justify-center">
+            <Button variant="secondary" onClick={handleLoadMore}>
+              Mostra altri
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

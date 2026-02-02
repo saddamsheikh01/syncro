@@ -58,9 +58,10 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
   const { dimensions, completeness, availableDimensions, totalDimensions } = breakdown;
 
   // Separa dimensioni disponibili e mancanti
+  // Normalizza i valori negativi a 0
   const availableDims = (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
     .filter((key) => dimensions?.[key] !== null && dimensions?.[key] !== undefined)
-    .map((key) => ({ key, value: dimensions![key] as number, ...DIMENSION_CONFIG[key] }));
+    .map((key) => ({ key, value: Math.max(0, dimensions![key] as number), ...DIMENSION_CONFIG[key] }));
 
   const missingDims = (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
     .filter((key) => dimensions?.[key] === null || dimensions?.[key] === undefined)

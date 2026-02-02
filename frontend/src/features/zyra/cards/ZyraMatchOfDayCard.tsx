@@ -5,17 +5,27 @@ import type { HTMLAttributes } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
 import { Tag } from "@/components/elements/Tag";
-import type { BadgeTone } from "@/components/elements/Badge";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import type { MatchBreakdown, DimensionScores } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
 
-export interface MatchInsightBadge {
-  label: string;
-  value: number;
-  tone: BadgeTone;
-}
+const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
+  interests: { label: "Interessi", emoji: "💫" },
+  lifestyle: { label: "Stile di vita", emoji: "🏃" },
+  values: { label: "Valori", emoji: "💎" },
+  objectives: { label: "Obiettivi", emoji: "🎯" },
+  psy: { label: "Personalita", emoji: "🧠" },
+  astro: { label: "Astrologia", emoji: "✨" },
+};
+
+const getProgressColor = (value: number): string => {
+  if (value >= 70) return "bg-emerald-500";
+  if (value >= 50) return "bg-accent";
+  if (value >= 30) return "bg-orange-500";
+  return "bg-red-500";
+};
 
 export interface ZyraMatchOfDayCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -24,31 +34,12 @@ export interface ZyraMatchOfDayCardProps
   description?: string;
   avatarUrl?: string;
   matchScore?: number;
-  insights?: MatchInsightBadge[];
+  breakdown?: MatchBreakdown | null;
   sharedTags?: string[];
   actionLabel?: string;
   actionHref?: string;
   profileHref?: string;
 }
-
-const getToneClasses = (tone: BadgeTone): string => {
-  switch (tone) {
-    case "success":
-      return "bg-emerald-600/15 text-emerald-600 border-emerald-600/30";
-    case "success-light":
-      return "bg-green-500/15 text-green-600 border-green-500/30";
-    case "caution":
-      return "bg-yellow-500/15 text-yellow-600 border-yellow-500/30";
-    case "warning":
-      return "bg-orange-500/15 text-orange-600 border-orange-500/30";
-    case "danger":
-      return "bg-red-500/15 text-red-600 border-red-500/30";
-    case "accent":
-      return "bg-accent/10 text-accent border-accent/30";
-    default:
-      return "bg-surface-muted text-muted border-border";
-  }
-};
 
 export const ZyraMatchOfDayCard = ({
   className,
@@ -57,13 +48,22 @@ export const ZyraMatchOfDayCard = ({
   description,
   avatarUrl,
   matchScore,
-  insights = [],
+  breakdown,
   sharedTags = [],
   actionLabel = "Apri",
   actionHref,
   profileHref,
   ...props
-}: ZyraMatchOfDayCardProps) => (
+}: ZyraMatchOfDayCardProps) => {
+  const dimensions = breakdown?.dimensions;
+  // Normalizza i valori negativi a 0
+  const availableDims = dimensions
+    ? (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
+        .filter((key) => dimensions[key] !== null && dimensions[key] !== undefined)
+        .map((key) => ({ key, value: Math.max(0, dimensions[key] as number), ...DIMENSION_CONFIG[key] }))
+    : [];
+
+  return (
   <div
     className={cx(
       "zyra-surface relative rounded-[var(--radius-lg)] border border-zyra-border p-6 shadow-md",
@@ -163,23 +163,33 @@ export const ZyraMatchOfDayCard = ({
         </div>
       ) : null}
 
-      {/* Insights badges */}
-      {insights.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {insights.slice(0, 3).map((insight) => (
-            <span
-              key={insight.label}
-              className={cx(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-                getToneClasses(insight.tone)
-              )}
-            >
-              {insight.label}
-              <span className="font-semibold">{insight.value}%</span>
-            </span>
-          ))}
+      {/* Dimensioni con progress bar */}
+      {availableDims.length > 0 && (
+        <div className="space-y-2.5 rounded-lg border border-zyra-border/40 bg-white/40 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-zyra-text/70">
+            Analisi compatibilita
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {availableDims.map(({ key, label, emoji, value }) => (
+              <div key={key} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-foreground">
+                    <span>{emoji}</span>
+                    {label}
+                  </span>
+                  <span className="text-[11px] font-semibold text-foreground">{value}%</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-zyra-border/30">
+                  <div
+                    className={cx("h-full rounded-full transition-all", getProgressColor(value))}
+                    style={{ width: `${value}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      ) : null}
+      )}
 
       {/* Action button */}
       {actionHref ? (
@@ -201,4 +211,5 @@ export const ZyraMatchOfDayCard = ({
       )}
     </div>
   </div>
-);
+  );
+};

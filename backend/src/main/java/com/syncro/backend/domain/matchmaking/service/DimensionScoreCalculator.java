@@ -57,18 +57,18 @@ public class DimensionScoreCalculator {
         UserPsyProfile psyProfileA = userPsyProfileRepository.findByUserId(userAId).orElse(null);
         UserPsyProfile psyProfileB = userPsyProfileRepository.findByUserId(userBId).orElse(null);
 
-        Integer lifestyleScore = calculateTestScore(psyProfileA, psyProfileB, TestType.LIFESTYLE);
-        Integer valuesScore = calculateTestScore(psyProfileA, psyProfileB, TestType.VALUES);
-        Integer objectivesScore = calculateTestScore(psyProfileA, psyProfileB, TestType.OBJECTIVES);
-        Integer psyScore = calculateTestScore(psyProfileA, psyProfileB, TestType.PSY);
+        Integer lifestyleScore = normalizeScore(calculateTestScore(psyProfileA, psyProfileB, TestType.LIFESTYLE));
+        Integer valuesScore = normalizeScore(calculateTestScore(psyProfileA, psyProfileB, TestType.VALUES));
+        Integer objectivesScore = normalizeScore(calculateTestScore(psyProfileA, psyProfileB, TestType.OBJECTIVES));
+        Integer psyScore = normalizeScore(calculateTestScore(psyProfileA, psyProfileB, TestType.PSY));
 
         // Astrologia
         UserProfile profileA = userProfileRepository.findByUserId(userAId).orElse(null);
         UserProfile profileB = userProfileRepository.findByUserId(userBId).orElse(null);
-        Integer astroScore = calculateAstroScore(profileA, profileB);
+        Integer astroScore = normalizeScore(calculateAstroScore(profileA, profileB));
 
         return new DimensionScores(
-            interestsScore,
+            normalizeScore(interestsScore),
             lifestyleScore,
             valuesScore,
             objectivesScore,
@@ -209,6 +209,17 @@ public class DimensionScoreCalculator {
             return ((Number) value).doubleValue();
         }
         return 0;
+    }
+
+    /**
+     * Normalizza un punteggio assicurando che sia compreso tra 0 e 100.
+     * I valori negativi diventano 0, i valori superiori a 100 diventano 100.
+     */
+    private Integer normalizeScore(Integer score) {
+        if (score == null) {
+            return null;
+        }
+        return Math.max(0, Math.min(100, score));
     }
 
     /**

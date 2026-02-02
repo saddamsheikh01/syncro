@@ -78,7 +78,21 @@ export const testsActions = {
 
     try {
       const response = await submitTest(testId, payload);
-      testsStore.setState({ loading: false });
+      testsStore.setState((state) => ({
+        loading: false,
+        // Incrementa il count solo se era già stato caricato
+        completedCount:
+          state.completedCount != null ? state.completedCount + 1 : null,
+        // Aggiorna lo stato completed del test nella lista
+        tests: state.tests.map((test) =>
+          test.id === testId ? { ...test, completed: true } : test
+        ),
+        // Aggiorna anche activeTest se è quello appena completato
+        activeTest:
+          state.activeTest && state.activeTest.id === testId
+            ? { ...state.activeTest, completed: true }
+            : state.activeTest,
+      }));
       return response;
     } catch (error) {
       testsStore.setState({ loading: false, error: error as ApiError });

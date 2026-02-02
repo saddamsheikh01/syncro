@@ -101,7 +101,8 @@ public class DomainScoreCalculator {
             return null;
         }
 
-        return (int) Math.round(weightedSum / totalWeight);
+        int score = (int) Math.round(weightedSum / totalWeight);
+        return Math.max(0, Math.min(100, score));
     }
 
     /**

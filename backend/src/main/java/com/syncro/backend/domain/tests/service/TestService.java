@@ -30,6 +30,7 @@ import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
 import com.syncro.backend.security.UserPrincipal;
@@ -205,6 +206,11 @@ public class TestService {
             });
         });
         userTestAnswerRepository.saveAll(answers);
+
+        // Aggiorna i campi astrologici nel UserProfile se il test è di tipo ASTRO
+        if (definition.getTestType() == TestType.ASTRO) {
+            updateAstroSignsInProfile(user, answersByQuestion, optionsById);
+        }
 
         UserPsyProfile profile = userPsyProfileRepository.findByUserId(user.getId())
             .orElseGet(() -> {
@@ -959,5 +965,89 @@ public class TestService {
         }
 
         return null;
+    }
+
+    /**
+     * Aggiorna i campi astrologici (sunSign, moonSign, ascSign, venusSign, marsSign)
+     * nel UserProfile basandosi sulle risposte del test ASTRO.
+     * I metadata delle opzioni devono contenere "point" (SUN, MOON, ASC, VENUS, MARS)
+     * e "sign" (il segno zodiacale).
+     */
+    private void updateAstroSignsInProfile(
+        User user,
+        Map<UUID, List<UUID>> answersByQuestion,
+        Map<UUID, TestAnswerOption> optionsById
+    ) {
+        UserProfile userProfile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (userProfile == null) {
+            return;
+        }
+
+        boolean updated = false;
+
+        for (List<UUID> optionIds : answersByQuestion.values()) {
+            for (UUID optionId : optionIds) {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option == null) {
+                    continue;
+                }
+                Map<String, Object> metadata = option.getMetadata();
+                if (metadata == null || metadata.isEmpty()) {
+                    continue;
+                }
+
+                Object pointObj = metadata.get("point");
+                Object signObj = metadata.get("sign");
+                if (pointObj == null || signObj == null) {
+                    continue;
+                }
+
+                String point = String.valueOf(pointObj).trim().toUpperCase(Locale.ROOT);
+                String signStr = String.valueOf(signObj).trim().toUpperCase(Locale.ROOT);
+
+                if (signStr.isEmpty() || "UNKNOWN".equals(signStr)) {
+                    continue;
+                }
+
+                ZodiacSign sign;
+                try {
+                    sign = ZodiacSign.valueOf(signStr);
+                } catch (IllegalArgumentException e) {
+                    continue;
+                }
+
+                switch (point) {
+                    case "SUN" -> {
+                        userProfile.setSunSign(sign);
+                        // Aggiorna anche zodiacSign se non gia impostato
+                        if (userProfile.getZodiacSign() == null) {
+                            userProfile.setZodiacSign(sign);
+                        }
+                        updated = true;
+                    }
+                    case "MOON" -> {
+                        userProfile.setMoonSign(sign);
+                        updated = true;
+                    }
+                    case "ASC" -> {
+                        userProfile.setAscSign(sign);
+                        updated = true;
+                    }
+                    case "VENUS" -> {
+                        userProfile.setVenusSign(sign);
+                        updated = true;
+                    }
+                    case "MARS" -> {
+                        userProfile.setMarsSign(sign);
+                        updated = true;
+                    }
+                    default -> { /* punto astrologico non gestito, ignora */ }
+                }
+            }
+        }
+
+        if (updated) {
+            userProfileRepository.save(userProfile);
+        }
     }
 }

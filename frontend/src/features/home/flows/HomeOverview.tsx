@@ -13,7 +13,7 @@ import { RecommendationRow } from "@/features/home/sections/RecommendationRow";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ForYouSectionHeader } from "@/features/home/sections/ForYouSectionHeader";
 import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
-import { ZyraMatchOfDayCard, type MatchInsightBadge } from "@/features/zyra/cards/ZyraMatchOfDayCard";
+import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { MatchListItem } from "@/features/matches/elements/MatchListItem";
@@ -30,24 +30,6 @@ import {
 import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 import type { UserMatchResponse, DimensionScores, DomainScores, MatchBreakdown } from "@/types/matches";
 
-const DIMENSION_LABELS: Record<keyof DimensionScores, string> = {
-  interests: "Interessi",
-  lifestyle: "Stile di vita",
-  values: "Valori",
-  objectives: "Obiettivi",
-  psy: "Personalita",
-  astro: "Astrologia",
-};
-
-const DOMAIN_LABELS: Record<keyof DomainScores, string> = {
-  love: "Relazione",
-  friendship: "Amicizia",
-  work: "Lavoro",
-  projects: "Progetti",
-  hobby: "Hobby",
-  growth: "Crescita",
-};
-
 const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | null => {
   if (!raw) return null;
   return {
@@ -56,56 +38,6 @@ const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | n
     sharedTags: raw.sharedTags as string[] | number | undefined,
     distanceKm: raw.distanceKm as number | undefined,
   };
-};
-
-const getTopDimensions = (dimensions: DimensionScores | undefined, limit = 2) => {
-  if (!dimensions) return [];
-  return Object.entries(dimensions)
-    .filter(([, v]) => typeof v === "number" && v !== null && v >= 60)
-    .map(([k, v]) => ({ key: k as keyof DimensionScores, value: v as number }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit);
-};
-
-const getTopDomains = (domains: DomainScores | undefined, limit = 1) => {
-  if (!domains) return [];
-  return Object.entries(domains)
-    .filter(([, v]) => typeof v === "number" && v !== null && v >= 70)
-    .map(([k, v]) => ({ key: k as keyof DomainScores, value: v as number }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit);
-};
-
-const getToneForScore = (score: number): MatchInsightBadge["tone"] => {
-  if (score >= 80) return "success";
-  if (score >= 65) return "accent";
-  if (score >= 50) return "warning";
-  return "neutral";
-};
-
-const mapMatchInsights = (match: UserMatchResponse): MatchInsightBadge[] => {
-  const insights: MatchInsightBadge[] = [];
-  const breakdown = parseBreakdown(match.breakdown as Record<string, unknown> | null);
-
-  const topDimensions = getTopDimensions(breakdown?.dimensions, 2);
-  topDimensions.forEach(({ key, value }) => {
-    insights.push({
-      label: DIMENSION_LABELS[key],
-      value,
-      tone: getToneForScore(value),
-    });
-  });
-
-  const topDomains = getTopDomains(breakdown?.domains, 1);
-  topDomains.forEach(({ key, value }) => {
-    insights.push({
-      label: DOMAIN_LABELS[key],
-      value,
-      tone: getToneForScore(value),
-    });
-  });
-
-  return insights.slice(0, 3);
 };
 
 const getSharedTags = (match: UserMatchResponse): string[] => {
@@ -511,7 +443,7 @@ export const HomeOverview = () => {
                 "Affinita calcolata sulle passioni condivise."
               }
               matchScore={matchSpotlight.scoreTotal ?? undefined}
-              insights={mapMatchInsights(matchSpotlight)}
+              breakdown={parseBreakdown(matchSpotlight.breakdown as Record<string, unknown> | null)}
               sharedTags={getSharedTags(matchSpotlight)}
               profileHref={`/profile/${matchSpotlight.userId}`}
               actionHref={`/chat`}
