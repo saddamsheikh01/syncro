@@ -14,6 +14,8 @@ import com.syncro.backend.domain.social.dto.PostResponse;
 import com.syncro.backend.domain.social.entity.Post;
 import com.syncro.backend.domain.social.entity.PostLike;
 import com.syncro.backend.domain.social.mapper.PostMapper;
+import com.syncro.backend.domain.social.repository.PostCommentCountProjection;
+import com.syncro.backend.domain.social.repository.PostCommentRepository;
 import com.syncro.backend.domain.social.repository.PostLikeCountProjection;
 import com.syncro.backend.domain.social.repository.PostLikeRepository;
 import com.syncro.backend.domain.social.repository.PostRepository;
@@ -36,6 +38,7 @@ public class PostService {
     private final UserProfileRepository userProfileRepository;
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
+    private final PostCommentRepository postCommentRepository;
     private final PostMapper postMapper;
 
     public PostService(
@@ -43,12 +46,14 @@ public class PostService {
         UserProfileRepository userProfileRepository,
         PostRepository postRepository,
         PostLikeRepository postLikeRepository,
+        PostCommentRepository postCommentRepository,
         PostMapper postMapper
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.postRepository = postRepository;
         this.postLikeRepository = postLikeRepository;
+        this.postCommentRepository = postCommentRepository;
         this.postMapper = postMapper;
     }
 
@@ -65,7 +70,7 @@ public class PostService {
         post.setLongitude(request.longitude());
 
         Post saved = postRepository.save(post);
-        return postMapper.toResponse(saved, 0, false);
+        return postMapper.toResponse(saved, 0, 0, false);
     }
 
     @Transactional(readOnly = true)
@@ -149,14 +154,16 @@ public class PostService {
 
     private Page<PostResponse> mapFeed(Page<Post> posts, UUID userId) {
         if (posts.isEmpty()) {
-            return posts.map(post -> postMapper.toResponse(post, 0, false));
+            return posts.map(post -> postMapper.toResponse(post, 0, 0, false));
         }
         List<UUID> postIds = posts.getContent().stream().map(Post::getId).toList();
         Map<UUID, Long> likeCounts = loadLikeCounts(postIds);
+        Map<UUID, Long> commentCounts = loadCommentCounts(postIds);
         Set<UUID> likedByUser = loadLikedByUser(userId, postIds);
         return posts.map(post -> postMapper.toResponse(
             post,
             likeCounts.getOrDefault(post.getId(), 0L),
+            commentCounts.getOrDefault(post.getId(), 0L),
             likedByUser.contains(post.getId())
         ));
     }
@@ -166,6 +173,15 @@ public class PostService {
         Map<UUID, Long> map = new HashMap<>();
         for (PostLikeCountProjection item : counts) {
             map.put(item.getPostId(), item.getLikeCount());
+        }
+        return map;
+    }
+
+    private Map<UUID, Long> loadCommentCounts(List<UUID> postIds) {
+        List<PostCommentCountProjection> counts = postCommentRepository.countByPostIds(postIds);
+        Map<UUID, Long> map = new HashMap<>();
+        for (PostCommentCountProjection item : counts) {
+            map.put(item.getPostId(), item.getCommentCount());
         }
         return map;
     }

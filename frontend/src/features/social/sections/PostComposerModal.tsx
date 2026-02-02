@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
 import { Textarea } from "@/components/elements/Textarea";
 import { Switch } from "@/components/elements/Switch";
 import { Button } from "@/components/buttons/Button";
@@ -25,6 +26,10 @@ export interface PostComposerModalProps {
   onSubmit: (payload: PostComposerPayload) => Promise<void>;
 }
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ALLOWED_TYPES = ["image/", "video/"];
+
 const formatFileSize = (bytes: number) => {
   if (!Number.isFinite(bytes)) return "";
   if (bytes < 1024) return `${bytes} B`;
@@ -33,6 +38,11 @@ const formatFileSize = (bytes: number) => {
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
 };
+
+const isValidFileType = (file: File) =>
+  ALLOWED_TYPES.some((type) => file.type.startsWith(type));
+
+const isValidFileSize = (file: File) => file.size <= MAX_FILE_SIZE_BYTES;
 
 export const PostComposerModal = ({
   open,
@@ -48,21 +58,67 @@ export const PostComposerModal = ({
   const [includePosition, setIncludePosition] = useState(positionAvailable);
   const [files, setFiles] = useState<File[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
-  const handleClose = () => {
-    if (loading) return;
+  const hasUnsavedChanges = content.trim().length > 0 || files.length > 0;
+
+  const resetForm = () => {
     setContent("");
     setFiles([]);
     setLocalError(null);
     setIncludePosition(positionAvailable);
+    setShowConfirmClose(false);
+  };
+
+  const handleClose = () => {
+    if (loading) return;
+    if (hasUnsavedChanges) {
+      setShowConfirmClose(true);
+      return;
+    }
+    resetForm();
     onClose();
+  };
+
+  const handleConfirmClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowConfirmClose(false);
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     const nextFiles = Array.from(event.target.files);
     if (!nextFiles.length) return;
-    setFiles((prev) => [...prev, ...nextFiles]);
+
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of nextFiles) {
+      if (!isValidFileType(file)) {
+        errors.push(`"${file.name}" non è un formato valido. Usa immagini o video.`);
+        continue;
+      }
+      if (!isValidFileSize(file)) {
+        errors.push(`"${file.name}" supera il limite di ${MAX_FILE_SIZE_MB} MB.`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (errors.length > 0) {
+      setLocalError(errors.join(" "));
+    } else {
+      setLocalError(null);
+    }
+
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+    }
+
     event.target.value = "";
   };
 
@@ -119,7 +175,7 @@ export const PostComposerModal = ({
                 Media allegati
               </p>
               <p className="text-xs text-subtle">
-                Aggiungi immagini o video (max consigliato 5 MB).
+                Aggiungi immagini o video (max {MAX_FILE_SIZE_MB} MB per file).
               </p>
             </div>
             <label
@@ -208,6 +264,14 @@ export const PostComposerModal = ({
           </Button>
         </div>
       </div>
+
+      <UnsavedChangesModal
+        open={showConfirmClose}
+        onConfirm={handleConfirmClose}
+        onCancel={handleCancelClose}
+        title="Post non pubblicato"
+        description="Hai scritto un post che non è stato pubblicato. Se esci adesso, il contenuto andrà perso."
+      />
     </Modal>
   );
 };

@@ -4,6 +4,8 @@ import type {
   ChatConversationResponse,
   ChatMessageRequest,
   ChatMessageResponse,
+  CommentResponse,
+  CreateCommentRequest,
   CreateConversationRequest,
   CreatePostRequest,
   PostResponse,
@@ -103,4 +105,34 @@ export const sendMessage = async (
     payload
   );
   return data;
+};
+
+// Comments API
+export const getComments = async (
+  postId: Uuid,
+  params: PageParams = {}
+): Promise<PageResponse<CommentResponse>> => {
+  const { data } = await apiClient.get<PageResponse<CommentResponse>>(
+    `/posts/${postId}/comments`,
+    { params: buildQueryParams(params) }
+  );
+  return data;
+};
+
+export const createComment = async (
+  postId: Uuid,
+  payload: CreateCommentRequest
+): Promise<CommentResponse> => {
+  const { data } = await apiClient.post<CommentResponse>(
+    `/posts/${postId}/comments`,
+    payload
+  );
+  return data;
+};
+
+export const deleteComment = async (
+  postId: Uuid,
+  commentId: Uuid
+): Promise<void> => {
+  await apiClient.delete(`/posts/${postId}/comments/${commentId}`);
 };

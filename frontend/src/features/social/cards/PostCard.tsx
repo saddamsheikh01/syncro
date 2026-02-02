@@ -6,6 +6,7 @@ import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { PostHeader } from "@/features/social/elements/PostHeader";
 import { PostActionBar } from "@/features/social/sections/PostActionBar";
+import { PostCommentSection } from "@/features/social/sections/PostCommentSection";
 import { PostMediaCarousel } from "@/features/social/sections/PostMediaCarousel";
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
 import { getPostMedia } from "@/services/media";
@@ -28,6 +29,21 @@ const LIKE_ICON = (
   </svg>
 );
 
+const COMMENT_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
   media.map((item, index) => ({
     id: item.id,
@@ -47,9 +63,11 @@ export interface PostCardProps
   matchScore?: number;
   showMedia?: boolean;
   mediaLimit?: number;
+  currentUserId?: string;
   onProfileClick?: () => void;
   onLike?: (postId: string) => void;
   onUnlike?: (postId: string) => void;
+  onCommentCountChange?: (postId: string, count: number) => void;
 }
 
 const formatPostDate = (isoDate?: string | null) => {
@@ -88,14 +106,18 @@ export const PostCard = ({
   matchScore,
   showMedia = true,
   mediaLimit = 4,
+  currentUserId,
   onProfileClick,
   onLike,
   onUnlike,
+  onCommentCountChange,
   ...props
 }: PostCardProps) => {
   const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
 
   useEffect(() => {
     if (!showMedia) return;
@@ -144,17 +166,33 @@ export const PostCard = ({
         icon: LIKE_ICON,
         variant: "like" as const,
       },
+      {
+        id: "comment",
+        label: "Commenta",
+        count: commentCount,
+        active: showComments,
+        icon: COMMENT_ICON,
+        variant: "default" as const,
+      },
     ],
-    [post.likeCount, post.likedByMe]
+    [post.likeCount, post.likedByMe, commentCount, showComments]
   );
 
   const handleActionToggle = (id: string, nextActive: boolean) => {
-    if (id !== "like") return;
-    if (nextActive) {
-      onLike?.(post.id);
-    } else {
-      onUnlike?.(post.id);
+    if (id === "like") {
+      if (nextActive) {
+        onLike?.(post.id);
+      } else {
+        onUnlike?.(post.id);
+      }
+    } else if (id === "comment") {
+      setShowComments(nextActive);
     }
+  };
+
+  const handleCommentCountChange = (count: number) => {
+    setCommentCount(count);
+    onCommentCountChange?.(post.id, count);
   };
 
   return (
@@ -199,6 +237,14 @@ export const PostCard = ({
         actions={actions}
         onActionToggle={handleActionToggle}
       />
+
+      {showComments && (
+        <PostCommentSection
+          postId={post.id}
+          currentUserId={currentUserId}
+          onCommentCountChange={handleCommentCountChange}
+        />
+      )}
     </Card>
   );
 };

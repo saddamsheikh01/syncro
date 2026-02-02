@@ -8,6 +8,7 @@ export type PostResponse = {
   latitude: number | null;
   longitude: number | null;
   likeCount: number;
+  commentCount: number;
   likedByMe: boolean;
   createdAt: IsoDateTime;
 };
@@ -17,6 +18,21 @@ export type CreatePostRequest = {
   language?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+};
+
+export type CommentResponse = {
+  id: Uuid;
+  postId: Uuid;
+  userId: Uuid;
+  username: string | null;
+  userFullName: string | null;
+  userAvatarUrl: string | null;
+  content: string;
+  createdAt: IsoDateTime;
+};
+
+export type CreateCommentRequest = {
+  content: string;
 };
 
 export type CreateConversationRequest = {

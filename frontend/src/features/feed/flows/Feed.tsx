@@ -135,6 +135,7 @@ export const Feed = () => {
         authorSummaries[post.userId]?.country ??
         undefined,
       avatarUrl: authorSummaries[post.userId]?.avatarUrl ?? undefined,
+      currentUserId: user?.id,
       onLike: feedActions.likePost,
       onUnlike: feedActions.unlikePost,
       onProfileClick: () => router.push(`/profile/${post.userId}`),

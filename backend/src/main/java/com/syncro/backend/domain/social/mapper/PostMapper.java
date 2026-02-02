@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostMapper {
 
-    public PostResponse toResponse(Post post, long likeCount, boolean likedByMe) {
+    public PostResponse toResponse(Post post, long likeCount, long commentCount, boolean likedByMe) {
         return new PostResponse(
             post.getId(),
             post.getUserId(),
@@ -16,6 +16,7 @@ public class PostMapper {
             post.getLatitude(),
             post.getLongitude(),
             likeCount,
+            commentCount,
             likedByMe,
             post.getCreatedAt()
         );

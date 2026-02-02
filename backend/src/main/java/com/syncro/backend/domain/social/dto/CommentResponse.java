@@ -3,16 +3,14 @@ package com.syncro.backend.domain.social.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-public record PostResponse(
+public record CommentResponse(
     UUID id,
+    UUID postId,
     UUID userId,
+    String username,
+    String userFullName,
+    String userAvatarUrl,
     String content,
-    String language,
-    Double latitude,
-    Double longitude,
-    long likeCount,
-    long commentCount,
-    boolean likedByMe,
     Instant createdAt
 ) {
 }

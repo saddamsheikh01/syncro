@@ -2,6 +2,8 @@ package com.syncro.backend.domain.media.repository;
 
 import com.syncro.backend.domain.media.entity.MediaObject;
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -16,4 +18,6 @@ public interface MediaObjectRepository extends JpaRepository<MediaObject, UUID> 
         MediaOwnerType ownerType,
         UUID ownerId
     );
+
+    List<MediaObject> findByOwnerTypeAndOwnerIdIn(MediaOwnerType ownerType, Collection<UUID> ownerIds);
 }

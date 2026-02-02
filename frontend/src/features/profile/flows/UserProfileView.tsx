@@ -312,6 +312,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         authorName: displayName,
         authorSubtitle: locationLabel,
         avatarUrl: profile?.avatarUrl ?? undefined,
+        currentUserId: user?.id,
         onLike: async (postId: string) => {
           try {
             await likePost(postId);
@@ -350,7 +351,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         },
         onProfileClick: () => router.push(`/profile/${post.userId}`),
       })),
-    [displayName, locationLabel, posts, profile?.avatarUrl, router]
+    [displayName, locationLabel, posts, profile?.avatarUrl, router, user?.id]
   );
 
   const handleLoadMore = useCallback(() => {
