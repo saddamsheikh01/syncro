@@ -71,7 +71,7 @@ export const MatchesOverview = () => {
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
-    matchesActions.fetchUserMatches({ size: PAGE_SIZE }).catch(() => undefined);
+    matchesActions.fetchUserMatches({ size: PAGE_SIZE, refresh: true }).catch(() => undefined);
     analyticsActions
       .trackEvent({ eventType: "MATCH_SECTION_OPENED" })
       .catch(() => undefined);
