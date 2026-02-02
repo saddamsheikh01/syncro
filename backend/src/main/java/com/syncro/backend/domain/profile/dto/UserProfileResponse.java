@@ -20,6 +20,7 @@ public record UserProfileResponse(
     String dislikesText,
     String goalsText,
     String valuesText,
+    String zyraRecap,
     String relationshipStatus,
     String orientation,
     String childrenStatus,

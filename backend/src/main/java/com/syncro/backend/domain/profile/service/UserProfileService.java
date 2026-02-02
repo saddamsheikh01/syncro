@@ -106,6 +106,9 @@ public class UserProfileService {
         if (request.valuesText() != null) {
             profile.setValuesText(normalizeOptionalText(request.valuesText()));
         }
+        if (request.zyraRecap() != null) {
+            profile.setZyraRecap(normalizeOptionalText(request.zyraRecap()));
+        }
         if (request.relationshipStatus() != null) {
             profile.setRelationshipStatus(parseRelationshipStatus(request.relationshipStatus()));
         }

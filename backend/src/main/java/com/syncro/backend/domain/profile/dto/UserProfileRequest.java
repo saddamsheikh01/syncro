@@ -18,6 +18,7 @@ public record UserProfileRequest(
     @Size(max = 500) String dislikesText,
     @Size(max = 500) String goalsText,
     @Size(max = 500) String valuesText,
+    @Size(max = 5000) String zyraRecap,
     @Pattern(
         regexp = "^(SINGLE|IN_RELATIONSHIP|MARRIED|SEPARATED|COMPLICATED|OTHER)?$",
         message = "Stato relazionale non valido"

@@ -101,6 +101,9 @@ public class UserProfile {
     @Column(name = "values_text", length = 500)
     private String valuesText;
 
+    @Column(name = "zyra_recap", columnDefinition = "TEXT")
+    private String zyraRecap;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "relationship_status")
     private RelationshipStatus relationshipStatus;
@@ -322,6 +325,14 @@ public class UserProfile {
 
     public void setValuesText(String valuesText) {
         this.valuesText = valuesText;
+    }
+
+    public String getZyraRecap() {
+        return zyraRecap;
+    }
+
+    public void setZyraRecap(String zyraRecap) {
+        this.zyraRecap = zyraRecap;
     }
 
     public RelationshipStatus getRelationshipStatus() {

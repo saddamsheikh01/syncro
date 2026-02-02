@@ -15,6 +15,7 @@ export type UserProfileRequest = {
   dislikesText?: string | null;
   goalsText?: string | null;
   valuesText?: string | null;
+  zyraRecap?: string | null;
   relationshipStatus?: string | null;
   orientation?: string | null;
   childrenStatus?: string | null;
@@ -37,6 +38,7 @@ export type UserProfileResponse = {
   dislikesText: string | null;
   goalsText: string | null;
   valuesText: string | null;
+  zyraRecap: string | null;
   relationshipStatus: string | null;
   orientation: string | null;
   childrenStatus: string | null;

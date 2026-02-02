@@ -8,6 +8,7 @@ import { Button } from "@/components/buttons/Button";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
 import { getProfileRecap, getProfileRecapForUser } from "@/services/zyra";
+import { useUser } from "@/hooks";
 
 export interface ZyraProfileRecapProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -21,9 +22,25 @@ export const ZyraProfileRecap = ({
   userId,
   ...props
 }: ZyraProfileRecapProps) => {
+  const { profile, actions: userActions } = useUser();
   const [recap, setRecap] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedRecap, setEditedRecap] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Usa il recap salvato nel profilo se disponibile
+  const savedRecap = profile?.zyraRecap;
+  const isOwnProfile = !userId;
+
+  // Inizializza dal profilo salvato o genera da Zyra
+  useEffect(() => {
+    if (savedRecap && !recap) {
+      setRecap(savedRecap);
+      setEditedRecap(savedRecap);
+    }
+  }, [savedRecap, recap]);
 
   const fetchRecap = useCallback(async () => {
     setLoading(true);
@@ -33,6 +50,7 @@ export const ZyraProfileRecap = ({
         ? await getProfileRecapForUser(userId)
         : await getProfileRecap();
       setRecap(response.recap);
+      setEditedRecap(response.recap);
     } catch {
       setError("Impossibile generare il riepilogo. Riprova.");
     } finally {
@@ -40,9 +58,51 @@ export const ZyraProfileRecap = ({
     }
   }, [userId]);
 
+  // Genera solo se non c'è recap salvato
   useEffect(() => {
-    fetchRecap();
-  }, [fetchRecap]);
+    if (!savedRecap && !recap && !loading) {
+      fetchRecap();
+    }
+  }, [savedRecap, recap, loading, fetchRecap]);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedRecap(recap ?? "");
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedRecap(recap ?? "");
+  };
+
+  const handleSave = async () => {
+    if (!editedRecap.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await userActions.saveProfile({ zyraRecap: editedRecap.trim() });
+      setRecap(editedRecap.trim());
+      setIsEditing(false);
+    } catch {
+      setError("Errore durante il salvataggio. Riprova.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    await fetchRecap();
+    // Salva automaticamente il nuovo recap generato
+    if (!userId && recap) {
+      try {
+        await userActions.saveProfile({ zyraRecap: recap });
+      } catch {
+        // Ignora errori di salvataggio durante rigenerazione
+      }
+    }
+  };
+
+  const displayRecap = recap;
 
   return (
     <div
@@ -78,14 +138,38 @@ export const ZyraProfileRecap = ({
                   : "Zyra sta analizzando il tuo profilo..."}
               </span>
             </div>
-          ) : error ? (
+          ) : error && !displayRecap ? (
             <div className="space-y-3">
               <p className="text-sm text-danger">{error}</p>
               <Button size="sm" variant="secondary" onClick={fetchRecap}>
                 Riprova
               </Button>
             </div>
-          ) : recap ? (
+          ) : isEditing ? (
+            <div className="space-y-3">
+              <textarea
+                value={editedRecap}
+                onChange={(e) => setEditedRecap(e.target.value)}
+                className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                rows={8}
+                placeholder="Scrivi il tuo profilo..."
+              />
+              {error && <p className="text-sm text-danger">{error}</p>}
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  loading={saving}
+                  loadingText="Salvataggio"
+                >
+                  Salva
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleCancel}>
+                  Annulla
+                </Button>
+              </div>
+            </div>
+          ) : displayRecap ? (
             <div className="space-y-2 text-sm leading-relaxed text-foreground">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -119,27 +203,39 @@ export const ZyraProfileRecap = ({
                   ),
                 }}
               >
-                {recap}
+                {displayRecap}
               </ReactMarkdown>
             </div>
           ) : null}
         </div>
 
-        {!loading && !error && recap ? (
+        {!loading && !isEditing && displayRecap ? (
           <div className="flex items-center justify-between border-t border-border/40 pt-3">
             <p className="text-[10px] text-subtle">
               {userId
                 ? "Generato da Zyra in base al profilo"
                 : "Generato da Zyra in base al tuo profilo"}
             </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={fetchRecap}
-              className="text-zyra-text hover:bg-zyra-surface-soft"
-            >
-              Rigenera
-            </Button>
+            <div className="flex gap-2">
+              {isOwnProfile && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleEdit}
+                  className="text-foreground hover:bg-surface-muted"
+                >
+                  Modifica
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleRegenerate}
+                className="text-zyra-text hover:bg-zyra-surface-soft"
+              >
+                Rigenera
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>
