@@ -30,17 +30,17 @@ export const ZyraProfileRecap = ({
   const [editedRecap, setEditedRecap] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Usa il recap salvato nel profilo se disponibile
-  const savedRecap = profile?.zyraRecap;
   const isOwnProfile = !userId;
+  // Usa il recap salvato nel profilo solo se è il proprio profilo
+  const savedRecap = isOwnProfile ? profile?.zyraRecap : null;
 
-  // Inizializza dal profilo salvato o genera da Zyra
+  // Inizializza dal profilo salvato o genera da Zyra (solo per il proprio profilo)
   useEffect(() => {
-    if (savedRecap && !recap) {
+    if (isOwnProfile && savedRecap && !recap) {
       setRecap(savedRecap);
       setEditedRecap(savedRecap);
     }
-  }, [savedRecap, recap]);
+  }, [isOwnProfile, savedRecap, recap]);
 
   const fetchRecap = useCallback(async () => {
     setLoading(true);
