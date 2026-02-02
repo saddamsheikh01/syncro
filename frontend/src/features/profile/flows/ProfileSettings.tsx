@@ -63,7 +63,6 @@ const GENDER_OPTIONS = [
 ];
 
 const MIN_INTERESTS = 3;
-const MAX_INTERESTS = 8;
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 30;
 const USERNAME_PATTERN = new RegExp(`^[a-z0-9]{${USERNAME_MIN},${USERNAME_MAX}}$`);
@@ -681,13 +680,6 @@ export const ProfileSettings = ({
 
   const handleInterestToggle = (id: string, nextSelected: boolean) => {
     setInterestsError(null);
-    if (nextSelected && selectedTagIds.length >= MAX_INTERESTS) {
-      setInterestsError(
-        `Puoi scegliere al massimo ${MAX_INTERESTS} passioni.`
-      );
-      return;
-    }
-
     setSelectedTagIds((prev) =>
       nextSelected ? [...prev, id] : prev.filter((item) => item !== id)
     );
@@ -1107,7 +1099,6 @@ export const ProfileSettings = ({
         ) : (
           <InterestPickerGrid
             items={interestItems}
-            maxSelections={MAX_INTERESTS}
             hint={`Seleziona almeno ${MIN_INTERESTS} passioni.`}
             onItemToggle={handleInterestToggle}
           />

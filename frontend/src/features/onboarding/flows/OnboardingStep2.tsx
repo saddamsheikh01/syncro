@@ -10,7 +10,6 @@ import { Button } from "@/components/buttons/Button";
 import { useAuth, useOnboarding, useTags } from "@/hooks";
 
 const MIN_SELECTIONS = 3;
-const MAX_SELECTIONS = 8;
 
 export const OnboardingStep2 = () => {
   const router = useRouter();
@@ -59,12 +58,6 @@ export const OnboardingStep2 = () => {
 
   const handleToggle = (id: string, nextSelected: boolean) => {
     setFormError(null);
-
-    if (nextSelected && selectedCount >= MAX_SELECTIONS) {
-      setFormError(`Puoi scegliere al massimo ${MAX_SELECTIONS} passioni.`);
-      return;
-    }
-
     setSelectedIds((prev) =>
       nextSelected ? [...prev, id] : prev.filter((item) => item !== id)
     );
@@ -106,7 +99,6 @@ export const OnboardingStep2 = () => {
 
         <InterestPickerGrid
           items={interestItems}
-          maxSelections={MAX_SELECTIONS}
           hint={`Seleziona almeno ${MIN_SELECTIONS} passioni per continuare.`}
           onItemToggle={handleToggle}
         />
