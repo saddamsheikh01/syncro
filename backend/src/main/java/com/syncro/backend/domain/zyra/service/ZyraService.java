@@ -35,6 +35,8 @@ import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.domain.zyra.client.ZyraChatMessage;
 import com.syncro.backend.domain.zyra.client.ZyraClient;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
+import com.syncro.backend.domain.zyra.config.PromptLoader;
+import com.syncro.backend.domain.zyra.config.PromptType;
 import com.syncro.backend.domain.zyra.dto.ZyraChatResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
@@ -99,7 +101,7 @@ public class ZyraService {
     private final ZyraMapper zyraMapper;
     private final ObjectMapper objectMapper;
     private final int maxHistory;
-    private final String systemPrompt;
+    private final PromptLoader promptLoader;
 
     public ZyraService(
         UserRepository userRepository,
@@ -120,6 +122,7 @@ public class ZyraService {
         ZyraClient zyraClient,
         ZyraMapper zyraMapper,
         ObjectMapper objectMapper,
+        PromptLoader promptLoader,
         ZyraProperties zyraProperties
     ) {
         this.userRepository = userRepository;
@@ -141,7 +144,7 @@ public class ZyraService {
         this.zyraMapper = zyraMapper;
         this.objectMapper = objectMapper;
         this.maxHistory = zyraProperties.maxHistory();
-        this.systemPrompt = zyraProperties.systemPrompt().trim();
+        this.promptLoader = promptLoader;
     }
 
     @Transactional
@@ -344,26 +347,21 @@ public class ZyraService {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
 
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Genera un breve riepilogo del profilo utente (3-4 frasi, tono amichevole e personale). ");
-        prompt.append("Usa in via prioritaria le sezioni guidate del profilo se presenti ");
-        prompt.append("(Cosa mi caratterizza, Cosa amo, Cosa non sopporto, Cosa cerco, Valori, ");
-        prompt.append("Stato relazionale, Orientamento, Figli). ");
-        prompt.append("Se le sezioni guidate sono vuote, usa la bio come fallback. ");
-        prompt.append("Scrivi in prima persona come se fosse l'utente a descriversi. ");
-        prompt.append("Esempio: 'Sono una persona curiosa che ama viaggiare...'. ");
-        prompt.append("Non inventare dettagli mancanti e non usare liste o punti elenco. ");
+        String testCondition;
         if (testSummaries != null && !testSummaries.isEmpty()) {
-            prompt.append("Integra naturalmente i risultati dei test completati, ");
-            prompt.append("evidenziando i tratti di personalita emersi (es. 'Dai test emerge che sono...'). ");
+            testCondition = "Integra naturalmente i risultati dei test completati, "
+                + "evidenziando i tratti di personalita emersi (es. 'Dai test emerge che sono...').";
         } else {
-            prompt.append("Se non risultano test completati, non menzionare i test. ");
+            testCondition = "Se non risultano test completati, non menzionare i test.";
         }
-        prompt.append("Se presente il profilo astrologico, menzionalo brevemente in modo naturale ");
-        prompt.append("(es. 'Sono un Ariete ascendente Leone...' o 'Il mio segno zodiacale e...'). ");
-        prompt.append("Se presenti i punteggi dei test, usali per descrivere la personalita ");
-        prompt.append("(es. punteggio lifestyle alto = persona dinamica, values alto = persona con valori forti). ");
-        prompt.append("Dati disponibili:\n");
+
+        StringBuilder prompt = new StringBuilder(
+            promptLoader.getPrompt(
+                PromptType.PROFILE_RECAP,
+                Map.of("testCondition", testCondition)
+            )
+        );
+        prompt.append("\n");
 
         if (profile != null) {
             if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
@@ -466,7 +464,7 @@ public class ZyraService {
         }
 
         List<ZyraChatMessage> messages = List.of(
-            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi profilo brevi e coinvolgenti."),
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.PROFILE_RECAP_SYSTEM)),
             new ZyraChatMessage("user", prompt.toString())
         );
 
@@ -678,15 +676,8 @@ public class ZyraService {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> placeTags = loadPlaceTags(place.getId());
 
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Genera un breve riepilogo (2-3 frasi) che spiega quanto questo luogo e adatto all'utente. ");
-        prompt.append("Confronta interessi, stile di vita e personalita dell'utente con le caratteristiche del luogo. ");
-        prompt.append("Usa i punteggi di personalita per valutare l'affinita: ");
-        prompt.append("lifestyle alto = persona dinamica/sociale, values alto = attenta ai valori/etica, ");
-        prompt.append("psy alto = persona riflessiva/introspettiva. ");
-        prompt.append("Se mancano dati, rimani generico e non inventare. ");
-        prompt.append("Tono amichevole e diretto. Nessuna lista.\n");
-        prompt.append("Dati utente:\n");
+        StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.PLACE_RECAP));
+        prompt.append("\n");
 
         if (profile != null) {
             if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
@@ -786,7 +777,7 @@ public class ZyraService {
         }
 
         List<ZyraChatMessage> messages = List.of(
-            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi brevi e utili."),
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.PLACE_RECAP_SYSTEM)),
             new ZyraChatMessage("user", prompt.toString())
         );
 
@@ -841,16 +832,8 @@ public class ZyraService {
         String testDescription = normalizeOptional(submission.getTestDefinition().getDescription());
         String testType = submission.getTestDefinition().getTestType().name();
 
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Sei Zyra, l'assistente AI di Syncro. L'utente ha appena completato un test. ");
-        prompt.append("Genera un riepilogo personalizzato e coinvolgente (3-5 frasi) che:\n");
-        prompt.append("1. Riassuma in modo discorsivo le scelte fatte dall'utente\n");
-        prompt.append("2. Azzardi un breve profilo della persona basandoti sulle risposte\n");
-        prompt.append("3. Sia scritto in seconda persona, rivolgendoti direttamente all'utente\n");
-        prompt.append("4. Abbia un tono amichevole, positivo e incoraggiante\n");
-        prompt.append("5. Non elenchi le domande una per una, ma sintetizzi il tutto in modo naturale\n\n");
-        prompt.append("NON usare liste puntate o numerate. Scrivi in modo discorsivo e fluido.\n");
-        prompt.append("NON ripetere le domande letteralmente, ma interpreta il significato delle risposte.\n\n");
+        StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.TEST_RECAP));
+        prompt.append("\n\n");
 
         prompt.append("Informazioni sul test:\n");
         prompt.append("- Titolo: ").append(testTitle != null ? testTitle : "Test").append("\n");
@@ -886,9 +869,7 @@ public class ZyraService {
         }
 
         List<ZyraChatMessage> messages = List.of(
-            new ZyraChatMessage("system", "Sei Zyra, un'assistente AI empatica e perspicace. "
-                + "Genera riepiloghi dei test che siano personali, coinvolgenti e che facciano sentire "
-                + "l'utente compreso. Evita frasi generiche."),
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.TEST_RECAP_SYSTEM)),
             new ZyraChatMessage("user", prompt.toString())
         );
 
@@ -990,16 +971,12 @@ public class ZyraService {
             return "Le tue conversazioni sono ancora vuote. Inizia a scambiare messaggi!";
         }
 
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Genera un breve riepilogo delle conversazioni recenti dell'utente (2-3 frasi, tono amichevole). ");
-        prompt.append("Menziona con chi ha parlato e gli argomenti principali discussi. ");
-        prompt.append("Scrivi in seconda persona rivolgendoti all'utente. ");
-        prompt.append("Esempio: 'Hai chiacchierato con Marco di viaggi e con Sara di musica...'. ");
-        prompt.append("Ecco le conversazioni recenti:\n\n");
+        StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.CHAT_RECAP));
+        prompt.append("\n\n");
         prompt.append(conversationData);
 
         List<ZyraChatMessage> messages = List.of(
-            new ZyraChatMessage("system", "Sei Zyra, un assistente AI di Syncro. Genera riepiloghi delle chat brevi e coinvolgenti."),
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.CHAT_RECAP_SYSTEM)),
             new ZyraChatMessage("user", prompt.toString())
         );
 
@@ -1035,8 +1012,22 @@ public class ZyraService {
     }
 
     private String buildSystemPrompt(User user) {
-        StringBuilder builder = new StringBuilder(systemPrompt);
-        builder.append("\nContesto utente:\n");
+        String basePrompt = promptLoader.getPrompt(PromptType.SYSTEM_BASE);
+        String userContext = buildUserContextLines(user);
+        String contextPrompt = promptLoader.getPrompt(
+            PromptType.CHAT_CONTEXT_TEMPLATE,
+            Map.of("userContext", userContext)
+        );
+        StringBuilder builder = new StringBuilder(basePrompt);
+        if (!basePrompt.endsWith("\n")) {
+            builder.append("\n");
+        }
+        builder.append(contextPrompt);
+        return builder.toString();
+    }
+
+    private String buildUserContextLines(User user) {
+        StringBuilder builder = new StringBuilder();
         builder.append("- lingua: ").append(safeValue(user.getLanguage())).append("\n");
 
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
@@ -1074,7 +1065,6 @@ public class ZyraService {
                 .append("\n");
         }
 
-        // Aggregated scores
         if (psyProfile != null) {
             StringBuilder scores = new StringBuilder();
             if (psyProfile.getInterestsScore() != null) {
@@ -1101,7 +1091,6 @@ public class ZyraService {
             }
         }
 
-        // Astro signs
         if (profile != null) {
             StringBuilder astro = new StringBuilder();
             if (profile.getZodiacSign() != null) {
@@ -1122,18 +1111,18 @@ public class ZyraService {
             }
         }
 
-        return builder.toString();
+        return builder.toString().trim();
     }
 
     private String buildSuggestionPrompt(ZyraSuggestionRequest request, String context) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Genera un suggerimento personalizzato per l'utente. Tipo: ")
-            .append(request.suggestionType().name())
-            .append(".");
-        if (context != null) {
-            builder.append(" Contesto aggiuntivo: ").append(context);
-        }
-        return builder.toString();
+        String contextBlock = context != null ? "Contesto aggiuntivo: " + context : "";
+        return promptLoader.getPrompt(
+            PromptType.SUGGESTION_BASE,
+            Map.of(
+                "suggestionType", request.suggestionType().name(),
+                "contextBlock", contextBlock
+            )
+        );
     }
 
     private String mapRole(ZyraMessageRole role) {
@@ -1379,9 +1368,7 @@ public class ZyraService {
     }
 
     private String generateSessionTitle(String firstUserMessage) {
-        String prompt = "Genera un titolo breve (max 48 caratteri) per questa chat, "
-            + "basato sul primo messaggio utente. "
-            + "Rispondi solo con il titolo, senza virgolette.";
+        String prompt = promptLoader.getPrompt(PromptType.CHAT_SESSION_TITLE);
         List<ZyraChatMessage> messages = List.of(
             new ZyraChatMessage("system", prompt),
             new ZyraChatMessage("user", firstUserMessage)

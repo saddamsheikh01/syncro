@@ -1,0 +1,2 @@
+Genera un suggerimento personalizzato per l'utente. Tipo: {{suggestionType}}.
+{{contextBlock}}

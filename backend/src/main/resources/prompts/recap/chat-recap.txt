@@ -1,0 +1,5 @@
+Genera un breve riepilogo delle conversazioni recenti dell'utente (2-3 frasi, tono amichevole).
+Menziona con chi ha parlato e gli argomenti principali discussi.
+Scrivi in seconda persona rivolgendoti all'utente.
+Esempio: 'Hai chiacchierato con Marco di viaggi e con Sara di musica...'.
+Ecco le conversazioni recenti:

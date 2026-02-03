@@ -1,0 +1,10 @@
+Genera un breve riepilogo del profilo utente (3-4 frasi, tono amichevole e personale).
+Usa in via prioritaria le sezioni guidate del profilo se presenti (Cosa mi caratterizza, Cosa amo, Cosa non sopporto, Cosa cerco, Valori, Stato relazionale, Orientamento, Figli).
+Se le sezioni guidate sono vuote, usa la bio come fallback.
+Scrivi in prima persona come se fosse l'utente a descriversi.
+Esempio: 'Sono una persona curiosa che ama viaggiare...'.
+Non inventare dettagli mancanti e non usare liste o punti elenco.
+{{testCondition}}
+Se presente il profilo astrologico, menzionalo brevemente in modo naturale (es. 'Sono un Ariete ascendente Leone...' o 'Il mio segno zodiacale e...').
+Se presenti i punteggi dei test, usali per descrivere la personalita (es. punteggio lifestyle alto = persona dinamica, values alto = persona con valori forti).
+Dati disponibili:

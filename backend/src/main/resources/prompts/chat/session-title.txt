@@ -1,0 +1,2 @@
+Genera un titolo breve (max 48 caratteri) per questa chat, basato sul primo messaggio utente.
+Rispondi solo con il titolo, senza virgolette.

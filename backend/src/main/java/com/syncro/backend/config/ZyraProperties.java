@@ -14,7 +14,6 @@ public record ZyraProperties(
     @NotBlank String model,
     String apiKey,
     @Positive int maxHistory,
-    @NotBlank String systemPrompt,
     @Positive int profileRecapCacheTtlMinutes,
     @Positive int placeRecapCacheTtlMinutes,
     @Positive int chatRecapCacheTtlMinutes,
