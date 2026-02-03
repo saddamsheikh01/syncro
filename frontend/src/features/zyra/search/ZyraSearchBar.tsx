@@ -131,7 +131,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Chiedi a Zyra o cerca luoghi, persone o post..."
+              placeholder="Chiedi a Zyra o cerca luoghi, nome utente o post..."
               className="w-full bg-transparent text-sm text-foreground placeholder:text-subtle focus:outline-none"
               aria-label="Chiedi a Zyra"
               aria-expanded={showDropdown}

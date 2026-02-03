@@ -23,7 +23,8 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
         SELECT p FROM UserProfile p
         WHERE p.visibility = :visibility
           AND (LOWER(p.fullName) LIKE LOWER(CONCAT('%', :q, '%'))
-               OR LOWER(p.city) LIKE LOWER(CONCAT('%', :q, '%')))
+               OR LOWER(p.city) LIKE LOWER(CONCAT('%', :q, '%'))
+               OR LOWER(p.user.username) LIKE LOWER(CONCAT('%', :q, '%')))
         ORDER BY p.fullName
         """)
     Page<UserProfile> searchByNameOrCity(

@@ -133,35 +133,48 @@ export const ZyraSearchResults = ({
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  {users.map((user) => (
-                    <button
-                      key={user.userId}
-                      type="button"
-                      onClick={() => onResultClick("user", user.userId)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
-                      role="option"
-                    >
-                      <Avatar
-                        name={user.fullName ?? "Utente"}
-                        src={user.avatarUrl ?? undefined}
-                        size="sm"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {user.fullName ?? "Utente"}
-                        </p>
-                        {(user.city || user.country) && (
-                          <p className="truncate text-xs text-subtle">
-                            {[user.city, user.country].filter(Boolean).join(", ")}
+                  {users.map((user) => {
+                    const displayName =
+                      user.fullName ?? (user.username ? `@${user.username}` : "Utente");
+                    const usernameLabel =
+                      user.fullName && user.username ? `@${user.username}` : null;
+                    const locationLabel = [user.city, user.country]
+                      .filter(Boolean)
+                      .join(", ");
+                    const metaLabel = [usernameLabel, locationLabel]
+                      .filter(Boolean)
+                      .join(" • ");
+
+                    return (
+                      <button
+                        key={user.userId}
+                        type="button"
+                        onClick={() => onResultClick("user", user.userId)}
+                        className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
+                        role="option"
+                      >
+                        <Avatar
+                          name={displayName}
+                          src={user.avatarUrl ?? undefined}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {displayName}
                           </p>
-                        )}
-                      </div>
-                      <NavIcon
-                        name="chevron-right"
-                        className="h-4 w-4 shrink-0 text-subtle"
-                      />
-                    </button>
-                  ))}
+                          {metaLabel && (
+                            <p className="truncate text-xs text-subtle">
+                              {metaLabel}
+                            </p>
+                          )}
+                        </div>
+                        <NavIcon
+                          name="chevron-right"
+                          className="h-4 w-4 shrink-0 text-subtle"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
