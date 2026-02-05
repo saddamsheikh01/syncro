@@ -12,6 +12,7 @@ import { LocationRequestModal } from "@/features/home/sections/LocationRequestMo
 import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingProgressCard";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
+import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
 import { resolveTestCopy } from "@/lib/insightsCopy";
@@ -473,6 +474,11 @@ export const HomeOverview = () => {
           </div>
         )}
       </section>
+
+      <AffiliationsRow
+        actionLabel="View all"
+        actionHref="/places#affiliations"
+      />
 
       <section className="space-y-4">
         <SectionHeader

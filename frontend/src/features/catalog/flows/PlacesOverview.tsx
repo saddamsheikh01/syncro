@@ -8,6 +8,7 @@ import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
+import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
 import { useCatalog, usePosition } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
@@ -116,6 +117,11 @@ export const PlacesOverview = () => {
           </span>
         ))}
       </div>
+
+      <AffiliationsRow
+        id="affiliations"
+        subtitle="Affiliate stays and experiences from our partners."
+      />
 
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
