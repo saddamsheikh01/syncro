@@ -11,6 +11,7 @@ import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,8 +35,15 @@ public class AuthController {
 
     @PostMapping("/register")
     @Operation(summary = "Register user")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    public ResponseEntity<AuthResponse> register(
+        @Valid @RequestBody RegisterRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        AuthResponse response = authService.register(
+            request,
+            httpRequest != null ? httpRequest.getRemoteAddr() : null,
+            httpRequest != null ? httpRequest.getHeader("User-Agent") : null
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

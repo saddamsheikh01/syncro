@@ -16,6 +16,7 @@ import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
 import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.referrals.service.ReferralService;
 import com.syncro.backend.security.JwtService;
 import com.syncro.backend.security.SubjectType;
 import com.syncro.backend.security.UserPrincipal;
@@ -33,23 +34,26 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthMapper authMapper;
+    private final ReferralService referralService;
 
     public AuthService(
         UserRepository userRepository,
         UserAuthProviderRepository providerRepository,
         PasswordEncoder passwordEncoder,
         JwtService jwtService,
-        AuthMapper authMapper
+        AuthMapper authMapper,
+        ReferralService referralService
     ) {
         this.userRepository = userRepository;
         this.providerRepository = providerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authMapper = authMapper;
+        this.referralService = referralService;
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String ip, String userAgent) {
         String email = normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
             throw new ConflictException("Email gia registrata");
@@ -68,6 +72,8 @@ public class AuthService {
         // Per email, usiamo provider_user_id come contenitore dell'hash finche lo schema non prevede un campo dedicato.
         provider.setProviderUserId(passwordEncoder.encode(request.password()));
         providerRepository.save(provider);
+
+        referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
 
         return buildAuthResponse(savedUser);
     }
