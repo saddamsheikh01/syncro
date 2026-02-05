@@ -2,18 +2,103 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAnalytics, useAuth, useUser } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 
+const CheckIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4 text-accent"
+    aria-hidden="true"
+  >
+    <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+    <path d="M8.5 12.5l2.5 2.5 4.5-5" />
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5 text-subtle"
+    aria-hidden="true"
+  >
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5 text-subtle"
+    aria-hidden="true"
+  >
+    <rect x="5" y="10" width="14" height="10" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path d="M3 3l18 18" />
+    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+    <path d="M9.9 4.2A10.2 10.2 0 0 1 12 4c6.5 0 10 6 10 6a19.8 19.8 0 0 1-4.3 4.9" />
+    <path d="M6.2 6.2A19.4 19.4 0 0 0 2 12s3.5 6 10 6a9.8 9.8 0 0 0 4-.8" />
+  </svg>
+);
+
 export const Register = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { status, error, isAuthenticated, user, actions } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
   const { actions: userActions } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const refCode = searchParams.get("ref")?.trim() || undefined;
 
   useEffect(() => {
     actions.hydrate();
@@ -31,7 +116,7 @@ export const Register = () => {
     event.preventDefault();
 
     try {
-      await actions.register({ email, password });
+      await actions.register({ email, password, refCode });
       analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
       await userActions.updateUser({ onboardingCompleted: true });
       analyticsActions.trackEvent({ eventType: "ONBOARDING_COMPLETED" }).catch(() => undefined);
@@ -41,95 +126,116 @@ export const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center px-6 py-14">
-        <div className="mb-10">
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft">
-            <Logo width={28} className="h-auto w-7" priority />
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Crea il tuo account
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Registrati per iniziare il tuo percorso su Syncro.
-          </p>
-        </div>
+    <div className="min-h-screen bg-[#f7f9ff] px-6 py-10">
+      <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)]">
+        <div className="w-full max-w-[480px]">
+          <div className="rounded-[28px] border border-[#eef2f8] bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
+            <div className="mb-6">
+              <Logo width={130} className="h-auto w-[120px]" priority />
+            </div>
+            <h1 className="text-3xl font-semibold text-[#2b4c8f]">
+              Sign Up To Start
+              <br />
+              Your Journey
+            </h1>
+            <p className="mt-3 text-sm text-muted">
+              Smart Matching For People And Places.
+              <br />
+              For Expats, Conscious Travelers And Locals Seeking Real Affinity.
+            </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="signup-email">
-              Email
-            </label>
-            <input
-              id="signup-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="nome@email.com"
-            />
-          </div>
+            <ul className="mt-6 space-y-2 text-sm text-muted">
+              <li className="flex items-center gap-2">
+                <CheckIcon />
+                <span>Matches based on who you really are</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckIcon />
+                <span>Real affinity, explained with clear percentages</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckIcon />
+                <span>People, places & experiences aligned with you</span>
+              </li>
+            </ul>
 
-          <div className="space-y-2">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="signup-password"
-            >
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="signup-password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 pr-14 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                placeholder="Crea una password"
-              />
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
+                  <MailIcon />
+                </span>
+                <input
+                  id="signup-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
+                  placeholder="Email"
+                />
+              </div>
+
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
+                  <LockIcon />
+                </span>
+                <input
+                  id="signup-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-[14px] border border-border bg-white px-11 py-3 pr-14 text-sm text-foreground shadow-sm placeholder:text-subtle"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+
+              {error ? (
+                <div className="rounded-[12px] border border-danger/20 bg-danger/10 px-4 py-2 text-sm text-danger">
+                  {error.message}
+                </div>
+              ) : null}
+
+              {isAuthenticated && user ? (
+                <div className="rounded-[12px] border border-border-strong bg-surface px-4 py-2 text-sm text-foreground">
+                  Signed in as {user.email ?? "user"}.
+                </div>
+              ) : null}
+
               <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-subtle transition hover:text-foreground"
-                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
-                aria-pressed={showPassword}
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-2 flex w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#3f69d0] to-[#3a66d5] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(58,102,213,0.3)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {showPassword ? "Nascondi" : "Mostra"}
+                {isSubmitting ? "Creating account..." : "Get Started"}
               </button>
+            </form>
+
+            <p className="mt-6 text-xs text-subtle">
+              You'll Complete Your Profile Step By Step
+              <br />
+              The More You Share, The Better Your Matches Become.
+            </p>
+
+            <div className="mt-5 text-sm text-muted">
+              Already have an account?{" "}
+              <Link className="font-semibold text-foreground" href="/login">
+                Login
+              </Link>
             </div>
           </div>
-
-          {error ? (
-            <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-              {error.message}
-            </div>
-          ) : null}
-
-          {isAuthenticated && user ? (
-            <div className="rounded-[var(--radius-md)] border border-border-strong bg-surface px-4 py-3 text-sm text-foreground">
-              Account attivo per {user.email ?? "utente"}.
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting ? "Registrazione in corso..." : "Registrati"}
-          </button>
-        </form>
-
-        <div className="mt-8 text-sm text-muted">
-          Hai gia un account?{" "}
-          <Link className="font-semibold text-foreground" href="/login">
-            Accedi
-          </Link>
         </div>
       </div>
     </div>

@@ -43,12 +43,12 @@ const getOtherParticipantName = (
   conversation: ChatConversationResponse,
   currentUserId: string | null
 ): string => {
-  if (!currentUserId) return "Utente";
+  if (!currentUserId) return "User";
 
   const other = conversation.participants.find(
     (p) => p.userId !== currentUserId
   );
-  return other?.fullName ?? "Utente";
+  return other?.fullName ?? "User";
 };
 
 const getOtherParticipantAvatar = (
@@ -93,11 +93,11 @@ export const ChatConversationList = () => {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Messaggi
+          Messages
         </p>
-        <h1 className="text-3xl font-semibold text-foreground">Le tue chat</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Your chats</h1>
         <p className="text-sm text-muted">
-          Conversa con le persone che hai incontrato.
+          Chat with people you&apos;ve met.
         </p>
       </header>
 
@@ -106,14 +106,14 @@ export const ChatConversationList = () => {
       {isLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento conversazioni...</p>
+          <p className="text-sm text-muted">Loading conversations...</p>
         </Card>
       )}
 
       {error && !isLoading && (
         <div className="space-y-3">
           <ErrorState
-            title="Impossibile caricare le conversazioni"
+            title="Unable to load conversations"
             description={error.message}
           />
           <Button
@@ -121,16 +121,16 @@ export const ChatConversationList = () => {
             onClick={handleRetry}
             disabled={loadingConversations}
           >
-            Riprova
+            Retry
           </Button>
         </div>
       )}
 
       {!isLoading && !error && conversations.length === 0 && (
         <EmptyState
-          title="Nessuna conversazione"
-          description="Inizia a chattare con qualcuno per vedere le tue conversazioni qui."
-          actionLabel="Scopri persone"
+          title="No conversations"
+          description="Start a chat to see your conversations here."
+          actionLabel="Discover people"
           actionHref="/matches"
         />
       )}
@@ -142,7 +142,7 @@ export const ChatConversationList = () => {
             const avatarUrl = getOtherParticipantAvatar(conversation, userId);
             const otherId = getOtherParticipantId(conversation, userId);
             const lastMessage = conversation.lastMessage;
-            const messagePreview = lastMessage?.content ?? "Nessun messaggio";
+            const messagePreview = lastMessage?.content ?? "No messages";
             const timeLabel = lastMessage
               ? formatTimeLabel(lastMessage.createdAt)
               : formatTimeLabel(conversation.createdAt);

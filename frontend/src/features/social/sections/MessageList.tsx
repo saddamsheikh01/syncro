@@ -37,7 +37,7 @@ export const MessageList = ({
   messages,
   currentUserId,
   loading = false,
-  emptyMessage = "Nessun messaggio. Inizia la conversazione!",
+  emptyMessage = "No messages yet. Start the conversation!",
   ...props
 }: MessageListProps) => {
   const containerRef = useRef<HTMLDivElement>(null);

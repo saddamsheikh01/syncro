@@ -32,7 +32,7 @@ export const ZyraSearchResults = ({
     <div
       className={cx(
         "absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-lg)] border bg-surface shadow-md",
-        "border-border"
+        "border-border/70"
       )}
       style={{
         boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
@@ -46,10 +46,10 @@ export const ZyraSearchResults = ({
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zyra-text">
               Zyra AI
             </p>
-            <p className="text-[11px] text-subtle">Ricerca guidata dal profilo</p>
+            <p className="text-[11px] text-subtle">Profile-guided search</p>
           </div>
         </div>
-        <span className="rounded-full border border-border/60 bg-surface-muted px-2 py-1 text-[10px] font-semibold text-zyra-text">
+        <span className="rounded-full border border-border/70 bg-surface-muted px-2 py-1 text-[10px] font-semibold text-zyra-text">
           AI
         </span>
       </div>
@@ -58,7 +58,7 @@ export const ZyraSearchResults = ({
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8 text-subtle">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-zyra-text border-t-transparent" />
-            <span className="text-sm">Zyra sta cercando...</span>
+            <span className="text-sm">Zyra is searching...</span>
           </div>
         )}
 
@@ -70,9 +70,9 @@ export const ZyraSearchResults = ({
               <NavIcon name="search" className="h-5 w-5 text-zyra-text" />
             </div>
             <p className="text-sm text-subtle">
-              Nessun risultato per &ldquo;{query}&rdquo;
+              No results for &ldquo;{query}&rdquo;
             </p>
-            <p className="text-xs text-subtle">Prova con termini diversi</p>
+            <p className="text-xs text-subtle">Try different terms</p>
           </div>
         )}
 
@@ -86,7 +86,7 @@ export const ZyraSearchResults = ({
                     className="h-3.5 w-3.5 text-zyra-text"
                   />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Luoghi
+                    Places
                   </span>
                 </div>
                 <div className="space-y-0.5">
@@ -129,13 +129,13 @@ export const ZyraSearchResults = ({
                 <div className="flex items-center gap-2 px-3 py-2">
                   <NavIcon name="users" className="h-3.5 w-3.5 text-zyra-text" />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Utenti
+                    Users
                   </span>
                 </div>
                 <div className="space-y-0.5">
                   {users.map((user) => {
                     const displayName =
-                      user.fullName ?? (user.username ? `@${user.username}` : "Utente");
+                      user.fullName ?? (user.username ? `@${user.username}` : "User");
                     const usernameLabel =
                       user.fullName && user.username ? `@${user.username}` : null;
                     const locationLabel = [user.city, user.country]
@@ -184,7 +184,7 @@ export const ZyraSearchResults = ({
                 <div className="flex items-center gap-2 px-3 py-2">
                   <NavIcon name="chat" className="h-3.5 w-3.5 text-zyra-text" />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Post
+                    Posts
                   </span>
                 </div>
                 <div className="space-y-0.5">
@@ -201,7 +201,7 @@ export const ZyraSearchResults = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">
-                          {`Utente ${post.userId?.toString()?.slice(0, 8)}`}
+                          {`User ${post.userId?.toString()?.slice(0, 8)}`}
                         </p>
                         <p className="truncate text-xs text-subtle">
                           {post.content.slice(0, 120)}
@@ -221,7 +221,7 @@ export const ZyraSearchResults = ({
       </div>
 
       {!loading && hasResults && (
-        <div className="border-t border-border/60 px-3 py-2">
+        <div className="border-t border-border/70 px-3 py-2">
           <div className="flex items-center justify-center gap-2 text-[10px] text-subtle">
             <ZyraMark size="xs" glow={false} />
             <span>

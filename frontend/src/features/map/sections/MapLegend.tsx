@@ -13,7 +13,7 @@ export interface MapLegendProps
 
 export const MapLegend = ({
   className,
-  title = "Legenda mappa",
+  title = "Map legend",
   subtitle,
   items,
   ...props

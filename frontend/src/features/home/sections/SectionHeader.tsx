@@ -48,7 +48,7 @@ export const SectionHeader = ({
       actionHref ? (
         <Link
           href={actionHref}
-          className="group flex items-center gap-1.5 rounded-full border border-transparent bg-surface-muted px-3 py-1.5 text-sm font-medium text-muted transition-all duration-200 hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
+          className="group flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_var(--accent-glow)] transition-all duration-200 hover:brightness-95"
         >
           <span>{actionLabel}</span>
           <ActionArrow />
@@ -57,7 +57,7 @@ export const SectionHeader = ({
         <button
           type="button"
           onClick={onActionClick}
-          className="group flex items-center gap-1.5 rounded-full border border-transparent bg-surface-muted px-3 py-1.5 text-sm font-medium text-muted transition-all duration-200 hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
+          className="group flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_var(--accent-glow)] transition-all duration-200 hover:brightness-95"
         >
           <span>{actionLabel}</span>
           <ActionArrow />

@@ -15,7 +15,7 @@ import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { TestCountCard } from "@/components/ui/TestCountCard";
 import { useAnalytics, useAuth, useChat } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
-import { getUserTestsCount } from "@/services/tests";
+import { getUserTestsCount } from "@/services/insights";
 import { getUserPosts, getUserProfile } from "@/services/users";
 import { reactToPost, removeReaction } from "@/services/social";
 import { addFavorite, removeFavorite } from "@/services/favorites";
@@ -38,27 +38,27 @@ const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | n
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   SINGLE: "Single",
-  IN_RELATIONSHIP: "In relazione",
-  MARRIED: "Sposato/a",
-  SEPARATED: "Separato/a",
-  COMPLICATED: "Situazione complicata",
-  OTHER: "Altro",
+  IN_RELATIONSHIP: "In a relationship",
+  MARRIED: "Married",
+  SEPARATED: "Separated",
+  COMPLICATED: "It's complicated",
+  OTHER: "Other",
 };
 
 const ORIENTATION_LABELS: Record<string, string> = {
-  HETERO: "Etero",
+  HETERO: "Heterosexual",
   GAY: "Gay",
-  BI: "Bisessuale",
-  ASEXUAL: "Asessuale",
-  OTHER: "Altro",
+  BI: "Bisexual",
+  ASEXUAL: "Asexual",
+  OTHER: "Other",
 };
 
 const CHILDREN_LABELS: Record<string, string> = {
-  NO_CHILDREN: "Nessun figlio",
-  HAS_CHILDREN: "Ha figli",
-  WANTS_CHILDREN: "Vuole figli",
-  DOES_NOT_WANT: "Non vuole figli",
-  UNDECIDED: "Indeciso/a",
+  NO_CHILDREN: "No children",
+  HAS_CHILDREN: "Has children",
+  WANTS_CHILDREN: "Wants children",
+  DOES_NOT_WANT: "Does not want children",
+  UNDECIDED: "Undecided",
 };
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
@@ -73,12 +73,42 @@ const formatLocation = (profile: UserPublicProfileResponse | null) => {
   if (!profile) return undefined;
   const parts = [profile.city, profile.country].filter(Boolean);
   const location = parts.length ? parts.join(", ") : "";
-  const ageLabel = profile.age ? `${profile.age} anni` : "";
+  const ageLabel = profile.age ? `${profile.age} years` : "";
   return [location, ageLabel].filter(Boolean).join(" · ") || undefined;
 };
 
 const resolveLabel = (value: string | null | undefined, map: Record<string, string>) =>
   value ? map[value] ?? value : null;
+
+const DEFAULT_MATCH_EXPLANATION =
+  "Relevant connection based on your current context.";
+
+const ITALIAN_MATCH_HINTS = [
+  "interessi",
+  "valori",
+  "obiettivi",
+  "affin",
+  "compatibil",
+  "condivis",
+  "vicin",
+  "luogo",
+  "esperien",
+  "profilo",
+  "amicizia",
+  "amore",
+  "lavoro",
+  "contesto",
+  "energia",
+];
+
+const resolveMatchExplanation = (value?: string | null) => {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (ITALIAN_MATCH_HINTS.some((hint) => normalized.includes(hint))) {
+    return DEFAULT_MATCH_EXPLANATION;
+  }
+  return value;
+};
 
 const updateReactionCounts = (
   reactions: PostResponse["reactions"],
@@ -181,7 +211,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           })
           .catch((error) => {
             if (!active) return;
-            setMatchError(resolveErrorMessage(error, "Match non disponibile."));
+            setMatchError(resolveErrorMessage(error, "Match unavailable."));
           })
           .finally(() => {
             if (!active) return;
@@ -211,7 +241,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           })
           .catch((error) => {
             if (!active) return;
-            setPostsError(resolveErrorMessage(error, "Impossibile caricare i post."));
+            setPostsError(resolveErrorMessage(error, "Unable to load posts."));
           })
           .finally(() => {
             if (!active) return;
@@ -223,7 +253,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       .catch((error) => {
         if (!active) return;
         setProfileError(
-          resolveErrorMessage(error, "Profilo non disponibile.")
+          resolveErrorMessage(error, "Profile unavailable.")
         );
       })
       .finally(() => {
@@ -237,37 +267,37 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   }, [router, user?.id, userId]);
 
   const displayName = useMemo(() => {
-    if (!profile) return "Profilo";
+    if (!profile) return "Profile";
     return (
       profile.fullName?.trim() ||
       profile.username ||
-      `Utente ${profile.userId.slice(0, 6)}`
+      `User ${profile.userId.slice(0, 6)}`
     );
   }, [profile]);
 
   const locationLabel = useMemo(() => formatLocation(profile), [profile]);
   const extendedSections = useMemo(
     () => [
-      { label: "Cosa mi caratterizza", value: profile?.traitsText ?? null },
-      { label: "Cosa amo", value: profile?.lovesText ?? null },
-      { label: "Cosa non sopporto", value: profile?.dislikesText ?? null },
-      { label: "Cosa cerco", value: profile?.goalsText ?? null },
-      { label: "Valori", value: profile?.valuesText ?? null },
+      { label: "What defines me", value: profile?.traitsText ?? null },
+      { label: "What I love", value: profile?.lovesText ?? null },
+      { label: "What I can't stand", value: profile?.dislikesText ?? null },
+      { label: "What I'm looking for", value: profile?.goalsText ?? null },
+      { label: "Values", value: profile?.valuesText ?? null },
     ],
     [profile]
   );
   const personalSections = useMemo(
     () => [
       {
-        label: "Stato relazionale",
+        label: "Relationship status",
         value: resolveLabel(profile?.relationshipStatus, RELATIONSHIP_LABELS),
       },
       {
-        label: "Orientamento",
+        label: "Orientation",
         value: resolveLabel(profile?.orientation, ORIENTATION_LABELS),
       },
       {
-        label: "Figli",
+        label: "Children",
         value: resolveLabel(profile?.childrenStatus, CHILDREN_LABELS),
       },
     ],
@@ -286,6 +316,11 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     [filledExtendedSections, filledPersonalSections]
   );
   const fallbackBio = profile?.bio?.trim();
+  const matchExplanation = useMemo(
+    () => resolveMatchExplanation(match?.explanation),
+    [match?.explanation]
+  );
+
 
   const updatePost = useCallback(
     (postId: string, updater: (post: PostResponse) => PostResponse) => {
@@ -428,7 +463,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         setPostsHasMore(!response.last);
       })
       .catch((error) => {
-        setPostsError(resolveErrorMessage(error, "Impossibile caricare i post."));
+        setPostsError(resolveErrorMessage(error, "Unable to load posts."));
       })
       .finally(() => setPostsLoading(false));
   }, [postsHasMore, postsLoading, postsPage, userId]);
@@ -453,7 +488,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento profilo...</p>
+          <p className="text-sm text-muted">Loading profile...</p>
         </Card>
       </div>
     );
@@ -463,15 +498,15 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Profilo non disponibile"
+          title="Profile unavailable"
           description={profileError}
         />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => router.back()}>
-            Torna indietro
+            Go back
           </Button>
           <Button onClick={() => router.push("/matches")}>
-            Scopri match
+            Discover matches
           </Button>
         </div>
       </div>
@@ -482,8 +517,8 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <EmptyState
-          title="Profilo non disponibile"
-          description="L'utente non ha ancora completato il profilo."
+          title="Profile unavailable"
+          description="This user hasn&apos;t completed their profile yet."
         />
       </div>
     );
@@ -493,10 +528,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Profilo pubblico
+          Public profile
         </p>
         <p className="text-sm text-muted">
-          Scopri il profilo, i match e i contenuti recenti.
+          Discover the profile, matches, and recent content.
         </p>
       </header>
 
@@ -517,10 +552,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             <Card className="space-y-4 p-5">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-subtle">
-                  Profilo personale
+                  Personal profile
                 </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Chi e questa persona
+                  Who this person is
                 </h3>
               </div>
               <div className="space-y-4">
@@ -538,10 +573,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             <Card className="space-y-4 p-5">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-subtle">
-                  Informazioni personali
+                  Personal information
                 </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Dettagli opzionali
+                  Optional details
                 </h3>
               </div>
               <div className="space-y-3">
@@ -567,20 +602,20 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       ) : null}
 
       <TestCountCard
-        title="Test completati"
+        title="Insights completed"
         count={testsCount}
         loading={testsCountLoading}
         description={
           testsCountLoading
-            ? "Sto recuperando i test completati."
-            : `Questo profilo ha completato ${testsCount ?? 0} test.`
+            ? "Fetching completed insights."
+            : `This profile has completed ${testsCount ?? 0} insights.`
         }
         variant="compact"
       />
 
       <ZyraProfileRecap
         userId={profile.userId}
-        title={`Recap Zyra su ${displayName}`}
+        title={`Zyra recap for ${displayName}`}
       />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -588,10 +623,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-                Match con te
+                Match with you
               </p>
               <h3 className="text-base font-semibold text-foreground">
-                Compatibilita attuale
+                Current compatibility
               </h3>
             </div>
             {match?.scoreTotal != null ? (
@@ -601,14 +636,14 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           {matchLoading ? (
             <div className="flex items-center gap-3 text-sm text-muted">
               <Loader size="sm" />
-              Calcolo match in corso...
+              Calculating match...
             </div>
           ) : matchError ? (
             <p className="text-sm text-muted">{matchError}</p>
           ) : match ? (
             <>
-              {match.explanation ? (
-                <p className="text-sm text-muted">{match.explanation}</p>
+              {matchExplanation ? (
+                <p className="text-sm text-muted">{matchExplanation}</p>
               ) : null}
               <MatchBreakdownCard
                 breakdown={parseBreakdown(match.breakdown as Record<string, unknown> | null)}
@@ -616,30 +651,30 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             </>
           ) : (
             <p className="text-sm text-muted">
-              Match non disponibile al momento.
+              Match unavailable at the moment.
             </p>
           )}
         </Card>
 
         <Card className="space-y-3 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Azioni rapide
+            Quick actions
           </p>
           <Button
             size="sm"
             onClick={handleStartChat}
             loading={startingChat || loadingConversations}
-            loadingText="Apertura"
+            loadingText="Opening"
             disabled={status !== "authenticated"}
           >
-            Inizia chat
+            Start chat
           </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => router.push("/matches")}
           >
-            Torna ai match
+            Back to matches
           </Button>
         </Card>
       </section>
@@ -647,9 +682,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Ultimi post</h2>
+            <h2 className="text-xl font-semibold text-foreground">Latest posts</h2>
             <p className="text-sm text-muted">
-              Aggiornamenti recenti condivisi dall&apos;utente.
+              Recent updates shared by the user.
             </p>
           </div>
           {postsLoading ? <Loader size="sm" /> : null}
@@ -657,13 +692,13 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
 
         {postsError ? (
           <ErrorState
-            title="Impossibile caricare i post"
+            title="Unable to load posts"
             description={postsError}
           />
         ) : posts.length === 0 && !postsLoading ? (
           <EmptyState
-            title="Nessun post recente"
-            description="Questo profilo non ha ancora pubblicato contenuti."
+            title="No recent posts"
+            description="This profile hasn&apos;t published any content yet."
           />
         ) : null}
 
@@ -676,9 +711,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
               size="md"
               onClick={handleLoadMore}
               loading={postsLoading}
-              loadingText="Caricamento"
+              loadingText="Loading"
             >
-              Carica altri
+              Load more
             </Button>
           </div>
         ) : null}

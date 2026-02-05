@@ -19,12 +19,14 @@ type DrawerMenuItem = {
 
 const DRAWER_ITEMS: DrawerMenuItem[] = [
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark", isZyra: true },
-  { id: "map", label: "Mappa", href: "/map", icon: "map" },
+  { id: "map", label: "Map", href: "/map", icon: "map" },
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "document" },
-  { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
-  { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
-  { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
+  { id: "moments", label: "Moments", href: "/moments", icon: "document" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "clipboard" },
+  { id: "places", label: "Places", href: "/places", icon: "map-pin" },
+  { id: "favorites", label: "Favorites", href: "/favorites", icon: "star" },
+  { id: "profile", label: "Profile", href: "/profile", icon: "user" },
+  { id: "settings", label: "Settings", href: "/settings", icon: "sliders" },
 ];
 
 export interface MobileDrawerProps {
@@ -71,7 +73,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
       {/* Backdrop */}
       <div
         className={cx(
-          "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
           open ? "opacity-100" : "opacity-0"
         )}
         onClick={onClose}
@@ -86,7 +88,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
         )}
         role="dialog"
         aria-modal="true"
-        aria-label="Menu di navigazione"
+        aria-label="Navigation menu"
       >
         {/* Handle indicator */}
         <div className="flex justify-center py-3">
@@ -99,15 +101,15 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted transition-colors hover:bg-surface-muted/80 hover:text-foreground"
-            aria-label="Chiudi menu"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+            aria-label="Close menu"
           >
             <NavIcon name="x" className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation items */}
-        <nav className="overflow-y-auto p-4" aria-label="Menu secondario">
+        <nav className="overflow-y-auto p-4" aria-label="Secondary navigation">
           <ul className="space-y-1">
             {DRAWER_ITEMS.map((item) => {
               const active = isActive(item.href);
@@ -120,7 +122,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
                     onClick={onClose}
                     className={cx(
                       "flex items-center gap-4 rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium transition-colors",
-                      !isZyra && active && "bg-accent-soft text-accent",
+                      !isZyra && active && "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_10px_20px_var(--accent-glow)]",
                       !isZyra && !active && "text-foreground hover:bg-surface-muted",
                       isZyra && active && "border border-zyra-border/70 bg-zyra-glow/50 text-zyra-text shadow-[0_0_20px_var(--zyra-glow)]",
                       isZyra && !active && "text-zyra-text/80 hover:bg-zyra-glow/40 hover:text-zyra-text"
@@ -130,8 +132,8 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
                     <span
                       className={cx(
                         "flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
-                        !isZyra && active && "border-accent/30 bg-accent-soft text-accent",
-                        !isZyra && !active && "border-border bg-surface text-muted",
+                        !isZyra && active && "border-white/60 bg-white/90 text-accent",
+                        !isZyra && !active && "border-border/70 bg-surface-muted text-muted",
                         isZyra && "border-transparent bg-transparent"
                       )}
                     >

@@ -44,9 +44,9 @@ export const ChatListItem = ({
   const card = (
     <div
       className={cx(
-        "group relative flex items-center gap-4 rounded-[var(--radius-xl)] border border-border/50 bg-surface p-4 transition-all duration-200",
-        "hover:border-accent/30 hover:bg-surface-muted hover:shadow-md",
-        hasUnread && "border-accent/20 bg-accent/[0.02]",
+        "group relative flex items-center gap-4 rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 transition-all duration-200",
+        "hover:border-accent/30 hover:bg-surface-muted/70 hover:shadow-md",
+        hasUnread && "border-accent/30 bg-accent-soft/40",
         className
       )}
       {...props}
@@ -117,14 +117,14 @@ export const ChatListItem = ({
           <button
             type="button"
             onClick={handleProfileClick}
-            aria-label={profileLabel ?? `Apri profilo di ${name}`}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+            aria-label={profileLabel ?? `Open profile of ${name}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
           >
             <NavIcon name="user" className="h-4 w-4" />
           </button>
         ) : null}
         {hasUnread ? (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] px-1.5 text-[10px] font-bold text-white shadow-[0_6px_12px_var(--accent-glow)]">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         ) : (
@@ -139,7 +139,7 @@ export const ChatListItem = ({
 
   if (href) {
     return (
-      <Link href={href} className="block outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-[var(--radius-xl)]">
+      <Link href={href} className="block rounded-[var(--radius-xl)] outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2">
         {card}
       </Link>
     );
@@ -150,7 +150,7 @@ export const ChatListItem = ({
       <button
         type="button"
         onClick={onPress}
-        className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-[var(--radius-xl)]"
+        className="w-full rounded-[var(--radius-xl)] text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/20 focus-visible:ring-offset-2"
       >
         {card}
       </button>

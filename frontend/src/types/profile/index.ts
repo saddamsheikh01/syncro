@@ -26,6 +26,7 @@ export type UserProfileResponse = {
   id: Uuid;
   userId: Uuid;
   fullName: string | null;
+  avatarUrl: string | null;
   birthDate: IsoDate | null;
   age: number | null;
   city: string | null;

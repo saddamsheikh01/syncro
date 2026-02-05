@@ -32,7 +32,7 @@ export const Select = ({
   label,
   hint,
   error,
-  placeholder = "Seleziona",
+  placeholder = "Select",
   options,
   value,
   defaultValue,

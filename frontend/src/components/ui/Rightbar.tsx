@@ -1,14 +1,14 @@
 "use client";
 
 import type { HTMLAttributes } from "react";
-import { User } from "@/components/elements/User";
-import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingProgressCard";
 import { ZyraTipCard } from "@/components/ui/ZyraTipCard";
 import { QuickMatchPreview } from "@/components/ui/QuickMatchPreview";
 import { RecentChatsCard } from "@/components/ui/RecentChatsCard";
 import { NearbyHighlight } from "@/components/ui/NearbyHighlight";
-import { ProfileStatsCard } from "@/components/ui/ProfileStatsCard";
-import { TestsEncouragementCard } from "@/components/ui/TestsEncouragementCard";
+import { RightbarMatchSummary } from "@/components/ui/RightbarMatchSummary";
+import { RightbarStatusCard } from "@/components/ui/RightbarStatusCard";
+import { RightbarTodayCard } from "@/components/ui/RightbarTodayCard";
+import { RightbarShortcutsCard } from "@/components/ui/RightbarShortcutsCard";
 import { cx } from "@/lib/classNames";
 
 export interface RightbarProps extends HTMLAttributes<HTMLElement> {
@@ -25,29 +25,21 @@ export const Rightbar = ({
     {...props}
   >
     <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-[var(--radius-xl)] border border-border/70 bg-surface p-4 shadow-md">
-      {/* User profile summary */}
-      <User />
-
-      {/* Onboarding progress (hidden when complete) */}
-      <OnboardingProgressCard />
-
-      {/* Zyra AI tip */}
       <ZyraTipCard />
 
-      {/* Tests encouragement */}
-      <TestsEncouragementCard />
-
-      {/* Match of the day preview */}
-      <QuickMatchPreview />
-
-      {/* Recent chats */}
       <RecentChatsCard />
 
-      {/* Nearby places */}
+      <QuickMatchPreview />
+
+      <RightbarMatchSummary />
+
       <NearbyHighlight />
 
-      {/* Profile stats
-      <ProfileStatsCard /> */}
+      <RightbarStatusCard />
+
+      <RightbarTodayCard />
+
+      <RightbarShortcutsCard />
     </div>
   </aside>
 );

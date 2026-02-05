@@ -16,17 +16,17 @@ export interface LanguageSelectorProps {
 }
 
 const DEFAULT_OPTIONS: SelectOption[] = [
-  { value: "it", label: "Italiano" },
+  { value: "it", label: "Italian" },
   { value: "en", label: "English" },
-  { value: "es", label: "Espanol" },
+  { value: "es", label: "Spanish" },
 ];
 
 export const LanguageSelector = ({
   className,
-  title = "Lingua",
-  description = "Scegli la lingua preferita per l'app.",
+  title = "Language",
+  description = "Choose your preferred app language.",
   value,
-  defaultValue = "it",
+  defaultValue = "en",
   options = DEFAULT_OPTIONS,
   onValueChange,
 }: LanguageSelectorProps) => (

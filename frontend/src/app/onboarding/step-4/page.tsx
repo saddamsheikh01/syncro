@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 // import { OnboardingStep4 } from "@/features/onboarding/flows/OnboardingStep4";
 
 export const metadata: Metadata = {
-  title: "Onboarding - Posizione | Syncro",
-  description: "Abilita la posizione per completare l'onboarding Syncro.",
+  title: "Onboarding - Location | Syncro",
+  description: "Enable location to complete Syncro onboarding.",
 };
 
 // Onboarding semplificato: step 4 disabilitato, redirect a home

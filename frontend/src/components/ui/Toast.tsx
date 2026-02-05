@@ -13,7 +13,7 @@ export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const TONE_CLASSES: Record<ToastTone, string> = {
-  neutral: "border-border bg-surface text-foreground",
+  neutral: "border-border/70 bg-surface text-foreground",
   accent: "border-accent/20 bg-accent-soft text-accent",
   success: "border-success/20 bg-success/10 text-success",
   warning: "border-warning/20 bg-warning/15 text-warning",
@@ -46,7 +46,7 @@ export const Toast = ({
         type="button"
         onClick={onClose}
         className="text-xs font-semibold text-subtle hover:text-foreground"
-        aria-label="Chiudi"
+        aria-label="Close"
       >
         x
       </button>

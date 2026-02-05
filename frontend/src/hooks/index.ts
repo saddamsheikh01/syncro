@@ -5,7 +5,7 @@ export { useFeed } from "./feed/useFeed";
 export { useChat } from "./chat/useChat";
 export { useUi } from "./ui/useUi";
 export { useTags } from "./tags/useTags";
-export { useTests } from "./tests/useTests";
+export { useTests } from "./insights/useTests";
 export { useCatalog } from "./catalog/useCatalog";
 export { useFavorites } from "./favorites/useFavorites";
 export { useMatches } from "./matches/useMatches";

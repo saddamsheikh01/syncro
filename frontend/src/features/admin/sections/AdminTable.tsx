@@ -33,7 +33,7 @@ export const AdminTable = ({
   className,
   columns,
   rows,
-  emptyLabel = "Nessun dato disponibile",
+  emptyLabel = "No data available",
   ...props
 }: AdminTableProps) => (
   <Card className={cx("overflow-hidden", className)} {...props}>

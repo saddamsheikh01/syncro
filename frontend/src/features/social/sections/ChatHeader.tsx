@@ -46,7 +46,7 @@ export const ChatHeader = ({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Torna indietro"
+          aria-label="Go back"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-muted"
         >
           <NavIcon name="chevron-left" className="h-5 w-5" />
@@ -57,7 +57,7 @@ export const ChatHeader = ({
         <button
           type="button"
           onClick={onProfileClick}
-          aria-label={profileLabel ?? `Apri profilo di ${name}`}
+          aria-label={profileLabel ?? `Open profile of ${name}`}
           className="flex min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-[var(--radius-lg)]"
         >
           <div className="relative shrink-0">
@@ -135,7 +135,7 @@ export const ChatHeader = ({
         <button
           type="button"
           onClick={onInfoClick}
-          aria-label="Info conversazione"
+          aria-label="Conversation info"
           className="flex h-9 w-9 items-center justify-center rounded-full text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
         >
           <NavIcon name="info" className="h-5 w-5" />

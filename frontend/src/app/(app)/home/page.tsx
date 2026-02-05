@@ -4,7 +4,7 @@ import { HomeOverview } from "@/features/home/flows/HomeOverview";
 
 export const metadata: Metadata = {
   title: "Home | Syncro",
-  description: "Scopri suggerimenti, match e luoghi pensati per te.",
+  description: "Discover suggestions, matches, and places curated for you.",
 };
 
 export default function HomePage() {

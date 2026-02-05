@@ -32,7 +32,7 @@ export const ZyraHeader = ({
             </span>
           </h3>
           {statusLabel ? (
-            <span className="rounded-full border border-border/60 bg-surface-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground">
+            <span className="rounded-full border border-border/70 bg-surface-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground">
               {statusLabel}
             </span>
           ) : null}

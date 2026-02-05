@@ -50,7 +50,7 @@ export const Modal = ({
     >
       <div
         className={cx(
-          "w-full max-w-lg rounded-[var(--radius-lg)] border border-border bg-card p-6 shadow-lg",
+          "w-full max-w-lg rounded-[var(--radius-lg)] border border-border/70 bg-card p-6 shadow-lg",
           "space-y-5"
         )}
         onClick={(event) => event.stopPropagation()}

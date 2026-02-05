@@ -30,8 +30,8 @@ const readBoolean = (value: JsonValue | undefined) =>
   typeof value === "boolean" ? value : undefined;
 
 const formatAuthorName = (userId: string) => {
-  if (!userId) return "Utente Syncro";
-  return `Utente ${userId.slice(0, 6).toUpperCase()}`;
+  if (!userId) return "Syncro user";
+  return `User ${userId.slice(0, 6).toUpperCase()}`;
 };
 
 const formatCoordinate = (value: number | null | undefined) => {
@@ -40,26 +40,26 @@ const formatCoordinate = (value: number | null | undefined) => {
 };
 
 const SCOPE_OPTIONS = [
-  { label: "Tutti", value: "" },
-  { label: "Amicizia", value: "AMICIZIA" },
-  { label: "Esperienze", value: "ESPERIENZE" },
-  { label: "Lavoro", value: "LAVORO" },
-  { label: "Benessere", value: "BENESSERE" },
+  { label: "All", value: "" },
+  { label: "Friendship", value: "AMICIZIA" },
+  { label: "Experiences", value: "ESPERIENZE" },
+  { label: "Work", value: "LAVORO" },
+  { label: "Wellness", value: "BENESSERE" },
 ];
 
 const TIMEFRAME_OPTIONS = [
-  { label: "Tutti", value: "" },
-  { label: "Ora", value: "ORA" },
-  { label: "Oggi", value: "OGGI" },
+  { label: "All", value: "" },
+  { label: "Now", value: "ORA" },
+  { label: "Today", value: "OGGI" },
 ];
 
 const GENDER_OPTIONS = [
-  { label: "Tutti", value: "" },
-  { label: "Donna", value: "FEMALE" },
-  { label: "Uomo", value: "MALE" },
-  { label: "Non binary", value: "NON_BINARY" },
-  { label: "Altro", value: "OTHER" },
-  { label: "Preferisco non dirlo", value: "PREFER_NOT_TO_SAY" },
+  { label: "All", value: "" },
+  { label: "Female", value: "FEMALE" },
+  { label: "Male", value: "MALE" },
+  { label: "Non-binary", value: "NON_BINARY" },
+  { label: "Other", value: "OTHER" },
+  { label: "Prefer not to say", value: "PREFER_NOT_TO_SAY" },
 ];
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
@@ -214,7 +214,7 @@ export const Feed = () => {
 
   const postItems = useMemo(() => {
     const profileName = profile?.fullName?.trim();
-    const selfName = profileName || user?.email || "Tu";
+    const selfName = profileName || user?.email || "You";
 
     return items.map((post) => ({
       post,
@@ -334,7 +334,7 @@ export const Feed = () => {
           );
         } catch {
           setComposerNotice(
-            "Post pubblicato, ma alcuni media non sono stati caricati."
+            "Post published, but some media failed to upload."
           );
         }
       }
@@ -345,7 +345,7 @@ export const Feed = () => {
         .catch(() => undefined);
     } catch (submitError) {
       setComposerError(
-        resolveErrorMessage(submitError, "Errore durante la pubblicazione.")
+        resolveErrorMessage(submitError, "Error while publishing.")
       );
     } finally {
       setComposerLoading(false);
@@ -376,14 +376,14 @@ export const Feed = () => {
               Feed
             </p>
             <h1 className="text-3xl font-semibold text-foreground">
-              Post vicino a te
+              Posts near you
             </h1>
             <p className="text-sm text-muted">
-              Scopri contenuti geolocalizzati e personalizzati.
+              Discover localized and personalized content.
             </p>
           </div>
           <Button size="sm" onClick={handleOpenComposer}>
-            Crea post
+            Create post
           </Button>
         </div>
       </header>
@@ -392,7 +392,7 @@ export const Feed = () => {
         <Card className="flex flex-wrap items-start justify-between gap-3 border-warning/30 bg-warning/15 p-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Media non caricati
+              Media not uploaded
             </p>
             <p className="text-xs text-muted">{composerNotice}</p>
           </div>
@@ -401,7 +401,7 @@ export const Feed = () => {
             variant="ghost"
             onClick={() => setComposerNotice(null)}
           >
-            Chiudi
+            Close
           </Button>
         </Card>
       ) : null}
@@ -410,10 +410,10 @@ export const Feed = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Filtri feed
+              Feed filters
             </p>
             <p className="text-xs text-subtle">
-              Personalizza cosa vuoi vedere nel feed.
+              Customize what you want to see in the feed.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -421,14 +421,14 @@ export const Feed = () => {
               Reset
             </Button>
             <Button size="sm" onClick={handleApplyFilters}>
-              Applica
+              Apply
             </Button>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select
-            label="Ambito"
+            label="Scope"
             options={SCOPE_OPTIONS}
             value={scopeFilter}
             onValueChange={(value) =>
@@ -436,7 +436,7 @@ export const Feed = () => {
             }
           />
           <Select
-            label="Tempo"
+            label="Timeframe"
             options={TIMEFRAME_OPTIONS}
             value={timeframeFilter}
             onValueChange={(value) =>
@@ -444,14 +444,14 @@ export const Feed = () => {
             }
           />
           <Input
-            label="Citta"
+            label="City"
             value={cityFilter}
             onChange={(event) => setCityFilter(event.target.value)}
-            placeholder="Milano"
+            placeholder="Milan"
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Eta minima"
+              label="Minimum age"
               type="number"
               min={18}
               value={ageMinFilter}
@@ -459,7 +459,7 @@ export const Feed = () => {
               placeholder="18"
             />
             <Input
-              label="Eta massima"
+              label="Maximum age"
               type="number"
               min={18}
               value={ageMaxFilter}
@@ -468,13 +468,13 @@ export const Feed = () => {
             />
           </div>
           <Select
-            label="Genere"
+            label="Gender"
             options={GENDER_OPTIONS}
             value={genderFilter}
             onValueChange={setGenderFilter}
           />
           <Input
-            label="Compatibilita minima"
+            label="Minimum compatibility"
             type="number"
             min={0}
             max={100}
@@ -487,18 +487,18 @@ export const Feed = () => {
 
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <Badge tone="accent" size="sm">
-          {onlyNearby ? "Solo vicini" : "Tutti i post"}
+          {onlyNearby ? "Nearby only" : "All posts"}
         </Badge>
         <Badge tone="neutral" size="sm">
-          Raggio {radiusKm ? `${radiusKm} km` : "libero"}
+          Radius {radiusKm ? `${radiusKm} km` : "any"}
         </Badge>
         <Badge tone={hasPosition ? "success" : "warning"} size="sm">
-          {hasPosition ? "Posizione attiva" : "Posizione assente"}
+          {hasPosition ? "Location enabled" : "Location unavailable"}
         </Badge>
         {positionLoading ? (
           <span className="ml-auto inline-flex items-center gap-2 text-xs text-subtle">
             <Loader size="sm" />
-            Aggiornamento posizione
+            Updating location
           </span>
         ) : null}
       </Card>
@@ -506,21 +506,21 @@ export const Feed = () => {
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento feed...</p>
+          <p className="text-sm text-muted">Loading feed...</p>
         </Card>
       ) : null}
 
       {error ? (
         <ErrorState
-          title="Impossibile caricare il feed"
+          title="Unable to load the feed"
           description={error.message}
         />
       ) : null}
 
       {!isInitialLoading && !error && items.length === 0 ? (
         <EmptyState
-          title="Nessun post disponibile"
-          description="Torna piu tardi per vedere nuovi contenuti."
+          title="No posts available"
+          description="Come back later to see new content."
         />
       ) : null}
 
@@ -533,9 +533,9 @@ export const Feed = () => {
             size="md"
             onClick={handleLoadMore}
             loading={loading}
-            loadingText="Caricamento"
+            loadingText="Loading"
           >
-            Carica altri
+            Load more
           </Button>
         </div>
       ) : null}

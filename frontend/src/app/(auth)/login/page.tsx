@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Login } from "@/features/auth/Login";
 
 export const metadata: Metadata = {
-  title: "Accedi | Syncro",
-  description: "Accedi al tuo account Syncro.",
+  title: "Sign in | Syncro",
+  description: "Sign in to your Syncro account.",
 };
 
 export default function LoginPage() {

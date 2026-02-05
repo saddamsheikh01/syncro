@@ -3,8 +3,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { MapOverview } from "@/features/map/flows/MapOverview";
 
 export const metadata: Metadata = {
-  title: "Mappa | Syncro",
-  description: "Esplora i luoghi vicino a te sulla mappa interattiva.",
+  title: "Map | Syncro",
+  description: "Explore places near you on the interactive map.",
 };
 
 export default function MapPage() {

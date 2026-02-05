@@ -31,7 +31,7 @@ export const OnboardingStep4 = () => {
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocalError(
-        "La geolocalizzazione non e disponibile su questo dispositivo."
+        "Geolocation is not available on this device."
       );
       actions.setPermission("denied");
       return;
@@ -51,7 +51,7 @@ export const OnboardingStep4 = () => {
           const message =
             saveError && typeof saveError === "object" && "message" in saveError
               ? String((saveError as { message?: string }).message)
-              : "Errore durante il salvataggio della posizione.";
+              : "Error while saving location.";
           setLocalError(message);
         } finally {
           setIsRequesting(false);
@@ -59,7 +59,7 @@ export const OnboardingStep4 = () => {
       },
       () => {
         actions.setPermission("denied");
-        setLocalError("Permesso posizione negato.");
+        setLocalError("Location permission denied.");
         setIsRequesting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -68,12 +68,12 @@ export const OnboardingStep4 = () => {
 
   const handleSecondaryAction = () => {
     actions.setPermission("denied");
-    setLocalError("La posizione e obbligatoria per continuare.");
+    setLocalError("Location is required to continue.");
   };
 
   const handleComplete = async () => {
     if (!hasPosition) {
-      setLocalError("La posizione e obbligatoria per continuare.");
+      setLocalError("Location is required to continue.");
       return;
     }
 
@@ -86,14 +86,14 @@ export const OnboardingStep4 = () => {
         .trackEvent({ eventType: "ONBOARDING_COMPLETED" })
         .catch(() => undefined);
       onboardingActions.completeStep(4);
-      router.push("/test");
+      router.push("/insights");
     } catch (submitError) {
       const message =
         submitError &&
         typeof submitError === "object" &&
         "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Errore durante il completamento dell'onboarding.";
+          : "Error while completing onboarding.";
       setLocalError(message);
     } finally {
       setIsCompleting(false);
@@ -104,8 +104,8 @@ export const OnboardingStep4 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Condividi la tua posizione"
-          subtitle="La posizione precisa e necessaria per suggerimenti e match vicino a te."
+          title="Share your location"
+          subtitle="Precise location is required for nearby suggestions and matches."
           step={4}
           totalSteps={4}
         />
@@ -114,21 +114,21 @@ export const OnboardingStep4 = () => {
           <Card className="space-y-4 p-5">
             <div className="space-y-1">
               <h3 className="text-base font-semibold text-foreground">
-                Posizione rilevata
+                Location detected
               </h3>
               <p className="text-sm text-muted">
-                Puoi aggiornare la posizione in qualsiasi momento.
+                You can update your location at any time.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[var(--radius-md)] border border-border/60 bg-surface px-4 py-3">
-                <p className="text-xs text-subtle">Latitudine</p>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3">
+                <p className="text-xs text-subtle">Latitude</p>
                 <p className="text-sm font-semibold text-foreground">
                   {position?.latitude?.toFixed(5) ?? "-"}
                 </p>
               </div>
-              <div className="rounded-[var(--radius-md)] border border-border/60 bg-surface px-4 py-3">
-                <p className="text-xs text-subtle">Longitudine</p>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3">
+                <p className="text-xs text-subtle">Longitude</p>
                 <p className="text-sm font-semibold text-foreground">
                   {position?.longitude?.toFixed(5) ?? "-"}
                 </p>
@@ -139,19 +139,19 @@ export const OnboardingStep4 = () => {
               variant="secondary"
               onClick={requestPosition}
               loading={isRequesting}
-              loadingText="Aggiornamento"
+              loadingText="Updating"
             >
-              Aggiorna posizione
+              Update location
             </Button>
           </Card>
         ) : (
           <LocationPermissionGate
-            primaryActionLabel="Consenti posizione"
-            secondaryActionLabel="Non ora"
+            primaryActionLabel="Allow location"
+            secondaryActionLabel="Not now"
             primaryActionProps={{
               onClick: requestPosition,
               loading: isRequesting,
-              loadingText: "Richiesta",
+              loadingText: "Requesting",
             }}
             secondaryActionProps={{
               onClick: handleSecondaryAction,
@@ -162,7 +162,7 @@ export const OnboardingStep4 = () => {
         {(localError || error || permission === "denied") && !hasPosition ? (
           <Card className="border-danger/30 bg-danger/10 p-4">
             <p className="text-sm text-danger">
-              {localError ?? error?.message ?? "La posizione e obbligatoria."}
+              {localError ?? error?.message ?? "Location is required."}
             </p>
           </Card>
         ) : null}
@@ -173,16 +173,16 @@ export const OnboardingStep4 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-3")}
           >
-            Indietro
+            Back
           </Button>
           <Button
             size="md"
             loading={isCompleting || loading}
-            loadingText="Completamento"
+            loadingText="Completing"
             onClick={handleComplete}
             disabled={!hasPosition}
           >
-            Completa onboarding
+            Complete onboarding
           </Button>
         </div>
       </div>

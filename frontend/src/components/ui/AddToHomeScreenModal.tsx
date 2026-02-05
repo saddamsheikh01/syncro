@@ -119,7 +119,7 @@ export const AddToHomeScreenModal = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="a2hs-title"
@@ -127,7 +127,7 @@ export const AddToHomeScreenModal = () => {
     >
       <div
         className={cx(
-          "w-full max-w-md rounded-[var(--radius-xl)] border border-border bg-card p-6 shadow-xl",
+          "w-full max-w-md rounded-[var(--radius-xl)] border border-border/70 bg-card p-6 shadow-xl",
           "animate-in slide-in-from-bottom duration-300"
         )}
         onClick={(event) => event.stopPropagation()}
@@ -138,10 +138,10 @@ export const AddToHomeScreenModal = () => {
             <HomeIcon />
           </div>
           <h2 id="a2hs-title" className="text-lg font-semibold text-foreground">
-            Installa Syncro
+            Install Syncro
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Aggiungi Syncro alla tua home per un accesso rapido
+            Add Syncro to your home screen for quick access
           </p>
         </div>
 
@@ -152,12 +152,12 @@ export const AddToHomeScreenModal = () => {
               <Step
                 number={1}
                 icon={<ShareIcon />}
-                text="Tocca l'icona Condividi in basso"
+                text="Tap the Share icon at the bottom"
               />
               <Step
                 number={2}
                 icon={<PlusSquareIcon />}
-                text='Scorri e tocca "Aggiungi a Home"'
+                text='Scroll and tap "Add to Home"'
               />
             </>
           ) : (
@@ -165,12 +165,12 @@ export const AddToHomeScreenModal = () => {
               <Step
                 number={1}
                 icon={<MenuDotsIcon />}
-                text="Tocca il menu (⋮) in alto a destra"
+                text="Tap the menu (⋮) in the top right"
               />
               <Step
                 number={2}
                 icon={<PlusSquareIcon />}
-                text='Tocca "Aggiungi a schermata Home"'
+                text='Tap "Add to Home Screen"'
               />
             </>
           )}
@@ -179,7 +179,7 @@ export const AddToHomeScreenModal = () => {
         {/* Actions */}
         <div className="flex flex-col gap-3">
           <Switch
-            label="Non mostrare più"
+            label="Don't show again"
             checked={dontShowAgain}
             onChange={(e) => setDontShowAgain(e.target.checked)}
           />
@@ -194,7 +194,7 @@ export const AddToHomeScreenModal = () => {
               }
             }}
           >
-            Ho capito
+            Got it
           </Button>
         </div>
       </div>

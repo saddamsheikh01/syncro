@@ -79,7 +79,7 @@ export const NotificationToast = ({
             type="button"
             onClick={handleClose}
             className="text-xs font-semibold text-subtle hover:text-foreground"
-            aria-label="Chiudi"
+            aria-label="Close"
           >
             x
           </button>

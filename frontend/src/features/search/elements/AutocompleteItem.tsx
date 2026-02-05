@@ -11,8 +11,8 @@ export interface AutocompleteItemProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const getTypeLabel = (type?: AutocompleteType) => {
-  if (type === "USER") return "Utente";
-  if (type === "PLACE") return "Luogo";
+  if (type === "USER") return "User";
+  if (type === "PLACE") return "Place";
   return undefined;
 };
 

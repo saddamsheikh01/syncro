@@ -55,7 +55,7 @@ export const Drawer = ({
       />
       <div
         className={cx(
-          "absolute bottom-0 left-0 right-0 rounded-t-[var(--radius-xl)] border border-border bg-card p-6 shadow-lg transition-transform",
+          "absolute bottom-0 left-0 right-0 rounded-t-[var(--radius-xl)] border border-border/70 bg-card p-6 shadow-lg transition-transform",
           open ? "translate-y-0" : "translate-y-full"
         )}
         role="dialog"

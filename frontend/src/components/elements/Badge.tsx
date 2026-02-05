@@ -10,13 +10,13 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral: "bg-surface-muted text-foreground",
-  accent: "bg-accent-soft text-accent",
-  success: "bg-emerald-600/15 text-emerald-600",
-  "success-light": "bg-green-500/15 text-green-600",
-  caution: "bg-yellow-500/15 text-yellow-600",
-  warning: "bg-orange-500/15 text-orange-600",
-  danger: "bg-red-500/15 text-red-600",
+  neutral: "bg-surface-muted text-muted",
+  accent: "bg-accent-soft text-accent-strong",
+  success: "bg-emerald-500/20 text-emerald-700",
+  "success-light": "bg-green-400/20 text-green-700",
+  caution: "bg-amber-400/20 text-amber-700",
+  warning: "bg-orange-400/20 text-orange-700",
+  danger: "bg-rose-500/20 text-rose-700",
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {

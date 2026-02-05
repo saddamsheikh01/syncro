@@ -34,7 +34,7 @@ export const Logo = ({
 
   return (
     <Image
-      src="/logo.svg"
+      src="/new_logosvg.svg"
       alt={alt}
       width={size.width}
       height={size.height}

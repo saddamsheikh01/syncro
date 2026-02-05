@@ -4,7 +4,7 @@ import { MatchesOverview } from "@/features/matches/flows/MatchesOverview";
 
 export const metadata: Metadata = {
   title: "Matches | Syncro",
-  description: "Scopri gli utenti più affini a te.",
+  description: "Discover the users most aligned with you.",
 };
 
 export default function MatchesPage() {

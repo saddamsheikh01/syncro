@@ -23,8 +23,8 @@ export const UnsavedChangesModal = ({
   open,
   onConfirm,
   onCancel,
-  title = "Modifiche non salvate",
-  description = "Hai apportato delle modifiche che non sono state salvate. Se esci adesso, le modifiche andranno perse.",
+  title = "Unsaved changes",
+  description = "You have unsaved changes. If you leave now, your changes will be lost.",
 }: UnsavedChangesModalProps) => {
   return (
     <Modal
@@ -33,12 +33,12 @@ export const UnsavedChangesModal = ({
       description={description}
       onClose={onCancel}
       secondaryAction={{
-        label: "Resta sulla pagina",
+        label: "Stay on this page",
         onClick: onCancel,
         variant: "secondary",
       }}
       primaryAction={{
-        label: "Esci senza salvare",
+        label: "Leave without saving",
         onClick: onConfirm,
         variant: "danger",
       }}

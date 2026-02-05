@@ -46,8 +46,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ) : null}
         <div
           className={cx(
-            "flex items-start gap-2 rounded-[var(--radius-md)] border bg-surface px-3 py-2 shadow-sm",
-            error ? "border-danger/40" : "border-border",
+            "flex items-start gap-2 rounded-[var(--radius-md)] border bg-surface px-3 py-2 shadow-sm transition-colors focus-within:border-accent/40 focus-within:ring-1 focus-within:ring-accent/20",
+            error ? "border-danger/40 focus-within:border-danger/40 focus-within:ring-danger/20" : "border-border/70",
             disabled && "bg-surface-muted text-subtle",
             containerClassName
           )}

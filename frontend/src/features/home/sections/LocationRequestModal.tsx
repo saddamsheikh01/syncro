@@ -12,10 +12,10 @@ interface LocationRequestModalProps {
 }
 
 const BENEFITS = [
-  "Suggerimenti personalizzati in base alla tua zona",
-  "Match con persone vicine a te",
-  "Luoghi ed esperienze nelle vicinanze",
-  "Feed con contenuti della tua area",
+  "Personalized suggestions based on your area",
+  "Matches with people near you",
+  "Places and experiences nearby",
+  "A feed with content from your area",
 ];
 
 export const LocationRequestModal = ({
@@ -27,14 +27,14 @@ export const LocationRequestModal = ({
   return (
     <Modal
       open={open}
-      title="Attiva la posizione"
-      description="La posizione migliora la tua esperienza su Syncro. Puoi sempre modificarla nelle impostazioni."
+      title="Enable location"
+      description="Location improves your Syncro experience. You can always change it in settings."
       primaryAction={{
-        label: loading ? "Attivazione..." : "Attiva posizione",
+        label: loading ? "Enabling..." : "Enable location",
         onClick: onActivate,
       }}
       secondaryAction={{
-        label: "Non ora",
+        label: "Not now",
         onClick: onClose,
         variant: "ghost",
       }}
@@ -42,7 +42,7 @@ export const LocationRequestModal = ({
     >
       <div className="space-y-3">
         <p className="text-sm font-medium text-foreground">
-          Con la posizione attiva potrai:
+          With location enabled you can:
         </p>
         <ul className="space-y-2">
           {BENEFITS.map((benefit, index) => (

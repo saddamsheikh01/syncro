@@ -40,17 +40,18 @@ export interface MapPermissionScreenProps
 }
 
 const BENEFITS = [
-  "Luoghi ed esperienze vicine",
-  "Match basati sulla tua zona",
-  "Feed con contenuti locali",
+  "Nearby places and experiences",
+  "Matches based on your area",
+  "A feed with local content",
 ];
 
 export const MapPermissionScreen = ({
   className,
-  title = "Attiva la posizione",
-  description = "Condividi la posizione per scoprire luoghi vicini e migliorare i suggerimenti.",
-  primaryActionLabel = "Attiva posizione",
-  secondaryActionLabel = "Continua senza",
+  title = "Enable location",
+  description =
+    "Share your location to discover nearby places and improve suggestions.",
+  primaryActionLabel = "Enable location",
+  secondaryActionLabel = "Continue without",
   helper,
   onPrimaryAction,
   onSecondaryAction,

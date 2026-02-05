@@ -63,26 +63,26 @@ export const ProfileStatsCard = () => {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-foreground">Il tuo profilo</p>
-      <div className="flex items-center justify-around rounded-[var(--radius-lg)] border border-border/60 bg-surface-muted/50 p-3">
+      <p className="text-xs font-semibold text-foreground">Your profile</p>
+      <div className="flex items-center justify-around rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/50 p-3">
         <StatItem
           icon={<SparkIcon />}
           value={matchCount}
           label="Match"
           color="bg-qa-match-bg text-[var(--qa-match-gradient-start)]"
         />
-        <div className="h-10 w-px bg-border/60" />
+        <div className="h-10 w-px bg-border/70" />
         <StatItem
           icon={<HeartIcon />}
           value={interestCount}
-          label="Passioni"
+          label="Interests"
           color="bg-qa-experiences-bg text-[var(--qa-experiences-gradient-start)]"
         />
-        <div className="h-10 w-px bg-border/60" />
+        <div className="h-10 w-px bg-border/70" />
         <StatItem
           icon={<ClipboardIcon />}
           value={testCount}
-          label="Test"
+          label="Insights"
           color="bg-qa-tests-bg text-[var(--qa-tests-gradient-start)]"
         />
       </div>

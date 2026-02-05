@@ -38,7 +38,7 @@ export interface ChatComposerProps
 
 export const ChatComposer = ({
   className,
-  placeholder = "Scrivi un messaggio...",
+  placeholder = "Write a message...",
   helper,
   loading = false,
   disabled = false,
@@ -77,7 +77,7 @@ export const ChatComposer = ({
     <form
       onSubmit={handleSubmit}
       className={cx(
-        "flex items-end gap-3 rounded-2xl border border-border/60 bg-surface px-4 py-3 shadow-sm transition-colors focus-within:border-accent/40 focus-within:ring-1 focus-within:ring-accent/20",
+        "flex items-end gap-3 rounded-2xl border border-border/70 bg-surface px-4 py-3 shadow-sm transition-colors focus-within:border-accent/40 focus-within:ring-1 focus-within:ring-accent/20",
         className
       )}
       {...props}
@@ -107,7 +107,7 @@ export const ChatComposer = ({
             ? "bg-accent text-white shadow-md hover:scale-105 hover:shadow-lg active:scale-95"
             : "bg-surface-muted text-subtle"
         )}
-        aria-label="Invia messaggio"
+        aria-label="Send message"
       >
         {loading ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />

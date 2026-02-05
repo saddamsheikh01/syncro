@@ -12,10 +12,10 @@ import { useAuth, useOnboarding, usePreferences } from "@/hooks";
 import type { JsonObject, JsonValue } from "@/types/shared";
 
 const GENDER_OPTIONS = [
-  { value: "ANY", label: "Qualsiasi" },
-  { value: "FEMALE", label: "Donna" },
-  { value: "MALE", label: "Uomo" },
-  { value: "NON_BINARY", label: "Non binary" },
+  { value: "ANY", label: "Any" },
+  { value: "FEMALE", label: "Female" },
+  { value: "MALE", label: "Male" },
+  { value: "NON_BINARY", label: "Non-binary" },
 ];
 
 const readNumber = (value: JsonValue | undefined) =>
@@ -88,12 +88,12 @@ export const OnboardingStep3 = () => {
     const feedRadiusValue = toNumber(feedRadiusKm);
 
     if (minAgeValue !== null && maxAgeValue !== null && minAgeValue > maxAgeValue) {
-      setFormError("L'eta minima non puo superare l'eta massima.");
+      setFormError("Minimum age cannot be greater than maximum age.");
       return;
     }
 
     if ((distanceValue ?? 0) < 0 || (feedRadiusValue ?? 0) < 0) {
-      setFormError("Inserisci valori positivi per le distanze.");
+      setFormError("Enter positive values for distances.");
       return;
     }
 
@@ -123,7 +123,7 @@ export const OnboardingStep3 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Errore durante il salvataggio.";
+          : "Error while saving.";
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -134,8 +134,8 @@ export const OnboardingStep3 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Imposta le tue preferenze"
-          subtitle="Configura le preferenze per match e feed personalizzati."
+          title="Set your preferences"
+          subtitle="Configure preferences for personalized matches and feed."
           step={3}
           totalSteps={3}
         />
@@ -143,15 +143,15 @@ export const OnboardingStep3 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Preferenze matchmaking
+              Matchmaking preferences
             </h3>
             <p className="text-sm text-muted">
-              Definisci i filtri principali per i tuoi match.
+              Define the main filters for your matches.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Eta minima"
+              label="Minimum age"
               type="number"
               min={18}
               value={ageMin}
@@ -159,7 +159,7 @@ export const OnboardingStep3 = () => {
               placeholder="18"
             />
             <Input
-              label="Eta massima"
+              label="Maximum age"
               type="number"
               min={18}
               value={ageMax}
@@ -168,7 +168,7 @@ export const OnboardingStep3 = () => {
             />
           </div>
           <Input
-            label="Distanza massima (km)"
+            label="Maximum distance (km)"
             type="number"
             min={1}
             value={distanceKm}
@@ -176,14 +176,14 @@ export const OnboardingStep3 = () => {
             placeholder="25"
           />
           <Select
-            label="Genere"
+            label="Gender"
             options={GENDER_OPTIONS}
             value={gender}
             onValueChange={setGender}
           />
           <Switch
-            label="Passioni in comune"
-            description="Mostra priorita a chi condivide i tuoi tag."
+            label="Shared interests"
+            description="Prioritize people who share your tags."
             checked={sharedInterests}
             onChange={(event) => setSharedInterests(event.target.checked)}
           />
@@ -192,14 +192,14 @@ export const OnboardingStep3 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Preferenze feed
+              Feed preferences
             </h3>
             <p className="text-sm text-muted">
-              Regola come visualizzare i post vicino a te.
+              Control how posts near you are shown.
             </p>
           </div>
           <Input
-            label="Raggio feed (km)"
+            label="Feed radius (km)"
             type="number"
             min={1}
             value={feedRadiusKm}
@@ -207,14 +207,14 @@ export const OnboardingStep3 = () => {
             placeholder="10"
           />
           <Switch
-            label="Mostra solo contenuti vicini"
-            description="Filtra i post oltre il raggio selezionato."
+            label="Show only nearby content"
+            description="Hide posts outside the selected radius."
             checked={feedOnlyNearby}
             onChange={(event) => setFeedOnlyNearby(event.target.checked)}
           />
           <Switch
-            label="Traduci contenuti automaticamente"
-            description="Abilita la traduzione automatica dei contenuti."
+            label="Auto-translate content"
+            description="Automatically translate content."
             checked={feedAutoTranslate}
             onChange={(event) => setFeedAutoTranslate(event.target.checked)}
           />
@@ -232,15 +232,15 @@ export const OnboardingStep3 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-2")}
           >
-            Indietro
+            Back
           </Button>
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Salvataggio"
+            loadingText="Saving"
             onClick={handleContinue}
           >
-            Continua
+            Continue
           </Button>
         </div>
       </div>

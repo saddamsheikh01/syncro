@@ -15,8 +15,8 @@ export interface VisibilitySelectorProps {
 
 export const VisibilitySelector = ({
   className,
-  title = "Visibilita profilo",
-  description = "Gestisci cosa mostrare nel tuo profilo.",
+  title = "Profile visibility",
+  description = "Manage what is shown on your profile.",
   items,
   onItemToggle,
 }: VisibilitySelectorProps) => (

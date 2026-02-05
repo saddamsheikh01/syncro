@@ -8,100 +8,33 @@ import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { DatePicker } from "@/components/elements/DatePicker";
 import { Input } from "@/components/elements/Input";
-import { Loader } from "@/components/elements/Loader";
+import type { SelectOption } from "@/components/elements/Select";
 import { Select } from "@/components/elements/Select";
-import { Switch } from "@/components/elements/Switch";
-import { Logout } from "@/components/buttons/Logout";
+import { Loader } from "@/components/elements/Loader";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
-import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard";
-import { TestCountCard } from "@/components/ui/TestCountCard";
-import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
-import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector";
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
 import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
 import {
   useAnalytics,
   useAuth,
   useTags,
-  useTests,
   useUser,
   useUnsavedChanges,
 } from "@/hooks";
 import { getMediaByOwner, uploadMedia } from "@/services/media";
-import { checkUsernameAvailability } from "@/services/users";
+import { getMyReferralLink } from "@/services/referrals";
+import { checkUsernameAvailability, getUserPosts } from "@/services/users";
+import { SectionHeader } from "@/features/home/sections/SectionHeader";
+import { ProfileMomentCard } from "@/features/profile/cards/ProfileMomentCard";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
-
-const VISIBILITY_OPTIONS: Array<{
-  value: ProfileVisibility;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "PUBLIC",
-    label: "Pubblico",
-    description: "Mostra il tuo profilo completo.",
-  },
-  {
-    value: "PARTIAL",
-    label: "Parziale",
-    description: "Nasconde alcuni dettagli sensibili.",
-  },
-  {
-    value: "PRIVATE",
-    label: "Privato",
-    description: "Profilo visibile solo nei match.",
-  },
-];
-
-const GENDER_OPTIONS = [
-  { value: "ANY", label: "Qualsiasi" },
-  { value: "FEMALE", label: "Donna" },
-  { value: "MALE", label: "Uomo" },
-  { value: "NON_BINARY", label: "Non binary" },
-];
+import type { PostResponse } from "@/types/social";
+import type { ReferralLinkResponse } from "@/types/referrals";
 
 const MIN_INTERESTS = 3;
-const USERNAME_MIN = 3;
-const USERNAME_MAX = 30;
-const USERNAME_PATTERN = new RegExp(`^[a-z0-9]{${USERNAME_MIN},${USERNAME_MAX}}$`);
-const USERNAME_RESERVED = [
-  "riccardociviero",
-  "michelasardo",
-  "admin",
-  "support",
-  "syncro",
-];
-
-const RELATIONSHIP_OPTIONS = [
-  { value: "", label: "Non specificato" },
-  { value: "SINGLE", label: "Single" },
-  { value: "IN_RELATIONSHIP", label: "In relazione" },
-  { value: "MARRIED", label: "Sposato/a" },
-  { value: "SEPARATED", label: "Separato/a" },
-  { value: "COMPLICATED", label: "Situazione complicata" },
-  { value: "OTHER", label: "Altro" },
-];
-
-const ORIENTATION_OPTIONS = [
-  { value: "", label: "Non specificato" },
-  { value: "HETERO", label: "Etero" },
-  { value: "GAY", label: "Gay" },
-  { value: "BI", label: "Bisessuale" },
-  { value: "ASEXUAL", label: "Asessuale" },
-  { value: "OTHER", label: "Altro" },
-];
-
-const CHILDREN_OPTIONS = [
-  { value: "", label: "Non specificato" },
-  { value: "NO_CHILDREN", label: "Nessun figlio" },
-  { value: "HAS_CHILDREN", label: "Ha figli" },
-  { value: "WANTS_CHILDREN", label: "Vuole figli" },
-  { value: "DOES_NOT_WANT", label: "Non vuole figli" },
-  { value: "UNDECIDED", label: "Indeciso/a" },
-];
-
+const USERNAME_MIN_LENGTH = 3;
+const MOMENTS_PAGE_SIZE = 3;
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -126,21 +59,35 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const normalizeUsernameInput = (value: string) => value.trim().toLowerCase();
+const normalizeUsername = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, "");
 
-const isReservedUsername = (value: string) =>
-  USERNAME_RESERVED.some((reserved) => value.includes(reserved));
+const RELATIONSHIP_OPTIONS: SelectOption[] = [
+  { value: "SINGLE", label: "Single" },
+  { value: "IN_RELATIONSHIP", label: "In a relationship" },
+  { value: "MARRIED", label: "Married" },
+  { value: "SEPARATED", label: "Separated" },
+  { value: "COMPLICATED", label: "It's complicated" },
+  { value: "OTHER", label: "Other" },
+];
 
-const validateUsernameInput = (value: string) => {
-  if (!value) return null;
-  if (!USERNAME_PATTERN.test(value)) {
-    return `Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX} caratteri).`;
-  }
-  if (isReservedUsername(value)) {
-    return "Username non disponibile.";
-  }
-  return null;
-};
+const CHILDREN_OPTIONS: SelectOption[] = [
+  { value: "NO_CHILDREN", label: "No children" },
+  { value: "HAS_CHILDREN", label: "Has children" },
+  { value: "WANTS_CHILDREN", label: "Wants children" },
+  { value: "DOES_NOT_WANT", label: "Does not want children" },
+  { value: "UNDECIDED", label: "Undecided" },
+];
+
+const ORIENTATION_OPTIONS: SelectOption[] = [
+  { value: "HETERO", label: "Straight" },
+  { value: "GAY", label: "Gay" },
+  { value: "BI", label: "Bisexual" },
+  { value: "ASEXUAL", label: "Asexual" },
+  { value: "OTHER", label: "Other" },
+];
+
+const PROFILE_COMPLETENESS_TARGET = 78;
 
 export interface ProfileSettingsProps {
   title?: string;
@@ -148,13 +95,12 @@ export interface ProfileSettingsProps {
 }
 
 export const ProfileSettings = ({
-  title = "Profilo",
-  subtitle = "Gestisci il tuo profilo e le preferenze principali.",
+  title = "Profile",
+  subtitle = "One last step to make your matches more focused.",
 }: ProfileSettingsProps) => {
   const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
-  const { completedCount, countLoading, actions: testsActions } = useTests();
   const {
     profile,
     preferences,
@@ -176,6 +122,7 @@ export const ProfileSettings = ({
   const preferencesInitializedRef = useRef(false);
   const interestsInitializedRef = useRef(false);
   const avatarInitializedRef = useRef(false);
+  const momentsInitializedRef = useRef(false);
   const usernameInitializedRef = useRef(false);
 
   const [fullName, setFullName] = useState("");
@@ -198,10 +145,10 @@ export const ProfileSettings = ({
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [username, setUsername] = useState("");
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
@@ -221,7 +168,51 @@ export const ProfileSettings = ({
   const [avatar, setAvatar] = useState<MediaResponse | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [recentPosts, setRecentPosts] = useState<PostResponse[]>([]);
+  const [recentPostsLoading, setRecentPostsLoading] = useState(false);
+  const [recentPostsError, setRecentPostsError] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
+  const [referralError, setReferralError] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const profileCompleteness = useMemo(() => {
+    const fields = [
+      fullName,
+      birthDate,
+      city,
+      country,
+      jobTitle,
+      companyName,
+      traitsText,
+      goalsText,
+      lovesText,
+      valuesText,
+      dislikesText,
+      relationshipStatus,
+      orientation,
+      childrenStatus,
+    ];
+    const filled = fields.filter((value) => Boolean(value && String(value).trim().length > 0)).length;
+    if (fields.length === 0) return PROFILE_COMPLETENESS_TARGET;
+    const computed = Math.round((filled / fields.length) * 100);
+    return Math.max(PROFILE_COMPLETENESS_TARGET, computed);
+  }, [
+    fullName,
+    birthDate,
+    city,
+    country,
+    jobTitle,
+    companyName,
+    traitsText,
+    goalsText,
+    lovesText,
+    valuesText,
+    dislikesText,
+    relationshipStatus,
+    orientation,
+    childrenStatus,
+  ]);
 
   // Calcola se ci sono modifiche non salvate
   const isDirty = useMemo(() => {
@@ -249,12 +240,6 @@ export const ProfileSettings = ({
       childrenStatus !== (profile?.childrenStatus ?? "") ||
       visibility !== (profile?.visibility ?? "PUBLIC");
 
-    // Confronta username
-    const usernameChanged =
-      usernameInitializedRef.current &&
-      normalizeUsernameInput(username) !==
-        normalizeUsernameInput(user?.username ?? "");
-
     // Confronta preferenze
     const storedFilters = (preferences?.matchmakingFilters ?? {}) as Record<
       string,
@@ -280,9 +265,7 @@ export const ProfileSettings = ({
       selectedTagIds.length !== originalTagIds.length ||
       !selectedTagIds.every((id) => originalTagIds.includes(id));
 
-    return (
-      profileChanged || usernameChanged || preferencesChanged || interestsChanged
-    );
+    return profileChanged || preferencesChanged || interestsChanged;
   }, [
     profile,
     preferences,
@@ -304,7 +287,6 @@ export const ProfileSettings = ({
     orientation,
     childrenStatus,
     visibility,
-    username,
     ageMin,
     ageMax,
     distanceKm,
@@ -332,8 +314,7 @@ export const ProfileSettings = ({
     userActions.fetchPreferences().catch(() => undefined);
     tagsActions.fetchTags().catch(() => undefined);
     tagsActions.fetchUserInterests().catch(() => undefined);
-    testsActions.fetchCompletedCount().catch(() => undefined);
-  }, [authActions, tagsActions, testsActions, userActions]);
+  }, [authActions, tagsActions, userActions]);
 
   useEffect(() => {
     if (analyticsTrackedRef.current) return;
@@ -364,12 +345,6 @@ export const ProfileSettings = ({
     setVisibility(profile.visibility ?? "PUBLIC");
     profileInitializedRef.current = true;
   }, [profile]);
-
-  useEffect(() => {
-    if (!user || usernameInitializedRef.current) return;
-    setUsername(user.username ?? "");
-    usernameInitializedRef.current = true;
-  }, [user]);
 
   useEffect(() => {
     if (!preferences || preferencesInitializedRef.current) return;
@@ -419,59 +394,86 @@ export const ProfileSettings = ({
         setAvatarError(
           resolveErrorMessage(
             loadError,
-            "Errore durante il caricamento della foto profilo."
+            "Error loading profile photo."
           )
         );
       })
       .finally(() => setAvatarLoading(false));
   }, [user?.id]);
 
-  const normalizedUsername = normalizeUsernameInput(username);
-  const currentUsername = normalizeUsernameInput(user?.username ?? "");
-  const usernameValidationError = validateUsernameInput(normalizedUsername);
-  const isSameUsername =
-    normalizedUsername.length > 0 && normalizedUsername === currentUsername;
+  useEffect(() => {
+    if (!user?.id || usernameInitializedRef.current) return;
+    usernameInitializedRef.current = true;
+    setUsername(user.username ?? "");
+    setUsernameAvailable(user.username ? true : null);
+  }, [user?.id, user?.username]);
 
   useEffect(() => {
     if (!usernameInitializedRef.current) return;
-    setUsernameError(null);
-    setUsernameAvailable(null);
-    setUsernameChecking(false);
-    if (!normalizedUsername) return;
-    if (usernameValidationError) return;
-    if (isSameUsername) {
-      setUsernameAvailable(true);
+    const normalized = normalizeUsername(username);
+    const current = normalizeUsername(user?.username ?? "");
+
+    if (!normalized) {
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
       return;
     }
-    let active = true;
+
+    if (normalized.length < USERNAME_MIN_LENGTH) {
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
+      return;
+    }
+
+    if (normalized === current) {
+      setUsernameAvailable(true);
+      setUsernameChecking(false);
+      return;
+    }
+
     setUsernameChecking(true);
-    const timeout = setTimeout(() => {
-      checkUsernameAvailability(normalizedUsername)
+    const timeout = window.setTimeout(() => {
+      checkUsernameAvailability(normalized)
         .then((response) => {
-          if (!active) return;
           setUsernameAvailable(response.available);
         })
-        .catch(() => {
-          if (!active) return;
-          setUsernameError("Impossibile verificare lo username.");
+        .catch((loadError) => {
+          setUsernameError(
+            resolveErrorMessage(
+              loadError,
+              "Error checking username."
+            )
+          );
+          setUsernameAvailable(null);
         })
-        .finally(() => {
-          if (!active) return;
-          setUsernameChecking(false);
-        });
+        .finally(() => setUsernameChecking(false));
     }, 400);
 
-    return () => {
-      active = false;
-      clearTimeout(timeout);
-    };
-  }, [isSameUsername, normalizedUsername, usernameValidationError]);
+    return () => window.clearTimeout(timeout);
+  }, [username, user?.username]);
+
+  useEffect(() => {
+    if (!user?.id || momentsInitializedRef.current) return;
+    momentsInitializedRef.current = true;
+    setRecentPostsLoading(true);
+    setRecentPostsError(null);
+    getUserPosts(user.id, { page: 0, size: MOMENTS_PAGE_SIZE })
+      .then((response) => {
+        setRecentPosts(response.content ?? []);
+      })
+      .catch((loadError) => {
+        setRecentPostsError(
+          resolveErrorMessage(
+            loadError,
+            "Error loading moments."
+          )
+        );
+      })
+      .finally(() => setRecentPostsLoading(false));
+  }, [user?.id]);
 
   const displayName =
-    profile?.fullName?.trim() || user?.username || user?.email || "Profilo";
-  const locationLabel = [profile?.city, profile?.country]
-    .filter(Boolean)
-    .join(", ");
+    profile?.fullName?.trim() || user?.username || user?.email || "Profile";
 
   const interestItems = useMemo(
     () =>
@@ -502,41 +504,35 @@ export const ProfileSettings = ({
       );
   }, [interests, selectedTagIds, tags]);
 
-  const summaryTags = useMemo(
-    () => selectedTags.map((tag) => tag.label).slice(0, 6),
-    [selectedTags]
-  );
+  const displayFirstName = useMemo(() => {
+    const first = displayName.trim().split(" ")[0];
+    return first || displayName;
+  }, [displayName]);
 
+  const normalizedUsername = normalizeUsername(username);
+  const currentUsername = normalizeUsername(user?.username ?? "");
   const usernameChanged = normalizedUsername !== currentUsername;
-  const usernameAvailabilityError =
-    !usernameValidationError && usernameAvailable === false
-      ? "Username gia in uso."
-      : null;
-  const usernameInputError =
-    usernameError ?? usernameValidationError ?? usernameAvailabilityError;
-  const usernameHint = (() => {
-    if (usernameInputError) return undefined;
-    if (!normalizedUsername) {
-      return `Facoltativo. Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX}).`;
-    }
-    if (usernameChecking) return "Verifica disponibilita in corso.";
-    if (isSameUsername) return "E il tuo username attuale.";
-    if (usernameAvailable) return "Disponibile.";
-    return `Solo lettere e numeri (${USERNAME_MIN}-${USERNAME_MAX}).`;
-  })();
+  const usernameValid = normalizedUsername.length >= USERNAME_MIN_LENGTH;
   const canSaveUsername =
     usernameChanged &&
-    !usernameInputError &&
+    usernameValid &&
+    usernameAvailable === true &&
     !usernameChecking &&
-    normalizedUsername.length > 0 &&
-    usernameAvailable === true;
+    !usernameSaving;
 
-  const handleVisibilityToggle = (index: number) => {
-    const next = VISIBILITY_OPTIONS[index];
-    if (next) {
-      setVisibility(next.value);
-    }
-  };
+  const usernameHint = useMemo(() => {
+    if (!normalizedUsername) return "Choose a unique username.";
+    if (!usernameValid) return `Minimum ${USERNAME_MIN_LENGTH} characters.`;
+    if (usernameChecking) return "Checking availability...";
+    if (usernameAvailable === true) return "Username available.";
+    if (usernameAvailable === false) return "Username not available.";
+    return "Checking availability...";
+  }, [
+    normalizedUsername,
+    usernameValid,
+    usernameChecking,
+    usernameAvailable,
+  ]);
 
   const handleSaveProfile = async () => {
     setProfileError(null);
@@ -553,12 +549,12 @@ export const ProfileSettings = ({
     const trimmedValues = valuesText.trim();
 
     if (!trimmedName) {
-      setProfileError("Inserisci il nome completo.");
+      setProfileError("Enter your full name.");
       return;
     }
 
     if (!trimmedCity || !trimmedCountry) {
-      setProfileError("Inserisci citta e paese di residenza.");
+      setProfileError("Enter your city and country of residence.");
       return;
     }
 
@@ -591,39 +587,10 @@ export const ProfileSettings = ({
       setCompanyName(trimmedCompanyName);
     } catch (saveError) {
       setProfileError(
-        resolveErrorMessage(saveError, "Errore durante il salvataggio.")
+        resolveErrorMessage(saveError, "Error while saving.")
       );
     } finally {
       setProfileSaving(false);
-    }
-  };
-
-  const handleSaveUsername = async () => {
-    setUsernameError(null);
-    if (!normalizedUsername) {
-      setUsernameError("Inserisci uno username.");
-      return;
-    }
-    if (usernameValidationError) {
-      setUsernameError(usernameValidationError);
-      return;
-    }
-    if (!isSameUsername && usernameAvailable !== true) {
-      setUsernameError("Username non disponibile.");
-      return;
-    }
-
-    setUsernameSaving(true);
-    try {
-      await userActions.updateUser({ username: normalizedUsername });
-      setUsername(normalizedUsername);
-      setUsernameAvailable(true);
-    } catch (saveError) {
-      setUsernameError(
-        resolveErrorMessage(saveError, "Errore durante il salvataggio.")
-      );
-    } finally {
-      setUsernameSaving(false);
     }
   };
 
@@ -645,7 +612,7 @@ export const ProfileSettings = ({
     }
 
     if ((distanceValue ?? 0) < 0 || (feedRadiusValue ?? 0) < 0) {
-      setPreferencesError("Inserisci valori positivi per le distanze.");
+      setPreferencesError("Enter positive values for distances.");
       return;
     }
 
@@ -671,7 +638,7 @@ export const ProfileSettings = ({
       });
     } catch (saveError) {
       setPreferencesError(
-        resolveErrorMessage(saveError, "Errore durante il salvataggio.")
+        resolveErrorMessage(saveError, "Error while saving.")
       );
     } finally {
       setPreferencesSaving(false);
@@ -689,7 +656,7 @@ export const ProfileSettings = ({
     setInterestsError(null);
 
     if (selectedTagIds.length < MIN_INTERESTS) {
-      setInterestsError(`Seleziona almeno ${MIN_INTERESTS} passioni.`);
+      setInterestsError(`Select at least ${MIN_INTERESTS} interests.`);
       return;
     }
 
@@ -698,7 +665,7 @@ export const ProfileSettings = ({
       await tagsActions.updateUserInterests({ tagIds: selectedTagIds });
     } catch (saveError) {
       setInterestsError(
-        resolveErrorMessage(saveError, "Errore durante il salvataggio.")
+        resolveErrorMessage(saveError, "Error while saving.")
       );
     } finally {
       setInterestsSaving(false);
@@ -713,7 +680,7 @@ export const ProfileSettings = ({
     const file = event.target.files?.[0];
     if (!file) return;
     if (!user?.id) {
-      setAvatarError("Utente non disponibile.");
+      setAvatarError("User unavailable.");
       return;
     }
 
@@ -728,7 +695,7 @@ export const ProfileSettings = ({
       setAvatar(uploaded);
     } catch (uploadError) {
       setAvatarError(
-        resolveErrorMessage(uploadError, "Errore durante il caricamento.")
+        resolveErrorMessage(uploadError, "Error while loading.")
       );
     } finally {
       setAvatarLoading(false);
@@ -736,376 +703,351 @@ export const ProfileSettings = ({
     }
   };
 
+  const handleSaveUsername = async () => {
+    setUsernameError(null);
+    if (!normalizedUsername) {
+      setUsernameError("Enter a valid username.");
+      return;
+    }
+    if (!usernameValid) {
+      setUsernameError(`Minimum ${USERNAME_MIN_LENGTH} characters.`);
+      return;
+    }
+    if (usernameAvailable === false) {
+      setUsernameError("Username unavailable.");
+      return;
+    }
+
+    setUsernameSaving(true);
+    try {
+      await userActions.updateUser({ username: normalizedUsername });
+    } catch (saveError) {
+      setUsernameError(
+        resolveErrorMessage(saveError, "Error while saving.")
+      );
+    } finally {
+      setUsernameSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+    getMyReferralLink()
+      .then((response) => {
+        if (!active) return;
+        setReferralLink(response);
+        setReferralError(null);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setReferralError(
+          resolveErrorMessage(error, "Error loading referral.")
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
+
   const isAuthLoading = status === "loading";
   const isTagsReady = tags.length > 0;
   const isTagsLoading = tagsLoading && !isTagsReady;
   const mergedError =
-    profileError ?? preferencesError ?? interestsError ?? avatarError;
+    profileError ??
+    preferencesError ??
+    interestsError ??
+    avatarError ??
+    usernameError;
   const baseError = error?.message ?? tagsError?.message;
   const showError = mergedError || baseError;
-  const testsDescription = countLoading
-    ? "Sto calcolando i test completati."
-    : completedCount === 0
-      ? "Completa il primo micro-test per attivare Zyra."
-      : completedCount != null && completedCount < 3
-        ? "Continua con altri test per affinare il profilo."
-        : "Ottimo lavoro: il tuo profilo è ben definito.";
+
+  const referralUrl = useMemo(() => {
+    if (!referralLink?.code) return "";
+    if (typeof window === "undefined") {
+      return `/register?ref=${referralLink.code}`;
+    }
+    return `${window.location.origin}/register?ref=${referralLink.code}`;
+  }, [referralLink?.code]);
+
+  const referralLoading = Boolean(user?.id) && !referralLink && !referralError;
+
+  const handleCopyReferral = async () => {
+    if (!referralUrl) return;
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch {
+      setReferralError("Unable to copy the link.");
+    }
+  };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Impostazioni account
-        </p>
-        <h1 className="text-3xl font-semibold text-foreground">{title}</h1>
-        <p className="text-sm text-muted">{subtitle}</p>
-      </header>
-
-      <ProfileSummaryCard
-        name={displayName}
-        username={normalizedUsername || user?.username || undefined}
-        location={locationLabel || undefined}
-        jobTitle={jobTitle || undefined}
-        companyName={companyName || undefined}
-        avatarUrl={avatar?.url}
-        tags={summaryTags}
-      />
-
-      <TestCountCard
-        title="I tuoi test"
-        count={completedCount}
-        loading={countLoading}
-        description={testsDescription}
-        action={
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => router.push("/tests")}
-          >
-            Vai ai test
-          </Button>
-        }
-      />
-
-      <ZyraProfileRecap />
-
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Card className="space-y-4 p-5">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-foreground">
-              Informazioni profilo
-            </h3>
-            <p className="text-sm text-muted">
-              Mantieni aggiornati i dati principali del profilo.
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
+      <div className="grid gap-4 lg:grid-cols-[1.4fr,1fr]">
+        <Card className="p-5">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
+              {title}
+            </p>
+            <h1 className="text-2xl font-semibold text-foreground">
+              {displayName}, Your Profile Is {profileCompleteness}% Complete.
+            </h1>
+            <p className="text-sm text-muted">{subtitle}</p>
+          </div>
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)]"
+              style={{ width: `${profileCompleteness}%` }}
+            />
+          </div>
+          <div className="mt-4 border-t border-border/70 pt-4">
+            <p className="text-sm font-semibold text-foreground">
+              Just one thing left: What are you really looking for?
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              This helps Zyra reduce mismatches and show you only people and
+              places that truly fit you.
             </p>
           </div>
-          <Input
-            label="Nome completo"
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
-            placeholder="Nome e cognome"
-            required
-          />
-          <DatePicker
-            label="Data di nascita"
-            value={birthDate}
-            onValueChange={setBirthDate}
-            placeholder="Seleziona una data"
-            maxYear={new Date().getFullYear()}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Citta"
-              value={city}
-              onChange={(event) => setCity(event.target.value)}
-              placeholder="Milano"
-            />
-            <Input
-              label="Paese"
-              value={country}
-              onChange={(event) => setCountry(event.target.value)}
-              placeholder="Italia"
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Posizione lavorativa"
-              value={jobTitle}
-              onChange={(event) => setJobTitle(event.target.value)}
-              placeholder="Product Designer"
-            />
-            <Input
-              label="Azienda"
-              value={companyName}
-              onChange={(event) => setCompanyName(event.target.value)}
-              placeholder="Syncro"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Biografia
-            </label>
-            <textarea
-              value={bio}
-              onChange={(event) => setBio(event.target.value)}
-              placeholder="Raccontaci qualcosa di te..."
-              maxLength={500}
-              rows={4}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <p className="text-xs text-subtle">{bio.length}/500 caratteri</p>
-          </div>
-          <Button
-            size="sm"
-            loading={profileSaving || isAuthLoading}
-            loadingText="Salvataggio"
-            onClick={handleSaveProfile}
-          >
-            Salva profilo
-          </Button>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="space-y-4 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">
-                  Foto profilo
-                </h3>
-                <p className="text-sm text-muted">
-                  Aggiorna l&apos;immagine principale del tuo profilo.
-                </p>
-              </div>
-              {avatarLoading ? <Loader size="sm" /> : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <Avatar name={displayName} src={avatar?.url} size="lg" />
-              <div className="space-y-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleAvatarSelect}
-                  loading={avatarLoading}
-                  loadingText="Upload"
-                >
-                  Carica nuova foto
-                </Button>
-                <p className="text-xs text-subtle">PNG o JPG, max 5 MB.</p>
-              </div>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleAvatarUpload}
-            />
-          </Card>
+        <Card className="flex flex-col items-center justify-center gap-3 p-5 text-center">
+          <Avatar
+            name="Zyra"
+            size="xl"
+            className="border-2 border-white shadow-sm"
+          />
+          <p className="text-sm font-semibold text-foreground">
+            "Define what you're looking for."
+          </p>
+          <p className="text-xs text-accent">- Zyra</p>
+        </Card>
+      </div>
 
-          <Card className="space-y-4 p-5">
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Username
-              </h3>
-              <p className="text-sm text-muted">
-                Identificativo pubblico univoco del tuo profilo.
-              </p>
-            </div>
-            <Input
-              label="Username"
-              value={username}
-              onChange={(event) =>
-                setUsername(normalizeUsernameInput(event.target.value))
-              }
-              placeholder="es. sararossi"
-              autoComplete="off"
-              maxLength={USERNAME_MAX}
-              error={usernameInputError ?? undefined}
-              hint={usernameHint}
-              rightSlot={usernameChecking ? <Loader size="sm" /> : null}
-            />
+      <Card className="space-y-2 p-5">
+        <h2 className="text-base font-semibold text-foreground">
+          {displayFirstName}'s Public Profile
+        </h2>
+        <p className="text-sm text-muted">
+          Share your public profile. Get aligned matches and insights.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <Input
+            label="Username"
+            value={username}
+            onChange={(event) => {
+              setUsernameError(null);
+              setUsername(event.target.value.replace(/\s+/g, ""));
+            }}
+            placeholder="e.g. marco"
+            hint={usernameHint}
+            error={usernameError ?? undefined}
+          />
+          <div className="flex items-end">
             <Button
               size="sm"
               variant="secondary"
-              loading={usernameSaving}
-              loadingText="Salvataggio"
-              disabled={!canSaveUsername}
               onClick={handleSaveUsername}
+              loading={usernameSaving}
+              loadingText="Saving"
+              disabled={!canSaveUsername}
             >
-              Salva username
+              Save username
             </Button>
-          </Card>
-
-          <VisibilitySelector
-            items={VISIBILITY_OPTIONS.map((option) => ({
-              label: option.label,
-              description: option.description,
-              selected: visibility === option.value,
-            }))}
-            onItemToggle={handleVisibilityToggle}
-          />
+          </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="space-y-4 p-5">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-foreground">
-              Profilo personale
-            </h3>
-            <p className="text-sm text-muted">
-              Sezioni guidate per raccontarti in modo piu accurato.
-            </p>
+      <Card className="space-y-3 p-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-foreground">
+            Referral link
+          </h2>
+          <p className="text-sm text-muted">
+            Invite friends to Syncro with your personal link.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <Input
+            label="Your referral link"
+            value={referralUrl}
+            readOnly
+            placeholder={referralLoading ? "Loading..." : "Not available"}
+          />
+          <div className="flex items-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCopyReferral}
+              disabled={!referralUrl || referralLoading}
+            >
+              {referralCopied ? "Copied" : "Copy link"}
+            </Button>
           </div>
+        </div>
+        {referralError ? (
+          <p className="text-xs text-danger">{referralError}</p>
+        ) : (
+          <p className="text-xs text-subtle">
+            Used {referralLink?.usesCount ?? 0} times
+          </p>
+        )}
+      </Card>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Cosa mi caratterizza
-            </label>
-            <textarea
-              value={traitsText}
-              onChange={(event) => setTraitsText(event.target.value)}
-              placeholder="Descrivi il tuo tratto distintivo..."
-              maxLength={500}
-              rows={3}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <p className="text-xs text-subtle">{traitsText.length}/500</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Cosa amo
-            </label>
-            <textarea
-              value={lovesText}
-              onChange={(event) => setLovesText(event.target.value)}
-              placeholder="Passioni, hobby, momenti..."
-              maxLength={500}
-              rows={3}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <p className="text-xs text-subtle">{lovesText.length}/500</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Cosa non sopporto
-            </label>
-            <textarea
-              value={dislikesText}
-              onChange={(event) => setDislikesText(event.target.value)}
-              placeholder="Cose o situazioni che eviti..."
-              maxLength={500}
-              rows={3}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <p className="text-xs text-subtle">{dislikesText.length}/500</p>
-          </div>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="space-y-4 p-5">
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Obiettivi e valori
-              </h3>
-              <p className="text-sm text-muted">
-                Cosa cerchi e quali valori ti guidano.
-              </p>
+      <section className="space-y-4">
+        <SectionHeader
+          title="Who you are to Syncro"
+          subtitle="Keep your profile fresh and aligned with your goals."
+        />
+        <Card className="p-6">
+          <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
+            <div className="flex flex-col items-center gap-3">
+              <Avatar name={displayName} src={avatar?.url} size="xl" />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleAvatarSelect}
+                loading={avatarLoading}
+                loadingText="Upload"
+              >
+                Update photo
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleAvatarUpload}
+              />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Cosa cerco / obiettivi di vita
-              </label>
-              <textarea
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Name or nickname"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="E.g. Marco · Mark · M"
+                required
+              />
+              <Input
+                label="Lives in"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                placeholder="City, Country"
+              />
+              <Input
+                label="Born in"
+                value={country}
+                onChange={(event) => setCountry(event.target.value)}
+                placeholder="City, Country"
+              />
+              <DatePicker
+                label="Date of birth"
+                value={birthDate}
+                onValueChange={setBirthDate}
+                placeholder="DD / MM / YYYY"
+                maxYear={new Date().getFullYear()}
+              />
+              <Input
+                label="Work"
+                value={jobTitle}
+                onChange={(event) => setJobTitle(event.target.value)}
+                placeholder="E.g. Software Developer"
+              />
+              <Input
+                label="Works at"
+                value={companyName}
+                onChange={(event) => setCompanyName(event.target.value)}
+                placeholder="E.g. Freelance · Startup · Company"
+              />
+              <Input
+                label="What defines me"
+                value={traitsText}
+                onChange={(event) => setTraitsText(event.target.value)}
+                placeholder="E.g. Curious, Adventurous, Empathetic"
+              />
+              <Input
+                label="Current focus"
                 value={goalsText}
                 onChange={(event) => setGoalsText(event.target.value)}
-                placeholder="Obiettivi personali o di relazione..."
-                maxLength={500}
-                rows={3}
-                className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder="E.g. Work, Personal Growth, Relationships"
               />
-              <p className="text-xs text-subtle">{goalsText.length}/500</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Il mio credo / valori
-              </label>
-              <textarea
+              <Input
+                label="Beliefs & worldview"
                 value={valuesText}
                 onChange={(event) => setValuesText(event.target.value)}
-                placeholder="Valori personali e principi..."
-                maxLength={500}
-                rows={3}
-                className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder="E.g. Spiritual, Atheist, Catholic..."
               />
-              <p className="text-xs text-subtle">{valuesText.length}/500</p>
+              <Input
+                label="Deal breakers"
+                value={dislikesText}
+                onChange={(event) => setDislikesText(event.target.value)}
+                placeholder="E.g. Lack of communication, Dishonesty..."
+              />
+              <Input
+                label="What I'm seeking"
+                value={lovesText}
+                onChange={(event) => setLovesText(event.target.value)}
+                placeholder="E.g. A genuine relationship, meaningful connections"
+              />
+              <Select
+                label="Sexual orientation"
+                value={orientation}
+                onValueChange={setOrientation}
+                options={ORIENTATION_OPTIONS}
+                placeholder="Select orientation"
+              />
+              <Select
+                label="Children"
+                value={childrenStatus}
+                onValueChange={setChildrenStatus}
+                options={CHILDREN_OPTIONS}
+                placeholder="Select children status"
+              />
+              <Select
+                label="Relationship status"
+                value={relationshipStatus}
+                onValueChange={setRelationshipStatus}
+                options={RELATIONSHIP_OPTIONS}
+                placeholder="Select relationship"
+              />
             </div>
-          </Card>
-
-          <Card className="space-y-4 p-5">
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">
-                Informazioni personali
-              </h3>
-              <p className="text-sm text-muted">
-                Dettagli opzionali per un match piu preciso.
-              </p>
-            </div>
-
-            <Select
-              label="Stato relazionale"
-              options={RELATIONSHIP_OPTIONS}
-              value={relationshipStatus}
-              onValueChange={setRelationshipStatus}
-              placeholder="Seleziona"
-            />
-            <Select
-              label="Orientamento"
-              options={ORIENTATION_OPTIONS}
-              value={orientation}
-              onValueChange={setOrientation}
-              placeholder="Seleziona"
-            />
-            <Select
-              label="Figli"
-              options={CHILDREN_OPTIONS}
-              value={childrenStatus}
-              onValueChange={setChildrenStatus}
-              placeholder="Seleziona"
-            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
             <Button
               size="sm"
-              variant="secondary"
               loading={profileSaving || isAuthLoading}
-              loadingText="Salvataggio"
+              loadingText="Saving"
               onClick={handleSaveProfile}
             >
-              Salva profilo
+              Save profile
             </Button>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </section>
 
       <section className="space-y-4">
+        <SectionHeader
+          title="What are you into right now?"
+          subtitle="Select what you’re into at the moment."
+        />
         {isTagsLoading ? (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Caricamento passioni...</p>
+            <p className="text-sm text-muted">Loading interests...</p>
           </Card>
         ) : (
           <InterestPickerGrid
             items={interestItems}
-            hint={`Seleziona almeno ${MIN_INTERESTS} passioni.`}
+            hint={`Select at least ${MIN_INTERESTS} interests.`}
             onItemToggle={handleInterestToggle}
           />
         )}
         {selectedTags.length ? (
           <Card className="p-5">
-            <SelectedTagsRow title="Selezionati" items={selectedTags} />
+            <SelectedTagsRow title="Selected" items={selectedTags} />
           </Card>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
@@ -1113,123 +1055,47 @@ export const ProfileSettings = ({
             size="sm"
             variant="secondary"
             loading={interestsSaving}
-            loadingText="Salvataggio"
+            loadingText="Saving"
             onClick={handleSaveInterests}
           >
-            Salva passioni
+            Save interests
           </Button>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="space-y-4 p-5">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-foreground">
-              Preferenze matchmaking
-            </h3>
+      <section className="space-y-4">
+        <SectionHeader
+          title="My Moments"
+          subtitle="Moments that matter. Even if they’re just for you."
+        />
+        {recentPostsLoading ? (
+          <Card className="flex items-center gap-3 p-5">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">Loading moments...</p>
+          </Card>
+        ) : recentPostsError ? (
+          <Card className="border-danger/30 bg-danger/10 p-4">
+            <p className="text-sm text-danger">{recentPostsError}</p>
+          </Card>
+        ) : recentPosts.length === 0 ? (
+          <Card className="p-5">
             <p className="text-sm text-muted">
-              Definisci i filtri principali per i match.
+              No moments available.
             </p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recentPosts.map((post) => (
+              <ProfileMomentCard key={post.id} post={post} />
+            ))}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Eta minima"
-              type="number"
-              min={18}
-              value={ageMin}
-              onChange={(event) => setAgeMin(event.target.value)}
-              placeholder="18"
-            />
-            <Input
-              label="Eta massima"
-              type="number"
-              min={18}
-              value={ageMax}
-              onChange={(event) => setAgeMax(event.target.value)}
-              placeholder="45"
-            />
-          </div>
-          <Input
-            label="Distanza massima (km)"
-            type="number"
-            min={1}
-            value={distanceKm}
-            onChange={(event) => setDistanceKm(event.target.value)}
-            placeholder="25"
-          />
-          <Select
-            label="Genere"
-            options={GENDER_OPTIONS}
-            value={gender}
-            onValueChange={setGender}
-          />
-          <Switch
-            label="Passioni in comune"
-            description="Mostra priorita a chi condivide i tuoi tag."
-            checked={sharedInterests}
-            onChange={(event) => setSharedInterests(event.target.checked)}
-          />
-        </Card>
-
-        <Card className="space-y-4 p-5">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-foreground">
-              Preferenze feed
-            </h3>
-            <p className="text-sm text-muted">
-              Regola come visualizzare i post vicino a te.
-            </p>
-          </div>
-          <Input
-            label="Raggio feed (km)"
-            type="number"
-            min={1}
-            value={feedRadiusKm}
-            onChange={(event) => setFeedRadiusKm(event.target.value)}
-            placeholder="10"
-          />
-          <Switch
-            label="Mostra solo contenuti vicini"
-            description="Filtra i post oltre il raggio selezionato."
-            checked={feedOnlyNearby}
-            onChange={(event) => setFeedOnlyNearby(event.target.checked)}
-          />
-          <Switch
-            label="Traduci contenuti automaticamente"
-            description="Abilita la traduzione automatica dei contenuti."
-            checked={feedAutoTranslate}
-            onChange={(event) => setFeedAutoTranslate(event.target.checked)}
-          />
-        </Card>
-      </section>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          size="sm"
-          loading={preferencesSaving || loading}
-          loadingText="Salvataggio"
-          onClick={handleSavePreferences}
-        >
-          Salva preferenze
-        </Button>
-      </div>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">
-            Sicurezza account
-          </h3>
-          <p className="text-sm text-muted">
-            Esci dal tuo account quando necessario.
-          </p>
-          <Logout size="sm" />
-        </Card>
+        )}
       </section>
 
       {showError ? (
         <Card className="border-danger/30 bg-danger/10 p-4">
           <p className="text-sm text-danger">
-            {mergedError ?? baseError ?? "Errore inatteso."}
+            {mergedError ?? baseError ?? "Unexpected error."}
           </p>
         </Card>
       ) : null}

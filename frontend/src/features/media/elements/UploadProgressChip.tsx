@@ -17,7 +17,7 @@ export const UploadProgressChip = ({
   return (
     <div
       className={cx(
-        "inline-flex items-center gap-3 rounded-full border border-border/60 bg-surface px-3 py-2 text-xs text-foreground",
+        "inline-flex items-center gap-3 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-foreground",
         className
       )}
       {...props}

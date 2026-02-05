@@ -35,6 +35,7 @@ export type LoginRequest = {
 export type RegisterRequest = {
   email: string;
   password: string;
+  refCode?: string | null;
 };
 
 export type RefreshTokenRequest = {

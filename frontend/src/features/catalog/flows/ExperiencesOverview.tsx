@@ -127,11 +127,11 @@ export const ExperiencesOverview = () => {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Catalogo
+          Catalog
         </p>
-        <h1 className="text-3xl font-semibold text-foreground">Esperienze</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Experiences</h1>
         <p className="text-sm text-muted">
-          Scopri esperienze uniche selezionate per te.
+          Discover unique experiences selected for you.
         </p>
       </header>
 
@@ -139,15 +139,15 @@ export const ExperiencesOverview = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Input
-              label="Cerca"
-              placeholder="Nome o descrizione..."
+              label="Search"
+              placeholder="Name or description..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
           <Button onClick={handleSearch} disabled={loading}>
-            Cerca
+            Search
           </Button>
         </div>
         {categories.length > 0 && (
@@ -161,7 +161,7 @@ export const ExperiencesOverview = () => {
                   : "bg-surface-muted text-muted hover:bg-border"
               }`}
             >
-              Tutte
+              All
             </button>
             {categories.map((cat) => (
               <button
@@ -184,21 +184,21 @@ export const ExperiencesOverview = () => {
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento esperienze...</p>
+          <p className="text-sm text-muted">Loading experiences...</p>
         </Card>
       )}
 
       {error && !isInitialLoading && (
         <ErrorState
-          title="Impossibile caricare le esperienze"
+          title="Unable to load experiences"
           description={error.message}
         />
       )}
 
       {!isInitialLoading && !error && experiences.length === 0 && (
         <EmptyState
-          title="Nessuna esperienza trovata"
-          description="Prova a modificare i filtri di ricerca."
+          title="No experiences found"
+          description="Try adjusting your search filters."
         />
       )}
 
@@ -211,9 +211,9 @@ export const ExperiencesOverview = () => {
                 variant="secondary"
                 onClick={handleLoadMore}
                 loading={loading}
-                loadingText="Caricamento"
+                loadingText="Loading"
               >
-                Carica altre esperienze
+                Load more experiences
               </Button>
             </div>
           )}
@@ -222,7 +222,7 @@ export const ExperiencesOverview = () => {
 
       {experiencesPage.totalElements > 0 && (
         <p className="text-center text-xs text-subtle">
-          {experiences.length} di {experiencesPage.totalElements} esperienze
+          {experiences.length} of {experiencesPage.totalElements} experiences
         </p>
       )}
     </div>

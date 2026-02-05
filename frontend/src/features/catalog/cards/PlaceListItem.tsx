@@ -16,6 +16,7 @@ export interface PlaceListItemProps
   imageUrl?: string;
   rating?: number;
   reviewCount?: number;
+  matchScore?: number;
   media?: ReactNode;
   href?: string;
   onPress?: () => void;
@@ -29,8 +30,8 @@ const PlaceholderIcon = () => (
 );
 
 const StarIcon = () => (
-  <svg className="h-3.5 w-3.5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+  <svg className="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 24 24">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
   </svg>
 );
 
@@ -45,20 +46,27 @@ export const PlaceListItem = ({
   imageUrl,
   rating,
   reviewCount,
+  matchScore,
   media,
   href,
   onPress,
   ...props
 }: PlaceListItemProps) => {
+  const resolvedScore =
+    typeof matchScore === "number"
+      ? Math.round(matchScore)
+      : typeof rating === "number"
+        ? Math.min(98, Math.round(rating * 20))
+        : undefined;
+
   const card = (
     <div
       className={cx(
-        "group flex h-[280px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong",
+        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
         className
       )}
       {...props}
     >
-      {/* Image */}
       <div className="relative h-36 w-full overflow-hidden bg-surface-muted">
         {media ?? (imageUrl ? (
           <img
@@ -72,61 +80,52 @@ export const PlaceListItem = ({
           </div>
         ))}
 
-        {/* Category badge overlay */}
-        {category && (
-          <div className="absolute left-3 top-3">
-            <Badge tone="neutral" className="bg-white/90 backdrop-blur-sm">
-              {category}
-            </Badge>
+        {typeof resolvedScore === "number" ? (
+          <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm">
+            {resolvedScore}%
           </div>
-        )}
-
-        {/* Distance badge overlay */}
-        {typeof distanceKm === "number" && (
-          <div className="absolute bottom-3 right-3">
-            <div className="rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-foreground backdrop-blur-sm">
-              {distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m` : `${distanceKm.toFixed(1)}km`}
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Content */}
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-3">
-        <h4 className="line-clamp-1 text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
+      <div className="flex flex-col gap-2 p-3">
+        <h4 className="line-clamp-1 text-sm font-semibold text-foreground">
           {title}
         </h4>
-        {address && (
-          <p className="line-clamp-1 text-xs text-muted">{address}</p>
-        )}
-        {subtitle && !address && (
-          <p className="line-clamp-1 text-xs text-muted">{subtitle}</p>
-        )}
+        {subtitle || address ? (
+          <p className="line-clamp-2 text-xs text-muted">
+            {subtitle ?? address}
+          </p>
+        ) : null}
 
-        {/* Rating row */}
-        {typeof rating === "number" && (
-          <div className="flex items-center gap-1.5">
+        {rating != null ? (
+          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
             <StarIcon />
-            <span className="text-xs font-medium text-foreground">{rating.toFixed(1)}</span>
-            {typeof reviewCount === "number" && reviewCount > 0 && (
-              <span className="text-xs text-muted">({reviewCount.toLocaleString()})</span>
-            )}
+            <span>{rating.toFixed(1)}</span>
+            {reviewCount != null && reviewCount > 0 ? (
+              <span className="text-muted">({reviewCount})</span>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {/* Meta row */}
-        {metaItems.length > 0 && (
-          <div className="mt-auto flex flex-wrap items-center gap-1">
-            {metaItems.map((item, i) => (
-              <span
-                key={i}
-                className="rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted"
-              >
-                {item}
+        <div className="space-y-2">
+          {category ? (
+            <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
+              {category}
+            </Badge>
+          ) : null}
+          <div className="flex items-center justify-between gap-2 text-[11px] text-subtle">
+            {typeof distanceKm === "number" ? (
+              <span>
+                {distanceKm < 1
+                  ? `${Math.round(distanceKm * 1000)}m`
+                  : `${distanceKm.toFixed(1)}km`}
               </span>
-            ))}
+            ) : (
+              <span className="text-subtle">View details</span>
+            )}
+            <span className="text-accent">View details</span>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -12,12 +12,12 @@ import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
 
 const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
-  interests: { label: "Interessi", emoji: "💫" },
-  lifestyle: { label: "Stile di vita", emoji: "🏃" },
-  values: { label: "Valori", emoji: "💎" },
-  objectives: { label: "Obiettivi", emoji: "🎯" },
-  psy: { label: "Personalita", emoji: "🧠" },
-  astro: { label: "Astrologia", emoji: "✨" },
+  interests: { label: "Interests", emoji: "💫" },
+  lifestyle: { label: "Lifestyle", emoji: "🏃" },
+  values: { label: "Values", emoji: "💎" },
+  objectives: { label: "Goals", emoji: "🎯" },
+  psy: { label: "Personality", emoji: "🧠" },
+  astro: { label: "Astrology", emoji: "✨" },
 };
 
 const getProgressColor = (value: number): string => {
@@ -50,7 +50,7 @@ export const ZyraMatchOfDayCard = ({
   matchScore,
   breakdown,
   sharedTags = [],
-  actionLabel = "Apri",
+  actionLabel = "Open",
   actionHref,
   profileHref,
   ...props
@@ -78,7 +78,7 @@ export const ZyraMatchOfDayCard = ({
           <ZyraMark size="xs" glow={false} />
         </div>
         <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-zyra-text">
-          Match del giorno
+          Match of the day
         </span>
       </div>
 

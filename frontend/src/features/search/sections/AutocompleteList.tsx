@@ -12,7 +12,7 @@ export interface AutocompleteListProps
 
 export const AutocompleteList = ({
   className,
-  title = "Suggerimenti",
+  title = "Suggestions",
   items,
   ...props
 }: AutocompleteListProps) => (

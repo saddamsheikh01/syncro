@@ -13,8 +13,9 @@ const toneClasses: Record<ProgressBarTone, string> = {
   success: "bg-success",
   warning: "bg-warning",
   danger: "bg-danger",
-  neutral: "bg-muted",
-  accent: "bg-accent",
+  neutral: "bg-border-strong",
+  accent:
+    "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)]",
 };
 
 export const ProgressBar = ({

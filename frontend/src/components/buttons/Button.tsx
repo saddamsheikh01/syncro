@@ -26,20 +26,20 @@ export interface ButtonProps
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-accent text-accent-contrast shadow-md hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent/30",
+    "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_10px_22px_var(--accent-glow)] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-accent/30",
   secondary:
-    "bg-surface text-foreground border border-border shadow-sm hover:border-border-strong",
+    "bg-surface text-accent border border-accent/25 shadow-sm hover:border-accent/40",
   outline:
     "border border-border-strong text-foreground hover:bg-surface-muted",
-  ghost: "text-foreground hover:bg-surface-muted",
+  ghost: "text-accent hover:bg-accent-soft",
   danger:
     "bg-danger text-white shadow-md hover:brightness-95 focus-visible:ring-2 focus-visible:ring-danger/30",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "h-9 px-3 text-xs",
-  md: "h-11 px-4 text-sm",
-  lg: "h-12 px-5 text-base",
+  sm: "h-9 px-4 text-xs",
+  md: "h-10 px-5 text-sm",
+  lg: "h-12 px-6 text-base",
 };
 
 export const Button = ({
@@ -61,7 +61,7 @@ export const Button = ({
     <button
       type="button"
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition",
+        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition",
         "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
@@ -77,7 +77,7 @@ export const Button = ({
             className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
             aria-hidden="true"
           />
-          <span>{loadingText ?? "Caricamento"}</span>
+          <span>{loadingText ?? "Loading"}</span>
         </span>
       ) : (
         <>

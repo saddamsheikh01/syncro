@@ -38,9 +38,9 @@ export interface MapFilterPanelProps
 
 export const MapFilterPanel = ({
   className,
-  title = "Filtri mappa",
-  subtitle = "Affina i risultati vicino a te.",
-  searchPlaceholder = "Cerca un luogo o un quartiere",
+  title = "Map filters",
+  subtitle = "Refine results near you.",
+  searchPlaceholder = "Search for a place or neighborhood",
   categoryOptions = [],
   distanceOptions = [],
   defaultCategory,
@@ -54,7 +54,7 @@ export const MapFilterPanel = ({
   onPlaceSelect,
   onAutocompleteClear,
   userPosition,
-  actionLabel = "Applica filtri",
+  actionLabel = "Apply filters",
   onActionClick,
   showAction = true,
   ...props
@@ -66,7 +66,7 @@ export const MapFilterPanel = ({
     </div>
     {useAutocomplete ? (
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-muted">Ricerca</label>
+        <label className="block text-xs font-medium text-muted">Search</label>
         <PlacesAutocomplete
           placeholder={searchPlaceholder}
           onPlaceSelect={onPlaceSelect}
@@ -84,24 +84,24 @@ export const MapFilterPanel = ({
       </div>
     ) : (
       <Input
-        label="Ricerca"
+        label="Search"
         placeholder={searchPlaceholder}
         onChange={(e) => onSearchChange?.(e.target.value)}
       />
     )}
     <div className="grid gap-3 sm:grid-cols-2">
       <Select
-        label="Categoria"
+        label="Category"
         options={categoryOptions}
         defaultValue={defaultCategory}
-        placeholder="Tutte"
+        placeholder="All"
         onValueChange={(val) => onCategoryChange?.(val || null)}
       />
       <Select
-        label="Distanza"
+        label="Distance"
         options={distanceOptions}
         defaultValue={defaultDistance}
-        placeholder="Qualsiasi"
+        placeholder="Any"
         onValueChange={(val) => onDistanceChange?.(val || null)}
       />
     </div>

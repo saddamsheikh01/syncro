@@ -17,7 +17,7 @@ export const formatRelativeTime = (isoDate: string, now = new Date()): string =>
   );
 
   if (diffSeconds < MINUTE_SECONDS) {
-    return "ora";
+    return "now";
   }
   if (diffSeconds < HOUR_SECONDS) {
     return `${Math.floor(diffSeconds / MINUTE_SECONDS)} min`;
@@ -26,13 +26,13 @@ export const formatRelativeTime = (isoDate: string, now = new Date()): string =>
     return `${Math.floor(diffSeconds / HOUR_SECONDS)} h`;
   }
   if (diffSeconds < WEEK_SECONDS) {
-    return `${Math.floor(diffSeconds / DAY_SECONDS)} g`;
+    return `${Math.floor(diffSeconds / DAY_SECONDS)} d`;
   }
   if (diffSeconds < MONTH_SECONDS) {
-    return `${Math.floor(diffSeconds / WEEK_SECONDS)} sett`;
+    return `${Math.floor(diffSeconds / WEEK_SECONDS)} wk`;
   }
   if (diffSeconds < YEAR_SECONDS) {
-    return `${Math.floor(diffSeconds / MONTH_SECONDS)} mesi`;
+    return `${Math.floor(diffSeconds / MONTH_SECONDS)} mo`;
   }
-  return `${Math.floor(diffSeconds / YEAR_SECONDS)} anni`;
+  return `${Math.floor(diffSeconds / YEAR_SECONDS)} yr`;
 };

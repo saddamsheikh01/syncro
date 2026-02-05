@@ -28,9 +28,9 @@ export interface MatchFilterBarProps
 
 export const MatchFilterBar = ({
   className,
-  title = "Filtri match",
-  subtitle = "Aggiorna le preferenze per affinita.",
-  searchPlaceholder = "Cerca persone o passioni",
+  title = "Match filters",
+  subtitle = "Update preferences for affinity.",
+  searchPlaceholder = "Search people or interests",
   searchValue,
   onSearchChange,
   typeItems = [],
@@ -49,30 +49,30 @@ export const MatchFilterBar = ({
       {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
     </div>
     <Input
-      label="Ricerca"
+      label="Search"
       placeholder={searchPlaceholder}
       value={searchValue}
       onChange={(event) => onSearchChange?.(event.target.value)}
     />
     {sortOptions.length ? (
       <Select
-        label="Ordina per"
+        label="Sort by"
         options={sortOptions}
         defaultValue={defaultSort}
         value={sortValue}
         onValueChange={onSortChange}
-        placeholder="Suggeriti"
+        placeholder="Suggested"
       />
     ) : null}
     {typeItems.length ? (
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-subtle">Tipologia</p>
+        <p className="text-xs font-semibold text-subtle">Type</p>
         <MapMatchTypeChip items={typeItems} onItemToggle={onTypeToggle} />
       </div>
     ) : null}
     {filterItems.length ? (
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-subtle">Filtri rapidi</p>
+        <p className="text-xs font-semibold text-subtle">Quick filters</p>
         <MapTagPillSelectable items={filterItems} onItemToggle={onFilterToggle} />
       </div>
     ) : null}

@@ -17,7 +17,7 @@ export const TranslationToggle = ({
   className,
   active,
   label = "Traduzione",
-  activeLabel = "Attiva",
+  activeLabel = "Enabled",
   inactiveLabel = "Originale",
   disabled,
   onClick,

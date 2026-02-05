@@ -3,12 +3,12 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { PlaceDetail } from "@/features/catalog/flows/PlaceDetail";
 
 export const metadata: Metadata = {
-  title: "Luogo | Syncro",
-  description: "Dettaglio luogo su Syncro.",
+  title: "Place | Syncro",
+  description: "Place details on Syncro.",
 };
 
 type PlaceDetailPageProps = {
-  params: { placeId: string } | Promise<{ placeId: string }>;
+  params: Promise<{ placeId: string }>;
 };
 
 export default async function PlaceDetailPage({ params }: PlaceDetailPageProps) {

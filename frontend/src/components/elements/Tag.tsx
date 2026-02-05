@@ -12,8 +12,8 @@ export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const TONE_CLASSES: Record<TagTone, string> = {
-  neutral: "border-border bg-surface text-foreground",
-  accent: "border-accent/20 bg-accent-soft text-accent",
+  neutral: "border-border/70 bg-surface-muted text-muted",
+  accent: "border-accent/20 bg-accent-soft text-accent-strong",
   success: "border-success/20 bg-success/10 text-success",
   warning: "border-warning/20 bg-warning/15 text-warning",
   danger: "border-danger/20 bg-danger/10 text-danger",
@@ -23,7 +23,7 @@ export const Tag = ({
   className,
   tone = "neutral",
   onRemove,
-  removeLabel = "Rimuovi",
+  removeLabel = "Remove",
   children,
   ...props
 }: TagProps) => (
@@ -51,7 +51,7 @@ const RemoveButton = ({ className, ...props }: RemoveButtonProps) => (
   <button
     type="button"
     className={cx(
-      "inline-flex h-4 w-4 items-center justify-center rounded-full border border-border text-[10px]",
+      "inline-flex h-4 w-4 items-center justify-center rounded-full border border-border/70 text-[10px]",
       "text-subtle hover:border-border-strong hover:text-foreground",
       className
     )}

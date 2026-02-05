@@ -5,7 +5,7 @@ import { ZyraSuggestionsFlow } from "@/features/zyra/flows/ZyraSuggestionsFlow";
 
 export const metadata: Metadata = {
   title: "Zyra | Syncro",
-  description: "Chat intelligente e suggerimenti personalizzati.",
+  description: "Smart chat and personalized suggestions.",
 };
 
 export default function ZyraPage() {

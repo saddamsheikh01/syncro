@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -18,10 +18,10 @@ import type { ZyraMessageResponse, ZyraSuggestionType } from "@/types/zyra";
 const MESSAGE_PAGE_SIZE = 50;
 
 const DEFAULT_QUICK_PROMPTS: string[] = [
-  "Suggerisci il match del giorno",
-  "Idee per il weekend vicino a me",
-  "Consigli per fare networking in modo smart",
-  "Mostra luoghi in linea con le mie passioni",
+  "Suggest the match of the day",
+  "Ideas for the weekend near me",
+  "Tips for smart networking",
+  "Show places aligned with my interests",
 ];
 
 const mapMessages = (messages: ZyraMessageResponse[]) =>
@@ -34,13 +34,17 @@ const mapMessages = (messages: ZyraMessageResponse[]) =>
     .map((message) => ({
       message: message.content,
       sender: message.role === "USER" ? ("user" as const) : ("zyra" as const),
-      timestamp: new Date(message.createdAt).toLocaleTimeString("it-IT", {
+      timestamp: new Date(message.createdAt).toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
       }),
     }));
 
-export const ZyraChatFlow = () => {
+export interface ZyraChatFlowProps {
+  seedMessage?: string | null;
+}
+
+export const ZyraChatFlow = ({ seedMessage }: ZyraChatFlowProps) => {
   const {
     sessions,
     activeSessionId,
@@ -60,6 +64,7 @@ export const ZyraChatFlow = () => {
   >({});
   const loadedSessions = useRef<Set<string>>(new Set());
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  const seededRef = useRef(false);
 
   const hasSessions = sessions.length > 0;
   const mappedMessages = useMemo(
@@ -121,13 +126,27 @@ export const ZyraChatFlow = () => {
       .catch(() => undefined);
   }, [actions, activeSessionId, sessions]);
 
-  const ensureSession = async (): Promise<string> => {
+  const ensureSession = useCallback(async (): Promise<string> => {
     if (activeSessionId) return activeSessionId;
 
     const session = await actions.createSession();
     loadedSessions.current.delete(session.id);
     return session.id;
-  };
+  }, [actions, activeSessionId]);
+
+  useEffect(() => {
+    if (!seedMessage || seededRef.current || initializing) return;
+    const sendSeed = async () => {
+      seededRef.current = true;
+      try {
+        const sessionId = await ensureSession();
+        await actions.sendMessage(sessionId, { content: seedMessage });
+      } catch {
+        // gestito dallo store
+      }
+    };
+    sendSeed();
+  }, [actions, ensureSession, initializing, seedMessage]);
 
   const handleSend = async () => {
     const content = composerValue.trim();
@@ -228,9 +247,9 @@ export const ZyraChatFlow = () => {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
       <div className="space-y-3 lg:col-span-1">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Sessioni</h2>
+          <h2 className="text-lg font-semibold text-foreground">Sessions</h2>
           <Button size="sm" variant="secondary" onClick={handleNewSession}>
-            Nuova
+            New
           </Button>
         </div>
 
@@ -238,21 +257,21 @@ export const ZyraChatFlow = () => {
           {loadingSessions && sessions.length === 0 ? (
             <div className="flex items-center gap-2 p-4 text-sm text-muted">
               <Loader size="sm" />
-              <span>Caricamento sessioni...</span>
+              <span>Loading sessions...</span>
             </div>
           ) : null}
 
           {!loadingSessions && !hasSessions ? (
             <div className="p-4">
               <p className="text-sm font-semibold text-foreground">
-                Nessuna sessione
+                No sessions
               </p>
               <p className="text-sm text-muted">
-                Crea una nuova chat con Zyra per iniziare.
+                Create a new chat with Zyra to get started.
               </p>
               <div className="mt-3">
                 <Button size="sm" onClick={handleNewSession}>
-                  Crea ora
+                  Create now
                 </Button>
               </div>
             </div>
@@ -267,7 +286,7 @@ export const ZyraChatFlow = () => {
                     ? session.title
                     : `Chat ${session.id.slice(0, 8)}`;
                 const createdAtLabel = new Date(session.createdAt).toLocaleDateString(
-                  "it-IT"
+                  "en-US"
                 );
 
                 return (
@@ -301,9 +320,9 @@ export const ZyraChatFlow = () => {
                         variant="danger"
                         onClick={() => setPendingDeleteId(session.id)}
                         loading={deletingSessionId === session.id}
-                        loadingText="Elimino..."
+                        loadingText="Deleting..."
                         className="h-8 w-8 p-0"
-                        aria-label="Elimina chat"
+                        aria-label="Delete chat"
                       >
                         <svg
                           width="14"
@@ -337,16 +356,16 @@ export const ZyraChatFlow = () => {
           <div className="flex flex-col gap-4">
             <ZyraHeader
               title="Zyra"
-              subtitle="Chat + consigli basati sul tuo profilo"
+              subtitle="Chat + advice based on your profile"
               statusLabel="Online"
-              className="border-b border-border/60 pb-3"
+              className="border-b border-border/70 pb-3"
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-border/60 bg-surface px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-border/70 bg-surface px-3 py-2">
                 <div className="flex items-center gap-2">
                   <ZyraMark size="xs" glow={false} />
                   <p className="text-xs text-zyra-text">
-                    Suggerimenti rapidi da Zyra
+                    Quick suggestions from Zyra
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -356,7 +375,7 @@ export const ZyraChatFlow = () => {
                     className="h-8 px-2.5 text-[11px]"
                     onClick={() => handleCreateSuggestion("MATCH_OF_THE_DAY")}
                   >
-                    Match del giorno
+                    Match of the day
                   </Button>
                   <Button
                     size="sm"
@@ -366,7 +385,7 @@ export const ZyraChatFlow = () => {
                       handleCreateSuggestion("PLACE_RECOMMENDATION")
                     }
                   >
-                    Luoghi per me
+                    Places for me
                   </Button>
                   <Button
                     size="sm"
@@ -374,7 +393,7 @@ export const ZyraChatFlow = () => {
                     className="h-8 px-2.5 text-[11px]"
                     onClick={() => handleCreateSuggestion("USER_RECOMMENDATION")}
                   >
-                    Persone affini
+                    Compatible people
                   </Button>
                 </div>
               </div>
@@ -384,7 +403,7 @@ export const ZyraChatFlow = () => {
             <div className="flex flex-1 items-center justify-center">
               <div className="flex items-center gap-3">
                 <Loader size="md" />
-                <p className="text-sm text-muted">Preparando la chat...</p>
+                <p className="text-sm text-muted">Preparing the chat...</p>
               </div>
             </div>
           ) : null}
@@ -392,7 +411,7 @@ export const ZyraChatFlow = () => {
           {!initializing && error && mappedMessages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <ErrorState
-                title="Impossibile caricare la chat"
+                title="Unable to load chat"
                 description={error.message}
               />
             </div>
@@ -410,12 +429,12 @@ export const ZyraChatFlow = () => {
                 ))}
               </div>
 
-              <div className="min-h-[320px] flex-1 rounded-[var(--radius-lg)] border border-border/60 bg-surface">
+              <div className="min-h-[320px] flex-1 rounded-[var(--radius-lg)] border border-border/70 bg-surface">
                 {loadingMessages && mappedMessages.length === 0 ? (
                   <div className="flex h-full items-center justify-center">
                     <div className="flex items-center gap-3">
                       <Loader size="sm" />
-                      <p className="text-sm text-muted">Caricamento messaggi...</p>
+                      <p className="text-sm text-muted">Loading messages...</p>
                     </div>
                   </div>
                 ) : null}
@@ -423,7 +442,7 @@ export const ZyraChatFlow = () => {
                 {!loadingMessages && mappedMessages.length === 0 ? (
                   <div className="flex h-full items-center justify-center p-6 text-center">
                     <p className="text-sm text-muted">
-                      Nessun messaggio. Invia qualcosa a Zyra per iniziare.
+                      No messages yet. Send something to Zyra to get started.
                     </p>
                   </div>
                 ) : null}
@@ -445,14 +464,14 @@ export const ZyraChatFlow = () => {
                           onClick={handleLoadMore}
                           disabled={loadingMessages}
                         >
-                          Carica altri
+                          Load more
                         </Button>
                       ) : null}
                       {activeSessionId &&
                       messagePages[activeSessionId] &&
                       messagePages[activeSessionId]?.hasMore === false ? (
                         <p className="text-xs text-subtle">
-                          Fine della cronologia
+                          End of chat history
                         </p>
                       ) : null}
                     </div>
@@ -462,7 +481,7 @@ export const ZyraChatFlow = () => {
 
               <div className="space-y-2">
                 <Textarea
-                  placeholder="Scrivi a Zyra..."
+                  placeholder="Write to Zyra..."
                   rows={3}
                   value={composerValue}
                   onChange={(e) => setComposerValue(e.target.value)}
@@ -475,7 +494,7 @@ export const ZyraChatFlow = () => {
                 />
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-subtle">
-                    Zyra risponde in base al tuo profilo e ai test.
+                    Zyra responds based on your profile and tests.
                   </p>
                   <Button
                     size="sm"
@@ -483,7 +502,7 @@ export const ZyraChatFlow = () => {
                     disabled={loadingMessages || composerValue.trim().length === 0}
                     loading={loadingMessages}
                   >
-                    Invia
+                    Send
                   </Button>
                 </div>
               </div>
@@ -494,16 +513,16 @@ export const ZyraChatFlow = () => {
 
       <Modal
         open={pendingDeleteId !== null}
-        title="Eliminare la chat?"
-        description="Questa azione e definitiva. I messaggi della sessione verranno rimossi."
+        title="Delete this chat?"
+        description="This action is final. Session messages will be removed."
         onClose={() => setPendingDeleteId(null)}
         secondaryAction={{
-          label: "Annulla",
+          label: "Cancel",
           variant: "secondary",
           onClick: () => setPendingDeleteId(null),
         }}
         primaryAction={{
-          label: "Elimina",
+          label: "Delete",
           variant: "danger",
           onClick: handleDeleteSession,
         }}

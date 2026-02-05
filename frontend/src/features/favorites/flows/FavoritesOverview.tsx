@@ -21,25 +21,26 @@ import type { FavoriteResponse } from "@/types/favorites";
 const PAGE_SIZE = 10;
 
 const SCOPE_LABELS: Record<string, string> = {
-  AMICIZIA: "Amicizia",
-  ESPERIENZE: "Esperienze",
-  LAVORO: "Lavoro",
-  BENESSERE: "Benessere",
+  AMICIZIA: "Friendship",
+  ESPERIENZE: "Experiences",
+  LAVORO: "Work",
+  BENESSERE: "Wellness",
 };
 
 const TIMEFRAME_LABELS: Record<string, string> = {
-  ORA: "Ora",
-  OGGI: "Oggi",
+  ORA: "Now",
+  OGGI: "Today",
 };
 
 const formatDate = (isoDate?: string | null) => {
   if (!isoDate) return "";
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const formatDuration = (minutes: number | null): string | undefined => {
@@ -56,7 +57,7 @@ const formatPrice = (
 ): string | undefined => {
   if (price == null) return undefined;
   const curr = currency ?? "EUR";
-  return new Intl.NumberFormat("it-IT", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: curr,
   }).format(price);
@@ -124,14 +125,14 @@ const FavoritePostCard = ({
           ) : (
             <img
               src={media.url}
-              alt="Media post"
+              alt="Post media"
               className="h-full w-full object-cover"
             />
           )
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-subtle">
             {mediaLoading ? <Loader size="sm" /> : null}
-            <span>{mediaLoading ? "Caricamento media" : "Nessun media"}</span>
+            <span>{mediaLoading ? "Loading media" : "No media"}</span>
           </div>
         )}
         {media?.mediaType === "VIDEO" ? (
@@ -144,26 +145,26 @@ const FavoritePostCard = ({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Post salvato</p>
+            <p className="text-sm font-semibold text-foreground">Saved post</p>
             {createdAt ? <p className="text-xs text-subtle">{createdAt}</p> : null}
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={onOpen} disabled={!postId}>
-              Apri
+              Open
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onRemove(favorite)}
               loading={removing}
-              loadingText="Rimuovo..."
+              loadingText="Removing..."
             >
-              Rimuovi
+              Remove
             </Button>
           </div>
         </div>
         <p className="text-sm text-foreground">
-          {post?.content ?? "Contenuto non disponibile."}
+          {post?.content ?? "Content not available."}
         </p>
         {(scopeLabel || moodLabel || timeframeLabel) && (
           <div className="flex flex-wrap gap-2">
@@ -268,7 +269,7 @@ export const FavoritesOverview = () => {
 
         const place = favorite.place;
         const cardProps: PlaceListItemProps = {
-          title: place?.name ?? "Luogo",
+          title: place?.name ?? "Place",
           subtitle: place?.description ?? undefined,
           address: place?.address ?? undefined,
           category: place?.category?.name ?? undefined,
@@ -289,7 +290,7 @@ export const FavoritesOverview = () => {
       experienceFavorites.map((favorite) => {
         const experience = favorite.experience;
         const cardProps: ExperienceListItemProps = {
-          title: experience?.name ?? "Esperienza",
+          title: experience?.name ?? "Experience",
           subtitle:
             experience?.locationName ?? experience?.place?.name ?? undefined,
           category: experience?.category?.name ?? undefined,
@@ -362,32 +363,34 @@ export const FavoritesOverview = () => {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Preferiti
+          Favorites
         </p>
-        <h1 className="text-3xl font-semibold text-foreground">I tuoi salvati</h1>
+        <h1 className="text-3xl font-semibold text-foreground">
+          Your saved items
+        </h1>
         <p className="text-sm text-muted">
-          Ritrova rapidamente luoghi ed elementi social che hai salvato.
+          Quickly find places and social items you&apos;ve saved.
         </p>
       </header>
 
       <Card className="space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] bg-surface-muted px-3 py-2 text-xs text-muted">
           <span className="font-semibold text-foreground">
-            {items.length} elementi
+            {items.length} items
           </span>
           {pageInfo.totalElements > 0 ? (
             <span className="text-subtle">
-              (totale {pageInfo.totalElements})
+              (total {pageInfo.totalElements})
             </span>
           ) : null}
           {placeFavorites.length > 0 ? (
             canComputeDistance ? (
               <span className="rounded-full bg-card px-3 py-1 text-[11px] font-semibold text-subtle">
-                Distanze basate sulla tua posizione salvata
+                Distances based on your saved location
               </span>
             ) : (
               <span className="rounded-full bg-card px-3 py-1 text-[11px] font-semibold text-subtle">
-                Salva la posizione per calcolare le distanze
+                Save your location to calculate distances
               </span>
             )
           ) : null}
@@ -397,27 +400,27 @@ export const FavoritesOverview = () => {
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento dei tuoi preferiti...</p>
+          <p className="text-sm text-muted">Loading your favorites...</p>
         </Card>
       )}
 
       {error && !isInitialLoading && (
         <div className="space-y-3">
           <ErrorState
-            title="Impossibile caricare i preferiti"
+            title="Unable to load favorites"
             description={error.message}
           />
           <Button variant="secondary" onClick={handleRetry} disabled={loading}>
-            Riprova
+            Retry
           </Button>
         </div>
       )}
 
       {!isInitialLoading && !error && items.length === 0 && (
         <EmptyState
-          title="Nessun preferito ancora"
-          description="Salva luoghi e post che vuoi ritrovare rapidamente."
-          actionLabel="Sfoglia luoghi"
+          title="No favorites yet"
+          description="Save places and posts you want to quickly find."
+          actionLabel="Browse places"
           actionHref="/places"
         />
       )}
@@ -427,9 +430,9 @@ export const FavoritesOverview = () => {
           {placeFavorites.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Luoghi</h2>
+                <h2 className="text-lg font-semibold text-foreground">Places</h2>
                 <span className="text-xs text-subtle">
-                  {placeFavorites.length} salvati
+                  {placeFavorites.length} saved
                 </span>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -442,9 +445,9 @@ export const FavoritesOverview = () => {
                         variant="ghost"
                         onClick={() => handleRemove(favorite)}
                         loading={removingId === favorite.id}
-                        loadingText="Rimuovo..."
+                        loadingText="Removing..."
                       >
-                        Rimuovi
+                        Remove
                       </Button>
                     </div>
                   </div>
@@ -457,10 +460,10 @@ export const FavoritesOverview = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground">
-                  Esperienze
+                  Experiences
                 </h2>
                 <span className="text-xs text-subtle">
-                  {experienceFavorites.length} salvate
+                  {experienceFavorites.length} saved
                 </span>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -473,9 +476,9 @@ export const FavoritesOverview = () => {
                         variant="ghost"
                         onClick={() => handleRemove(favorite)}
                         loading={removingId === favorite.id}
-                        loadingText="Rimuovo..."
+                        loadingText="Removing..."
                       >
-                        Rimuovi
+                        Remove
                       </Button>
                     </div>
                   </div>
@@ -487,9 +490,9 @@ export const FavoritesOverview = () => {
           {postFavorites.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Post</h2>
+                <h2 className="text-lg font-semibold text-foreground">Posts</h2>
                 <span className="text-xs text-subtle">
-                  {postFavorites.length} salvati
+                  {postFavorites.length} saved
                 </span>
               </div>
               <div className="space-y-4">
@@ -501,7 +504,7 @@ export const FavoritesOverview = () => {
                     onOpen={() => {
                       const postId = favorite.post?.id;
                       if (!postId) return;
-                      router.push(`/insights?post=${postId}`);
+                      router.push(`/moments?post=${postId}`);
                     }}
                     onRemove={handleRemove}
                   />
@@ -516,7 +519,7 @@ export const FavoritesOverview = () => {
                 variant="secondary"
                 onClick={handleLoadMore}
                 loading={loading}
-                loadingText="Caricamento"
+                loadingText="Loading"
               >
                 Carica altri
               </Button>
@@ -527,7 +530,7 @@ export const FavoritesOverview = () => {
 
       {pageInfo.totalElements > 0 && (
         <p className="text-center text-xs text-subtle">
-          {items.length} di {pageInfo.totalElements} elementi
+          {items.length} of {pageInfo.totalElements} items
         </p>
       )}
     </div>

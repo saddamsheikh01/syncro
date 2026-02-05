@@ -19,8 +19,8 @@ export interface FavoriteItemCardProps
 }
 
 const getTypeLabel = (typeLabel?: FavoriteType) => {
-  if (typeLabel === "EXPERIENCE") return "Esperienza";
-  if (typeLabel === "PLACE") return "Luogo";
+  if (typeLabel === "EXPERIENCE") return "Experience";
+  if (typeLabel === "PLACE") return "Place";
   return undefined;
 };
 

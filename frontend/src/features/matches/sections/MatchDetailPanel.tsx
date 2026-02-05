@@ -35,8 +35,8 @@ export const MatchDetailPanel = ({
   bio,
   sharedPassions = [],
   breakdown,
-  primaryActionLabel = "Vedi profilo",
-  secondaryActionLabel = "Salva",
+  primaryActionLabel = "View profile",
+  secondaryActionLabel = "Save",
   onPrimaryAction,
   onSecondaryAction,
   primaryActionDisabled,
@@ -72,7 +72,7 @@ export const MatchDetailPanel = ({
       {/* Passioni condivise */}
       {sharedPassions.length > 0 && (
         <div className="mt-4 rounded-lg bg-surface-muted/50 p-3">
-          <p className="mb-2 text-xs font-medium text-subtle">Passioni in comune</p>
+          <p className="mb-2 text-xs font-medium text-subtle">Shared interests</p>
           <div className="flex flex-wrap gap-2">
             {sharedPassions.slice(0, 6).map((passion) => (
               <Tag key={passion} tone="accent">
@@ -81,7 +81,7 @@ export const MatchDetailPanel = ({
             ))}
             {sharedPassions.length > 6 && (
               <span className="flex items-center text-xs text-muted">
-                +{sharedPassions.length - 6} altre
+                +{sharedPassions.length - 6} more
               </span>
             )}
           </div>

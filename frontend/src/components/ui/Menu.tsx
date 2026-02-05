@@ -4,28 +4,37 @@ import type { HTMLAttributes } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
-import { NavIcon } from "@/components/ui/NavIcon";
-import type { NavIconName } from "@/components/ui/NavIcon";
-import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import { SidebarIcon } from "@/components/ui/SidebarIcon";
+import type { SidebarIconName } from "@/components/ui/SidebarIcon";
 
 type MenuItem = {
   id: string;
   label: string;
   href: string;
-  icon: NavIconName;
+  icon: SidebarIconName;
 };
 
 const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
-  { id: "map", label: "Mappa", href: "/map", icon: "map" },
-  { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "document" },
-  { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
-  { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
-  { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
-  { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
-  { id: "tests", label: "Tests", href: "/tests", icon: "clipboard" },
-  { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },
+  {
+    id: "people",
+    label: "People & Connections",
+    href: "/matches",
+    icon: "people",
+  },
+  {
+    id: "places",
+    label: "Places & Experiences",
+    href: "/places",
+    icon: "places",
+  },
+  { id: "moments", label: "Moments", href: "/moments", icon: "moments" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "insights" },
+  { id: "zyra", label: "Zyra", href: "/zyra", icon: "zyra" },
+  { id: "chat", label: "Conversations", href: "/chat", icon: "chat" },
+  { id: "profile", label: "Profile", href: "/profile", icon: "profile" },
+  { id: "settings", label: "Settings", href: "/settings", icon: "settings" },
+  { id: "support", label: "Support", href: "/support", icon: "support" },
 ];
 
 const normalizePath = (path: string) =>
@@ -55,24 +64,16 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
     >
       {MENU_ITEMS.map((item) => {
         const active = isItemActive(pathname, item.href);
-        const isZyra = item.id === "zyra";
 
         return (
           <Link
             key={item.id}
             href={item.href}
             className={cx(
-              "group flex items-center gap-3 rounded-full px-3 py-2 text-sm font-semibold transition",
-              active && !isZyra ? "bg-accent-soft text-accent" : null,
-              !active && !isZyra
-                ? "text-muted hover:bg-surface-muted hover:text-foreground"
-                : null,
-              isZyra && active
-                ? "border border-zyra-border/70 bg-zyra-glow/50 text-zyra-text shadow-[0_0_20px_var(--zyra-glow)]"
-                : null,
-              isZyra && !active
-                ? "text-zyra-text/80 hover:bg-zyra-glow/40 hover:text-zyra-text"
-                : null,
+              "group flex items-center gap-3 rounded-[var(--radius-xl)] px-3 py-2.5 text-sm font-semibold transition",
+              active
+                ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_12px_24px_var(--accent-glow)]"
+                : "text-muted hover:bg-surface-muted hover:text-foreground",
               collapsed && "justify-center px-2",
             )}
             aria-current={active ? "page" : undefined}
@@ -80,25 +81,17 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
           >
             <span
               className={cx(
-                "flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground transition",
-                !isZyra &&
-                  (active
-                    ? "border-accent/30 bg-accent-soft text-accent"
-                    : "group-hover:border-border-strong"),
-                isZyra && "border-transparent bg-transparent",
+                "flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-white/90 shadow-sm transition",
+                active
+                  ? "border-white/70 bg-white"
+                  : "bg-surface-muted/70 group-hover:border-border-strong",
               )}
             >
-              {isZyra ? (
-                <ZyraMark size="sm" glow={active} />
-              ) : (
-                <NavIcon name={item.icon} className="h-5 w-5" />
-              )}
+              <SidebarIcon name={item.icon} size={30} />
             </span>
             <span
               className={cx(
-                collapsed ? "sr-only" : "truncate",
-                isZyra &&
-                  "bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent",
+                collapsed ? "sr-only" : "truncate"
               )}
             >
               {item.label}

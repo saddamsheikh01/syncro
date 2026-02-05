@@ -33,21 +33,21 @@ export interface TestCountCardProps
 
 const resolveDescription = (count: number | null | undefined) => {
   if (count == null) {
-    return "Sto preparando il tuo progresso test.";
+    return "Preparing your insight progress.";
   }
   if (count === 0) {
-    return "Inizia con il primo micro-test per attivare i match.";
+    return "Start with your first insight to activate matches.";
   }
   if (count < 3) {
-    return "Completa altri test per affinare il profilo.";
+    return "Complete more insights to refine your profile.";
   }
-  return "Ottimo lavoro: il tuo profilo è più preciso.";
+  return "Great job: your profile is more precise.";
 };
 
 export const TestCountCard = ({
   count,
   loading,
-  title = "Test completati",
+  title = "Insights completed",
   description,
   action,
   variant = "default",

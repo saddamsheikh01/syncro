@@ -12,17 +12,17 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: "setup",
     icon: "setup",
-    title: "Completa il tuo profilo",
+    title: "Complete your profile",
     description:
-      "Aggiungi le tue passioni e le informazioni chiave: bastano pochi minuti per rendere il profilo davvero utile.",
-    highlight: "Vai su Impostazioni e completa il profilo.",
+      "Add your passions and key info: it only takes a few minutes to make your profile truly useful.",
+    highlight: "Go to Settings and complete your profile.",
   },
   {
     id: "tests",
     icon: "tests",
-    title: "Inizia i test",
+    title: "Start the tests",
     description:
-      "I micro‑test migliorano i match e aiutano Zyra a capire meglio chi sei.",
-    highlight: "Ti consigliamo di iniziare dai primi test disponibili.",
+      "Micro-tests improve matches and help Zyra understand you better.",
+    highlight: "We recommend starting with the first available tests.",
   },
 ];

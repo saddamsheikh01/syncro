@@ -83,7 +83,7 @@ export const TutorialModal = ({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label="Tutorial di benvenuto"
+      aria-label="Welcome tutorial"
     >
       <div
         className={cx(
@@ -99,7 +99,7 @@ export const TutorialModal = ({
             "absolute right-4 top-4 p-2 text-muted transition hover:text-foreground",
             "rounded-[var(--radius-sm)] hover:bg-surface-muted"
           )}
-          aria-label="Salta tutorial"
+          aria-label="Skip tutorial"
         >
           <svg
             viewBox="0 0 24 24"
@@ -125,7 +125,7 @@ export const TutorialModal = ({
           />
 
           <Switch
-            label="Non mostrare più"
+            label="Don't show again"
             checked={dontShowAgain}
             onChange={(e) => setDontShowAgain(e.target.checked)}
             className="mt-6"
@@ -139,7 +139,7 @@ export const TutorialModal = ({
                 onClick={onPrevious}
                 className="flex-1"
               >
-                Indietro
+                Back
               </Button>
             ) : (
               <Button
@@ -148,7 +148,7 @@ export const TutorialModal = ({
                 onClick={handleSkip}
                 className="flex-1"
               >
-                Salta
+                Skip
               </Button>
             )}
 
@@ -159,7 +159,7 @@ export const TutorialModal = ({
                 onClick={onComplete}
                 className="flex-1"
               >
-                Inizia
+                Start
               </Button>
             ) : (
               <Button
@@ -168,7 +168,7 @@ export const TutorialModal = ({
                 onClick={onNext}
                 className="flex-1"
               >
-                Avanti
+                Next
               </Button>
             )}
           </div>

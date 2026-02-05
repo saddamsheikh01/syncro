@@ -34,14 +34,14 @@ const EMPTY_VALUE: BirthDateTimeValue = {
 
 export const BirthDateTimeField = ({
   className,
-  title = "Data e ora di nascita",
-  subtitle = "Per affinare la profilazione Zyra.",
+  title = "Birth date and time",
+  subtitle = "To refine Zyra profiling.",
   hint,
   value,
   defaultValue,
   onValueChange,
-  dateLabel = "Data di nascita",
-  timeLabel = "Ora di nascita (opzionale)",
+  dateLabel = "Date of birth",
+  timeLabel = "Time of birth (optional)",
   required,
   disabled,
   ...props

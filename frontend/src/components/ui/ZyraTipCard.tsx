@@ -1,108 +1,157 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
-import { useZyra } from "@/hooks";
+import { useRouter } from "next/navigation";
+import { Avatar } from "@/components/elements/Avatar";
+import { Button } from "@/components/buttons/Button";
+import { useAuth, useZyra } from "@/hooks";
 import { cx } from "@/lib/classNames";
+import { storeZyraSeedMessage } from "@/lib/zyraSeed";
 
-const ArrowIcon = () => (
-  <svg
-    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M5 12h14" />
-    <path d="m12 5 7 7-7 7" />
-  </svg>
-);
+const QUICK_REPLIES = [
+  "Sounds good, let's go!",
+  "Yes, tell me more",
+  "Not now, thanks",
+];
+
+const DEFAULT_MAIN_PROMPT =
+  "Want to improve your matches right away?";
+
+const DEFAULT_ZYRA_MESSAGE =
+  "There’s a photography exhibition near you. Would you like to go tomorrow, or want more details?";
+
+const SECONDARY_ZYRA_MESSAGE =
+  "You’re improving yourself — it’s normal to feel this way.";
+
+const sanitizeSuggestion = (value: string) =>
+  value
+    .replace(/^\s*(suggerimento personalizzato|personalized suggestion)\s*:?\s*/i, "")
+    .trim();
 
 export const ZyraTipCard = () => {
+  const router = useRouter();
+  const { user } = useAuth();
   const { suggestions, loadingSuggestions, actions } = useZyra();
+  const [replyValue, setReplyValue] = useState("");
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    actions.fetchSuggestions({ size: 1 }).catch(() => undefined);
+    actions.fetchSuggestions({ size: 2 }).catch(() => undefined);
   }, [actions]);
 
-  const suggestion = suggestions[0];
+  const greetingName = useMemo(() => {
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split("@")[0];
+    return "there";
+  }, [user?.email, user?.username]);
 
-  if (loadingSuggestions && !suggestion) {
-    return (
-      <div className="zyra-surface-soft flex items-center gap-3 rounded-[var(--radius-lg)] border border-zyra-border/50 p-3">
-        <div className="h-8 w-8 animate-pulse rounded-full bg-zyra-glow" />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3 w-20 animate-pulse rounded bg-zyra-glow" />
-          <div className="h-3 w-full animate-pulse rounded bg-zyra-glow" />
-        </div>
-      </div>
-    );
-  }
+  const suggestionMessages = suggestions
+    .map((item) =>
+      typeof item.payload?.message === "string"
+        ? sanitizeSuggestion(item.payload.message)
+        : ""
+    )
+    .filter(Boolean);
 
-  if (!suggestion) return null;
+  const primaryMessage = suggestionMessages[0] ?? DEFAULT_ZYRA_MESSAGE;
+  const secondaryMessage = suggestionMessages[1] ?? SECONDARY_ZYRA_MESSAGE;
 
-  const message =
-    typeof suggestion.payload?.message === "string"
-      ? suggestion.payload.message
-      : "Ho un suggerimento per te oggi.";
+  const handleSend = (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    storeZyraSeedMessage(trimmed);
+    setReplyValue("");
+    router.push("/chat");
+  };
 
   return (
-    <Link
-      href="/zyra"
+    <div
       className={cx(
-        "zyra-surface-soft group flex items-start gap-3 rounded-[var(--radius-lg)] border border-zyra-border/50 p-3 transition-all duration-300",
-        "hover:border-zyra-border hover:shadow-[0_8px_20px_var(--zyra-glow)]"
+        "rounded-[var(--radius-xl)] border border-white/70 bg-[#f7f1f7] p-4 shadow-sm",
+        "transition-all duration-300 hover:shadow-md"
       )}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zyra-border/40 bg-white/80 shadow-sm">
-        <ZyraMark size="xs" glow={false} />
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zyra-text">
-            Suggerimento Zyra
+      <div className="flex items-start gap-3">
+        <Avatar name="Zyra" size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-semibold text-foreground">Zyra</p>
+          <p className="text-xs text-muted">
+            Your Personal AI On Syncro.
           </p>
-          <ArrowIcon />
-        </div>
-        <div className="line-clamp-2 text-xs text-muted">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: (props) => <span {...props} />,
-              strong: (props) => <strong className="font-semibold" {...props} />,
-              em: (props) => <em className="italic" {...props} />,
-              ul: (props) => <span {...props} />,
-              ol: (props) => <span {...props} />,
-              li: (props) => (
-                <span className="after:content-[' ']" {...props}>
-                  • {props.children}
-                </span>
-              ),
-              a: (props) => (
-                <a
-                  {...props}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline decoration-current/40 hover:decoration-current"
-                />
-              ),
-              code: (props) => (
-                <code className="rounded bg-surface-muted px-1 py-0.5 font-mono text-[11px]" {...props} />
-              ),
-            }}
-          >
-            {message}
-          </ReactMarkdown>
+          <p className="text-xs text-muted">
+            She Guides You, Advises You,
+            <br />
+            And Explains Your Matches.
+          </p>
         </div>
       </div>
-    </Link>
+
+      <div className="mt-4 space-y-2 rounded-[var(--radius-lg)] bg-[#eef2f9] px-3 py-3 text-xs text-muted">
+        <p className="text-xs font-semibold text-foreground">
+          {loadingSuggestions ? "Thinking..." : `Hi ${greetingName}! ${DEFAULT_MAIN_PROMPT}`}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_REPLIES.map((label) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => handleSend(label)}
+              className="rounded-full bg-[#e1e8f4] px-3 py-1 text-[10px] font-medium text-muted transition hover:text-foreground"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-white px-3 py-2">
+          <input
+            type="text"
+            placeholder="Type your reply..."
+            value={replyValue}
+            onChange={(event) => setReplyValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSend(replyValue);
+              }
+            }}
+            className="flex-1 bg-transparent text-[11px] text-muted outline-none placeholder:text-subtle"
+            aria-label="Type your reply"
+          />
+          <button
+            type="button"
+            onClick={() => handleSend(replyValue)}
+            disabled={!replyValue.trim()}
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Send reply"
+          >
+            <svg
+              className="h-3 w-3"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <Link href="/chat" className="mt-4 block">
+        <Button size="sm" fullWidth>
+          Continue The Chat With Zyra
+        </Button>
+      </Link>
+      <p className="mt-2 text-center text-[10px] text-subtle">
+        The More You Interact, The Better Your Matches Become.
+      </p>
+    </div>
   );
 };

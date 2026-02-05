@@ -18,7 +18,7 @@ export const PostMediaSlide = ({
 }: PostMediaSlideProps) => (
   <div
     className={cx(
-      "relative overflow-hidden rounded-[var(--radius-lg)] border border-border/60 bg-surface-muted",
+      "relative overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted",
       className
     )}
     {...props}

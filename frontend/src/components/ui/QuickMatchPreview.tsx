@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/elements/Avatar";
+import { Button } from "@/components/buttons/Button";
 import { useMatches } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
@@ -33,11 +34,13 @@ export const QuickMatchPreview = () => {
 
   if (loadingUserMatches && !match) {
     return (
-      <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border/60 bg-card p-3">
-        <div className="h-10 w-10 animate-pulse rounded-full bg-surface-muted" />
-        <div className="flex-1 space-y-1.5">
-          <div className="h-3 w-24 animate-pulse rounded bg-surface-muted" />
-          <div className="h-3 w-16 animate-pulse rounded bg-surface-muted" />
+      <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 animate-pulse rounded-full bg-surface-muted" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-24 animate-pulse rounded bg-surface-muted" />
+            <div className="h-3 w-16 animate-pulse rounded bg-surface-muted" />
+          </div>
         </div>
       </div>
     );
@@ -46,7 +49,7 @@ export const QuickMatchPreview = () => {
   if (!match) return null;
 
   const name =
-    match.user?.fullName?.trim() || `Utente ${match.userId.slice(0, 6)}`;
+    match.user?.fullName?.trim() || `User ${match.userId.slice(0, 6)}`;
   const location = [match.user?.city, match.user?.country]
     .filter(Boolean)
     .join(", ");
@@ -58,28 +61,22 @@ export const QuickMatchPreview = () => {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-foreground">
-          Match del giorno
+          Most aligned with you today
         </p>
         <Link
           href="/matches"
           className="text-[10px] font-medium text-accent hover:underline"
         >
-          Vedi tutti
+          View all
         </Link>
       </div>
-      <Link
-        href={profileHref}
+      <div
         className={cx(
-          "group flex items-center gap-3 rounded-[var(--radius-lg)] border border-qa-match-border/50 p-3 transition-all duration-300",
-          "hover:border-qa-match-border hover:shadow-[0_6px_20px_var(--qa-match-glow)]",
+          "rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm",
+          "transition-all duration-300 hover:border-accent/30 hover:shadow-md"
         )}
-        style={{
-          background:
-            "linear-gradient(135deg, var(--qa-match-bg) 0%, transparent 60%)",
-        }}
       >
-        {/* Avatar with gradient ring */}
-        <div className="relative">
+        <div className="flex items-center gap-3">
           <div className="rounded-full bg-gradient-to-br from-qa-match-gradient-start to-qa-match-gradient-end p-0.5">
             <Avatar
               name={name}
@@ -88,29 +85,30 @@ export const QuickMatchPreview = () => {
               className="border-2 border-white"
             />
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {name}
+            </p>
+            {location ? (
+              <p className="truncate text-xs text-muted">{location}</p>
+            ) : null}
+          </div>
+          <div
+            className={cx(
+              "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
+              getScoreColor(score)
+            )}
+          >
+            <SparkIcon />
+            {score}%
+          </div>
         </div>
-
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-[var(--qa-match-gradient-start)]">
-            {name}
-          </p>
-          {location && (
-            <p className="truncate text-xs text-muted">{location}</p>
-          )}
-        </div>
-
-        {/* Score badge */}
-        <div
-          className={cx(
-            "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
-            getScoreColor(score),
-          )}
-        >
-          <SparkIcon />
-          {score}%
-        </div>
-      </Link>
+        <Link href={profileHref} className="mt-3 block">
+          <Button size="sm" fullWidth>
+            Connect
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };

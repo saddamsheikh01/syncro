@@ -32,7 +32,7 @@ export interface UseUnsavedChangesReturn {
  */
 export const useUnsavedChanges = ({
   isDirty,
-  message = "Hai modifiche non salvate. Sei sicuro di voler uscire?",
+  message = "You have unsaved changes. Are you sure you want to leave?",
 }: UseUnsavedChangesOptions): UseUnsavedChangesReturn => {
   const [showModal, setShowModal] = useState(false);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);

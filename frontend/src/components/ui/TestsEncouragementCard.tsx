@@ -7,20 +7,20 @@ import { TestCountCard } from "@/components/ui/TestCountCard";
 import { useTests } from "@/hooks";
 
 const resolveCtaLabel = (count: number | null | undefined) => {
-  if (count == null || count === 0) return "Inizia ora";
-  if (count < 3) return "Completa un altro";
-  return "Aggiorna il profilo";
+  if (count == null || count === 0) return "Start now";
+  if (count < 3) return "Complete another";
+  return "Update your profile";
 };
 
 const resolveDescription = (count: number | null | undefined) => {
-  if (count == null) return "Sto calcolando i tuoi micro-test completati.";
+  if (count == null) return "Calculating your completed insights.";
   if (count === 0) {
-    return "Sblocca subito il profilo Zyra completando il primo test.";
+    return "Unlock your Zyra profile by completing your first insight.";
   }
   if (count < 3) {
-    return "Ogni test migliora la precisione dei tuoi match.";
+    return "Each insight improves your match accuracy.";
   }
-  return "Continua cosi: Zyra sta raffinando il tuo profilo.";
+  return "Keep going: Zyra is refining your profile.";
 };
 
 export const TestsEncouragementCard = () => {
@@ -36,7 +36,7 @@ export const TestsEncouragementCard = () => {
 
   return (
     <TestCountCard
-      title="I tuoi test"
+      title="Your insights"
       count={completedCount}
       loading={countLoading}
       description={resolveDescription(completedCount)}
@@ -45,7 +45,7 @@ export const TestsEncouragementCard = () => {
           size="sm"
           variant="secondary"
           fullWidth
-          onClick={() => router.push("/tests")}
+          onClick={() => router.push("/insights")}
         >
           {resolveCtaLabel(completedCount)}
         </Button>

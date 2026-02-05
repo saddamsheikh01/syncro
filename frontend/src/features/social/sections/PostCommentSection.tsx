@@ -16,13 +16,13 @@ const formatCommentDate = (isoDate: string) => {
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
 
-  if (diffMinutes < 1) return "ora";
+  if (diffMinutes < 1) return "now";
   if (diffMinutes < 60) return `${diffMinutes} min`;
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) return `${diffHours}h`;
   const diffDays = Math.round(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}g`;
-  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+  if (diffDays < 7) return `${diffDays}d`;
+  return date.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit" });
 };
 
 export interface PostCommentSectionProps {
@@ -58,7 +58,7 @@ export const PostCommentSection = ({
       setHasMore(pageNum < response.totalPages - 1);
       setPage(pageNum);
     } catch {
-      setError("Errore nel caricamento dei commenti.");
+      setError("Error loading comments.");
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export const PostCommentSection = ({
       setNewComment("");
       onCommentCountChange?.(comments.length + 1);
     } catch {
-      setError("Errore nell'invio del commento.");
+      setError("Error sending the comment.");
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +93,7 @@ export const PostCommentSection = ({
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       onCommentCountChange?.(Math.max(0, comments.length - 1));
     } catch {
-      setError("Errore nell'eliminazione del commento.");
+      setError("Error deleting the comment.");
     }
   };
 
@@ -115,7 +115,7 @@ export const PostCommentSection = ({
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Scrivi un commento..."
+            placeholder="Write a comment..."
             maxLength={MAX_COMMENT_LENGTH + 10}
             disabled={submitting}
             className="flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
@@ -132,7 +132,7 @@ export const PostCommentSection = ({
             disabled={!newComment.trim() || isOverLimit || submitting}
             loading={submitting}
           >
-            Invia
+            Send
           </Button>
         </div>
         <div className="flex justify-end">
@@ -142,7 +142,7 @@ export const PostCommentSection = ({
               isOverLimit ? "text-danger" : remainingChars <= 20 ? "text-warning" : "text-subtle"
             )}
           >
-            {remainingChars} caratteri
+            {remainingChars} characters
           </span>
         </div>
       </div>
@@ -156,25 +156,25 @@ export const PostCommentSection = ({
       {loading && comments.length === 0 ? (
         <div className="flex items-center gap-2 py-2">
           <Loader size="sm" />
-          <span className="text-sm text-muted">Caricamento commenti...</span>
+          <span className="text-sm text-muted">Loading comments...</span>
         </div>
       ) : comments.length === 0 ? (
         <p className="py-2 text-center text-xs text-subtle">
-          Nessun commento. Sii il primo a commentare!
+          No comments yet. Be the first to comment!
         </p>
       ) : (
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-2">
               <Avatar
-                name={comment.userFullName ?? comment.username ?? "Utente"}
+                name={comment.userFullName ?? comment.username ?? "User"}
                 src={comment.userAvatarUrl ?? undefined}
                 size="sm"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">
-                    {comment.userFullName ?? comment.username ?? "Utente"}
+                    {comment.userFullName ?? comment.username ?? "User"}
                   </span>
                   <span className="text-[11px] text-subtle">
                     {formatCommentDate(comment.createdAt)}
@@ -187,7 +187,7 @@ export const PostCommentSection = ({
                     onClick={() => handleDelete(comment.id)}
                     className="mt-1 text-[11px] text-subtle hover:text-danger"
                   >
-                    Elimina
+                    Delete
                   </button>
                 )}
               </div>
@@ -201,7 +201,7 @@ export const PostCommentSection = ({
               disabled={loading}
               className="w-full py-2 text-center text-xs font-semibold text-accent hover:underline disabled:opacity-60"
             >
-              {loading ? "Caricamento..." : "Mostra altri commenti"}
+              {loading ? "Loading..." : "Show more comments"}
             </button>
           )}
         </div>

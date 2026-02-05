@@ -37,7 +37,7 @@ export const Tabs = ({
 
   return (
     <div className={cx("space-y-4", className)} {...props}>
-      <div className="flex flex-wrap gap-2 rounded-[var(--radius-md)] bg-surface-muted p-2">
+      <div className="flex flex-wrap gap-2 rounded-[var(--radius-md)] bg-surface-muted/70 p-2">
         {items.map((item) => {
           const isActive = item.value === active;
           return (
@@ -59,7 +59,7 @@ export const Tabs = ({
           );
         })}
       </div>
-      <div className="rounded-[var(--radius-md)] border border-border bg-card p-4 shadow-sm">
+      <div className="rounded-[var(--radius-md)] border border-border/70 bg-card p-4 shadow-sm">
         {activeItem?.content}
       </div>
     </div>

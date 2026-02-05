@@ -21,7 +21,7 @@ export interface MatchListItemProps
 
 const formatName = (userId: string) => {
   const suffix = userId.slice(0, 6);
-  return `Utente ${suffix}`;
+  return `User ${suffix}`;
 };
 
 const getDisplayName = (match: UserMatchResponse) => {
@@ -45,15 +45,15 @@ const formatUpdatedAt = (isoDate: string) => {
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
   if (diffMinutes < 60) {
-    return `${diffMinutes} min fa`;
+    return `${diffMinutes} min ago`;
   }
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h fa`;
+    return `${diffHours}h ago`;
   }
-  return date.toLocaleDateString("it-IT", {
-    day: "2-digit",
-    month: "2-digit",
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
   });
 };
 
@@ -65,12 +65,43 @@ const LocationIcon = () => (
 );
 
 const DIMENSION_LABELS: Record<string, string> = {
-  interests: "interessi",
-  lifestyle: "stile di vita",
-  values: "valori",
-  objectives: "obiettivi",
-  psy: "personalita",
-  astro: "astrologia",
+  interests: "interests",
+  lifestyle: "lifestyle",
+  values: "values",
+  objectives: "goals",
+  psy: "personality",
+  astro: "astrology",
+};
+
+const ITALIAN_EXPLANATION_HINTS = [
+  "interessi",
+  "valori",
+  "obiettivi",
+  "affin",
+  "compatibil",
+  "condivis",
+  "vicin",
+  "luogo",
+  "esperien",
+  "profilo",
+  "amicizia",
+  "amore",
+  "lavoro",
+  "contesto",
+  "energia",
+];
+
+const looksItalian = (value?: string | null) => {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return ITALIAN_EXPLANATION_HINTS.some((hint) =>
+    normalized.includes(hint)
+  );
+};
+
+const resolveMatchExplanation = (value?: string | null) => {
+  if (!value) return "Affinity calculated from the profile";
+  return looksItalian(value) ? "Affinity calculated from the profile" : value;
 };
 
 const buildMatchSummary = (match: UserMatchResponse): string => {
@@ -85,9 +116,9 @@ const buildMatchSummary = (match: UserMatchResponse): string => {
     const sharedList = Array.isArray(sharedTags) ? sharedTags.slice(0, 3).join(", ") : "";
     if (sharedList) {
       const suffix = sharedCount > 3 ? "..." : "";
-      parts.push(`${sharedCount} passioni in comune: ${sharedList}${suffix}`);
+      parts.push(`${sharedCount} shared interests: ${sharedList}${suffix}`);
     } else {
-      parts.push(`${sharedCount} passioni in comune`);
+      parts.push(`${sharedCount} shared interests`);
     }
   }
 
@@ -100,14 +131,14 @@ const buildMatchSummary = (match: UserMatchResponse): string => {
 
     if (analyzedDimensions.length > 0) {
       const dimText = analyzedDimensions.length === 1
-        ? `analisi ${analyzedDimensions[0]}`
-        : `analisi ${analyzedDimensions.slice(0, 2).join(", ")}${analyzedDimensions.length > 2 ? ` +${analyzedDimensions.length - 2}` : ""}`;
+        ? `analysis: ${analyzedDimensions[0]}`
+        : `analysis: ${analyzedDimensions.slice(0, 2).join(", ")}${analyzedDimensions.length > 2 ? ` +${analyzedDimensions.length - 2}` : ""}`;
       parts.push(dimText);
     }
   }
 
   if (parts.length === 0) {
-    return match.explanation ?? "Affinita calcolata sul profilo";
+    return resolveMatchExplanation(match.explanation);
   }
 
   return parts.join(" · ");
@@ -168,7 +199,7 @@ export const MatchListItem = ({
             "group flex flex-wrap items-start gap-4 rounded-[var(--radius-lg)] border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong sm:items-center",
             selected
               ? "border-accent/40 bg-accent-soft/30 shadow-md"
-              : "border-border",
+              : "border-border/70",
             className
           )}
         >
@@ -228,8 +259,8 @@ export const MatchListItem = ({
               <button
                 type="button"
                 onClick={handleProfileClick}
-                aria-label={profileLabel ?? `Apri profilo di ${name}`}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+                aria-label={profileLabel ?? `Open profile of ${name}`}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
               >
                 <NavIcon name="user" className="h-4 w-4" />
               </button>

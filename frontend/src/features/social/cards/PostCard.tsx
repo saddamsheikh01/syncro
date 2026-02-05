@@ -63,21 +63,21 @@ const FAVORITE_ICON = (
 const REACTION_OPTIONS: { type: PostReactionType; emoji: string; label: string }[] = [
   { type: "LIKE", emoji: "👍", label: "Like" },
   { type: "LOVE", emoji: "❤️", label: "Love" },
-  { type: "LAUGH", emoji: "😂", label: "Divertente" },
+  { type: "LAUGH", emoji: "😂", label: "Funny" },
   { type: "WOW", emoji: "😮", label: "Wow" },
-  { type: "SUPPORT", emoji: "🙌", label: "Supporto" },
+  { type: "SUPPORT", emoji: "🙌", label: "Support" },
 ];
 
 const SCOPE_LABELS: Record<string, string> = {
-  AMICIZIA: "Amicizia",
-  ESPERIENZE: "Esperienze",
-  LAVORO: "Lavoro",
-  BENESSERE: "Benessere",
+  AMICIZIA: "Friendship",
+  ESPERIENZE: "Experiences",
+  LAVORO: "Work",
+  BENESSERE: "Wellness",
 };
 
 const TIMEFRAME_LABELS: Record<string, string> = {
-  ORA: "Ora",
-  OGGI: "Oggi",
+  ORA: "Now",
+  OGGI: "Today",
 };
 
 const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
@@ -111,10 +111,11 @@ const formatPostDate = (isoDate?: string | null) => {
   if (!isoDate) return "";
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const formatCoordinate = (value: number | null | undefined) => {
@@ -129,14 +130,14 @@ const buildLocationLabel = (
   const lat = formatCoordinate(latitude);
   const lng = formatCoordinate(longitude);
   if (!lat && !lng) return "";
-  if (lat && lng) return `Posizione: ${lat}, ${lng}`;
-  return `Posizione: ${lat || lng}`;
+  if (lat && lng) return `Location: ${lat}, ${lng}`;
+  return `Location: ${lat || lng}`;
 };
 
 export const PostCard = ({
   className,
   post,
-  authorName = "Utente Syncro",
+  authorName = "Syncro user",
   authorSubtitle,
   locationLabel,
   avatarUrl,
@@ -175,7 +176,7 @@ export const PostCard = ({
       })
       .catch(() => {
         if (!active) return;
-        setMediaError("Errore durante il caricamento dei media.");
+        setMediaError("Error while loading media.");
       })
       .finally(() => {
         if (!active) return;
@@ -216,7 +217,7 @@ export const PostCard = ({
     () => [
       {
         id: "reaction",
-        label: post.myReaction ? "Reazione" : "Reagisci",
+        label: post.myReaction ? "Reaction" : "React",
         count: reactionTotal,
         active: Boolean(post.myReaction),
         icon: reactionEmoji ? (
@@ -228,7 +229,7 @@ export const PostCard = ({
       },
       {
         id: "comment",
-        label: "Commenta",
+        label: "Comment",
         count: commentCount,
         active: showComments,
         icon: COMMENT_ICON,
@@ -236,7 +237,7 @@ export const PostCard = ({
       },
       {
         id: "favorite",
-        label: post.favoritedByMe ? "Salvato" : "Salva",
+        label: post.favoritedByMe ? "Saved" : "Save",
         active: post.favoritedByMe,
         icon: FAVORITE_ICON,
         variant: "default" as const,
@@ -313,22 +314,22 @@ export const PostCard = ({
 
       {post.taggedUsers?.length ? (
         <div className="flex flex-wrap items-center gap-2 text-xs text-subtle">
-          <span className="font-semibold text-foreground">Con:</span>
+          <span className="font-semibold text-foreground">With:</span>
           {post.taggedUsers.map((user) => (
             <span
               key={user.userId}
-              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-2 py-1 text-[11px] text-foreground"
+              className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface px-2 py-1 text-[11px] text-foreground"
             >
-              {user.fullName ?? user.username ?? "Utente"}
+              {user.fullName ?? user.username ?? "User"}
             </span>
           ))}
         </div>
       ) : null}
 
       {showMedia && mediaLoading ? (
-        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/60 bg-surface-muted px-4 py-4">
+        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted px-4 py-4">
           <Loader size="sm" />
-          <span className="text-sm text-muted">Caricamento media...</span>
+          <span className="text-sm text-muted">Loading media...</span>
         </div>
       ) : null}
 
@@ -344,7 +345,7 @@ export const PostCard = ({
       ) : null}
 
       {showReactions ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] border border-border/60 bg-surface-muted px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted px-3 py-2">
           {REACTION_OPTIONS.map((reaction) => {
             const isActive = post.myReaction === reaction.type;
             return (
@@ -376,7 +377,7 @@ export const PostCard = ({
               }}
               className="ml-auto text-[11px] font-semibold text-subtle hover:text-foreground"
             >
-              Rimuovi reazione
+              Remove reaction
             </button>
           ) : null}
         </div>

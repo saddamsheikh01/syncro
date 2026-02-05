@@ -73,7 +73,7 @@ export const Dropdown = ({
         disabled={disabled}
         onClick={handleToggle}
         className={cx(
-          "inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground shadow-sm",
+          "inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20",
           "disabled:cursor-not-allowed disabled:opacity-60",
           buttonClassName
         )}
@@ -84,7 +84,7 @@ export const Dropdown = ({
       {open ? (
         <div
           className={cx(
-            "absolute z-10 mt-2 min-w-[220px] rounded-[var(--radius-md)] border border-border bg-card p-2 shadow-lg",
+            "absolute z-10 mt-2 min-w-[220px] rounded-[var(--radius-md)] border border-border/70 bg-card p-2 shadow-lg",
             align === "left" ? "left-0" : "right-0",
             menuClassName
           )}
@@ -96,7 +96,7 @@ export const Dropdown = ({
               onClick={() => handleSelect(item.id, item.disabled)}
               disabled={item.disabled}
               className={cx(
-                "flex w-full flex-col items-start gap-1 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm",
+                "flex w-full flex-col items-start gap-1 rounded-[var(--radius-md)] px-3 py-2 text-left text-sm transition-colors",
                 "text-foreground hover:bg-surface-muted",
                 item.disabled && "cursor-not-allowed text-subtle"
               )}

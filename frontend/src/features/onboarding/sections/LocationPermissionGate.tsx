@@ -33,13 +33,13 @@ export interface LocationPermissionGateProps
 
 export const LocationPermissionGate = ({
   className,
-  title = "Attiva la posizione",
-  description = "Serve per suggerirti luoghi e match vicini.",
-  primaryActionLabel = "Consenti",
-  secondaryActionLabel = "Non ora",
+  title = "Enable location",
+  description = "Used to suggest nearby places and matches.",
+  primaryActionLabel = "Allow",
+  secondaryActionLabel = "Not now",
   primaryActionProps,
   secondaryActionProps,
-  helper = "Puoi cambiare in qualsiasi momento.",
+  helper = "You can change this anytime.",
   ...props
 }: LocationPermissionGateProps) => (
   <Card className={cx("space-y-5 p-6", className)} {...props}>

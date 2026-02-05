@@ -38,7 +38,7 @@ export const ProfileInfoForm = ({
   defaultValue,
   onValueChange,
   onSubmit,
-  submitLabel = "Salva",
+  submitLabel = "Save",
   showSubmit = true,
 }: ProfileInfoFormProps) => {
   const isControlled = value !== undefined;
@@ -68,29 +68,29 @@ export const ProfileInfoForm = ({
     <Card className={cx("space-y-4 p-5", className)}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <Input
-          label="Nome completo"
+          label="Full name"
           value={currentValue.fullName}
-          placeholder="Nome e cognome"
+          placeholder="First and last name"
           onChange={(event) => updateValue({ fullName: event.target.value })}
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
-            label="Citta"
+            label="City"
             value={currentValue.city}
-            placeholder="Milano"
+            placeholder="Milan"
             onChange={(event) => updateValue({ city: event.target.value })}
           />
           <Input
-            label="Paese"
+            label="Country"
             value={currentValue.country}
-            placeholder="Italia"
+            placeholder="Italy"
             onChange={(event) => updateValue({ country: event.target.value })}
           />
         </div>
         <Textarea
           label="Bio"
           value={currentValue.bio}
-          placeholder="Racconta qualcosa di te"
+          placeholder="Tell us about yourself"
           onChange={(event) => updateValue({ bio: event.target.value })}
         />
         {showSubmit ? (

@@ -1,4 +1,4 @@
-import type { TestType } from "@/types/tests";
+import type { TestType } from "@/types/insights";
 
 const TEST_EMOJI: Record<TestType, string> = {
   INTERESTS: "\u{1F9ED}",

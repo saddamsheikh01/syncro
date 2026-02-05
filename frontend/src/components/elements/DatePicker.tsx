@@ -6,21 +6,21 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { cx } from "@/lib/classNames";
 
 const MONTHS = [
-  "Gennaio",
-  "Febbraio",
-  "Marzo",
-  "Aprile",
-  "Maggio",
-  "Giugno",
-  "Luglio",
-  "Agosto",
-  "Settembre",
-  "Ottobre",
-  "Novembre",
-  "Dicembre",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
-const WEEK_DAYS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const pad = (value: number) => value.toString().padStart(2, "0");
 
@@ -58,7 +58,7 @@ export const DatePicker = ({
   label,
   hint,
   error,
-  placeholder = "Seleziona una data",
+  placeholder = "Select a date",
   value,
   defaultValue,
   onValueChange,

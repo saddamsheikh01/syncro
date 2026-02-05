@@ -39,18 +39,18 @@ export const InterestOptionCard = ({
       disabled={disabled}
       onClick={handleClick}
       className={cx(
-        "flex w-full flex-col gap-2 rounded-[var(--radius-lg)] border px-3 py-3 text-left transition",
+        "flex w-full items-center gap-3 rounded-[var(--radius-lg)] border px-4 py-3 text-left shadow-sm transition",
         selected
-          ? "border-accent/30 bg-accent-soft text-foreground"
-          : "border-border bg-card text-foreground",
-        "hover:border-border-strong",
+          ? "border-accent/30 bg-accent-soft text-accent-strong"
+          : "border-border/70 bg-surface text-foreground",
+        "hover:border-border-strong hover:bg-surface-muted/70",
         disabled && "cursor-not-allowed opacity-60",
         className
       )}
       {...props}
     >
       {icon ? (
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-surface-muted text-foreground">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-foreground shadow-sm">
           {icon}
         </span>
       ) : null}

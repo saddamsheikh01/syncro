@@ -25,9 +25,9 @@ export interface ConversationEmptyStateProps
 }
 
 export const ConversationEmptyState = ({
-  title = "Nessuna conversazione",
-  description = "Inizia una chat per vedere i messaggi qui.",
-  actionLabel = "Trova persone",
+  title = "No conversations",
+  description = "Start a chat to see messages here.",
+  actionLabel = "Find people",
   actionHref = "/",
   ...props
 }: ConversationEmptyStateProps) => (

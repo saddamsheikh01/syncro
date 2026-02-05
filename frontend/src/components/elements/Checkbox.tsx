@@ -29,8 +29,8 @@ export const Checkbox = ({
         type="checkbox"
         disabled={disabled}
         className={cx(
-          "mt-1 h-4 w-4 rounded-[4px] border-border text-accent",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+          "mt-1 h-4 w-4 rounded-[6px] border-border/70 text-accent",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25",
           disabled && "opacity-60"
         )}
         {...props}

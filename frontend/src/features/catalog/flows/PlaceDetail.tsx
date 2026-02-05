@@ -124,7 +124,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       }
       setCopyFeedback(message);
     } catch {
-      setCopyFeedback("Impossibile copiare");
+      setCopyFeedback("Unable to copy");
     } finally {
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current);
@@ -180,9 +180,9 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Luogo non valido"
-          description="Il luogo richiesto non esiste o non e disponibile."
-          actionLabel="Torna ai luoghi"
+          title="Invalid place"
+          description="The requested place does not exist or is unavailable."
+          actionLabel="Back to places"
           actionHref="/places"
         />
       </div>
@@ -196,7 +196,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento luogo...</p>
+          <p className="text-sm text-muted">Loading place...</p>
         </Card>
       </div>
     );
@@ -206,9 +206,9 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Impossibile caricare il luogo"
+          title="Unable to load place"
           description={error.message}
-          actionLabel="Torna ai luoghi"
+          actionLabel="Back to places"
           actionHref="/places"
         />
       </div>
@@ -233,7 +233,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
         onClick={() => router.back()}
         className="self-start text-sm text-muted hover:text-foreground"
       >
-        &larr; Indietro
+        &larr; Back
       </button>
 
       <Card className="space-y-4 p-5">
@@ -261,7 +261,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 )}
                 {openNow !== undefined && (
                   <Badge tone={openNow ? "success" : "danger"} size="sm">
-                    {openNow ? "Aperto ora" : "Chiuso ora"}
+                    {openNow ? "Open now" : "Closed now"}
                   </Badge>
                 )}
                 {googleTypeLabel && (
@@ -352,7 +352,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                   <line x1="2" y1="12" x2="22" y2="12" />
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                Sito web
+                Website
               </a>
             )}
           </div>
@@ -360,7 +360,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
 
         {affiliationLink && (
           <AffiliationLinkBox
-            title="Prenota questo luogo"
+            title="Book this place"
             href={affiliationLink.url}
             provider={affiliationLink.provider ?? undefined}
           />
@@ -371,7 +371,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
             <Button
               onClick={() => handleOpenExternal(googleMapsUrl)}
             >
-              Apri in Google Maps
+              Open in Google Maps
             </Button>
           )}
           {googleDirectionsUrl && (
@@ -379,16 +379,16 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               variant="secondary"
               onClick={() => handleOpenExternal(googleDirectionsUrl)}
             >
-              Indicazioni
+              Directions
             </Button>
           )}
           <Button
             variant={isFavorite ? "outline" : "secondary"}
             onClick={handleToggleFavorite}
             loading={savingFavorite}
-            loadingText={isFavorite ? "Rimuovo..." : "Salvo..."}
+            loadingText={isFavorite ? "Removing..." : "Saving..."}
           >
-            {isFavorite ? "Rimuovi dai preferiti" : "Salva nei preferiti"}
+            {isFavorite ? "Remove from favorites" : "Save to favorites"}
           </Button>
           <Button
             variant="ghost"
@@ -401,17 +401,17 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               }
             }}
           >
-            Condividi
+            Share
           </Button>
         </div>
       </Card>
 
       {showPositionCard && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Posizione</h3>
+          <h3 className="text-base font-semibold text-foreground">Location</h3>
           {distanceKm !== null && hasCoordinates && (
             <p className="text-sm font-medium text-accent">
-              A {formatDistanceKm(distanceKm)} da te
+              About {formatDistanceKm(distanceKm)} away
             </p>
           )}
           {hasAddress && (
@@ -419,7 +419,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
           )}
           {hasCoordinates && (
             <p className="text-sm text-muted">
-              Coordinate: {placeDetail.latitude?.toFixed(6)},{" "}
+              Coordinates: {placeDetail.latitude?.toFixed(6)},{" "}
               {placeDetail.longitude?.toFixed(6)}
             </p>
           )}
@@ -429,10 +429,10 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  handleCopy(placeDetail.address ?? "", "Indirizzo copiato")
+                  handleCopy(placeDetail.address ?? "", "Address copied")
                 }
               >
-                Copia indirizzo
+                Copy address
               </Button>
             )}
             {hasCoordinates && (
@@ -442,11 +442,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 onClick={() =>
                   handleCopy(
                     `${placeDetail.latitude?.toFixed(6)}, ${placeDetail.longitude?.toFixed(6)}`,
-                    "Coordinate copiate"
+                    "Coordinates copied"
                   )
                 }
               >
-                Copia coordinate
+                Copy coordinates
               </Button>
             )}
           </div>

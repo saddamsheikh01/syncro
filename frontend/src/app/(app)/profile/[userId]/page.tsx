@@ -3,8 +3,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { UserProfileView } from "@/features/profile/flows/UserProfileView";
 
 export const metadata: Metadata = {
-  title: "Profilo utente | Syncro",
-  description: "Visualizza il profilo pubblico di un utente Syncro.",
+  title: "User profile | Syncro",
+  description: "View the public profile of a Syncro user.",
 };
 
 export default async function UserProfilePage({

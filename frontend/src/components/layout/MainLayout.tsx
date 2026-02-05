@@ -43,7 +43,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
           position={position}
           className={cx(
             "transition-all duration-300",
-            leftbarCollapsed ? "left-28" : "left-80",
+            leftbarCollapsed ? "left-24" : "left-72",
             "right-10 xl:right-[352px]"
           )}
         />
@@ -58,7 +58,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
           isPreview ? "min-h-full" : "min-h-screen",
           "transition-all duration-300",
           "pb-24 lg:pt-36 lg:pb-8",
-          leftbarCollapsed ? "lg:pl-28" : "lg:pl-80",
+          leftbarCollapsed ? "lg:pl-24" : "lg:pl-72",
           "lg:pr-10 xl:pr-[352px]"
         )}
       >

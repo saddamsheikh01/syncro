@@ -124,7 +124,7 @@ const VARIANT_STYLES: Record<
 };
 
 const BASE_CLASSES =
-  "group relative flex flex-col gap-3 rounded-[var(--radius-lg)] border bg-card p-4 text-left shadow-sm transition-all duration-300 hover:scale-[1.02]";
+  "group relative flex flex-col gap-3 rounded-[var(--radius-lg)] border bg-card p-4 text-left shadow-sm transition-all duration-300";
 
 export const QuickActionTile = ({
   title,

@@ -25,7 +25,7 @@ const getOtherParticipant = (
   currentUserId: string | null
 ) => {
   if (!conversation || !currentUserId) {
-    return { userId: null, name: "Utente", avatarUrl: undefined };
+    return { userId: null, name: "User", avatarUrl: undefined };
   }
 
   const other = conversation.participants.find(
@@ -34,7 +34,7 @@ const getOtherParticipant = (
 
   return {
     userId: other?.userId ?? null,
-    name: other?.fullName ?? "Utente",
+    name: other?.fullName ?? "User",
     avatarUrl: other?.avatarUrl ?? undefined,
   };
 };
@@ -103,9 +103,9 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   if (initialLoading) {
     return (
       <div className="flex h-full flex-col">
-        <div className="border-b border-border/60 bg-card px-4 py-3">
+        <div className="border-b border-border/70 bg-card px-4 py-3">
           <ChatHeader
-            name="Caricamento..."
+            name="Loading..."
             showBack
             onBack={handleBack}
           />
@@ -113,7 +113,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         <div className="flex flex-1 items-center justify-center">
           <div className="flex items-center gap-3">
             <Loader size="md" />
-            <p className="text-sm text-muted">Caricamento conversazione...</p>
+            <p className="text-sm text-muted">Loading conversation...</p>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   if (error && messages.length === 0) {
     return (
       <div className="flex h-full flex-col">
-        <div className="border-b border-border/60 bg-card px-4 py-3">
+        <div className="border-b border-border/70 bg-card px-4 py-3">
           <ChatHeader
             name={otherParticipant.name}
             avatarUrl={otherParticipant.avatarUrl}
@@ -134,11 +134,11 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
           <ErrorState
-            title="Impossibile caricare i messaggi"
+            title="Unable to load messages"
             description={error.message}
           />
           <Button variant="secondary" onClick={handleRetry}>
-            Riprova
+            Retry
           </Button>
         </div>
       </div>
@@ -147,7 +147,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="shrink-0 border-b border-border/60 bg-card px-4 py-3">
+      <div className="shrink-0 border-b border-border/70 bg-card px-4 py-3">
         <ChatHeader
           name={otherParticipant.name}
           avatarUrl={otherParticipant.avatarUrl}
@@ -164,11 +164,11 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         className="min-h-0 flex-1"
       />
 
-      <div className="shrink-0 border-t border-border/60 bg-card p-4">
+      <div className="shrink-0 border-t border-border/70 bg-card p-4">
         <ChatComposer
           onSend={handleSend}
           loading={sendingMessage}
-          placeholder={`Scrivi a ${otherParticipant.name}...`}
+          placeholder={`Write to ${otherParticipant.name}...`}
           className="border-0 bg-transparent p-0 shadow-none"
         />
       </div>

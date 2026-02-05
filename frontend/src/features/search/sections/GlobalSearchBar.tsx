@@ -27,7 +27,7 @@ export interface GlobalSearchBarProps {
 
 export const GlobalSearchBar = ({
   className,
-  placeholder = "Cerca luoghi, esperienze o persone",
+  placeholder = "Search places, experiences, or people",
   actionLabel = "Filtri",
 }: GlobalSearchBarProps) => (
   <Card className={cx("flex flex-wrap items-center gap-3 p-4", className)}>

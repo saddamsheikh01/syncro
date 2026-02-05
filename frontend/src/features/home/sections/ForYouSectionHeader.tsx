@@ -23,7 +23,7 @@ export const ForYouSectionHeader = ({
 }: ForYouSectionHeaderProps) => (
   <div className={cx("space-y-2", className)} {...props}>
     <Badge tone="accent" size="sm">
-      Per te
+      For you
     </Badge>
     <SectionHeader
       title={title}

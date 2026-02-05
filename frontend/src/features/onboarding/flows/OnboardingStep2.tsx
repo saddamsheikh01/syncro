@@ -67,7 +67,7 @@ export const OnboardingStep2 = () => {
     setFormError(null);
 
     if (!hasMinSelection) {
-      setFormError(`Seleziona almeno ${MIN_SELECTIONS} passioni.`);
+      setFormError(`Select at least ${MIN_SELECTIONS} interests.`);
       return;
     }
 
@@ -80,7 +80,7 @@ export const OnboardingStep2 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Errore durante il salvataggio.";
+          : "Error while saving.";
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -91,21 +91,21 @@ export const OnboardingStep2 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Seleziona le tue passioni"
-          subtitle="Scegli gli argomenti che ti rappresentano di piu."
+          title="Select your interests"
+          subtitle="Choose the topics that best represent you."
           step={2}
           totalSteps={3}
         />
 
         <InterestPickerGrid
           items={interestItems}
-          hint={`Seleziona almeno ${MIN_SELECTIONS} passioni per continuare.`}
+          hint={`Select at least ${MIN_SELECTIONS} interests to continue.`}
           onItemToggle={handleToggle}
         />
 
         {selectedTags.length ? (
           <Card className="p-5">
-            <SelectedTagsRow title="Selezionati" items={selectedTags} />
+            <SelectedTagsRow title="Selected" items={selectedTags} />
           </Card>
         ) : null}
 
@@ -121,16 +121,16 @@ export const OnboardingStep2 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-1")}
           >
-            Indietro
+            Back
           </Button>
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Salvataggio"
+            loadingText="Saving"
             onClick={handleContinue}
             disabled={!hasMinSelection}
           >
-            Continua
+            Continue
           </Button>
         </div>
       </div>

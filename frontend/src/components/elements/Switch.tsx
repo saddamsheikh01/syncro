@@ -26,7 +26,7 @@ export const Switch = ({
     <label
       htmlFor={switchId}
       className={cx(
-        "flex cursor-pointer items-center justify-between gap-4 rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3",
+        "flex cursor-pointer items-center justify-between gap-4 rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3 shadow-sm",
         disabled && "opacity-60",
         className
       )}
@@ -49,7 +49,7 @@ export const Switch = ({
           disabled={disabled}
           {...props}
         />
-        <span className="absolute inset-0 rounded-full bg-border transition peer-checked:bg-accent" />
+        <span className="absolute inset-0 rounded-full bg-border/80 transition peer-checked:bg-accent" />
         <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-surface shadow-sm transition peer-checked:translate-x-4" />
       </span>
     </label>

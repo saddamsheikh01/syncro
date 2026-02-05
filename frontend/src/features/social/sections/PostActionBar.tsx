@@ -20,7 +20,7 @@ export const PostActionBar = ({
 }: PostActionBarProps) => (
   <div
     className={cx(
-      "flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3 py-2 shadow-sm",
+      "flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-card px-3 py-2 shadow-sm",
       className
     )}
     {...props}

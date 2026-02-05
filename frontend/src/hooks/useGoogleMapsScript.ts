@@ -55,7 +55,7 @@ export const useGoogleMapsScript = () => {
 
     script.onerror = () => {
       loadStatus = "error";
-      setErrorState("Errore nel caricamento di Google Maps");
+      setErrorState("Error loading Google Maps");
     };
 
     document.head.appendChild(script);
@@ -67,9 +67,9 @@ export const useGoogleMapsScript = () => {
   }, [hasApiKey]);
 
   const error = !hasApiKey
-    ? "Google Maps API key non configurata"
+    ? "Google Maps API key is not configured"
     : loadStatus === "error"
-      ? "Errore nel caricamento di Google Maps"
+      ? "Error loading Google Maps"
       : errorState;
 
   return { isLoaded, error, google: isLoaded ? window.google : undefined };

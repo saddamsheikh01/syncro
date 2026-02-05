@@ -3,8 +3,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { ChatDetail } from "@/features/social/flows/ChatDetail";
 
 export const metadata: Metadata = {
-  title: "Conversazione | Syncro",
-  description: "Chat con un altro utente.",
+  title: "Conversation | Syncro",
+  description: "Chat with another user.",
 };
 
 interface ChatDetailPageProps {

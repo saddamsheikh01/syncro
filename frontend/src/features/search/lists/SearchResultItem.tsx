@@ -23,8 +23,8 @@ export interface SearchResultItemProps
 }
 
 const getTypeLabel = (type: SearchResultType) => {
-  if (type === "USER") return "Utente";
-  return "Luogo";
+  if (type === "USER") return "User";
+  return "Place";
 };
 
 export const SearchResultItem = ({

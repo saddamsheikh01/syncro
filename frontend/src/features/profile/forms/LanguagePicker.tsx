@@ -23,8 +23,8 @@ const DEFAULT_OPTIONS: SelectOption[] = [
 
 export const LanguagePicker = ({
   className,
-  label = "Lingua",
-  description = "Seleziona la lingua dell'interfaccia.",
+  label = "Language",
+  description = "Select the interface language.",
   value,
   defaultValue = "it",
   options = DEFAULT_OPTIONS,

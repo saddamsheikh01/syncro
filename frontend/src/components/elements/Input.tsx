@@ -46,8 +46,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ) : null}
         <div
           className={cx(
-            "flex items-center gap-2 rounded-[var(--radius-md)] border bg-surface px-3 shadow-sm",
-            error ? "border-danger/40" : "border-border",
+            "flex items-center gap-2 rounded-[var(--radius-md)] border bg-surface px-3 shadow-sm transition-colors focus-within:border-accent/40 focus-within:ring-1 focus-within:ring-accent/20",
+            error ? "border-danger/40 focus-within:border-danger/40 focus-within:ring-danger/20" : "border-border/70",
             disabled && "bg-surface-muted text-subtle"
           )}
         >

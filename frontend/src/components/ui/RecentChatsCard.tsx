@@ -53,9 +53,11 @@ export const RecentChatsCard = () => {
 
   if (loadingConversations && recentChats.length === 0) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">Chat recenti</p>
+      <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-semibold text-foreground">
+            Your latest conversations
+          </p>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -75,17 +77,17 @@ export const RecentChatsCard = () => {
   if (recentChats.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
           <ChatIcon />
-          <span>Chat recenti</span>
+          <span>Your latest conversations</span>
         </div>
         <Link
           href="/chat"
           className="text-[10px] font-medium text-accent hover:underline"
         >
-          Vedi tutte
+          View all
         </Link>
       </div>
 
@@ -95,8 +97,8 @@ export const RecentChatsCard = () => {
             (p) => p.userId !== user?.id
           );
           const otherParticipantId = otherParticipant?.userId ?? null;
-          const name = otherParticipant?.fullName || "Utente";
-          const lastMessage = conversation.lastMessage?.content || "Nessun messaggio";
+          const name = otherParticipant?.fullName || "User";
+          const lastMessage = conversation.lastMessage?.content || "No messages";
           const time = conversation.lastMessage?.createdAt
             ? formatTime(conversation.lastMessage.createdAt)
             : conversation.createdAt
@@ -108,7 +110,7 @@ export const RecentChatsCard = () => {
               key={conversation.id}
               role="button"
               tabIndex={0}
-              aria-label={`Apri chat con ${name}`}
+              aria-label={`Open chat with ${name}`}
               className={cx(
                 "group flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 transition-colors",
                 "hover:bg-surface-muted"
@@ -140,8 +142,8 @@ export const RecentChatsCard = () => {
                           event.stopPropagation();
                           router.push(`/profile/${otherParticipantId}`);
                         }}
-                        aria-label={`Apri profilo di ${name}`}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
+                        aria-label={`Open profile of ${name}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
                       >
                         <NavIcon name="user" className="h-3.5 w-3.5" />
                       </button>

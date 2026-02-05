@@ -32,8 +32,8 @@ export const ExperienceDetailSheet = ({
   metaItems = [],
   tags = [],
   media,
-  primaryActionLabel = "Prenota",
-  secondaryActionLabel = "Condividi",
+  primaryActionLabel = "Book",
+  secondaryActionLabel = "Share",
   ...props
 }: ExperienceDetailSheetProps) => (
   <Card className={cx("space-y-4 p-5", className)} {...props}>

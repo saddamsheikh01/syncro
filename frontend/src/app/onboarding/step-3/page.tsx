@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 // import { OnboardingStep3 } from "@/features/onboarding/flows/OnboardingStep3";
 
 export const metadata: Metadata = {
-  title: "Onboarding - Preferenze | Syncro",
-  description: "Imposta le preferenze di match e feed su Syncro.",
+  title: "Onboarding - Preferences | Syncro",
+  description: "Set match and feed preferences on Syncro.",
 };
 
 // Onboarding semplificato: step 3 disabilitato, redirect a home

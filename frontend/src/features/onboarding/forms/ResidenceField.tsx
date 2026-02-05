@@ -16,8 +16,8 @@ export interface ResidenceFieldProps {
 
 export const ResidenceField = ({
   className,
-  title = "Residenza",
-  description = "Indicaci dove vivi per suggerimenti piu precisi.",
+  title = "Residence",
+  description = "Tell us where you live for more accurate suggestions.",
   cityValue,
   countryValue,
   onCityChange,
@@ -30,15 +30,15 @@ export const ResidenceField = ({
     </div>
     <div className="grid gap-3 sm:grid-cols-2">
       <Input
-        label="Citta"
+        label="City"
         value={cityValue}
-        placeholder="Milano"
+        placeholder="Milan"
         onChange={(event) => onCityChange?.(event.target.value)}
       />
       <Input
-        label="Paese"
+        label="Country"
         value={countryValue}
-        placeholder="Italia"
+        placeholder="Italy"
         onChange={(event) => onCountryChange?.(event.target.value)}
       />
     </div>

@@ -86,7 +86,7 @@ export const CookieConsentDrawer = ({
       setOpen(false);
       onConsentGiven?.();
     } catch (error) {
-      console.error("Errore nel salvataggio dei consensi:", error);
+      console.error("Error saving consent preferences:", error);
     } finally {
       setLoading(false);
     }
@@ -100,20 +100,20 @@ export const CookieConsentDrawer = ({
   return (
     <Drawer
       open={open}
-      title="Privacy e Cookie"
-      description="Per continuare a utilizzare Syncro, accetta la nostra privacy policy e la gestione dei cookie. Puoi anche scegliere se ricevere la nostra newsletter."
+      title="Privacy and cookies"
+      description="To continue using Syncro, accept our privacy policy and cookie management. You can also choose whether to receive our newsletter."
       onClose={handleClose}
       primaryAction={{
-        label: loading ? "Salvataggio..." : "Accetta e continua",
+        label: loading ? "Saving..." : "Accept and continue",
         onClick: handleAccept,
         variant: "primary",
       }}
     >
       <div className="space-y-4">
-        <div className="rounded-[var(--radius-md)] border border-border bg-surface-muted p-4">
+        <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted p-4">
           <p className="text-sm text-foreground">
-            Utilizziamo cookie tecnici necessari per il funzionamento dell&apos;app
-            e cookie analitici per migliorare la tua esperienza.
+            We use essential cookies required for the app to work and analytics
+            cookies to improve your experience.
           </p>
           <a
             href="/privacy"
@@ -121,13 +121,13 @@ export const CookieConsentDrawer = ({
             rel="noopener noreferrer"
             className="mt-2 inline-block text-sm font-medium text-accent hover:underline"
           >
-            Leggi la Privacy Policy completa
+            Read the full Privacy Policy
           </a>
         </div>
 
         <Switch
-          label="Iscriviti alla newsletter"
-          description="Ricevi aggiornamenti, novità e contenuti esclusivi via email."
+          label="Subscribe to the newsletter"
+          description="Receive updates, news, and exclusive content by email."
           checked={newsletterChecked}
           onChange={(e) => setNewsletterChecked(e.target.checked)}
         />

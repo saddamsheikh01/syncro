@@ -32,7 +32,7 @@ export const PostHeader = ({
       <button
         type="button"
         onClick={onProfileClick}
-        aria-label={`Apri profilo di ${name}`}
+        aria-label={`Open profile of ${name}`}
         className="group flex min-w-0 items-center gap-3 text-left"
       >
         <Avatar name={name} src={avatarUrl} />

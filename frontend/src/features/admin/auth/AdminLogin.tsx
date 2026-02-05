@@ -37,10 +37,10 @@ export const AdminLogin = () => {
             <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Accesso Admin
+            Admin login
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Accedi al backoffice Syncro.
+            Sign in to the Syncro back office.
           </p>
         </div>
 
@@ -87,13 +87,13 @@ export const AdminLogin = () => {
 
           {success && !error ? (
             <div className="rounded-[var(--radius-md)] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-              Accesso admin completato.
+              Admin login successful.
             </div>
           ) : null}
 
           {isAuthenticated && admin ? (
             <div className="rounded-[var(--radius-md)] border border-border-strong bg-surface px-4 py-3 text-sm text-foreground">
-              Sei autenticato come {admin.email}.
+              You are authenticated as {admin.email}.
             </div>
           ) : null}
 
@@ -102,14 +102,14 @@ export const AdminLogin = () => {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Accesso in corso..." : "Accedi"}
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <div className="mt-8 text-sm text-muted">
-          Vuoi creare un admin?{" "}
+          Need to create an admin?{" "}
           <Link className="font-semibold text-foreground" href="/admin/register">
-            Registrazione admin
+            Admin registration
           </Link>
         </div>
       </div>

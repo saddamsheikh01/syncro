@@ -46,9 +46,9 @@ export const OnboardingStepHeader = ({
         {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
       </div>
       {showStep ? (
-        <div className="h-2 w-full rounded-full bg-surface-muted">
+        <div className="h-2 w-full rounded-full bg-surface-muted/80">
           <div
-            className="h-2 rounded-full bg-accent"
+            className="h-2 rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)]"
             style={{ width: `${progress}%` }}
           />
         </div>

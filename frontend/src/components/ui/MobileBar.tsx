@@ -21,8 +21,8 @@ type MobileNavItem = {
 const MOBILE_ITEMS: MobileNavItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
   { id: "matches", label: "Match", href: "/matches", icon: "spark" },
-  { id: "tests", label: "Test", href: "/tests", icon: "clipboard" },
-  { id: "profile", label: "Profilo", href: "/profile", icon: "user" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "clipboard" },
+  { id: "profile", label: "Profile", href: "/profile", icon: "user" },
 ];
 
 const normalizePath = (path: string) =>
@@ -57,8 +57,8 @@ export const MobileBar = ({
       >
         {/* Main navigation bar */}
         <nav
-          className="flex flex-1 items-center justify-between rounded-[2rem] border border-white/10 bg-card/70 px-3 shadow-xl backdrop-blur-xl"
-          aria-label="Navigazione mobile"
+          className="flex flex-1 items-center justify-between rounded-[2rem] border border-border/70 bg-surface px-3 shadow-md"
+          aria-label="Mobile navigation"
         >
           {MOBILE_ITEMS.map((item) => {
             const active = isItemActive(pathname, item.href);
@@ -106,7 +106,9 @@ export const MobileBar = ({
                 <span
                   className={cx(
                     "flex h-7 w-7 items-center justify-center rounded-full transition",
-                    active ? "bg-accent-soft" : "bg-transparent"
+                    active
+                      ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_6px_14px_var(--accent-glow)]"
+                      : "bg-surface-muted text-muted"
                   )}
                 >
                   <NavIcon name={item.icon} className="h-4 w-4" />
@@ -122,10 +124,10 @@ export const MobileBar = ({
           type="button"
           onClick={() => setDrawerOpen(true)}
           className={cx(
-            "flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-card/70 shadow-xl backdrop-blur-xl transition",
+            "flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-border/70 bg-surface shadow-md transition",
             drawerOpen
-              ? "border-accent/30 bg-accent/20 text-accent"
-              : "text-muted hover:bg-card/80 hover:text-foreground"
+              ? "border-accent/30 bg-accent-soft text-accent"
+              : "text-muted hover:bg-surface-muted hover:text-foreground"
           )}
           aria-label="Apri menu"
           aria-expanded={drawerOpen}

@@ -20,18 +20,18 @@ const VISIBILITY_OPTIONS: Array<{
 }> = [
   {
     value: "PUBLIC",
-    label: "Pubblico",
-    description: "Mostra il tuo profilo completo.",
+    label: "Public",
+    description: "Show your full profile.",
   },
   {
     value: "PARTIAL",
-    label: "Parziale",
-    description: "Nasconde alcuni dettagli sensibili.",
+    label: "Partial",
+    description: "Hide some sensitive details.",
   },
   {
     value: "PRIVATE",
-    label: "Privato",
-    description: "Profilo visibile solo nei match.",
+    label: "Private",
+    description: "Profile visible only in matches.",
   },
 ];
 
@@ -88,12 +88,12 @@ export const OnboardingStep1 = () => {
     const trimmedCountry = country.trim();
 
     if (!trimmedName) {
-      setFormError("Inserisci il nome completo.");
+      setFormError("Enter your full name.");
       return;
     }
 
     if (!trimmedCity || !trimmedCountry) {
-      setFormError("Inserisci citta e paese di residenza.");
+      setFormError("Enter your city and country of residence.");
       return;
     }
 
@@ -119,7 +119,7 @@ export const OnboardingStep1 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Errore durante il salvataggio.";
+          : "Error while saving.";
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -130,8 +130,8 @@ export const OnboardingStep1 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Completa il tuo profilo"
-          subtitle="Aggiungi i dati principali per personalizzare l'esperienza."
+          title="Complete your profile"
+          subtitle="Add the main details to personalize your experience."
           step={1}
           totalSteps={1}
         />
@@ -139,24 +139,24 @@ export const OnboardingStep1 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Informazioni di base
+              Basic information
             </h3>
             <p className="text-sm text-muted">
-              Questi dati ti aiutano a ricevere suggerimenti accurati.
+              This helps us deliver more accurate suggestions.
             </p>
           </div>
           <Input
-            label="Nome completo"
+            label="Full name"
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
-            placeholder="Nome e cognome"
+            placeholder="First and last name"
             required
           />
           <DatePicker
-            label="Data di nascita"
+            label="Date of birth"
             value={birthDate}
             onValueChange={setBirthDate}
-            placeholder="Seleziona una data"
+            placeholder="Select a date"
             maxYear={new Date().getFullYear()}
           />
         </Card>
@@ -192,10 +192,10 @@ export const OnboardingStep1 = () => {
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Salvataggio"
+            loadingText="Saving"
             onClick={handleContinue}
           >
-            Continua
+            Continue
           </Button>
         </div>
       </div>

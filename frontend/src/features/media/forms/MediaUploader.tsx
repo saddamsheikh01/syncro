@@ -16,10 +16,10 @@ export interface MediaUploaderProps
 
 export const MediaUploader = ({
   className,
-  title = "Carica un media",
-  description = "Immagini o video leggeri, max 1 file.",
+  title = "Upload media",
+  description = "Images or videos, max 1 file.",
   accept = "image/*,video/*",
-  buttonLabel = "Seleziona file",
+  buttonLabel = "Choose file",
   ...props
 }: MediaUploaderProps) => {
   const inputId = useId();
@@ -30,7 +30,7 @@ export const MediaUploader = ({
         <h4 className="text-base font-semibold text-foreground">{title}</h4>
         <p className="text-sm text-muted">{description}</p>
       </div>
-      <div className="flex flex-col items-start gap-3 rounded-[var(--radius-md)] border border-dashed border-border/60 bg-surface-muted px-4 py-6">
+      <div className="flex flex-col items-start gap-3 rounded-[var(--radius-md)] border border-dashed border-border/70 bg-surface-muted px-4 py-6">
         <input id={inputId} type="file" accept={accept} className="sr-only" />
         <label htmlFor={inputId} className="inline-flex">
           <Button size="sm" variant="secondary">

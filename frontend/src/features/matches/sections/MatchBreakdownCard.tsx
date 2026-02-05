@@ -6,12 +6,12 @@ import type { DimensionScores, MatchBreakdown } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 
 const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
-  interests: { label: "Interessi", emoji: "💫" },
-  lifestyle: { label: "Stile di vita", emoji: "🏃" },
-  values: { label: "Valori", emoji: "💎" },
-  objectives: { label: "Obiettivi", emoji: "🎯" },
-  psy: { label: "Personalita", emoji: "🧠" },
-  astro: { label: "Astrologia", emoji: "✨" },
+  interests: { label: "Interests", emoji: "💫" },
+  lifestyle: { label: "Lifestyle", emoji: "🏃" },
+  values: { label: "Values", emoji: "💎" },
+  objectives: { label: "Goals", emoji: "🎯" },
+  psy: { label: "Personality", emoji: "🧠" },
+  astro: { label: "Astrology", emoji: "✨" },
 };
 
 const getProgressTone = (value: number): ProgressBarTone => {
@@ -80,11 +80,11 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                Analisi compatibilita
+                Compatibility analysis
               </h4>
               {completeness !== undefined && (
                 <span className="text-[11px] text-muted">
-                  {availableDimensions ?? availableDims.length}/{totalDimensions ?? 6} dimensioni
+                  {availableDimensions ?? availableDims.length}/{totalDimensions ?? 6} dimensions
                 </span>
               )}
             </div>
@@ -95,7 +95,7 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
             </div>
             {missingDims.length > 0 && (
               <p className="mt-3 text-[11px] text-subtle">
-                <span className="text-muted">Non analizzati:</span> {missingDims.join(", ")}
+                <span className="text-muted">Not analyzed:</span> {missingDims.join(", ")}
               </p>
             )}
           </div>

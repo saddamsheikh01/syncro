@@ -46,29 +46,29 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/", "video/"];
 
 const SCOPE_OPTIONS = [
-  { label: "Seleziona un ambito", value: "" },
-  { label: "Amicizia", value: "AMICIZIA" },
-  { label: "Esperienze", value: "ESPERIENZE" },
-  { label: "Lavoro", value: "LAVORO" },
-  { label: "Benessere", value: "BENESSERE" },
+  { label: "Select a scope", value: "" },
+  { label: "Friendship", value: "AMICIZIA" },
+  { label: "Experiences", value: "ESPERIENZE" },
+  { label: "Work", value: "LAVORO" },
+  { label: "Wellness", value: "BENESSERE" },
 ];
 
 const MOOD_OPTIONS = [
-  { label: "Seleziona un mood", value: "" },
-  { label: "Sereno", value: "SERENO" },
-  { label: "Entusiasta", value: "ENTUSIASTA" },
-  { label: "Socievole", value: "SOCIEVOLE" },
-  { label: "Riflessivo", value: "RIFLESSIVO" },
-  { label: "Rilassato", value: "RILASSATO" },
-  { label: "Carico", value: "CARICO" },
-  { label: "Curioso", value: "CURIOSO" },
-  { label: "Avventuroso", value: "AVVENTUROSO" },
+  { label: "Select a mood", value: "" },
+  { label: "Calm", value: "SERENO" },
+  { label: "Excited", value: "ENTUSIASTA" },
+  { label: "Social", value: "SOCIEVOLE" },
+  { label: "Reflective", value: "RIFLESSIVO" },
+  { label: "Relaxed", value: "RILASSATO" },
+  { label: "Energized", value: "CARICO" },
+  { label: "Curious", value: "CURIOSO" },
+  { label: "Adventurous", value: "AVVENTUROSO" },
 ];
 
 const TIMEFRAME_OPTIONS = [
-  { label: "Seleziona un tempo", value: "" },
-  { label: "Ora", value: "ORA" },
-  { label: "Oggi", value: "OGGI" },
+  { label: "Select a time", value: "" },
+  { label: "Now", value: "ORA" },
+  { label: "Today", value: "OGGI" },
 ];
 
 const formatFileSize = (bytes: number) => {
@@ -200,7 +200,7 @@ export const PostComposerModal = ({
         return prev;
       }
       if (prev.length >= 10) {
-        setLocalError("Puoi taggare al massimo 10 persone.");
+        setLocalError("You can tag up to 10 people.");
         return prev;
       }
       return [...prev, user];
@@ -219,12 +219,12 @@ export const PostComposerModal = ({
     if (!file) return;
 
     if (!isValidFileType(file)) {
-      setLocalError(`"${file.name}" non è un formato valido. Usa immagini o video.`);
+      setLocalError(`"${file.name}" is not a valid format. Use images or videos.`);
       event.target.value = "";
       return;
     }
     if (!isValidFileSize(file)) {
-      setLocalError(`"${file.name}" supera il limite di ${MAX_FILE_SIZE_MB} MB.`);
+      setLocalError(`"${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB limit.`);
       event.target.value = "";
       return;
     }
@@ -243,7 +243,7 @@ export const PostComposerModal = ({
     const trimmed = content.trim();
 
     if (!trimmed) {
-      setLocalError("Scrivi qualcosa prima di pubblicare.");
+      setLocalError("Write something before publishing.");
       return;
     }
 
@@ -271,22 +271,22 @@ export const PostComposerModal = ({
   return (
     <Modal
       open={open}
-      title="Crea un post"
-      description="Condividi un pensiero o una foto con la community."
+      title="Create a post"
+      description="Share a thought or a photo with the community."
       onClose={handleClose}
     >
       <div className="space-y-4">
         <Textarea
-          label="Testo"
+          label="Text"
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          placeholder="Cosa stai vivendo oggi?"
+          placeholder="What are you experiencing today?"
           rows={4}
         />
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Select
-            label="Ambito"
+            label="Scope"
             options={SCOPE_OPTIONS}
             value={scope}
             onValueChange={(value) => setScope(value as "" | PostScope)}
@@ -298,7 +298,7 @@ export const PostComposerModal = ({
             onValueChange={(value) => setMood(value as "" | PostMood)}
           />
           <Select
-            label="Tempo"
+            label="Time"
             options={TIMEFRAME_OPTIONS}
             value={timeframe}
             onValueChange={(value) => setTimeframe(value as "" | PostTimeframe)}
@@ -308,22 +308,22 @@ export const PostComposerModal = ({
         <Card className="space-y-3 border-dashed border-border/70 bg-surface-muted p-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Persone presenti
+              People with you
             </p>
             <p className="text-xs text-subtle">
-              Tagga fino a 10 persone che erano con te.
+              Tag up to 10 people who were with you.
             </p>
           </div>
           <Input
-            label="Cerca persone"
+            label="Search people"
             value={tagQuery}
             onChange={handleTagQueryChange}
-            placeholder="Cerca per nome o username"
+            placeholder="Search by name or username"
           />
           {tagLoading ? (
             <div className="flex items-center gap-2 text-xs text-subtle">
               <Loader size="sm" />
-              Ricerca in corso...
+              Searching...
             </div>
           ) : null}
           {tagResults.length ? (
@@ -333,13 +333,13 @@ export const PostComposerModal = ({
                   key={user.userId}
                   type="button"
                   onClick={() => handleAddTaggedUser(user)}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2 text-left text-xs text-foreground hover:border-border-strong"
+                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 py-2 text-left text-xs text-foreground hover:border-border-strong"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <Avatar name={user.fullName ?? user.username ?? "Utente"} src={user.avatarUrl ?? undefined} />
+                    <Avatar name={user.fullName ?? user.username ?? "User"} src={user.avatarUrl ?? undefined} />
                     <div className="min-w-0">
                       <p className="truncate font-semibold">
-                        {user.fullName ?? user.username ?? "Utente Syncro"}
+                        {user.fullName ?? user.username ?? "Syncro user"}
                       </p>
                       {user.username ? (
                         <p className="truncate text-[11px] text-subtle">
@@ -349,7 +349,7 @@ export const PostComposerModal = ({
                     </div>
                   </div>
                   <span className="text-[11px] font-semibold text-accent">
-                    Aggiungi
+                    Add
                   </span>
                 </button>
               ))}
@@ -360,22 +360,22 @@ export const PostComposerModal = ({
               {taggedUsers.map((user) => (
                 <span
                   key={user.userId}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-3 py-1.5 text-xs text-foreground"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-1.5 text-xs text-foreground"
                 >
                   <Avatar
-                    name={user.fullName ?? user.username ?? "Utente"}
+                    name={user.fullName ?? user.username ?? "User"}
                     src={user.avatarUrl ?? undefined}
                     size="sm"
                   />
                   <span className="max-w-[120px] truncate">
-                    {user.fullName ?? user.username ?? "Utente"}
+                    {user.fullName ?? user.username ?? "User"}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveTaggedUser(user.userId)}
                     className="text-[10px] font-semibold text-subtle hover:text-foreground"
                   >
-                    Rimuovi
+                    Remove
                   </button>
                 </span>
               ))}
@@ -387,10 +387,10 @@ export const PostComposerModal = ({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-foreground">
-                Media allegati
+              Attached media
               </p>
               <p className="text-xs text-subtle">
-                Aggiungi una immagine o un video (max {MAX_FILE_SIZE_MB} MB).
+                Add an image or a video (max {MAX_FILE_SIZE_MB} MB).
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -401,7 +401,7 @@ export const PostComposerModal = ({
                   loading && "cursor-not-allowed opacity-60"
                 )}
               >
-                {fileItems.length ? "Sostituisci media" : "Carica media"}
+                {fileItems.length ? "Replace media" : "Upload media"}
               </label>
               <input
                 id={inputId}
@@ -419,7 +419,7 @@ export const PostComposerModal = ({
               {fileItems.map((file, index) => (
                 <div
                   key={file.key}
-                  className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2 text-xs text-foreground"
+                  className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 py-2 text-xs text-foreground"
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{file.name}</p>
@@ -433,26 +433,26 @@ export const PostComposerModal = ({
                     className="text-[11px] font-semibold text-subtle hover:text-foreground"
                     disabled={loading}
                   >
-                    Rimuovi
+                    Remove
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <p className="text-xs text-subtle">
-              Nessun media selezionato.
+              No media selected.
             </p>
           )}
         </Card>
 
         <Switch
-          label="Usa la mia posizione"
+          label="Use my location"
           description={
             positionAvailable
               ? positionLabel
-                ? `Posizione: ${positionLabel}`
-                : "Aggiunge la geolocalizzazione al post."
-              : "Attiva la posizione per usarla nei post."
+                ? `Location: ${positionLabel}`
+                : "Adds geolocation to the post."
+              : "Enable location to use it in posts."
           }
           checked={includePosition}
           onChange={(event) => setIncludePosition(event.target.checked)}
@@ -462,21 +462,21 @@ export const PostComposerModal = ({
         {localError || error ? (
           <Card className="border-danger/30 bg-danger/10 p-3">
             <p className="text-xs text-danger">
-              {localError ?? error ?? "Errore durante la pubblicazione."}
+              {localError ?? error ?? "Error while publishing."}
             </p>
           </Card>
         ) : null}
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={handleClose} disabled={loading}>
-            Annulla
+            Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             loading={loading}
-            loadingText="Pubblicazione"
+            loadingText="Publishing"
           >
-            Pubblica
+            Publish
           </Button>
         </div>
       </div>
@@ -485,8 +485,8 @@ export const PostComposerModal = ({
         open={showConfirmClose}
         onConfirm={handleConfirmClose}
         onCancel={handleCancelClose}
-        title="Post non pubblicato"
-        description="Hai scritto un post che non è stato pubblicato. Se esci adesso, il contenuto andrà perso."
+        title="Post not published"
+        description="You wrote a post that hasn&apos;t been published. If you leave now, the content will be lost."
       />
     </Modal>
   );

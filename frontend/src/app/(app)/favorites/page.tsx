@@ -3,8 +3,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { FavoritesOverview } from "@/features/favorites/flows/FavoritesOverview";
 
 export const metadata: Metadata = {
-  title: "Preferiti | Syncro",
-  description: "Raccogli e gestisci i tuoi luoghi ed esperienze salvati.",
+  title: "Favorites | Syncro",
+  description: "Collect and manage your saved places and experiences.",
 };
 
 export default function FavoritesPage() {

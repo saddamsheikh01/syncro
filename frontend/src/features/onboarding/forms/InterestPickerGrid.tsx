@@ -21,8 +21,8 @@ export interface InterestPickerGridProps extends Omit<
 
 export const InterestPickerGrid = ({
   className,
-  title = "Le tue passioni",
-  subtitle = "Seleziona gli argomenti che ti rappresentano.",
+  title = "Your interests",
+  subtitle = "Select the topics that represent you.",
   hint,
   items,
   maxSelections,

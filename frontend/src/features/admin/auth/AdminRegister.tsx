@@ -50,10 +50,10 @@ export const AdminRegister = () => {
             <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Registrazione Admin
+            Admin registration
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Crea un nuovo utente admin per Syncro.
+            Create a new admin user for Syncro.
           </p>
         </div>
 
@@ -88,12 +88,12 @@ export const AdminRegister = () => {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="Crea una password"
+              placeholder="Create a password"
             />
           </div>
 
           <Select
-            label="Ruolo"
+            label="Role"
             name="role"
             value={role}
             options={ADMIN_ROLE_OPTIONS}
@@ -105,7 +105,7 @@ export const AdminRegister = () => {
               className="text-sm font-medium text-foreground"
               htmlFor="admin-register-bootstrap"
             >
-              Bootstrap secret (opzionale)
+              Bootstrap secret (optional)
             </label>
             <input
               id="admin-register-bootstrap"
@@ -114,7 +114,7 @@ export const AdminRegister = () => {
               value={bootstrapSecret}
               onChange={(event) => setBootstrapSecret(event.target.value)}
               className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="Solo per la prima creazione"
+              placeholder="Only for the first setup"
             />
           </div>
 
@@ -126,13 +126,13 @@ export const AdminRegister = () => {
 
           {success && !error ? (
             <div className="rounded-[var(--radius-md)] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-              Admin creato con successo.
+              Admin created successfully.
             </div>
           ) : null}
 
           {isAuthenticated && admin ? (
             <div className="rounded-[var(--radius-md)] border border-border-strong bg-surface px-4 py-3 text-sm text-foreground">
-              Admin attivo: {admin.email} ({admin.role}).
+              Active admin: {admin.email} ({admin.role}).
             </div>
           ) : null}
 
@@ -141,14 +141,14 @@ export const AdminRegister = () => {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Creazione in corso..." : "Crea admin"}
+            {isSubmitting ? "Creating..." : "Create admin"}
           </button>
         </form>
 
         <div className="mt-8 text-sm text-muted">
-          Hai gia un admin?{" "}
+          Already have an admin?{" "}
           <Link className="font-semibold text-foreground" href="/admin/login">
-            Accedi
+            Log in
           </Link>
         </div>
       </div>

@@ -161,7 +161,7 @@ export const GoogleMapContainer = ({
       map: googleMapRef.current,
       position: { lat: userPosition.latitude, lng: userPosition.longitude },
       content: markerContent,
-      title: "La tua posizione",
+      title: "Your location",
       zIndex: 1000,
     });
 

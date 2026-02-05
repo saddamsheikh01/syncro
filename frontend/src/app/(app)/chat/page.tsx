@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { ChatConversationList } from "@/features/social/flows/ChatConversationList";
+import { ChatEntry } from "@/features/social/flows/ChatEntry";
 
 export const metadata: Metadata = {
   title: "Chat | Syncro",
-  description: "Le tue conversazioni con le persone che hai incontrato.",
+  description: "Your conversations with people you&apos;ve met.",
 };
 
 export default function ChatPage() {
   return (
     <MainLayout>
-      <ChatConversationList />
+      <ChatEntry />
     </MainLayout>
   );
 }

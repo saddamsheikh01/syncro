@@ -78,21 +78,21 @@ export const normalizeApiError = (error: unknown): ApiError => {
       return {
         code: axiosError.code === "ECONNABORTED" ? "TIMEOUT" : "NETWORK_ERROR",
         status: 0,
-        message: "Errore di rete",
+        message: "Network error",
       };
     }
 
     return {
       code: "HTTP_ERROR",
       status: response.status,
-      message: axiosError.message || "Errore HTTP",
+      message: axiosError.message || "HTTP error",
     };
   }
 
   return {
     code: "UNKNOWN",
     status: 0,
-    message: "Errore inatteso",
+    message: "Unexpected error",
   };
 };
 

@@ -46,9 +46,9 @@ export const PostActionButton = ({
         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
         active
           ? isLike
-            ? "border-red-200 bg-red-50 text-red-500 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+            ? "border-rose-200/80 bg-rose-100/70 text-rose-500"
             : "border-accent/30 bg-accent-soft text-accent"
-          : "border-border bg-surface text-foreground hover:border-border-strong",
+          : "border-border/70 bg-surface text-foreground hover:border-border-strong",
         isLike && !active && "hover:border-red-200 hover:text-red-400",
         disabled && "cursor-not-allowed opacity-60",
         className
@@ -61,7 +61,7 @@ export const PostActionButton = ({
             "inline-flex transition-transform duration-200",
             active
               ? isLike
-                ? "scale-110 text-red-500 dark:text-red-400"
+                ? "scale-110 text-rose-500"
                 : "text-accent"
               : "text-subtle",
             isLike && active && "[&>svg]:fill-current"
@@ -75,7 +75,7 @@ export const PostActionButton = ({
         <span
           className={cx(
             "text-xs tabular-nums",
-            active ? (isLike ? "text-red-500 dark:text-red-400" : "text-accent") : "text-subtle"
+            active ? (isLike ? "text-rose-500" : "text-accent") : "text-subtle"
           )}
         >
           {count}

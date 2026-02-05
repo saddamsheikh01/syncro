@@ -67,9 +67,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Esperienza non valida"
-          description="L'esperienza richiesta non esiste o non e disponibile."
-          actionLabel="Torna alle esperienze"
+          title="Invalid experience"
+          description="The requested experience does not exist or is unavailable."
+          actionLabel="Back to experiences"
           actionHref="/experiences"
         />
       </div>
@@ -83,7 +83,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento esperienza...</p>
+          <p className="text-sm text-muted">Loading experience...</p>
         </Card>
       </div>
     );
@@ -93,9 +93,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Impossibile caricare l'esperienza"
+          title="Unable to load experience"
           description={error.message}
-          actionLabel="Torna alle esperienze"
+          actionLabel="Back to experiences"
           actionHref="/experiences"
         />
       </div>
@@ -111,10 +111,10 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
 
   const formatDuration = (minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
-    if (minutes < 60) return `${minutes} minuti`;
+    if (minutes < 60) return `${minutes} minutes`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours} ore e ${mins} minuti` : `${hours} ore`;
+    return mins > 0 ? `${hours} hours and ${mins} minutes` : `${hours} hours`;
   };
 
   const formatPrice = (
@@ -123,7 +123,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   ): string | undefined => {
     if (price == null) return undefined;
     const curr = currency ?? "EUR";
-    return new Intl.NumberFormat("it-IT", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: curr,
     }).format(price);
@@ -141,7 +141,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         onClick={() => router.back()}
         className="self-start text-sm text-muted hover:text-foreground"
       >
-        &larr; Indietro
+        &larr; Back
       </button>
 
       <Card className="space-y-4 p-5">
@@ -202,7 +202,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               </span>
               {experienceDetail.reviewCount != null && experienceDetail.reviewCount > 0 && (
                 <span className="text-sm text-muted">
-                  ({experienceDetail.reviewCount} recensioni)
+                  ({experienceDetail.reviewCount} reviews)
                 </span>
               )}
             </div>
@@ -220,12 +220,12 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 <span className="text-lg font-semibold text-foreground">
                   {formatPrice(experienceDetail.price, experienceDetail.priceCurrency)}
                 </span>
-                <span className="text-xs text-muted">a persona</span>
+                <span className="text-xs text-muted">per person</span>
               </div>
             )}
             {experienceDetail.durationMinutes && (
               <span className="text-sm text-muted">
-                Durata: {formatDuration(experienceDetail.durationMinutes)}
+                Duration: {formatDuration(experienceDetail.durationMinutes)}
               </span>
             )}
           </div>
@@ -233,7 +233,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           {/* Provider badge */}
           {experienceDetail.provider && (
             <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-xs text-subtle">
-              via {experienceDetail.provider}
+              by {experienceDetail.provider}
             </span>
           )}
         </div>
@@ -256,16 +256,16 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         <div className="flex flex-wrap gap-3 pt-2">
           {bookingUrl && (
             <Button onClick={() => window.open(bookingUrl, "_blank")}>
-              Prenota ora
+              Book now
             </Button>
           )}
           <Button
             variant={isFavorite ? "outline" : "secondary"}
             onClick={handleToggleFavorite}
             loading={savingFavorite}
-            loadingText={isFavorite ? "Rimuovo..." : "Salvo..."}
+            loadingText={isFavorite ? "Removing..." : "Saving..."}
           >
-            {isFavorite ? "Rimuovi dai preferiti" : "Salva nei preferiti"}
+            {isFavorite ? "Remove from favorites" : "Save to favorites"}
           </Button>
           <Button
             variant="ghost"
@@ -278,7 +278,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               }
             }}
           >
-            Condividi
+            Share
           </Button>
         </div>
       </Card>
@@ -286,7 +286,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Highlights */}
       {experienceDetail.highlights && experienceDetail.highlights.length > 0 && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">In evidenza</h3>
+          <h3 className="text-base font-semibold text-foreground">Highlights</h3>
           <ul className="space-y-2">
             {experienceDetail.highlights.map((item, idx) => (
               <li key={idx} className="flex items-start gap-2 text-sm text-muted">
@@ -304,7 +304,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         <Card className="space-y-4 p-5">
           {experienceDetail.inclusions && experienceDetail.inclusions.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-base font-semibold text-foreground">Cosa è incluso</h3>
+              <h3 className="text-base font-semibold text-foreground">What&apos;s included</h3>
               <ul className="space-y-1">
                 {experienceDetail.inclusions.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted">
@@ -317,7 +317,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           )}
           {experienceDetail.exclusions && experienceDetail.exclusions.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-base font-semibold text-foreground">Cosa non è incluso</h3>
+              <h3 className="text-base font-semibold text-foreground">
+                What&apos;s not included
+              </h3>
               <ul className="space-y-1">
                 {experienceDetail.exclusions.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted">
@@ -338,23 +340,23 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         experienceDetail.minParticipants ||
         experienceDetail.maxParticipants) && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Informazioni</h3>
+          <h3 className="text-base font-semibold text-foreground">Information</h3>
           <div className="space-y-2 text-sm text-muted">
             {experienceDetail.languages && experienceDetail.languages.length > 0 && (
               <p>
-                <span className="font-medium text-foreground">Lingue:</span>{" "}
+                <span className="font-medium text-foreground">Languages:</span>{" "}
                 {experienceDetail.languages.join(", ")}
               </p>
             )}
             {experienceDetail.meetingPoint && (
               <p>
-                <span className="font-medium text-foreground">Punto di incontro:</span>{" "}
+                <span className="font-medium text-foreground">Meeting point:</span>{" "}
                 {experienceDetail.meetingPoint}
               </p>
             )}
             {(experienceDetail.minParticipants || experienceDetail.maxParticipants) && (
               <p>
-                <span className="font-medium text-foreground">Partecipanti:</span>{" "}
+                <span className="font-medium text-foreground">Participants:</span>{" "}
                 {experienceDetail.minParticipants && `min ${experienceDetail.minParticipants}`}
                 {experienceDetail.minParticipants && experienceDetail.maxParticipants && " - "}
                 {experienceDetail.maxParticipants && `max ${experienceDetail.maxParticipants}`}
@@ -362,7 +364,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
             )}
             {experienceDetail.cancellationPolicy && (
               <p>
-                <span className="font-medium text-foreground">Cancellazione:</span>{" "}
+                <span className="font-medium text-foreground">Cancellation:</span>{" "}
                 {experienceDetail.cancellationPolicy}
               </p>
             )}
@@ -373,7 +375,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Luogo / Mappa */}
       {(experienceDetail.place || (experienceDetail.latitude && experienceDetail.longitude)) && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Luogo</h3>
+          <h3 className="text-base font-semibold text-foreground">Location</h3>
           {experienceDetail.place && (
             <p className="text-sm text-muted">{experienceDetail.place.name}</p>
           )}
@@ -388,7 +390,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 )
               }
             >
-              Apri in Google Maps
+              Open in Google Maps
             </Button>
           ) : experienceDetail.place?.latitude && experienceDetail.place?.longitude ? (
             <Button
@@ -401,7 +403,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 )
               }
             >
-              Apri in Google Maps
+              Open in Google Maps
             </Button>
           ) : null}
         </Card>
@@ -410,7 +412,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Affiliazione link (se diverso da bookingUrl) */}
       {affiliationLink && affiliationLink.url !== experienceDetail.bookingUrl && (
         <AffiliationLinkBox
-          title="Prenota questa esperienza"
+          title="Book this experience"
           href={affiliationLink.url}
           provider={affiliationLink.provider ?? undefined}
         />

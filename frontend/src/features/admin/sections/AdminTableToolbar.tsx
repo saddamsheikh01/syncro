@@ -20,8 +20,8 @@ export interface AdminTableToolbarProps
 export const AdminTableToolbar = ({
   className,
   title = "Gestione contenuti",
-  subtitle = "Filtra e gestisci le entita disponibili.",
-  searchPlaceholder = "Cerca per nome o ID",
+  subtitle = "Filter and manage the available entities.",
+  searchPlaceholder = "Search by name or ID",
   filterOptions = [],
   filterPlaceholder = "Tutti",
   selectedFilter,

@@ -16,7 +16,7 @@ export interface PostMediaStripProps
 
 export const PostMediaStrip = ({
   className,
-  title = "Media del post",
+  title = "Post media",
   subtitle,
   items,
   onItemPress,

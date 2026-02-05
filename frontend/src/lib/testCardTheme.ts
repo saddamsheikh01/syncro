@@ -1,4 +1,4 @@
-import type { TestType } from "@/types/tests";
+import type { TestType } from "@/types/insights";
 
 type TestCardTheme = {
   card: string;
@@ -28,7 +28,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-6 h-24 w-24 bg-amber-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-orange-200/60`,
     pattern: `${PATTERN_BASE} bg-[radial-gradient(rgba(251,191,36,0.25)_1px,transparent_1px)] bg-[size:18px_18px]`,
-    label: "Passioni",
+    label: "Interests",
     chip: `${CHIP_BASE} border border-amber-200/70 bg-amber-50 text-amber-700`,
   },
   LIFESTYLE: {
@@ -50,7 +50,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-6 h-24 w-24 bg-sky-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-blue-200/60`,
     pattern: `${PATTERN_BASE} bg-[linear-gradient(90deg,rgba(59,130,246,0.08)_1px,transparent_1px),linear-gradient(180deg,rgba(59,130,246,0.08)_1px,transparent_1px)] bg-[size:18px_18px]`,
-    label: "Valori",
+    label: "Values",
     chip: `${CHIP_BASE} border border-sky-200/70 bg-sky-50 text-sky-700`,
   },
   OBJECTIVES: {
@@ -61,7 +61,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-8 h-24 w-24 bg-teal-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-cyan-200/60`,
     pattern: `${PATTERN_BASE} bg-[linear-gradient(135deg,rgba(13,148,136,0.16)_25%,transparent_25%,transparent_50%,rgba(13,148,136,0.16)_50%,rgba(13,148,136,0.16)_75%,transparent_75%,transparent)] bg-[size:18px_18px]`,
-    label: "Obiettivi",
+    label: "Goals",
     chip: `${CHIP_BASE} border border-teal-200/70 bg-teal-50 text-teal-700`,
   },
   PSY: {
@@ -72,7 +72,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-6 h-24 w-24 bg-fuchsia-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-purple-200/60`,
     pattern: `${PATTERN_BASE} bg-[radial-gradient(rgba(168,85,247,0.22)_1px,transparent_1px)] bg-[size:16px_16px]`,
-    label: "Psicologico",
+    label: "Psychological",
     chip: `${CHIP_BASE} border border-fuchsia-200/70 bg-fuchsia-50 text-fuchsia-700`,
   },
   ASTRO: {
@@ -83,7 +83,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-6 h-24 w-24 bg-indigo-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-blue-200/60`,
     pattern: `${PATTERN_BASE} bg-[radial-gradient(rgba(129,140,248,0.4)_1px,transparent_1px)] bg-[size:20px_20px]`,
-    label: "Astrologia",
+    label: "Astrology",
     chip: `${CHIP_BASE} border border-indigo-200/70 bg-indigo-50 text-indigo-700`,
   },
   OTHER: {
@@ -94,7 +94,7 @@ const THEMES: Record<TestType, TestCardTheme> = {
     orb: `${ORB_BASE} -right-6 -top-8 h-24 w-24 bg-slate-200/70`,
     orbAlt: `${ORB_BASE} -left-10 -bottom-10 h-28 w-28 bg-slate-300/60`,
     pattern: `${PATTERN_BASE} bg-[linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:16px_16px]`,
-    label: "Test",
+    label: "Insights",
     chip: `${CHIP_BASE} border border-slate-200/70 bg-slate-50 text-slate-700`,
   },
 };

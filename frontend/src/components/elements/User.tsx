@@ -46,7 +46,7 @@ export const User = () => {
   const username = user?.username?.trim() ?? "";
   const fullName = profile?.fullName?.trim() ?? "";
   const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
-  const displayName = fullName || username || email || "Utente";
+  const displayName = fullName || username || email || "User";
   const showUsername = Boolean(username) && username !== displayName;
   const showEmail = Boolean(email) && email !== displayName && !location;
 
@@ -55,7 +55,7 @@ export const User = () => {
   return (
     <Link
       href="/profile"
-      className="group relative flex items-center gap-4 rounded-[var(--radius-xl)] border border-border/40 bg-gradient-to-br from-surface to-surface-muted p-4 shadow-sm transition-all duration-200 hover:border-accent/30 hover:shadow-md"
+      className="group relative flex items-center gap-4 rounded-[var(--radius-lg)] border border-border/70 bg-surface p-4 shadow-sm transition-all duration-200 hover:border-accent/30 hover:shadow-md"
     >
       <div className="relative">
         <Avatar

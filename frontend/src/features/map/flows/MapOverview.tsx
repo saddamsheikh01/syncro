@@ -47,8 +47,8 @@ const DISTANCE_OPTIONS: SelectOption[] = [
 ];
 
 const LEGEND_ITEMS: LegendItemData[] = [
-  { id: "place", label: "Luogo", swatch: "var(--accent)" },
-  { id: "user", label: "La tua posizione", swatch: "var(--success)" },
+  { id: "place", label: "Place", swatch: "var(--accent)" },
+  { id: "user", label: "Your location", swatch: "var(--success)" },
 ];
 
 export const MapOverview = () => {
@@ -202,7 +202,7 @@ export const MapOverview = () => {
   // Richiedi permessi posizione
   const handleRequestPermission = useCallback(async () => {
     if (!navigator.geolocation) {
-      console.error("Geolocation non supportata dal browser");
+      console.error("Geolocation is not supported by the browser");
       positionActions.setPermission("denied");
       return;
     }
@@ -213,22 +213,22 @@ export const MapOverview = () => {
     if (navigator.permissions) {
       try {
         const result = await navigator.permissions.query({ name: "geolocation" });
-        console.log("Stato permessi geolocation:", result.state);
+        console.log("Geolocation permissions state:", result.state);
         if (result.state === "denied") {
           setIsRequestingPosition(false);
           positionActions.setPermission("denied");
           return;
         }
       } catch (e) {
-        console.log("Permissions API non supportata:", e);
+        console.log("Permissions API not supported:", e);
       }
     }
 
-    console.log("Richiesta posizione in corso...");
+    console.log("Requesting location...");
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        console.log("Posizione ottenuta:", pos.coords.latitude, pos.coords.longitude);
+        console.log("Location obtained:", pos.coords.latitude, pos.coords.longitude);
         setIsRequestingPosition(false);
         positionActions.setPermission("granted");
         positionActions.setPosition({
@@ -307,9 +307,9 @@ export const MapOverview = () => {
   const filterChips: FilterChipItem[] = useMemo(() => {
     const chips: FilterChipItem[] = [];
     if (hasPosition) {
-      chips.push({ id: "nearby", label: "Vicino a me", selected: !forYouMode });
+      chips.push({ id: "nearby", label: "Near me", selected: !forYouMode });
     }
-    chips.push({ id: "forYou", label: "Per te", selected: forYouMode });
+    chips.push({ id: "forYou", label: "For you", selected: forYouMode });
     return chips;
   }, [hasPosition, forYouMode]);
 
@@ -399,11 +399,11 @@ export const MapOverview = () => {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-12">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Esplora
+            Explore
           </p>
-          <h1 className="text-3xl font-semibold text-foreground">Mappa</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Map</h1>
           <p className="text-sm text-muted">
-            Scopri luoghi interessanti intorno a te.
+            Discover interesting places around you.
           </p>
         </header>
         {isRequestingPosition ? (
@@ -411,20 +411,20 @@ export const MapOverview = () => {
             <Loader size="sm" />
             <div className="space-y-1">
               <p className="font-medium text-foreground">
-                Ricerca posizione in corso...
+                Searching for location...
               </p>
               <p className="text-sm text-muted">
-                Accetta il permesso nel popup del browser.
+                Accept the permission in the browser prompt.
               </p>
             </div>
           </Card>
         ) : (
           <MapPermissionScreen
-            title="Attiva la posizione"
-            description="Per mostrarti i luoghi più vicini, abbiamo bisogno di accedere alla tua posizione."
-            primaryActionLabel="Attiva posizione"
-            secondaryActionLabel="Continua senza posizione"
-            helper="Puoi modificare questa scelta in qualsiasi momento dalle impostazioni."
+            title="Enable location"
+            description="To show nearby places, we need access to your location."
+            primaryActionLabel="Enable location"
+            secondaryActionLabel="Continue without location"
+            helper="You can change this choice anytime in settings."
             onPrimaryAction={handleRequestPermission}
             onSecondaryAction={handleSkipPermission}
           />
@@ -439,30 +439,30 @@ export const MapOverview = () => {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-12">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Esplora
+            Explore
           </p>
-          <h1 className="text-3xl font-semibold text-foreground">Mappa</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Map</h1>
         </header>
         <Card className="space-y-4 p-6">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-foreground">
-              Posizione non disponibile
+              Location unavailable
             </h3>
             <p className="text-sm text-muted">
-              Hai negato l&apos;accesso alla posizione. Per vedere i luoghi
-              vicini, abilita la posizione dalle impostazioni del browser.
+              You denied location access. To see nearby places, enable location
+              in your browser settings.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button size="sm" onClick={handleSkipPermission}>
-              Continua senza posizione
+              Continue without location
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => positionActions.setPermission("unknown")}
             >
-              Riprova
+              Try again
             </Button>
           </div>
         </Card>
@@ -482,16 +482,16 @@ export const MapOverview = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-              Esplora
+              Explore
             </p>
-            <h1 className="text-2xl font-semibold text-foreground">Mappa</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Map</h1>
           </div>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => setShowFilters(!showFilters)}
           >
-            {showFilters ? "Nascondi filtri" : "Filtri"}
+            {showFilters ? "Hide filters" : "Filters"}
           </Button>
         </div>
       </header>
@@ -525,7 +525,7 @@ export const MapOverview = () => {
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/80">
               <div className="flex items-center gap-3">
                 <Loader size="sm" />
-                <p className="text-sm text-muted">Caricamento luoghi...</p>
+                <p className="text-sm text-muted">Loading places...</p>
               </div>
             </div>
           )}
@@ -533,7 +533,11 @@ export const MapOverview = () => {
           {currentError && !isInitialLoading && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
               <ErrorState
-                title={forYouMode ? "Impossibile caricare i suggerimenti" : "Impossibile caricare i luoghi"}
+                title={
+                  forYouMode
+                    ? "Unable to load suggestions"
+                    : "Unable to load places"
+                }
                 description={currentError.message}
               />
             </div>
@@ -542,10 +546,14 @@ export const MapOverview = () => {
           {!currentError && displayPlaces.length === 0 && !isInitialLoading && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
               <EmptyState
-                title={forYouMode ? "Nessun suggerimento disponibile" : "Nessun luogo trovato"}
+                title={
+                  forYouMode
+                    ? "No suggestions available"
+                    : "No places found"
+                }
                 description={forYouMode
-                  ? "Completa il tuo profilo e i test per ricevere suggerimenti personalizzati."
-                  : "Prova a modificare i filtri o ad ampliare il raggio di ricerca."
+                  ? "Complete your profile and tests to receive personalized suggestions."
+                  : "Try adjusting the filters or expanding the search radius."
                 }
               />
             </div>
@@ -571,8 +579,8 @@ export const MapOverview = () => {
                 type="button"
                 onClick={() => setRecenterTrigger((t) => t + 1)}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface shadow-md transition hover:bg-surface-muted"
-                aria-label="Torna alla mia posizione"
-                title="Torna alla mia posizione"
+                aria-label="Recenter to my location"
+                title="Recenter to my location"
               >
                 <svg
                   width="20"
@@ -597,7 +605,7 @@ export const MapOverview = () => {
             <div className="absolute right-4 top-4 z-10">
               <Card className="px-3 py-2">
                 <p className="text-xs font-medium text-muted">
-                  {displayPlaces.length} {forYouMode ? "suggeriti" : "luoghi"}
+                  {displayPlaces.length} {forYouMode ? "recommended" : "places"}
                 </p>
               </Card>
             </div>
@@ -612,12 +620,16 @@ export const MapOverview = () => {
               subtitle={selectedPlace.description ?? undefined}
               category={selectedPlace.category?.name}
               distanceKm={selectedPlaceDistance}
-              ratingLabel={selectedPlaceScore !== null ? `${Math.round(selectedPlaceScore)}% compatibile` : undefined}
+              ratingLabel={
+                selectedPlaceScore !== null
+                  ? `${Math.round(selectedPlaceScore)}% match`
+                  : undefined
+              }
               googleRating={selectedPlace.googleRating ?? undefined}
               googleReviewCount={selectedPlace.googleReviewCount ?? undefined}
               imageUrl={selectedPlace.imageUrl ?? undefined}
-              primaryActionLabel="Dettagli"
-              secondaryActionLabel="Indicazioni"
+              primaryActionLabel="Details"
+              secondaryActionLabel="Directions"
               onPrimaryAction={() => {
                 window.location.href = `/places/${selectedPlace.id}`;
               }}

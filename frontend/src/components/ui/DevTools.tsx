@@ -55,13 +55,13 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
     // Rimuove il dismiss e ricarica per mostrare la modale
     // Nota: questo triggera anche il tutorial se non completato
     localStorage.removeItem(STORAGE_KEY_A2HS);
-    alert("localStorage A2HS rimosso. Ricarica la pagina per vedere la modale.");
+    alert("A2HS localStorage cleared. Reload the page to see the modal.");
   };
 
   const handleTestNotification = () => {
     uiActions.pushToast({
-      title: "Notifica di test",
-      message: "Questa e una notifica di esempio.",
+      title: "Test notification",
+      message: "This is a sample notification.",
       tone: "info",
       durationMs: 4500,
     });
@@ -113,7 +113,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <path d="M12 17h.01" />
               </svg>
-              Apri Tutorial
+              Open tutorial
             </button>
             <button
               type="button"
@@ -174,7 +174,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M12 5a4 4 0 0 0-4 4v3.5L6.5 15h11L16 12.5V9a4 4 0 0 0-4-4z" />
                 <path d="M10 19a2 2 0 0 0 4 0" />
               </svg>
-              Notifica test
+              Test notification
             </button>
           </div>
         </>

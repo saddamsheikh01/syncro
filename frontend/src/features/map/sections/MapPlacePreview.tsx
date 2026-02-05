@@ -42,8 +42,8 @@ export const MapPlacePreview = ({
   metaItems = [],
   tags = [],
   media,
-  primaryActionLabel = "Apri",
-  secondaryActionLabel = "Salva",
+  primaryActionLabel = "Open",
+  secondaryActionLabel = "Save",
   onPrimaryAction,
   onSecondaryAction,
   onClose,
@@ -55,7 +55,7 @@ export const MapPlacePreview = ({
         type="button"
         onClick={onClose}
         className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-surface-muted text-muted transition hover:bg-border hover:text-foreground"
-        aria-label="Chiudi"
+        aria-label="Close"
       >
         <svg
           width="14"

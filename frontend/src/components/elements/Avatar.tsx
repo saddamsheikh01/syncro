@@ -36,7 +36,7 @@ export const Avatar = ({
   return (
     <div
       className={cx(
-        "inline-flex items-center justify-center overflow-hidden rounded-full border border-border bg-surface-muted font-semibold text-foreground",
+        "inline-flex items-center justify-center overflow-hidden rounded-full border border-border/70 bg-surface-muted font-semibold text-foreground",
         SIZE_CLASSES[size],
         className
       )}

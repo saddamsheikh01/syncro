@@ -58,7 +58,7 @@ export const ExperienceListItem = ({
   const card = (
     <div
       className={cx(
-        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong",
+        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong",
         className
       )}
       {...props}

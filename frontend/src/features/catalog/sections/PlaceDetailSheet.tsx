@@ -35,8 +35,8 @@ export const PlaceDetailSheet = ({
   metaItems = [],
   tags = [],
   media,
-  primaryActionLabel = "Prenota",
-  secondaryActionLabel = "Salva",
+  primaryActionLabel = "Book",
+  secondaryActionLabel = "Save",
   ...props
 }: PlaceDetailSheetProps) => (
   <Card className={cx("space-y-4 p-5", className)} {...props}>

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 // import { OnboardingStep2 } from "@/features/onboarding/flows/OnboardingStep2";
 
 export const metadata: Metadata = {
-  title: "Onboarding - Passioni | Syncro",
-  description: "Seleziona le passioni principali su Syncro.",
+  title: "Onboarding - Interests | Syncro",
+  description: "Select your main interests on Syncro.",
 };
 
 // Onboarding semplificato: step 2 disabilitato, redirect a home

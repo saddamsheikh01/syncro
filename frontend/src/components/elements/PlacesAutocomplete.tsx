@@ -27,7 +27,7 @@ export interface PlacesAutocompleteProps {
 }
 
 export const PlacesAutocomplete = ({
-  placeholder = "Cerca un luogo...",
+  placeholder = "Search for a place...",
   onPlaceSelect,
   onClear,
   className,
@@ -120,7 +120,7 @@ export const PlacesAutocomplete = ({
           type="text"
           placeholder={placeholder}
           disabled
-          className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-2.5 text-sm text-muted placeholder-subtle outline-none"
+          className="w-full rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-2.5 text-sm text-muted placeholder-subtle outline-none"
         />
         <p className="mt-1 text-xs text-danger">{error}</p>
       </div>
@@ -152,8 +152,8 @@ export const PlacesAutocomplete = ({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           className={cx(
-            "w-full rounded-[var(--radius-md)] border border-border bg-surface py-2.5 pl-10 pr-10 text-sm text-foreground placeholder-subtle outline-none transition",
-            "focus:border-accent focus:ring-2 focus:ring-accent/20",
+            "w-full rounded-[var(--radius-md)] border border-border/70 bg-surface py-2.5 pl-10 pr-10 text-sm text-foreground placeholder-subtle outline-none transition",
+            "focus:border-accent/40 focus:ring-2 focus:ring-accent/20",
             disabled && "cursor-not-allowed opacity-60"
           )}
         />
@@ -162,7 +162,7 @@ export const PlacesAutocomplete = ({
             type="button"
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface-muted hover:text-foreground"
-            aria-label="Cancella"
+            aria-label="Clear"
           >
             <svg
               width="14"
@@ -181,7 +181,7 @@ export const PlacesAutocomplete = ({
       </div>
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)] bg-surface/80">
-          <span className="text-xs text-muted">Caricamento...</span>
+          <span className="text-xs text-muted">Loading...</span>
         </div>
       )}
     </div>

@@ -1,24 +1,22 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/elements/Card";
+import { Avatar } from "@/components/elements/Avatar";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
-import {
-  QuickActionTile,
-  type QuickActionVariant,
-} from "@/features/home/cards/QuickActionTile";
-import { RecommendationRow } from "@/features/home/sections/RecommendationRow";
+import { Button } from "@/components/buttons/Button";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
-import { ForYouSectionHeader } from "@/features/home/sections/ForYouSectionHeader";
 import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
-import { ZyraMatchOfDayCard } from "@/features/zyra/cards/ZyraMatchOfDayCard";
-import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingProgressCard";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
-import { MatchListItem } from "@/features/matches/elements/MatchListItem";
-import { NavIcon } from "@/components/ui/NavIcon";
+import { MatchCard } from "@/features/matches/cards/MatchCard";
+import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
+import { resolveTestCopy } from "@/lib/insightsCopy";
+import { getTestEmoji } from "@/lib/testEmoji";
+import type { UserMatchResponse } from "@/types/matches";
 import {
   useAuth,
   useUser,
@@ -26,96 +24,19 @@ import {
   useCatalog,
   useMatches,
   useTutorial,
+  useTests,
+  useChat,
 } from "@/hooks";
 import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
-import type { UserMatchResponse, DimensionScores, DomainScores, MatchBreakdown } from "@/types/matches";
-
-const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | null => {
-  if (!raw) return null;
-  return {
-    dimensions: raw.dimensions as DimensionScores | undefined,
-    domains: raw.domains as DomainScores | undefined,
-    sharedTags: raw.sharedTags as string[] | number | undefined,
-    distanceKm: raw.distanceKm as number | undefined,
-  };
-};
-
-const getSharedTags = (match: UserMatchResponse): string[] => {
-  const breakdown = parseBreakdown(match.breakdown as Record<string, unknown> | null);
-  if (Array.isArray(breakdown?.sharedTags)) {
-    return breakdown.sharedTags;
-  }
-  return [];
-};
 
 const RECO_PAGE_SIZE = 8;
-const MATCH_LIMIT = 5;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
 const TUTORIAL_DELAY_MS = 800;
 const DISTANCE_EPSILON = 0.000001;
 
-const QUICK_ACTIONS: Array<{
-  title: string;
-  subtitle: string;
-  href: string;
-  icon: React.ReactNode;
-  variant: QuickActionVariant;
-  iconWrapperClassName?: string;
-}> = [
-  {
-    title: "Mappa",
-    subtitle: "Luoghi vicini",
-    href: "/map",
-    icon: <NavIcon name="map" className="h-5 w-5" />,
-    variant: "map",
-  },
-  {
-    title: "Match",
-    subtitle: "Affinita",
-    href: "/matches",
-    icon: <NavIcon name="spark" className="h-5 w-5" />,
-    variant: "match",
-  },
-  {
-    title: "Luoghi",
-    subtitle: "Scopri ora",
-    href: "/places",
-    icon: <NavIcon name="map-pin" className="h-5 w-5" />,
-    variant: "places",
-  },
-  {
-    title: "Insights",
-    subtitle: "Post vicini",
-    href: "/insights",
-    icon: <NavIcon name="chat" className="h-5 w-5" />,
-    variant: "feed",
-  },
-  {
-    title: "Zyra",
-    subtitle: "Suggerimenti",
-    href: "/zyra",
-    icon: <ZyraMark size="sm" />,
-    variant: "zyra",
-  },
-  {
-    title: "Chat",
-    subtitle: "Conversazioni",
-    href: "/chat",
-    icon: <NavIcon name="chat" className="h-5 w-5" />,
-    variant: "chat",
-  },
-  {
-    title: "Tests",
-    subtitle: "Nuovi quiz",
-    href: "/tests",
-    icon: <NavIcon name="clipboard" className="h-5 w-5" />,
-    variant: "tests",
-  },
-];
 
 export const HomeOverview = () => {
-  const router = useRouter();
-  const { status, actions: authActions } = useAuth();
+  const { status, user, actions: authActions } = useAuth();
   const { actions: userActions } = useUser();
   const {
     position,
@@ -135,6 +56,17 @@ export const HomeOverview = () => {
     error: matchesError,
     actions: matchesActions,
   } = useMatches();
+  const {
+    tests,
+    loading: testsLoading,
+    error: testsError,
+    actions: testsActions,
+  } = useTests();
+  const {
+    conversations,
+    loadingConversations,
+    actions: chatActions,
+  } = useChat();
   const {
     currentStep: tutorialStep,
     isOpen: tutorialOpen,
@@ -166,19 +98,24 @@ export const HomeOverview = () => {
     positionActions.fetchPosition().catch(() => undefined);
 
     matchesActions
-      .fetchUserMatches({ size: MATCH_LIMIT })
+      .fetchUserMatches({ size: 5 })
       .catch(() => undefined);
     matchesActions
       .fetchRecommendations({ size: RECO_PAGE_SIZE })
       .catch(() => undefined);
 
     catalogActions.fetchPlaces({ size: RECO_PAGE_SIZE, source: "GOOGLE" }).catch(() => undefined);
+
+    testsActions.fetchTests().catch(() => undefined);
+    chatActions.fetchConversations({ page: 0, size: 3 }).catch(() => undefined);
   }, [
     status,
     userActions,
     positionActions,
     matchesActions,
     catalogActions,
+    testsActions,
+    chatActions,
   ]);
 
   useEffect(() => {
@@ -331,142 +268,464 @@ export const HomeOverview = () => {
     return items;
   }, [recommendationPlaces, places, hasPosition, position]);
 
-  const matchSpotlight = userMatches.length ? userMatches[0] : null;
-  const otherMatches =
-    userMatches.length > 1 ? userMatches.slice(1, MATCH_LIMIT) : [];
+  const testItems = useMemo(
+    () =>
+      tests.slice(0, 5).map((test) => {
+        const localized = resolveTestCopy({
+          title: test.title,
+          description: test.description,
+          testType: test.testType,
+        });
+
+        return {
+          emoji: getTestEmoji(test.testType, test.title),
+          testType: test.testType,
+          title: localized.title,
+          description: localized.description,
+          href: `/insights/${test.id}`,
+          actionLabel: "View Insights",
+          completed: test.completed,
+        };
+      }),
+    [tests]
+  );
+
+  const conversationItems = useMemo(() => {
+    const matchMap = new Map<string, UserMatchResponse>();
+    userMatches.forEach((match) => {
+      if (match.userId) {
+        matchMap.set(match.userId, match);
+      }
+    });
+
+    const categoryToneMap: Record<string, string> = {
+      Work: "bg-emerald-50 text-emerald-700",
+      Friends: "bg-amber-50 text-amber-700",
+      "Learn&Grow": "bg-indigo-50 text-indigo-700",
+      Relationships: "bg-rose-50 text-rose-700",
+      Goals: "bg-teal-50 text-teal-700",
+      "Share Interests": "bg-sky-50 text-sky-700",
+      Connections: "bg-slate-100 text-slate-600",
+    };
+
+    return conversations.slice(0, 3).map((conversation) => {
+      const otherParticipant = conversation.participants?.find(
+        (participant) => participant.userId !== user?.id
+      );
+      const name = otherParticipant?.fullName || "User";
+      const avatarUrl = otherParticipant?.avatarUrl ?? undefined;
+      const message =
+        conversation.lastMessage?.content ?? "No messages yet.";
+      const match = otherParticipant?.userId
+        ? matchMap.get(otherParticipant.userId)
+        : undefined;
+      const score =
+        match?.scoreTotal != null ? Math.round(match.scoreTotal) : null;
+      const breakdown = match?.breakdown as Record<string, unknown> | null;
+      const domains = (breakdown?.domains ?? {}) as Record<string, number | null>;
+      const entries = Object.entries(domains).filter(([, value]) => typeof value === "number");
+      const [topKey] = entries.length
+        ? entries.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]
+        : [];
+      const labelMap: Record<string, string> = {
+        work: "Work",
+        friendship: "Friends",
+        love: "Relationships",
+        projects: "Goals",
+        hobby: "Share Interests",
+        growth: "Learn&Grow",
+      };
+      const category = topKey ? labelMap[topKey] ?? "Connections" : "Connections";
+      const categoryTone = categoryToneMap[category] ?? categoryToneMap.Connections;
+      const unreadCount = (conversation as { unreadCount?: number }).unreadCount;
+      return {
+        id: conversation.id,
+        name,
+        avatarUrl,
+        message,
+        score,
+        category,
+        categoryTone,
+        unreadCount,
+      };
+    });
+  }, [conversations, user?.id, userMatches]);
 
   const isPlacesLoading = hasPosition
     ? catalogLoading && places.length === 0
     : catalogLoading && places.length === 0 && recommendationPlaces.length === 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Per te
-        </p>
-        <h1 className="text-3xl font-semibold text-foreground">
-          Cosa vuoi fare oggi?
-        </h1>
-        <p className="text-sm text-muted">
-          Scopri suggerimenti personalizzati, match e luoghi vicini. Tutto
-          basato sul tuo profilo Syncro.
-        </p>
-      </header>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
+      <OnboardingProgressCard />
 
       <section className="space-y-4">
         <SectionHeader
-          title="Accesso rapido"
-          subtitle="Raggiungi subito le sezioni principali."
+          title="People & Connections"
+          subtitle="Connections relevant to your current moment."
+          actionLabel="View Connections"
+          actionHref="/matches"
         />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {QUICK_ACTIONS.map((action) => (
-            <QuickActionTile key={action.title} {...action} />
+
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-muted">
+          <span className="font-semibold text-foreground">Fine-Tune</span>
+          <span>Age Range</span>
+          <span className="text-subtle">30 - 40</span>
+          <span>Nearby</span>
+          <span className="text-subtle">Anywhere</span>
+          <span>Distance</span>
+          <span className="text-subtle">10 Km</span>
+          <span>Gender</span>
+          <span className="text-subtle">All</span>
+          <span>Interested In</span>
+          <span className="text-subtle">All</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {["Work", "Goals", "Friends", "Share Interests", "Learn & Grow", "Relationships"].map((label) => (
+            <span
+              key={label}
+              className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
+            >
+              {label}
+            </span>
           ))}
         </div>
+
+        {loadingUserMatches && userMatches.length === 0 ? (
+          <Card className="flex items-center gap-3 p-4">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">Loading matches...</p>
+          </Card>
+        ) : matchesError ? (
+          <ErrorState
+            title="Unable to load matches"
+            description={matchesError.message}
+          />
+        ) : userMatches.length === 0 ? (
+          <EmptyState
+            title="No matches available"
+            description="Complete onboarding, interests, and insights to generate matches."
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {userMatches.slice(0, 4).map((match) => (
+              <MatchCard
+                key={match.matchId}
+                match={match}
+                href={`/profile/${match.userId}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-4">
-        <ForYouSectionHeader
-          title="Luoghi per te"
-          subtitle="Vicini e in linea con le tue passioni."
-          actionLabel="Vedi tutti"
+        <SectionHeader
+          title="Places & Experiences"
+          subtitle="Places that make sense for you right now."
+          actionLabel="Explore More"
           actionHref="/places"
         />
+
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-muted">
+          <span className="font-semibold text-foreground">Fine-Tune</span>
+          <span>Nearby</span>
+          <span className="text-subtle">Anywhere</span>
+          <span>Distance</span>
+          <span className="text-subtle">10 Km</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {["Experiences", "Events", "Stays", "Restaurants", "Places", "Services"].map((label) => (
+            <span
+              key={label}
+              className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
 
         {isPlacesLoading ? (
           <Card className="flex items-center gap-3 p-4">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Caricamento luoghi...</p>
+            <p className="text-sm text-muted">Loading places...</p>
           </Card>
         ) : catalogError ? (
           <ErrorState
-            title="Impossibile caricare i luoghi"
+            title="Unable to load places"
             description={catalogError.message}
           />
         ) : placeCards.length === 0 ? (
           <EmptyState
-            title="Nessun luogo disponibile"
-            description="Salva la posizione o esplora il catalogo."
+            title="No places available"
+            description="Save your location or explore the catalog."
           />
         ) : (
-          <RecommendationRow
-            title="Per te"
-            subtitle="Luoghi suggeriti"
-            actionLabel="Apri mappa"
-            actionHref="/map"
-          >
-            {placeCards.map((item, index) => (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {placeCards.slice(0, 4).map((item, index) => (
               <PlaceListItem
                 key={`${item.title}-${index}`}
-                className="min-w-[260px]"
                 {...item}
               />
             ))}
-          </RecommendationRow>
+          </div>
         )}
       </section>
 
       <section className="space-y-4">
         <SectionHeader
-          title="Match del giorno"
-          subtitle="Persone affini basate sulle tue passioni e test completati."
-          actionLabel="Vai ai match"
-          actionHref="/matches"
+          title="Moments"
+          subtitle="Relevant people and places, aligned with your current moment."
+          actionLabel="Go To Moments"
+          actionHref="/moments"
         />
 
-        {loadingUserMatches && !matchSpotlight ? (
-          <Card className="flex items-center gap-3 p-4">
-            <Loader size="sm" />
-            <p className="text-sm text-muted">Caricamento match...</p>
-          </Card>
-        ) : matchesError ? (
-          <ErrorState
-            title="Impossibile caricare i match"
-            description={matchesError.message}
-          />
-        ) : !matchSpotlight ? (
-          <EmptyState
-            title="Nessun match disponibile"
-            description="Completa onboarding, passioni e test per generare i match."
-          />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-[1.4fr,1fr]">
-            <ZyraMatchOfDayCard
-              title={
-                matchSpotlight.user?.fullName ??
-                `Utente ${matchSpotlight.userId.slice(0, 6)}`
-              }
-              subtitle={matchSpotlight.user?.city ?? undefined}
-              description={
-                matchSpotlight.explanation ??
-                "Affinita calcolata sulle passioni condivise."
-              }
-              matchScore={matchSpotlight.scoreTotal ?? undefined}
-              breakdown={parseBreakdown(matchSpotlight.breakdown as Record<string, unknown> | null)}
-              sharedTags={getSharedTags(matchSpotlight)}
-              profileHref={`/profile/${matchSpotlight.userId}`}
-              actionHref={`/chat`}
-              actionLabel="Scrivi"
+        <div className="flex items-center gap-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <span
+              key={index}
+              className="h-7 w-7 rounded-full border border-border/70 bg-white"
             />
+          ))}
+        </div>
 
-            <div className="space-y-3">
-              {otherMatches.length > 0 ? (
-                otherMatches.map((match) => (
-                  <MatchListItem
-                    key={match.matchId}
-                    match={match}
-                    onProfileClick={() => router.push(`/profile/${match.userId}`)}
-                  />
-                ))
-              ) : (
-                <Card className="p-4 text-sm text-muted">
-                  Nessun altro match disponibile al momento.
-                </Card>
-              )}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">
+                People & Connections
+              </p>
+              <div className="flex gap-2">
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
+                  Fine-Tune
+                </span>
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
+                  Contexts
+                </span>
+              </div>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {userMatches.slice(0, 2).map((match) => (
+                <div key={match.matchId} className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/50 p-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar
+                      name={match.user?.fullName ?? "User"}
+                      src={match.user?.avatarUrl ?? undefined}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-foreground">
+                        {match.user?.fullName ?? "User"}
+                      </p>
+                      <p className="truncate text-[11px] text-muted">
+                        {match.user?.city ?? "Location"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">
+                    <span>{Math.round(match.scoreTotal ?? 0)}% Match</span>
+                    <Link href={`/profile/${match.userId}`} className="text-accent">
+                      Connect
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">
+                Places & Experiences
+              </p>
+              <div className="flex gap-2">
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
+                  Fine-Tune
+                </span>
+                <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
+                  Contexts
+                </span>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {placeCards.slice(0, 2).map((place, index) => (
+                <div key={`${place.title}-${index}`} className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/50 p-3">
+                  <p className="text-xs font-semibold text-foreground">{place.title}</p>
+                  <p className="mt-1 line-clamp-2 text-[11px] text-muted">
+                    {place.subtitle ?? place.address}
+                  </p>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">
+                    <span>{place.category ?? "Places"}</span>
+                    <Link href={place.href ?? "/places"} className="text-accent">
+                      Connect
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="rounded-[var(--radius-xl)] border border-border/60 bg-[#f7f1f7] p-5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground">
+                Conversations
+              </h3>
+              {conversationItems.length > 0 ? (
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f14b4b] px-1 text-[10px] font-semibold text-white">
+                  {conversationItems.length}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-sm text-muted">
+              Keep the conversation going with people you’re aligned with.
+            </p>
           </div>
-        )}
+
+          <div className="mt-4 space-y-3">
+            {loadingConversations && conversationItems.length === 0 ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-white/70 bg-white/80 px-3 py-2"
+                  >
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-surface-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-24 animate-pulse rounded bg-surface-muted" />
+                      <div className="h-2 w-full animate-pulse rounded bg-surface-muted" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : conversationItems.length === 0 ? (
+              <p className="text-sm text-muted">
+                No conversations available.
+              </p>
+            ) : (
+              conversationItems.map((conversation) => (
+                <Link
+                  key={conversation.id}
+                  href={`/chat/${conversation.id}`}
+                  className="group flex items-center gap-3 rounded-[var(--radius-lg)] border border-white/70 bg-white/90 px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative">
+                    <Avatar
+                      name={conversation.name}
+                      src={conversation.avatarUrl}
+                      size="sm"
+                    />
+                    {conversation.unreadCount && conversation.unreadCount > 0 ? (
+                      <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f14b4b] px-1 text-[9px] font-semibold text-white">
+                        {conversation.unreadCount}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {conversation.name}
+                      </p>
+                      {conversation.score != null ? (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 shadow-sm">
+                          <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                            {conversation.score}%
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${conversation.categoryTone}`}>
+                            {conversation.category}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <p className="line-clamp-2 text-[11px] text-muted">
+                      {conversation.message}
+                    </p>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-white text-accent shadow-sm transition group-hover:translate-x-0.5">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+
+          <div className="mt-5 flex justify-center">
+            <Link
+              href="/chat"
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] px-6 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_var(--accent-glow)] transition hover:brightness-95"
+            >
+              Open Conversations
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Insights"
+          subtitle="Insights that help improve accuracy and alignment."
+          actionLabel="Explore Insights"
+          actionHref="/insights"
+        />
+
+        <Card className="space-y-4 bg-surface-muted/60 p-5">
+          {testsLoading && tests.length === 0 ? (
+            <div className="flex items-center gap-3 text-sm text-muted">
+              <Loader size="sm" />
+              Loading insights...
+            </div>
+          ) : testsError ? (
+            <ErrorState
+              title="Unable to load insights"
+              description={testsError.message}
+            />
+          ) : tests.length === 0 ? (
+            <EmptyState
+              title="No insights available"
+              description="Check back later for new insights."
+            />
+          ) : (
+            <>
+              <MapTestListItem items={testItems} />
+              <div className="flex justify-center">
+                <Link href="/insights">
+                  <Button size="sm">Explore Insights</Button>
+                </Link>
+              </div>
+            </>
+          )}
+        </Card>
       </section>
 
       <LocationRequestModal
