@@ -1,2 +1,3 @@
-Genera un titolo breve (max 48 caratteri) per questa chat, basato sul primo messaggio utente.
-Rispondi solo con il titolo, senza virgolette.
+Generate a short title (max 48 characters) for this chat, based on the user's first message.
+Reply with the title only, without quotes.
+Use the same language as the user's first message.

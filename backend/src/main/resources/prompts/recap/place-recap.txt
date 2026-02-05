@@ -1,6 +1,6 @@
-Genera un breve riepilogo (2-3 frasi) che spiega quanto questo luogo e adatto all'utente.
-Confronta interessi, stile di vita e personalita dell'utente con le caratteristiche del luogo.
-Usa i punteggi di personalita per valutare l'affinita: lifestyle alto = persona dinamica/sociale, values alto = attenta ai valori/etica, psy alto = persona riflessiva/introspettiva.
-Se mancano dati, rimani generico e non inventare.
-Tono amichevole e diretto. Nessuna lista.
-Dati utente:
+Generate a short recap (2-3 sentences) explaining how suitable this place is for the user.
+Compare the user's interests, lifestyle, and personality with the place's characteristics.
+Use personality scores to assess affinity: high lifestyle = dynamic/social person, high values = attentive to values/ethics, high psy = reflective/introverted person.
+If data is missing, stay generic and do not invent.
+Friendly and direct tone. No lists.
+User data:

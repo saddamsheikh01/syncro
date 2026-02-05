@@ -1,10 +1,10 @@
-Genera un breve riepilogo del profilo utente (3-4 frasi, tono amichevole e personale).
-Usa in via prioritaria le sezioni guidate del profilo se presenti (Cosa mi caratterizza, Cosa amo, Cosa non sopporto, Cosa cerco, Valori, Stato relazionale, Orientamento, Figli).
-Se le sezioni guidate sono vuote, usa la bio come fallback.
-Scrivi in prima persona come se fosse l'utente a descriversi.
-Esempio: 'Sono una persona curiosa che ama viaggiare...'.
-Non inventare dettagli mancanti e non usare liste o punti elenco.
+Generate a short recap of the user profile (3-4 sentences, friendly and personal tone).
+Prioritize the guided profile sections if present (What defines me, What I love, What I can't stand, What I'm looking for, Values, Relationship status, Orientation, Children).
+If guided sections are empty, use the bio as fallback.
+Write in first person as if the user is describing themselves.
+Example: 'I am a curious person who loves traveling...'.
+Do not invent missing details and do not use lists or bullet points.
 {{testCondition}}
-Se presente il profilo astrologico, menzionalo brevemente in modo naturale (es. 'Sono un Ariete ascendente Leone...' o 'Il mio segno zodiacale e...').
-Se presenti i punteggi dei test, usali per descrivere la personalita (es. punteggio lifestyle alto = persona dinamica, values alto = persona con valori forti).
-Dati disponibili:
+If an astrological profile is present, mention it briefly in a natural way (e.g., 'I am an Aries with Leo rising...' or 'My zodiac sign is...').
+If test scores are present, use them to describe personality (e.g., high lifestyle score = dynamic person, high values score = strong values).
+Available data:

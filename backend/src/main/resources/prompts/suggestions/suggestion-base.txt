@@ -1,2 +1,2 @@
-Genera un suggerimento personalizzato per l'utente. Tipo: {{suggestionType}}.
+Generate a personalized suggestion for the user. Type: {{suggestionType}}.
 {{contextBlock}}

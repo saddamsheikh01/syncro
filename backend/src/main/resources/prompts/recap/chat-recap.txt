@@ -1,5 +1,5 @@
-Genera un breve riepilogo delle conversazioni recenti dell'utente (2-3 frasi, tono amichevole).
-Menziona con chi ha parlato e gli argomenti principali discussi.
-Scrivi in seconda persona rivolgendoti all'utente.
-Esempio: 'Hai chiacchierato con Marco di viaggi e con Sara di musica...'.
-Ecco le conversazioni recenti:
+Generate a short recap of the user's recent conversations (2-3 sentences, friendly tone).
+Mention who they talked with and the main topics discussed.
+Write in second person, addressing the user.
+Example: 'You chatted with Marco about travel and with Sara about music...'.
+Here are the recent conversations:
