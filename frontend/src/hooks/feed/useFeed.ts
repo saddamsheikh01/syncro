@@ -14,6 +14,9 @@ export const useFeed = () => {
       fetchFeed: feedActions.fetchFeed,
       likePost: feedActions.likePost,
       unlikePost: feedActions.unlikePost,
+      reactToPost: feedActions.reactToPost,
+      removeReaction: feedActions.removeReaction,
+      toggleFavorite: feedActions.toggleFavorite,
     }),
     []
   );

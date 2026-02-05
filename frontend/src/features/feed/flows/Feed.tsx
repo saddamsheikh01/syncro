@@ -8,6 +8,8 @@ import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
+import { Input } from "@/components/elements/Input";
+import { Select } from "@/components/elements/Select";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import type { PostComposerPayload } from "@/features/social/sections/PostComposerModal";
 import { PostComposerModal } from "@/features/social/sections/PostComposerModal";
@@ -16,7 +18,7 @@ import { uploadPostMedia } from "@/services/media";
 import { createPost } from "@/services/social";
 import { getUserSummary } from "@/services/users";
 import type { JsonValue } from "@/types/shared";
-import type { CreatePostRequest } from "@/types/social";
+import type { CreatePostRequest, PostScope, PostTimeframe } from "@/types/social";
 import type { UserSummaryResponse } from "@/types/profile";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -36,6 +38,29 @@ const formatCoordinate = (value: number | null | undefined) => {
   if (typeof value !== "number") return "";
   return value.toFixed(4);
 };
+
+const SCOPE_OPTIONS = [
+  { label: "Tutti", value: "" },
+  { label: "Amicizia", value: "AMICIZIA" },
+  { label: "Esperienze", value: "ESPERIENZE" },
+  { label: "Lavoro", value: "LAVORO" },
+  { label: "Benessere", value: "BENESSERE" },
+];
+
+const TIMEFRAME_OPTIONS = [
+  { label: "Tutti", value: "" },
+  { label: "Ora", value: "ORA" },
+  { label: "Oggi", value: "OGGI" },
+];
+
+const GENDER_OPTIONS = [
+  { label: "Tutti", value: "" },
+  { label: "Donna", value: "FEMALE" },
+  { label: "Uomo", value: "MALE" },
+  { label: "Non binary", value: "NON_BINARY" },
+  { label: "Altro", value: "OTHER" },
+  { label: "Preferisco non dirlo", value: "PREFER_NOT_TO_SAY" },
+];
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === "object" && "message" in error) {
@@ -72,6 +97,22 @@ export const Feed = () => {
   const [composerLoading, setComposerLoading] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
+  const [scopeFilter, setScopeFilter] = useState<"" | PostScope>("");
+  const [timeframeFilter, setTimeframeFilter] = useState<"" | PostTimeframe>("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [ageMinFilter, setAgeMinFilter] = useState("");
+  const [ageMaxFilter, setAgeMaxFilter] = useState("");
+  const [genderFilter, setGenderFilter] = useState("");
+  const [minCompatibility, setMinCompatibility] = useState("");
+  const [activeFilters, setActiveFilters] = useState({
+    scope: "",
+    timeframe: "",
+    city: "",
+    minAge: "",
+    maxAge: "",
+    gender: "",
+    minCompatibility: "",
+  });
 
   useEffect(() => {
     authActions.hydrate();
@@ -86,6 +127,37 @@ export const Feed = () => {
     positionActions.fetchPosition().catch(() => undefined);
   }, [positionActions, status, userActions]);
 
+  const handleApplyFilters = () => {
+    setActiveFilters({
+      scope: scopeFilter,
+      timeframe: timeframeFilter,
+      city: cityFilter.trim(),
+      minAge: ageMinFilter.trim(),
+      maxAge: ageMaxFilter.trim(),
+      gender: genderFilter,
+      minCompatibility: minCompatibility.trim(),
+    });
+  };
+
+  const handleResetFilters = () => {
+    setScopeFilter("");
+    setTimeframeFilter("");
+    setCityFilter("");
+    setAgeMinFilter("");
+    setAgeMaxFilter("");
+    setGenderFilter("");
+    setMinCompatibility("");
+    setActiveFilters({
+      scope: "",
+      timeframe: "",
+      city: "",
+      minAge: "",
+      maxAge: "",
+      gender: "",
+      minCompatibility: "",
+    });
+  };
+
   const feedFilters = useMemo(() => {
     const storedFeed = (preferences?.feedPreferences ?? {}) as Record<
       string,
@@ -94,16 +166,38 @@ export const Feed = () => {
     const onlyNearby = readBoolean(storedFeed.onlyNearby) ?? true;
     const radiusKm = readNumber(storedFeed.radiusKm);
 
-    if (onlyNearby && hasPosition && position) {
-      return {
-        lat: position.latitude ?? undefined,
-        lng: position.longitude ?? undefined,
-        radiusKm: radiusKm ?? undefined,
-      };
-    }
+    const useCityFilter = activeFilters.city.trim().length > 0;
+    const locationFilters =
+      !useCityFilter && onlyNearby && hasPosition && position
+        ? {
+            lat: position.latitude ?? undefined,
+            lng: position.longitude ?? undefined,
+            radiusKm: radiusKm ?? undefined,
+          }
+        : {};
 
-    return {};
-  }, [hasPosition, position, preferences]);
+    const minAge = Number.parseInt(activeFilters.minAge, 10);
+    const maxAge = Number.parseInt(activeFilters.maxAge, 10);
+    const minCompatibilityValue = Number.parseInt(
+      activeFilters.minCompatibility,
+      10
+    );
+
+    return {
+      ...locationFilters,
+      scope: (activeFilters.scope || undefined) as PostScope | undefined,
+      timeframe: (activeFilters.timeframe || undefined) as
+        | PostTimeframe
+        | undefined,
+      city: useCityFilter ? activeFilters.city : undefined,
+      minAge: Number.isFinite(minAge) ? minAge : undefined,
+      maxAge: Number.isFinite(maxAge) ? maxAge : undefined,
+      gender: activeFilters.gender || undefined,
+      minCompatibility: Number.isFinite(minCompatibilityValue)
+        ? minCompatibilityValue
+        : undefined,
+    };
+  }, [activeFilters, hasPosition, position, preferences]);
 
   const feedFilterKey = useMemo(
     () => JSON.stringify(feedFilters),
@@ -124,6 +218,7 @@ export const Feed = () => {
 
     return items.map((post) => ({
       post,
+      matchScore: typeof post.matchScore === "number" ? post.matchScore : undefined,
       authorName:
         user?.id && post.userId === user.id
           ? selfName
@@ -136,13 +231,15 @@ export const Feed = () => {
         undefined,
       avatarUrl: authorSummaries[post.userId]?.avatarUrl ?? undefined,
       currentUserId: user?.id,
-      onLike: feedActions.likePost,
-      onUnlike: feedActions.unlikePost,
+      onReact: feedActions.reactToPost,
+      onRemoveReaction: feedActions.removeReaction,
+      onToggleFavorite: feedActions.toggleFavorite,
       onProfileClick: () => router.push(`/profile/${post.userId}`),
     }));
   }, [
-    feedActions.likePost,
-    feedActions.unlikePost,
+    feedActions.reactToPost,
+    feedActions.removeReaction,
+    feedActions.toggleFavorite,
     items,
     profile?.fullName,
     user?.email,
@@ -215,6 +312,10 @@ export const Feed = () => {
       const request: CreatePostRequest = {
         content: payload.content,
         language: language ?? undefined,
+        scope: payload.scope ?? null,
+        mood: payload.mood ?? null,
+        timeframe: payload.timeframe ?? null,
+        taggedUserIds: payload.taggedUserIds ?? undefined,
       };
 
       if (payload.includePosition && hasPosition && position) {
@@ -304,6 +405,85 @@ export const Feed = () => {
           </Button>
         </Card>
       ) : null}
+
+      <Card className="space-y-4 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              Filtri feed
+            </p>
+            <p className="text-xs text-subtle">
+              Personalizza cosa vuoi vedere nel feed.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={handleResetFilters}>
+              Reset
+            </Button>
+            <Button size="sm" onClick={handleApplyFilters}>
+              Applica
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Select
+            label="Ambito"
+            options={SCOPE_OPTIONS}
+            value={scopeFilter}
+            onValueChange={(value) =>
+              setScopeFilter(value as "" | PostScope)
+            }
+          />
+          <Select
+            label="Tempo"
+            options={TIMEFRAME_OPTIONS}
+            value={timeframeFilter}
+            onValueChange={(value) =>
+              setTimeframeFilter(value as "" | PostTimeframe)
+            }
+          />
+          <Input
+            label="Citta"
+            value={cityFilter}
+            onChange={(event) => setCityFilter(event.target.value)}
+            placeholder="Milano"
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Eta minima"
+              type="number"
+              min={18}
+              value={ageMinFilter}
+              onChange={(event) => setAgeMinFilter(event.target.value)}
+              placeholder="18"
+            />
+            <Input
+              label="Eta massima"
+              type="number"
+              min={18}
+              value={ageMaxFilter}
+              onChange={(event) => setAgeMaxFilter(event.target.value)}
+              placeholder="45"
+            />
+          </div>
+          <Select
+            label="Genere"
+            options={GENDER_OPTIONS}
+            value={genderFilter}
+            onValueChange={setGenderFilter}
+          />
+          <Input
+            label="Compatibilita minima"
+            type="number"
+            min={0}
+            max={100}
+            value={minCompatibility}
+            onChange={(event) => setMinCompatibility(event.target.value)}
+            placeholder="50"
+          />
+        </div>
+      </Card>
 
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <Badge tone="accent" size="sm">

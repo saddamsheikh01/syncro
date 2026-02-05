@@ -1,5 +1,38 @@
 import type { IsoDateTime, Uuid } from "../shared";
 
+export type PostScope = "AMICIZIA" | "ESPERIENZE" | "LAVORO" | "BENESSERE";
+
+export type PostMood =
+  | "SERENO"
+  | "ENTUSIASTA"
+  | "SOCIEVOLE"
+  | "RIFLESSIVO"
+  | "RILASSATO"
+  | "CARICO"
+  | "CURIOSO"
+  | "AVVENTUROSO";
+
+export type PostTimeframe = "ORA" | "OGGI";
+
+export type PostReactionType = "LIKE" | "LOVE" | "LAUGH" | "WOW" | "SUPPORT";
+
+export type TaggedUserResponse = {
+  userId: Uuid;
+  username: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+};
+
+export type PostSummaryResponse = {
+  id: Uuid;
+  userId: Uuid;
+  content: string;
+  scope: PostScope | null;
+  mood: PostMood | null;
+  timeframe: PostTimeframe | null;
+  createdAt: IsoDateTime;
+};
+
 export type PostResponse = {
   id: Uuid;
   userId: Uuid;
@@ -7,9 +40,17 @@ export type PostResponse = {
   language: string | null;
   latitude: number | null;
   longitude: number | null;
+  scope: PostScope | null;
+  mood: PostMood | null;
+  timeframe: PostTimeframe | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
+  reactions: Record<PostReactionType, number> | Record<string, number>;
+  myReaction: PostReactionType | null;
+  favoritedByMe: boolean;
+  matchScore?: number | null;
+  taggedUsers: TaggedUserResponse[];
   createdAt: IsoDateTime;
 };
 
@@ -18,6 +59,10 @@ export type CreatePostRequest = {
   language?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  scope?: PostScope | null;
+  mood?: PostMood | null;
+  timeframe?: PostTimeframe | null;
+  taggedUserIds?: Uuid[] | null;
 };
 
 export type CommentResponse = {

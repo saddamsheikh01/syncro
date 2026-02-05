@@ -9,6 +9,10 @@ import type {
   CreateConversationRequest,
   CreatePostRequest,
   PostResponse,
+  PostReactionType,
+  PostScope,
+  PostMood,
+  PostTimeframe,
 } from "../../types/social";
 import type { PageResponse, Uuid } from "../../types/shared";
 
@@ -16,6 +20,14 @@ export type FeedParams = {
   lat?: number;
   lng?: number;
   radiusKm?: number;
+  scope?: PostScope;
+  mood?: PostMood;
+  timeframe?: PostTimeframe;
+  city?: string;
+  minAge?: number;
+  maxAge?: number;
+  gender?: string;
+  minCompatibility?: number;
   page?: number;
   size?: number;
 };
@@ -53,6 +65,17 @@ export const likePost = async (postId: Uuid): Promise<void> => {
 
 export const unlikePost = async (postId: Uuid): Promise<void> => {
   await apiClient.delete(`/posts/${postId}/likes`);
+};
+
+export const reactToPost = async (
+  postId: Uuid,
+  reaction: PostReactionType
+): Promise<void> => {
+  await apiClient.post(`/posts/${postId}/reactions`, { reaction });
+};
+
+export const removeReaction = async (postId: Uuid): Promise<void> => {
+  await apiClient.delete(`/posts/${postId}/reactions`);
 };
 
 export const searchPosts = async (

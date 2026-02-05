@@ -84,9 +84,9 @@ const QUICK_ACTIONS: Array<{
     variant: "places",
   },
   {
-    title: "Feed",
+    title: "Insights",
     subtitle: "Post vicini",
-    href: "/feed",
+    href: "/insights",
     icon: <NavIcon name="chat" className="h-5 w-5" />,
     variant: "feed",
   },

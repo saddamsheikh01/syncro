@@ -3,6 +3,7 @@ package com.syncro.backend.domain.favorites.entity;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.catalog.entity.Experience;
 import com.syncro.backend.domain.catalog.entity.Place;
+import com.syncro.backend.domain.social.entity.Post;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -33,6 +34,9 @@ public class UserFavorite {
     @Column(name = "experience_id")
     private UUID experienceId;
 
+    @Column(name = "post_id")
+    private UUID postId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;
@@ -44,6 +48,10 @@ public class UserFavorite {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "experience_id", insertable = false, updatable = false)
     private Experience experience;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", insertable = false, updatable = false)
+    private Post post;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -85,6 +93,14 @@ public class UserFavorite {
         this.experienceId = experienceId;
     }
 
+    public UUID getPostId() {
+        return postId;
+    }
+
+    public void setPostId(UUID postId) {
+        this.postId = postId;
+    }
+
     public User getUser() {
         return user;
     }
@@ -110,6 +126,15 @@ public class UserFavorite {
     public void setExperience(Experience experience) {
         this.experience = experience;
         this.experienceId = experience != null ? experience.getId() : null;
+    }
+
+    public Post getPost() {
+        return post;
+    }
+
+    public void setPost(Post post) {
+        this.post = post;
+        this.postId = post != null ? post.getId() : null;
     }
 
     public Instant getCreatedAt() {

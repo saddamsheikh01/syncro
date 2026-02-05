@@ -25,6 +25,9 @@ import com.syncro.backend.domain.favorites.dto.FavoriteType;
 import com.syncro.backend.domain.favorites.entity.UserFavorite;
 import com.syncro.backend.domain.favorites.mapper.FavoriteMapper;
 import com.syncro.backend.domain.favorites.repository.UserFavoriteRepository;
+import com.syncro.backend.domain.social.dto.PostSummaryResponse;
+import com.syncro.backend.domain.social.entity.Post;
+import com.syncro.backend.domain.social.repository.PostRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.List;
 import java.util.Locale;
@@ -47,6 +50,7 @@ public class FavoriteService {
     private final PlaceRepository placeRepository;
     private final ExperienceRepository experienceRepository;
     private final CategoryRepository categoryRepository;
+    private final PostRepository postRepository;
     private final CategoryMapper categoryMapper;
     private final PlaceMapper placeMapper;
     private final ExperienceMapper experienceMapper;
@@ -58,6 +62,7 @@ public class FavoriteService {
         PlaceRepository placeRepository,
         ExperienceRepository experienceRepository,
         CategoryRepository categoryRepository,
+        PostRepository postRepository,
         CategoryMapper categoryMapper,
         PlaceMapper placeMapper,
         ExperienceMapper experienceMapper,
@@ -68,6 +73,7 @@ public class FavoriteService {
         this.placeRepository = placeRepository;
         this.experienceRepository = experienceRepository;
         this.categoryRepository = categoryRepository;
+        this.postRepository = postRepository;
         this.categoryMapper = categoryMapper;
         this.placeMapper = placeMapper;
         this.experienceMapper = experienceMapper;
@@ -87,10 +93,12 @@ public class FavoriteService {
         Page<UserFavorite> favorites = fetchFavorites(user.getId(), favoriteType, pageable);
         Map<UUID, PlaceSummaryResponse> places = loadPlaceSummaries(favorites.getContent());
         Map<UUID, ExperienceSummaryResponse> experiences = loadExperienceSummaries(favorites.getContent());
+        Map<UUID, PostSummaryResponse> posts = loadPostSummaries(favorites.getContent());
         return favorites.map(favorite -> favoriteMapper.toResponse(
             favorite,
             favorite.getPlaceId() != null ? places.get(favorite.getPlaceId()) : null,
-            favorite.getExperienceId() != null ? experiences.get(favorite.getExperienceId()) : null
+            favorite.getExperienceId() != null ? experiences.get(favorite.getExperienceId()) : null,
+            favorite.getPostId() != null ? posts.get(favorite.getPostId()) : null
         ));
     }
 
@@ -99,13 +107,15 @@ public class FavoriteService {
         User user = getUser(principal);
         UUID placeId = request.placeId();
         UUID experienceId = request.experienceId();
-        validateFavoriteTarget(placeId, experienceId);
+        UUID postId = request.postId();
+        validateFavoriteTarget(placeId, experienceId, postId);
 
         UserFavorite favorite = new UserFavorite();
         favorite.setUser(user);
 
         PlaceSummaryResponse placeSummary = null;
         ExperienceSummaryResponse experienceSummary = null;
+        PostSummaryResponse postSummary = null;
 
         if (placeId != null) {
             if (userFavoriteRepository.existsByUserIdAndPlaceId(user.getId(), placeId)) {
@@ -115,7 +125,7 @@ public class FavoriteService {
                 .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
             favorite.setPlace(place);
             placeSummary = mapPlaceSummary(place);
-        } else {
+        } else if (experienceId != null) {
             if (userFavoriteRepository.existsByUserIdAndExperienceId(user.getId(), experienceId)) {
                 throw new ConflictException("Preferito gia presente");
             }
@@ -123,16 +133,24 @@ public class FavoriteService {
                 .orElseThrow(() -> new NotFoundException("Esperienza non trovata"));
             favorite.setExperience(experience);
             experienceSummary = mapExperienceSummary(experience);
+        } else {
+            if (userFavoriteRepository.existsByUserIdAndPostId(user.getId(), postId)) {
+                throw new ConflictException("Preferito gia presente");
+            }
+            Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("Post non trovato"));
+            favorite.setPost(post);
+            postSummary = mapPostSummary(post);
         }
 
         UserFavorite saved = userFavoriteRepository.save(favorite);
-        return favoriteMapper.toResponse(saved, placeSummary, experienceSummary);
+        return favoriteMapper.toResponse(saved, placeSummary, experienceSummary, postSummary);
     }
 
     @Transactional
-    public void removeFavorite(UserPrincipal principal, UUID placeId, UUID experienceId) {
+    public void removeFavorite(UserPrincipal principal, UUID placeId, UUID experienceId, UUID postId) {
         User user = getUser(principal);
-        validateFavoriteTarget(placeId, experienceId);
+        validateFavoriteTarget(placeId, experienceId, postId);
 
         if (placeId != null) {
             UserFavorite favorite = userFavoriteRepository.findByUserIdAndPlaceId(user.getId(), placeId)
@@ -141,7 +159,14 @@ public class FavoriteService {
             return;
         }
 
-        UserFavorite favorite = userFavoriteRepository.findByUserIdAndExperienceId(user.getId(), experienceId)
+        if (experienceId != null) {
+            UserFavorite favorite = userFavoriteRepository.findByUserIdAndExperienceId(user.getId(), experienceId)
+                .orElseThrow(() -> new NotFoundException("Preferito non trovato"));
+            userFavoriteRepository.delete(favorite);
+            return;
+        }
+
+        UserFavorite favorite = userFavoriteRepository.findByUserIdAndPostId(user.getId(), postId)
             .orElseThrow(() -> new NotFoundException("Preferito non trovato"));
         userFavoriteRepository.delete(favorite);
     }
@@ -153,6 +178,7 @@ public class FavoriteService {
         return switch (type) {
             case PLACE -> userFavoriteRepository.findByUserIdAndPlaceIdIsNotNull(userId, pageable);
             case EXPERIENCE -> userFavoriteRepository.findByUserIdAndExperienceIdIsNotNull(userId, pageable);
+            case POST -> userFavoriteRepository.findByUserIdAndPostIdIsNotNull(userId, pageable);
         };
     }
 
@@ -262,6 +288,31 @@ public class FavoriteService {
         return experienceMapper.toSummaryResponse(experience, category, place);
     }
 
+    private Map<UUID, PostSummaryResponse> loadPostSummaries(List<UserFavorite> favorites) {
+        Set<UUID> postIds = favorites.stream()
+            .map(UserFavorite::getPostId)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+        if (postIds.isEmpty()) {
+            return Map.of();
+        }
+        return postRepository.findAllById(postIds)
+            .stream()
+            .collect(Collectors.toMap(Post::getId, this::mapPostSummary));
+    }
+
+    private PostSummaryResponse mapPostSummary(Post post) {
+        return new PostSummaryResponse(
+            post.getId(),
+            post.getUserId(),
+            post.getContent(),
+            post.getScope() != null ? post.getScope().name() : null,
+            post.getMood() != null ? post.getMood().name() : null,
+            post.getTimeframe() != null ? post.getTimeframe().name() : null,
+            post.getCreatedAt()
+        );
+    }
+
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
             throw new UnauthorizedException("Token mancante o non valido");
@@ -271,12 +322,22 @@ public class FavoriteService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
     }
 
-    private void validateFavoriteTarget(UUID placeId, UUID experienceId) {
-        if (placeId == null && experienceId == null) {
-            throw new BadRequestException("Seleziona un luogo o un'esperienza");
+    private void validateFavoriteTarget(UUID placeId, UUID experienceId, UUID postId) {
+        int count = 0;
+        if (placeId != null) {
+            count++;
         }
-        if (placeId != null && experienceId != null) {
-            throw new BadRequestException("Seleziona solo un luogo o un'esperienza");
+        if (experienceId != null) {
+            count++;
+        }
+        if (postId != null) {
+            count++;
+        }
+        if (count == 0) {
+            throw new BadRequestException("Seleziona un luogo, un'esperienza o un post");
+        }
+        if (count > 1) {
+            throw new BadRequestException("Seleziona solo un tipo di preferito");
         }
     }
 

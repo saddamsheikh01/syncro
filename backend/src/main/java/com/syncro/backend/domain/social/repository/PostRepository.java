@@ -14,6 +14,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         value = """
             SELECT p.*
             FROM posts p
+            JOIN user_profiles up ON up.user_id = p.user_id
             WHERE (
                 :lat IS NULL
                 OR :lng IS NULL
@@ -30,11 +31,29 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                     ) <= :radiusKm
                 )
             )
+            AND (up.visibility IS NULL OR up.visibility <> 'PRIVATE')
+            AND (:scope IS NULL OR p.scope = :scope)
+            AND (:mood IS NULL OR p.mood = :mood)
+            AND (:timeframe IS NULL OR p.timeframe = :timeframe)
+            AND (
+                :city IS NULL
+                OR (up.city IS NOT NULL AND LOWER(up.city) LIKE LOWER(CONCAT('%', :city, '%')))
+            )
+            AND (:gender IS NULL OR up.gender = :gender)
+            AND (
+                :minAge IS NULL
+                OR (up.birth_date IS NOT NULL AND EXTRACT(YEAR FROM age(current_date, up.birth_date)) >= :minAge)
+            )
+            AND (
+                :maxAge IS NULL
+                OR (up.birth_date IS NOT NULL AND EXTRACT(YEAR FROM age(current_date, up.birth_date)) <= :maxAge)
+            )
             ORDER BY p.created_at DESC
             """,
         countQuery = """
             SELECT COUNT(*)
             FROM posts p
+            JOIN user_profiles up ON up.user_id = p.user_id
             WHERE (
                 :lat IS NULL
                 OR :lng IS NULL
@@ -50,6 +69,23 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                         )))
                     ) <= :radiusKm
                 )
+            )
+            AND (up.visibility IS NULL OR up.visibility <> 'PRIVATE')
+            AND (:scope IS NULL OR p.scope = :scope)
+            AND (:mood IS NULL OR p.mood = :mood)
+            AND (:timeframe IS NULL OR p.timeframe = :timeframe)
+            AND (
+                :city IS NULL
+                OR (up.city IS NOT NULL AND LOWER(up.city) LIKE LOWER(CONCAT('%', :city, '%')))
+            )
+            AND (:gender IS NULL OR up.gender = :gender)
+            AND (
+                :minAge IS NULL
+                OR (up.birth_date IS NOT NULL AND EXTRACT(YEAR FROM age(current_date, up.birth_date)) >= :minAge)
+            )
+            AND (
+                :maxAge IS NULL
+                OR (up.birth_date IS NOT NULL AND EXTRACT(YEAR FROM age(current_date, up.birth_date)) <= :maxAge)
             )
             """,
         nativeQuery = true
@@ -58,6 +94,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("lat") Double lat,
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,
+        @Param("scope") String scope,
+        @Param("mood") String mood,
+        @Param("timeframe") String timeframe,
+        @Param("city") String city,
+        @Param("gender") String gender,
+        @Param("minAge") Integer minAge,
+        @Param("maxAge") Integer maxAge,
         Pageable pageable
     );
 

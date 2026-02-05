@@ -3,6 +3,8 @@ package com.syncro.backend.domain.social.entity;
 import com.syncro.backend.domain.auth.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,6 +42,18 @@ public class Post {
 
     @Column(name = "longitude")
     private Double longitude;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scope")
+    private PostScope scope;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mood")
+    private PostMood mood;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "timeframe")
+    private PostTimeframe timeframe;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -107,6 +121,30 @@ public class Post {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public PostScope getScope() {
+        return scope;
+    }
+
+    public void setScope(PostScope scope) {
+        this.scope = scope;
+    }
+
+    public PostMood getMood() {
+        return mood;
+    }
+
+    public void setMood(PostMood mood) {
+        this.mood = mood;
+    }
+
+    public PostTimeframe getTimeframe() {
+        return timeframe;
+    }
+
+    public void setTimeframe(PostTimeframe timeframe) {
+        this.timeframe = timeframe;
     }
 
     public Instant getCreatedAt() {

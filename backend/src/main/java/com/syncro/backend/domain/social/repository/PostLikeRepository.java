@@ -19,6 +19,7 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> 
         SELECT pl.postId as postId, COUNT(pl) as likeCount
         FROM PostLike pl
         WHERE pl.postId IN (:postIds)
+          AND pl.reaction = 'LIKE'
         GROUP BY pl.postId
         """
     )
@@ -30,7 +31,31 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> 
         FROM PostLike pl
         WHERE pl.userId = :userId
           AND pl.postId IN (:postIds)
+          AND pl.reaction = 'LIKE'
         """
     )
     List<UUID> findLikedPostIds(@Param("userId") UUID userId, @Param("postIds") List<UUID> postIds);
+
+    @Query(
+        """
+        SELECT pl.postId as postId, pl.reaction as reaction, COUNT(pl) as reactionCount
+        FROM PostLike pl
+        WHERE pl.postId IN (:postIds)
+        GROUP BY pl.postId, pl.reaction
+        """
+    )
+    List<PostReactionCountProjection> countReactionsByPostIds(@Param("postIds") List<UUID> postIds);
+
+    @Query(
+        """
+        SELECT pl.postId as postId, pl.reaction as reaction
+        FROM PostLike pl
+        WHERE pl.userId = :userId
+          AND pl.postId IN (:postIds)
+        """
+    )
+    List<PostUserReactionProjection> findUserReactions(
+        @Param("userId") UUID userId,
+        @Param("postIds") List<UUID> postIds
+    );
 }

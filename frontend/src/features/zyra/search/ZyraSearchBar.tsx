@@ -71,7 +71,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
     } else if (type === "user") {
       router.push(`/profile/${id}`);
     } else {
-      router.push(`/feed?post=${id}`);
+      router.push(`/insights?post=${id}`);
     }
   };
 

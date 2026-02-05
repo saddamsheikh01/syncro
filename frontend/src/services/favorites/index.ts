@@ -29,6 +29,7 @@ export const addFavorite = async (
 export const removeFavorite = async (params: {
   placeId?: Uuid;
   experienceId?: Uuid;
+  postId?: Uuid;
 }): Promise<void> => {
   await apiClient.delete("/favorites", { params: buildQueryParams(params) });
 };

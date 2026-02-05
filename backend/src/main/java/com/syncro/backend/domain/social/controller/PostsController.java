@@ -1,8 +1,13 @@
 package com.syncro.backend.domain.social.controller;
 
 import com.syncro.backend.domain.social.dto.CreatePostRequest;
+import com.syncro.backend.domain.social.dto.PostReactionRequest;
 import com.syncro.backend.domain.social.dto.PostResponse;
+import com.syncro.backend.domain.social.entity.PostMood;
+import com.syncro.backend.domain.social.entity.PostScope;
+import com.syncro.backend.domain.social.entity.PostTimeframe;
 import com.syncro.backend.domain.social.service.PostService;
+import com.syncro.backend.domain.profile.entity.Gender;
 import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,10 +46,33 @@ public class PostsController {
         @RequestParam(required = false) Double lat,
         @RequestParam(required = false) Double lng,
         @RequestParam(required = false) Double radiusKm,
+        @RequestParam(required = false) PostScope scope,
+        @RequestParam(required = false) PostMood mood,
+        @RequestParam(required = false) PostTimeframe timeframe,
+        @RequestParam(required = false) String city,
+        @RequestParam(required = false) Integer minAge,
+        @RequestParam(required = false) Integer maxAge,
+        @RequestParam(required = false) Gender gender,
+        @RequestParam(required = false) Integer minCompatibility,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(postService.getFeed(principal, lat, lng, radiusKm, page, size));
+        return ResponseEntity.ok(postService.getFeed(
+            principal,
+            lat,
+            lng,
+            radiusKm,
+            scope,
+            mood,
+            timeframe,
+            city,
+            minAge,
+            maxAge,
+            gender,
+            minCompatibility,
+            page,
+            size
+        ));
     }
 
     @GetMapping("/search")
@@ -78,9 +106,30 @@ public class PostsController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PostMapping("/{postId}/reactions")
+    @Operation(summary = "Reagisci a un post")
+    public ResponseEntity<Void> reactToPost(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID postId,
+        @Valid @RequestBody PostReactionRequest request
+    ) {
+        postService.reactToPost(principal, postId, request.reaction());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
     @DeleteMapping("/{postId}/likes")
     @Operation(summary = "Unlike post")
     public ResponseEntity<Void> unlikePost(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID postId
+    ) {
+        postService.unlikePost(principal, postId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{postId}/reactions")
+    @Operation(summary = "Rimuovi reazione post")
+    public ResponseEntity<Void> removeReaction(
         @AuthenticationPrincipal UserPrincipal principal,
         @PathVariable UUID postId
     ) {

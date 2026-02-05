@@ -19,7 +19,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
   { id: "map", label: "Mappa", href: "/map", icon: "map" },
   { id: "matchmaking", label: "Matchmaking", href: "/matches", icon: "spark" },
-  { id: "feed", label: "Feed", href: "/feed", icon: "document" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "document" },
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },

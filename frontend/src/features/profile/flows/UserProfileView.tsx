@@ -17,7 +17,9 @@ import { useAnalytics, useAuth, useChat } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserTestsCount } from "@/services/tests";
 import { getUserPosts, getUserProfile } from "@/services/users";
-import { likePost, unlikePost } from "@/services/social";
+import { reactToPost, removeReaction } from "@/services/social";
+import { addFavorite, removeFavorite } from "@/services/favorites";
+import type { PostReactionType } from "@/types/social";
 import type { UserPublicProfileResponse } from "@/types/profile";
 import type { PostResponse } from "@/types/social";
 import type { UserMatchResponse, MatchBreakdown, DimensionScores, DomainScores } from "@/types/matches";
@@ -77,6 +79,21 @@ const formatLocation = (profile: UserPublicProfileResponse | null) => {
 
 const resolveLabel = (value: string | null | undefined, map: Record<string, string>) =>
   value ? map[value] ?? value : null;
+
+const updateReactionCounts = (
+  reactions: PostResponse["reactions"],
+  prevReaction: PostReactionType | null,
+  nextReaction: PostReactionType | null
+) => {
+  const next = { ...(reactions ?? {}) } as Record<string, number>;
+  if (prevReaction) {
+    next[prevReaction] = Math.max(0, (next[prevReaction] ?? 0) - 1);
+  }
+  if (nextReaction) {
+    next[nextReaction] = (next[nextReaction] ?? 0) + 1;
+  }
+  return next;
+};
 
 export interface UserProfileViewProps {
   userId: string;
@@ -270,53 +287,135 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   );
   const fallbackBio = profile?.bio?.trim();
 
+  const updatePost = useCallback(
+    (postId: string, updater: (post: PostResponse) => PostResponse) => {
+      setPosts((prev) => prev.map((post) => (post.id === postId ? updater(post) : post)));
+    },
+    []
+  );
+
+  const handleReactToPost = useCallback(
+    async (postId: string, reaction: PostReactionType) => {
+      let previousReaction: PostReactionType | null = null;
+      updatePost(postId, (post) => {
+        previousReaction = post.myReaction ?? null;
+        return {
+          ...post,
+          myReaction: reaction,
+          reactions: updateReactionCounts(post.reactions, previousReaction, reaction),
+          likedByMe: reaction === "LIKE",
+          likeCount:
+            reaction === "LIKE"
+              ? post.likeCount + (previousReaction === "LIKE" ? 0 : 1)
+              : previousReaction === "LIKE"
+                ? Math.max(0, post.likeCount - 1)
+                : post.likeCount,
+        };
+      });
+
+      try {
+        await reactToPost(postId, reaction);
+      } catch {
+        updatePost(postId, (post) => ({
+          ...post,
+          myReaction: previousReaction,
+          reactions: updateReactionCounts(post.reactions, reaction, previousReaction),
+          likedByMe: previousReaction === "LIKE",
+          likeCount:
+            previousReaction === "LIKE"
+              ? post.likeCount + (reaction === "LIKE" ? 0 : 1)
+              : reaction === "LIKE"
+                ? Math.max(0, post.likeCount - 1)
+                : post.likeCount,
+        }));
+      }
+    },
+    [updatePost]
+  );
+
+  const handleRemoveReaction = useCallback(
+    async (postId: string) => {
+      let previousReaction: PostReactionType | null = null;
+      updatePost(postId, (post) => {
+        previousReaction = post.myReaction ?? null;
+        return {
+          ...post,
+          myReaction: null,
+          reactions: updateReactionCounts(post.reactions, previousReaction, null),
+          likedByMe: false,
+          likeCount:
+            previousReaction === "LIKE"
+              ? Math.max(0, post.likeCount - 1)
+              : post.likeCount,
+        };
+      });
+
+      try {
+        await removeReaction(postId);
+      } catch {
+        updatePost(postId, (post) => ({
+          ...post,
+          myReaction: previousReaction,
+          reactions: updateReactionCounts(post.reactions, null, previousReaction),
+          likedByMe: previousReaction === "LIKE",
+          likeCount:
+            previousReaction === "LIKE"
+              ? post.likeCount + 1
+              : post.likeCount,
+        }));
+      }
+    },
+    [updatePost]
+  );
+
+  const handleToggleFavorite = useCallback(
+    async (postId: string, nextActive: boolean) => {
+      updatePost(postId, (post) => ({
+        ...post,
+        favoritedByMe: nextActive,
+      }));
+
+      try {
+        if (nextActive) {
+          await addFavorite({ postId });
+        } else {
+          await removeFavorite({ postId });
+        }
+      } catch {
+        updatePost(postId, (post) => ({
+          ...post,
+          favoritedByMe: !nextActive,
+        }));
+      }
+    },
+    [updatePost]
+  );
+
   const postItems = useMemo(
     () =>
       posts.map((post) => ({
         post,
+        matchScore: typeof post.matchScore === "number" ? post.matchScore : undefined,
         authorName: displayName,
         authorSubtitle: locationLabel,
         avatarUrl: profile?.avatarUrl ?? undefined,
         currentUserId: user?.id,
-        onLike: async (postId: string) => {
-          try {
-            await likePost(postId);
-            setPosts((prev) =>
-              prev.map((item) =>
-                item.id === postId
-                  ? {
-                      ...item,
-                      likedByMe: true,
-                      likeCount: item.likeCount + 1,
-                    }
-                  : item
-              )
-            );
-          } catch {
-            // Gestito a livello UI base
-          }
-        },
-        onUnlike: async (postId: string) => {
-          try {
-            await unlikePost(postId);
-            setPosts((prev) =>
-              prev.map((item) =>
-                item.id === postId
-                  ? {
-                      ...item,
-                      likedByMe: false,
-                      likeCount: Math.max(0, item.likeCount - 1),
-                    }
-                  : item
-              )
-            );
-          } catch {
-            // Gestito a livello UI base
-          }
-        },
+        onReact: handleReactToPost,
+        onRemoveReaction: handleRemoveReaction,
+        onToggleFavorite: handleToggleFavorite,
         onProfileClick: () => router.push(`/profile/${post.userId}`),
       })),
-    [displayName, locationLabel, posts, profile?.avatarUrl, router, user?.id]
+    [
+      displayName,
+      handleReactToPost,
+      handleRemoveReaction,
+      handleToggleFavorite,
+      locationLabel,
+      posts,
+      profile?.avatarUrl,
+      router,
+      user?.id,
+    ]
   );
 
   const handleLoadMore = useCallback(() => {

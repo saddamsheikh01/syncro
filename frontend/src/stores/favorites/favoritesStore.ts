@@ -41,13 +41,16 @@ const mapPageInfo = (response: PageResponse<unknown>): PageInfo => ({
 
 const matchesFavorite = (
   favorite: FavoriteResponse,
-  params: { placeId?: Uuid; experienceId?: Uuid }
+  params: { placeId?: Uuid; experienceId?: Uuid; postId?: Uuid }
 ) => {
   if (params.placeId) {
     return favorite.place?.id === params.placeId;
   }
   if (params.experienceId) {
     return favorite.experience?.id === params.experienceId;
+  }
+  if (params.postId) {
+    return favorite.post?.id === params.postId;
   }
   return false;
 };
@@ -98,6 +101,7 @@ export const favoritesActions = {
   removeFavorite: async (params: {
     placeId?: Uuid;
     experienceId?: Uuid;
+    postId?: Uuid;
   }): Promise<void> => {
     favoritesStore.setState({ loading: true, error: null });
 

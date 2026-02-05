@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record AddFavoriteRequest(
     UUID placeId,
-    UUID experienceId
+    UUID experienceId,
+    UUID postId
 ) {
 }

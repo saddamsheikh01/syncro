@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
@@ -8,12 +8,27 @@ import { Textarea } from "@/components/elements/Textarea";
 import { Switch } from "@/components/elements/Switch";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
+import { Input } from "@/components/elements/Input";
+import { Select } from "@/components/elements/Select";
+import { Avatar } from "@/components/elements/Avatar";
+import { Loader } from "@/components/elements/Loader";
 import { cx } from "@/lib/classNames";
+import { searchUsers } from "@/services/users";
+import type { UserSummaryResponse } from "@/types/profile";
+import type {
+  PostMood,
+  PostScope,
+  PostTimeframe,
+} from "@/types/social";
 
 export type PostComposerPayload = {
   content: string;
   files: File[];
   includePosition: boolean;
+  scope?: PostScope | null;
+  mood?: PostMood | null;
+  timeframe?: PostTimeframe | null;
+  taggedUserIds?: string[];
 };
 
 export interface PostComposerModalProps {
@@ -29,6 +44,32 @@ export interface PostComposerModalProps {
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ["image/", "video/"];
+
+const SCOPE_OPTIONS = [
+  { label: "Seleziona un ambito", value: "" },
+  { label: "Amicizia", value: "AMICIZIA" },
+  { label: "Esperienze", value: "ESPERIENZE" },
+  { label: "Lavoro", value: "LAVORO" },
+  { label: "Benessere", value: "BENESSERE" },
+];
+
+const MOOD_OPTIONS = [
+  { label: "Seleziona un mood", value: "" },
+  { label: "Sereno", value: "SERENO" },
+  { label: "Entusiasta", value: "ENTUSIASTA" },
+  { label: "Socievole", value: "SOCIEVOLE" },
+  { label: "Riflessivo", value: "RIFLESSIVO" },
+  { label: "Rilassato", value: "RILASSATO" },
+  { label: "Carico", value: "CARICO" },
+  { label: "Curioso", value: "CURIOSO" },
+  { label: "Avventuroso", value: "AVVENTUROSO" },
+];
+
+const TIMEFRAME_OPTIONS = [
+  { label: "Seleziona un tempo", value: "" },
+  { label: "Ora", value: "ORA" },
+  { label: "Oggi", value: "OGGI" },
+];
 
 const formatFileSize = (bytes: number) => {
   if (!Number.isFinite(bytes)) return "";
@@ -59,14 +100,38 @@ export const PostComposerModal = ({
   const [files, setFiles] = useState<File[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [scope, setScope] = useState<"" | PostScope>("");
+  const [mood, setMood] = useState<"" | PostMood>("");
+  const [timeframe, setTimeframe] = useState<"" | PostTimeframe>("");
+  const [tagQuery, setTagQuery] = useState("");
+  const [tagResults, setTagResults] = useState<UserSummaryResponse[]>([]);
+  const [taggedUsers, setTaggedUsers] = useState<UserSummaryResponse[]>([]);
+  const [tagLoading, setTagLoading] = useState(false);
 
-  const hasUnsavedChanges = content.trim().length > 0 || files.length > 0;
+  const taggedUserIds = useMemo(
+    () => taggedUsers.map((user) => user.userId),
+    [taggedUsers]
+  );
+
+  const hasUnsavedChanges =
+    content.trim().length > 0 ||
+    files.length > 0 ||
+    scope !== "" ||
+    mood !== "" ||
+    timeframe !== "" ||
+    taggedUsers.length > 0;
 
   const resetForm = () => {
     setContent("");
     setFiles([]);
     setLocalError(null);
     setIncludePosition(positionAvailable);
+    setScope("");
+    setMood("");
+    setTimeframe("");
+    setTagQuery("");
+    setTagResults([]);
+    setTaggedUsers([]);
     setShowConfirmClose(false);
   };
 
@@ -89,36 +154,83 @@ export const PostComposerModal = ({
     setShowConfirmClose(false);
   };
 
+  useEffect(() => {
+    const query = tagQuery.trim();
+    if (query.length < 2) return;
+
+    let active = true;
+    const timeout = setTimeout(() => {
+      setTagLoading(true);
+      searchUsers({ q: query, size: 5 })
+        .then((response) => {
+          if (!active) return;
+          const filtered = response.content.filter(
+            (user) => !taggedUserIds.includes(user.userId)
+          );
+          setTagResults(filtered);
+        })
+        .catch(() => {
+          if (!active) return;
+          setTagResults([]);
+        })
+        .finally(() => {
+          if (!active) return;
+          setTagLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [tagQuery, taggedUserIds]);
+
+  const handleTagQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setTagQuery(value);
+    if (value.trim().length < 2) {
+      setTagResults([]);
+      setTagLoading(false);
+    }
+  };
+
+  const handleAddTaggedUser = (user: UserSummaryResponse) => {
+    setTaggedUsers((prev) => {
+      if (prev.some((item) => item.userId === user.userId)) {
+        return prev;
+      }
+      if (prev.length >= 10) {
+        setLocalError("Puoi taggare al massimo 10 persone.");
+        return prev;
+      }
+      return [...prev, user];
+    });
+    setTagQuery("");
+    setTagResults([]);
+  };
+
+  const handleRemoveTaggedUser = (userId: string) => {
+    setTaggedUsers((prev) => prev.filter((item) => item.userId !== userId));
+  };
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
-    const nextFiles = Array.from(event.target.files);
-    if (!nextFiles.length) return;
+    const [file] = Array.from(event.target.files);
+    if (!file) return;
 
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-
-    for (const file of nextFiles) {
-      if (!isValidFileType(file)) {
-        errors.push(`"${file.name}" non è un formato valido. Usa immagini o video.`);
-        continue;
-      }
-      if (!isValidFileSize(file)) {
-        errors.push(`"${file.name}" supera il limite di ${MAX_FILE_SIZE_MB} MB.`);
-        continue;
-      }
-      validFiles.push(file);
+    if (!isValidFileType(file)) {
+      setLocalError(`"${file.name}" non è un formato valido. Usa immagini o video.`);
+      event.target.value = "";
+      return;
+    }
+    if (!isValidFileSize(file)) {
+      setLocalError(`"${file.name}" supera il limite di ${MAX_FILE_SIZE_MB} MB.`);
+      event.target.value = "";
+      return;
     }
 
-    if (errors.length > 0) {
-      setLocalError(errors.join(" "));
-    } else {
-      setLocalError(null);
-    }
-
-    if (validFiles.length > 0) {
-      setFiles((prev) => [...prev, ...validFiles]);
-    }
-
+    setLocalError(null);
+    setFiles([file]);
     event.target.value = "";
   };
 
@@ -139,6 +251,10 @@ export const PostComposerModal = ({
       content: trimmed,
       files,
       includePosition: includePosition && positionAvailable,
+      scope: scope || null,
+      mood: mood || null,
+      timeframe: timeframe || null,
+      taggedUserIds,
     });
   };
 
@@ -168,6 +284,105 @@ export const PostComposerModal = ({
           rows={4}
         />
 
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Select
+            label="Ambito"
+            options={SCOPE_OPTIONS}
+            value={scope}
+            onValueChange={(value) => setScope(value as "" | PostScope)}
+          />
+          <Select
+            label="Mood"
+            options={MOOD_OPTIONS}
+            value={mood}
+            onValueChange={(value) => setMood(value as "" | PostMood)}
+          />
+          <Select
+            label="Tempo"
+            options={TIMEFRAME_OPTIONS}
+            value={timeframe}
+            onValueChange={(value) => setTimeframe(value as "" | PostTimeframe)}
+          />
+        </div>
+
+        <Card className="space-y-3 border-dashed border-border/70 bg-surface-muted p-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              Persone presenti
+            </p>
+            <p className="text-xs text-subtle">
+              Tagga fino a 10 persone che erano con te.
+            </p>
+          </div>
+          <Input
+            label="Cerca persone"
+            value={tagQuery}
+            onChange={handleTagQueryChange}
+            placeholder="Cerca per nome o username"
+          />
+          {tagLoading ? (
+            <div className="flex items-center gap-2 text-xs text-subtle">
+              <Loader size="sm" />
+              Ricerca in corso...
+            </div>
+          ) : null}
+          {tagResults.length ? (
+            <div className="space-y-2">
+              {tagResults.map((user) => (
+                <button
+                  key={user.userId}
+                  type="button"
+                  onClick={() => handleAddTaggedUser(user)}
+                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/60 bg-surface px-3 py-2 text-left text-xs text-foreground hover:border-border-strong"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={user.fullName ?? user.username ?? "Utente"} src={user.avatarUrl ?? undefined} />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {user.fullName ?? user.username ?? "Utente Syncro"}
+                      </p>
+                      {user.username ? (
+                        <p className="truncate text-[11px] text-subtle">
+                          @{user.username}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-accent">
+                    Aggiungi
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {taggedUsers.length ? (
+            <div className="flex flex-wrap gap-2">
+              {taggedUsers.map((user) => (
+                <span
+                  key={user.userId}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-3 py-1.5 text-xs text-foreground"
+                >
+                  <Avatar
+                    name={user.fullName ?? user.username ?? "Utente"}
+                    src={user.avatarUrl ?? undefined}
+                    size="sm"
+                  />
+                  <span className="max-w-[120px] truncate">
+                    {user.fullName ?? user.username ?? "Utente"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTaggedUser(user.userId)}
+                    className="text-[10px] font-semibold text-subtle hover:text-foreground"
+                  >
+                    Rimuovi
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </Card>
+
         <Card className="space-y-3 border-dashed border-border/70 bg-surface-muted p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -175,27 +390,28 @@ export const PostComposerModal = ({
                 Media allegati
               </p>
               <p className="text-xs text-subtle">
-                Aggiungi immagini o video (max {MAX_FILE_SIZE_MB} MB per file).
+                Aggiungi una immagine o un video (max {MAX_FILE_SIZE_MB} MB).
               </p>
             </div>
-            <label
-              htmlFor={inputId}
-              className={cx(
-                "inline-flex items-center rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground",
-                loading && "cursor-not-allowed opacity-60"
-              )}
-            >
-              Aggiungi media
-            </label>
-            <input
-              id={inputId}
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              className="sr-only"
-              onChange={handleFileChange}
-              disabled={loading}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <label
+                htmlFor={inputId}
+                className={cx(
+                  "inline-flex items-center rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-foreground",
+                  loading && "cursor-not-allowed opacity-60"
+                )}
+              >
+                {fileItems.length ? "Sostituisci media" : "Carica media"}
+              </label>
+              <input
+                id={inputId}
+                type="file"
+                accept="image/*,video/*"
+                className="sr-only"
+                onChange={handleFileChange}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           {fileItems.length ? (

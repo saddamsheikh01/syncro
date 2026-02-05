@@ -6,8 +6,12 @@ import {
   getFeed,
   likePost,
   unlikePost,
+  reactToPost,
+  removeReaction,
   type FeedParams,
 } from "../../services/social";
+import { addFavorite, removeFavorite } from "../../services/favorites";
+import type { PostReactionType } from "../../types/social";
 
 export type FeedState = {
   items: PostResponse[];
@@ -63,6 +67,21 @@ const updatePost = (
       post.id === postId ? updater(post) : post
     ),
   }));
+};
+
+const updateReactionCounts = (
+  reactions: PostResponse["reactions"],
+  prevReaction: PostReactionType | null,
+  nextReaction: PostReactionType | null
+) => {
+  const next = { ...(reactions ?? {}) } as Record<string, number>;
+  if (prevReaction) {
+    next[prevReaction] = Math.max(0, (next[prevReaction] ?? 0) - 1);
+  }
+  if (nextReaction) {
+    next[nextReaction] = (next[nextReaction] ?? 0) + 1;
+  }
+  return next;
 };
 
 export const feedActions = {
@@ -131,6 +150,100 @@ export const feedActions = {
         ...post,
         likedByMe: true,
         likeCount: post.likeCount + 1,
+      }));
+      feedStore.setState({ error: error as ApiError });
+      throw error;
+    }
+  },
+
+  reactToPost: async (postId: Uuid, reaction: PostReactionType) => {
+    let previousReaction: PostReactionType | null = null;
+    updatePost(postId, (post) => {
+      previousReaction = post.myReaction ?? null;
+      return {
+        ...post,
+        myReaction: reaction,
+        reactions: updateReactionCounts(post.reactions, previousReaction, reaction),
+        likedByMe: reaction === "LIKE",
+        likeCount:
+          reaction === "LIKE"
+            ? post.likeCount + (previousReaction === "LIKE" ? 0 : 1)
+            : previousReaction === "LIKE"
+              ? Math.max(0, post.likeCount - 1)
+              : post.likeCount,
+      };
+    });
+
+    try {
+      await reactToPost(postId, reaction);
+    } catch (error) {
+      updatePost(postId, (post) => ({
+        ...post,
+        myReaction: previousReaction,
+        reactions: updateReactionCounts(post.reactions, reaction, previousReaction),
+        likedByMe: previousReaction === "LIKE",
+        likeCount:
+          previousReaction === "LIKE"
+            ? post.likeCount + (reaction === "LIKE" ? 0 : 1)
+            : reaction === "LIKE"
+              ? Math.max(0, post.likeCount - 1)
+              : post.likeCount,
+      }));
+      feedStore.setState({ error: error as ApiError });
+      throw error;
+    }
+  },
+
+  removeReaction: async (postId: Uuid) => {
+    let previousReaction: PostReactionType | null = null;
+    updatePost(postId, (post) => {
+      previousReaction = post.myReaction ?? null;
+      return {
+        ...post,
+        myReaction: null,
+        reactions: updateReactionCounts(post.reactions, previousReaction, null),
+        likedByMe: false,
+        likeCount:
+          previousReaction === "LIKE"
+            ? Math.max(0, post.likeCount - 1)
+            : post.likeCount,
+      };
+    });
+
+    try {
+      await removeReaction(postId);
+    } catch (error) {
+      updatePost(postId, (post) => ({
+        ...post,
+        myReaction: previousReaction,
+        reactions: updateReactionCounts(post.reactions, null, previousReaction),
+        likedByMe: previousReaction === "LIKE",
+        likeCount:
+          previousReaction === "LIKE"
+            ? post.likeCount + 1
+            : post.likeCount,
+      }));
+      feedStore.setState({ error: error as ApiError });
+      throw error;
+    }
+  },
+
+  toggleFavorite: async (postId: Uuid, nextActive: boolean) => {
+    updatePost(postId, (post) => ({
+      ...post,
+      favoritedByMe: nextActive,
+    }));
+
+    try {
+      if (nextActive) {
+        await addFavorite({ postId });
+      } else {
+        await removeFavorite({ postId });
+      }
+    } catch (error) {
+      updatePost(postId, (post) => ({
+        ...post,
+        favoritedByMe: !nextActive,
       }));
       feedStore.setState({ error: error as ApiError });
       throw error;

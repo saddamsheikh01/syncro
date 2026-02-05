@@ -21,7 +21,7 @@ const DRAWER_ITEMS: DrawerMenuItem[] = [
   { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark", isZyra: true },
   { id: "map", label: "Mappa", href: "/map", icon: "map" },
   { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
-  { id: "feed", label: "Feed", href: "/feed", icon: "document" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "document" },
   { id: "places", label: "Luoghi", href: "/places", icon: "map-pin" },
   { id: "favorites", label: "Preferiti", href: "/favorites", icon: "star" },
   { id: "settings", label: "Impostazioni", href: "/settings", icon: "sliders" },

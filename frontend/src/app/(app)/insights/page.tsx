@@ -3,11 +3,11 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Feed } from "@/features/feed/flows/Feed";
 
 export const metadata: Metadata = {
-  title: "Feed | Syncro",
+  title: "Insights | Syncro",
   description: "Scopri i post geolocalizzati su Syncro.",
 };
 
-export default function FeedPage() {
+export default function InsightsPage() {
   return (
     <MainLayout>
       <Feed />

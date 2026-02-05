@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
+import { Badge } from "@/components/elements/Badge";
 import { PostHeader } from "@/features/social/elements/PostHeader";
 import { PostActionBar } from "@/features/social/sections/PostActionBar";
 import { PostCommentSection } from "@/features/social/sections/PostCommentSection";
@@ -11,7 +12,7 @@ import { PostMediaCarousel } from "@/features/social/sections/PostMediaCarousel"
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
 import { getPostMedia } from "@/services/media";
 import type { MediaResponse } from "@/types/media";
-import type { PostResponse } from "@/types/social";
+import type { PostReactionType, PostResponse } from "@/types/social";
 import { cx } from "@/lib/classNames";
 
 const LIKE_ICON = (
@@ -44,6 +45,41 @@ const COMMENT_ICON = (
   </svg>
 );
 
+const FAVORITE_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4"
+    aria-hidden="true"
+  >
+    <path d="M11.1 3.2c.3-.6 1.1-.6 1.4 0l2.4 4.9 5.4.8c.7.1 1 .9.5 1.4l-3.9 3.8.9 5.4c.1.7-.6 1.2-1.2.9l-4.8-2.5-4.8 2.5c-.6.3-1.3-.2-1.2-.9l.9-5.4-3.9-3.8c-.5-.5-.2-1.3.5-1.4l5.4-.8 2.4-4.9z" />
+  </svg>
+);
+
+const REACTION_OPTIONS: { type: PostReactionType; emoji: string; label: string }[] = [
+  { type: "LIKE", emoji: "👍", label: "Like" },
+  { type: "LOVE", emoji: "❤️", label: "Love" },
+  { type: "LAUGH", emoji: "😂", label: "Divertente" },
+  { type: "WOW", emoji: "😮", label: "Wow" },
+  { type: "SUPPORT", emoji: "🙌", label: "Supporto" },
+];
+
+const SCOPE_LABELS: Record<string, string> = {
+  AMICIZIA: "Amicizia",
+  ESPERIENZE: "Esperienze",
+  LAVORO: "Lavoro",
+  BENESSERE: "Benessere",
+};
+
+const TIMEFRAME_LABELS: Record<string, string> = {
+  ORA: "Ora",
+  OGGI: "Oggi",
+};
+
 const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
   media.map((item, index) => ({
     id: item.id,
@@ -65,8 +101,9 @@ export interface PostCardProps
   mediaLimit?: number;
   currentUserId?: string;
   onProfileClick?: () => void;
-  onLike?: (postId: string) => void;
-  onUnlike?: (postId: string) => void;
+  onReact?: (postId: string, reaction: PostReactionType) => void;
+  onRemoveReaction?: (postId: string) => void;
+  onToggleFavorite?: (postId: string, nextActive: boolean) => void;
   onCommentCountChange?: (postId: string, count: number) => void;
 }
 
@@ -108,8 +145,9 @@ export const PostCard = ({
   mediaLimit = 4,
   currentUserId,
   onProfileClick,
-  onLike,
-  onUnlike,
+  onReact,
+  onRemoveReaction,
+  onToggleFavorite,
   onCommentCountChange,
   ...props
 }: PostCardProps) => {
@@ -117,6 +155,7 @@ export const PostCard = ({
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
 
   useEffect(() => {
@@ -155,16 +194,37 @@ export const PostCard = ({
       ? locationLabel
       : buildLocationLabel(post.latitude, post.longitude);
   const displayedContent = post.content;
+  const reactionTotal = useMemo(() => {
+    if (!post.reactions) return 0;
+    return Object.values(post.reactions).reduce(
+      (sum, value) => sum + (Number.isFinite(value) ? value : 0),
+      0
+    );
+  }, [post.reactions]);
+  const reactionEmoji =
+    post.myReaction &&
+    REACTION_OPTIONS.find((item) => item.type === post.myReaction)?.emoji;
+  const scopeLabel = post.scope ? SCOPE_LABELS[post.scope] ?? post.scope : null;
+  const moodLabel = post.mood
+    ? post.mood.toLowerCase().replace(/_/g, " ")
+    : null;
+  const timeframeLabel = post.timeframe
+    ? TIMEFRAME_LABELS[post.timeframe] ?? post.timeframe
+    : null;
 
   const actions = useMemo(
     () => [
       {
-        id: "like",
-        label: "Like",
-        count: post.likeCount,
-        active: post.likedByMe,
-        icon: LIKE_ICON,
-        variant: "like" as const,
+        id: "reaction",
+        label: post.myReaction ? "Reazione" : "Reagisci",
+        count: reactionTotal,
+        active: Boolean(post.myReaction),
+        icon: reactionEmoji ? (
+          <span className="text-sm">{reactionEmoji}</span>
+        ) : (
+          LIKE_ICON
+        ),
+        variant: "default" as const,
       },
       {
         id: "comment",
@@ -174,19 +234,35 @@ export const PostCard = ({
         icon: COMMENT_ICON,
         variant: "default" as const,
       },
+      {
+        id: "favorite",
+        label: post.favoritedByMe ? "Salvato" : "Salva",
+        active: post.favoritedByMe,
+        icon: FAVORITE_ICON,
+        variant: "default" as const,
+      },
     ],
-    [post.likeCount, post.likedByMe, commentCount, showComments]
+    [
+      post.myReaction,
+      post.favoritedByMe,
+      reactionTotal,
+      reactionEmoji,
+      commentCount,
+      showComments,
+    ]
   );
 
   const handleActionToggle = (id: string, nextActive: boolean) => {
-    if (id === "like") {
-      if (nextActive) {
-        onLike?.(post.id);
-      } else {
-        onUnlike?.(post.id);
-      }
-    } else if (id === "comment") {
+    if (id === "reaction") {
+      setShowReactions((prev) => !prev);
+      return;
+    }
+    if (id === "comment") {
       setShowComments(nextActive);
+      return;
+    }
+    if (id === "favorite") {
+      onToggleFavorite?.(post.id, nextActive);
     }
   };
 
@@ -215,6 +291,40 @@ export const PostCard = ({
         ) : null}
       </div>
 
+      {(scopeLabel || moodLabel || timeframeLabel) && (
+        <div className="flex flex-wrap gap-2">
+          {scopeLabel ? (
+            <Badge tone="accent" size="sm">
+              {scopeLabel}
+            </Badge>
+          ) : null}
+          {moodLabel ? (
+            <Badge tone="neutral" size="sm">
+              {moodLabel}
+            </Badge>
+          ) : null}
+          {timeframeLabel ? (
+            <Badge tone="neutral" size="sm">
+              {timeframeLabel}
+            </Badge>
+          ) : null}
+        </div>
+      )}
+
+      {post.taggedUsers?.length ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-subtle">
+          <span className="font-semibold text-foreground">Con:</span>
+          {post.taggedUsers.map((user) => (
+            <span
+              key={user.userId}
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-2 py-1 text-[11px] text-foreground"
+            >
+              {user.fullName ?? user.username ?? "Utente"}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       {showMedia && mediaLoading ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/60 bg-surface-muted px-4 py-4">
           <Loader size="sm" />
@@ -231,6 +341,45 @@ export const PostCard = ({
 
       {showMedia && mediaError ? (
         <p className="text-xs text-danger">{mediaError}</p>
+      ) : null}
+
+      {showReactions ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] border border-border/60 bg-surface-muted px-3 py-2">
+          {REACTION_OPTIONS.map((reaction) => {
+            const isActive = post.myReaction === reaction.type;
+            return (
+              <button
+                key={reaction.type}
+                type="button"
+                onClick={() => {
+                  onReact?.(post.id, reaction.type);
+                  setShowReactions(false);
+                }}
+                className={cx(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold",
+                  isActive
+                    ? "border-accent/40 bg-accent-soft text-accent"
+                    : "border-border bg-surface text-foreground hover:border-border-strong"
+                )}
+              >
+                <span className="text-sm">{reaction.emoji}</span>
+                <span>{reaction.label}</span>
+              </button>
+            );
+          })}
+          {post.myReaction ? (
+            <button
+              type="button"
+              onClick={() => {
+                onRemoveReaction?.(post.id);
+                setShowReactions(false);
+              }}
+              className="ml-auto text-[11px] font-semibold text-subtle hover:text-foreground"
+            >
+              Rimuovi reazione
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <PostActionBar

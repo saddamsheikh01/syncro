@@ -59,9 +59,10 @@ public class FavoritesController {
     public ResponseEntity<Void> removeFavorite(
         @AuthenticationPrincipal UserPrincipal principal,
         @RequestParam(required = false) UUID placeId,
-        @RequestParam(required = false) UUID experienceId
+        @RequestParam(required = false) UUID experienceId,
+        @RequestParam(required = false) UUID postId
     ) {
-        favoriteService.removeFavorite(principal, placeId, experienceId);
+        favoriteService.removeFavorite(principal, placeId, experienceId, postId);
         return ResponseEntity.noContent().build();
     }
 }
