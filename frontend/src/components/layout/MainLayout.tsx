@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/ui/Navbar";
 import { Leftbar } from "@/components/ui/Leftbar";
 import { Rightbar } from "@/components/ui/Rightbar";
@@ -11,6 +12,7 @@ import { CookieConsentDrawer } from "@/components/ui/CookieConsentDrawer";
 import { NotificationStack } from "@/components/ui/NotificationStack";
 import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
 import { AuthInitializer } from "@/components/auth/AuthInitializer";
+import { useAuth } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface MainLayoutProps {
@@ -22,6 +24,25 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
   const [leftbarCollapsed, setLeftbarCollapsed] = useState(false);
   const isPreview = mode === "preview";
   const position = isPreview ? "absolute" : "fixed";
+  const router = useRouter();
+  const { status, tokens, actions: authActions } = useAuth();
+
+  useEffect(() => {
+    if (status === "idle") {
+      authActions.hydrate();
+      return;
+    }
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, authActions, router]);
+
+  const isAuthed =
+    status === "authenticated" || (status === "loading" && Boolean(tokens));
+
+  if (!isAuthed) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   return (
     <div
