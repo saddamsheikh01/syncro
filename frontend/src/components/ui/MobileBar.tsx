@@ -5,8 +5,8 @@ import type { HTMLAttributes } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
-import { NavIcon } from "@/components/ui/NavIcon";
-import type { NavIconName } from "@/components/ui/NavIcon";
+import { SidebarIcon } from "@/components/ui/SidebarIcon";
+import type { SidebarIconName } from "@/components/ui/SidebarIcon";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { MobileDrawer } from "@/components/ui/MobileDrawer";
 
@@ -14,15 +14,15 @@ type MobileNavItem = {
   id: string;
   label: string;
   href: string;
-  icon: NavIconName;
+  icon: SidebarIconName;
   isZyra?: boolean;
 };
 
 const MOBILE_ITEMS: MobileNavItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
-  { id: "matches", label: "Match", href: "/matches", icon: "spark" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "clipboard" },
-  { id: "profile", label: "Profile", href: "/profile", icon: "user" },
+  { id: "people", label: "Match", href: "/matches", icon: "people" },
+  { id: "insights", label: "Insights", href: "/insights", icon: "insights" },
+  { id: "profile", label: "Profile", href: "/profile", icon: "profile" },
 ];
 
 const normalizePath = (path: string) =>
@@ -97,23 +97,23 @@ export const MobileBar = ({
                 className={cx(
                   "flex flex-col items-center gap-0.5 rounded-[var(--radius-lg)] px-3 py-1 text-[10px] font-semibold transition",
                   active
-                    ? "text-accent"
-                    : "text-subtle hover:text-foreground"
+                    ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_10px_20px_var(--accent-glow)]"
+                    : "text-muted hover:bg-surface-muted hover:text-foreground"
                 )}
                 aria-current={active ? "page" : undefined}
                 aria-label={item.label}
               >
                 <span
                   className={cx(
-                    "flex h-7 w-7 items-center justify-center rounded-full transition",
+                    "flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 transition",
                     active
-                      ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_6px_14px_var(--accent-glow)]"
-                      : "bg-surface-muted text-muted"
+                      ? "border-white/70 bg-white shadow-[0_10px_20px_var(--accent-glow)]"
+                      : "bg-surface-muted/70 shadow-sm"
                   )}
                 >
-                  <NavIcon name={item.icon} className="h-4 w-4" />
+                  <SidebarIcon name={item.icon} size={22} />
                 </span>
-                <span>{item.label}</span>
+                <span className={cx(active && "text-white")}>{item.label}</span>
               </Link>
             );
           })}
@@ -133,7 +133,9 @@ export const MobileBar = ({
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
         >
-          <NavIcon name="menu" className="h-5 w-5" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-surface-muted/70 shadow-sm">
+            <SidebarIcon name="settings" size={22} />
+          </span>
         </button>
       </div>
 

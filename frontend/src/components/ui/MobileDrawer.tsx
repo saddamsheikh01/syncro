@@ -1,33 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
-import type { NavIconName } from "@/components/ui/NavIcon";
-import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { Logout } from "@/components/buttons/Logout";
+import { Menu, MENU_ITEMS } from "@/components/ui/Menu";
 
-type DrawerMenuItem = {
-  id: string;
-  label: string;
-  href: string;
-  icon: NavIconName;
-  isZyra?: boolean;
-};
-
-const DRAWER_ITEMS: DrawerMenuItem[] = [
-  { id: "zyra", label: "Zyra", href: "/zyra", icon: "spark", isZyra: true },
-  { id: "map", label: "Map", href: "/map", icon: "map" },
-  { id: "chat", label: "Chat", href: "/chat", icon: "chat" },
-  { id: "moments", label: "Moments", href: "/moments", icon: "document" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "clipboard" },
-  { id: "places", label: "Places", href: "/places", icon: "map-pin" },
-  { id: "favorites", label: "Favorites", href: "/favorites", icon: "star" },
-  { id: "profile", label: "Profile", href: "/profile", icon: "user" },
-  { id: "settings", label: "Settings", href: "/settings", icon: "sliders" },
-];
+const MOBILE_MENU_IDS = new Set(["home", "people", "insights", "profile"]);
 
 export interface MobileDrawerProps {
   open: boolean;
@@ -35,8 +14,6 @@ export interface MobileDrawerProps {
 }
 
 export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
-  const pathname = usePathname();
-
   useEffect(() => {
     if (!open) return;
     const handleKey = (event: KeyboardEvent) => {
@@ -56,12 +33,6 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
       document.body.style.overflow = "";
     };
   }, [open]);
-
-  const isActive = (href: string) => {
-    const normalizedPath = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
-    const normalizedHref = href.endsWith("/") ? href.slice(0, -1) : href;
-    return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`);
-  };
 
   return (
     <div
@@ -83,7 +54,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
       {/* Drawer panel */}
       <div
         className={cx(
-          "absolute bottom-20 left-3 right-3 max-h-[70vh] rounded-[var(--radius-xl)] border border-border/70 bg-surface shadow-xl transition-transform duration-300 ease-out",
+          "absolute bottom-20 left-3 right-3 flex max-h-[70vh] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-border/70 bg-surface shadow-xl transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-[calc(100%+5rem)]"
         )}
         role="dialog"
@@ -109,53 +80,13 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
         </div>
 
         {/* Navigation items */}
-        <nav className="overflow-y-auto p-4" aria-label="Secondary navigation">
-          <ul className="space-y-1">
-            {DRAWER_ITEMS.map((item) => {
-              const active = isActive(item.href);
-              const isZyra = item.isZyra;
-
-              return (
-                <li key={item.id}>
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    className={cx(
-                      "flex items-center gap-4 rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium transition-colors",
-                      !isZyra && active && "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_10px_20px_var(--accent-glow)]",
-                      !isZyra && !active && "text-foreground hover:bg-surface-muted",
-                      isZyra && active && "border border-zyra-border/70 bg-zyra-glow/50 text-zyra-text shadow-[0_0_20px_var(--zyra-glow)]",
-                      isZyra && !active && "text-zyra-text/80 hover:bg-zyra-glow/40 hover:text-zyra-text"
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    <span
-                      className={cx(
-                        "flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
-                        !isZyra && active && "border-white/60 bg-white/90 text-accent",
-                        !isZyra && !active && "border-border/70 bg-surface-muted text-muted",
-                        isZyra && "border-transparent bg-transparent"
-                      )}
-                    >
-                      {isZyra ? (
-                        <ZyraMark size="sm" glow={active} />
-                      ) : (
-                        <NavIcon name={item.icon} className="h-5 w-5" />
-                      )}
-                    </span>
-                    <span
-                      className={cx(
-                        isZyra && "bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end bg-clip-text text-transparent"
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <Menu
+            items={MENU_ITEMS.filter((item) => !MOBILE_MENU_IDS.has(item.id))}
+            onItemClick={onClose}
+            aria-label="Secondary navigation"
+          />
+        </div>
 
         {/* Logout section */}
         <div className="border-t border-border/50 p-4">

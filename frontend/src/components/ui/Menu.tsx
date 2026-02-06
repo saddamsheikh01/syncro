@@ -7,14 +7,14 @@ import { cx } from "@/lib/classNames";
 import { SidebarIcon } from "@/components/ui/SidebarIcon";
 import type { SidebarIconName } from "@/components/ui/SidebarIcon";
 
-type MenuItem = {
+export type MenuItem = {
   id: string;
   label: string;
   href: string;
   icon: SidebarIconName;
 };
 
-const MENU_ITEMS: MenuItem[] = [
+export const MENU_ITEMS: MenuItem[] = [
   { id: "home", label: "Home", href: "/home", icon: "home" },
   {
     id: "people",
@@ -51,10 +51,19 @@ const isItemActive = (pathname: string, href: string) => {
 
 export interface MenuProps extends HTMLAttributes<HTMLElement> {
   collapsed?: boolean;
+  onItemClick?: () => void;
+  items?: MenuItem[];
 }
 
-export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
+export const Menu = ({
+  className,
+  collapsed = false,
+  onItemClick,
+  items,
+  ...props
+}: MenuProps) => {
   const pathname = usePathname();
+  const menuItems = items ?? MENU_ITEMS;
 
   return (
     <nav
@@ -62,13 +71,14 @@ export const Menu = ({ className, collapsed = false, ...props }: MenuProps) => {
       aria-label="Navigazione principale"
       {...props}
     >
-      {MENU_ITEMS.map((item) => {
+      {menuItems.map((item) => {
         const active = isItemActive(pathname, item.href);
 
         return (
           <Link
             key={item.id}
             href={item.href}
+            onClick={onItemClick}
             className={cx(
               "group flex items-center gap-3 rounded-[var(--radius-xl)] px-3 py-2.5 text-sm font-semibold transition",
               active
