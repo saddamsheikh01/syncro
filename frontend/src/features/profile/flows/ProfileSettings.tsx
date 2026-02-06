@@ -26,6 +26,7 @@ import { getMyReferralLink } from "@/services/referrals";
 import { checkUsernameAvailability, getUserPosts } from "@/services/users";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ProfileMomentCard } from "@/features/profile/cards/ProfileMomentCard";
+import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
@@ -896,6 +897,14 @@ export const ProfileSettings = ({
           </p>
         )}
       </Card>
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Zyra recap"
+          subtitle="Review and edit how Zyra describes you."
+        />
+        <ZyraProfileRecap />
+      </section>
 
       <section className="space-y-4">
         <SectionHeader
