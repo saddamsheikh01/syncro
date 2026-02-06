@@ -92,18 +92,32 @@ const Step = ({ number, icon, text }: StepProps) => (
 export const AddToHomeScreenModal = () => {
   const { shouldShow, deviceType, dismiss, dismissPermanently } = useAddToHomeScreen();
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    if (!shouldShow) return;
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const handleChange = () => setIsDesktop(media.matches);
+    handleChange();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", handleChange);
+      return () => media.removeEventListener("change", handleChange);
+    }
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldShow || isDesktop) return;
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") dismiss();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [shouldShow, dismiss]);
+  }, [shouldShow, isDesktop, dismiss]);
 
   useEffect(() => {
-    if (shouldShow) {
+    if (shouldShow && !isDesktop) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -111,9 +125,9 @@ export const AddToHomeScreenModal = () => {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [shouldShow]);
+  }, [shouldShow, isDesktop]);
 
-  if (!shouldShow) return null;
+  if (!shouldShow || isDesktop) return null;
 
   const isIOS = deviceType === "ios";
 
