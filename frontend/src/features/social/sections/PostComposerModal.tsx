@@ -43,6 +43,7 @@ export interface PostComposerModalProps {
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_MEDIA_FILES = 6;
 const ALLOWED_TYPES = ["image/", "video/"];
 
 const SCOPE_OPTIONS = [
@@ -214,23 +215,40 @@ export const PostComposerModal = ({
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) return;
-    const [file] = Array.from(event.target.files);
-    if (!file) return;
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (!selectedFiles.length) return;
 
-    if (!isValidFileType(file)) {
-      setLocalError(`"${file.name}" is not a valid format. Use images or videos.`);
-      event.target.value = "";
-      return;
-    }
-    if (!isValidFileSize(file)) {
-      setLocalError(`"${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB limit.`);
-      event.target.value = "";
-      return;
+    const validationErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    for (const file of selectedFiles) {
+      if (!isValidFileType(file)) {
+        validationErrors.push(
+          `"${file.name}" is not a valid format. Use images or videos.`
+        );
+        continue;
+      }
+      if (!isValidFileSize(file)) {
+        validationErrors.push(
+          `"${file.name}" exceeds the ${MAX_FILE_SIZE_MB} MB limit.`
+        );
+        continue;
+      }
+      validFiles.push(file);
     }
 
-    setLocalError(null);
-    setFiles([file]);
+    const remainingSlots = Math.max(0, MAX_MEDIA_FILES - files.length);
+    const acceptedFiles = validFiles.slice(0, remainingSlots);
+
+    if (remainingSlots === 0 || validFiles.length > acceptedFiles.length) {
+      validationErrors.push(`You can attach up to ${MAX_MEDIA_FILES} files.`);
+    }
+
+    if (acceptedFiles.length) {
+      setFiles((prev) => [...prev, ...acceptedFiles]);
+    }
+
+    setLocalError(validationErrors.length ? validationErrors.join(" ") : null);
     event.target.value = "";
   };
 
@@ -390,7 +408,8 @@ export const PostComposerModal = ({
               Attached media
               </p>
               <p className="text-xs text-subtle">
-                Add an image or a video (max {MAX_FILE_SIZE_MB} MB).
+                Add images or videos (max {MAX_FILE_SIZE_MB} MB each, up to{" "}
+                {MAX_MEDIA_FILES} files).
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -401,12 +420,13 @@ export const PostComposerModal = ({
                   loading && "cursor-not-allowed opacity-60"
                 )}
               >
-                {fileItems.length ? "Replace media" : "Upload media"}
+                Add media
               </label>
               <input
                 id={inputId}
                 type="file"
                 accept="image/*,video/*"
+                multiple
                 className="sr-only"
                 onChange={handleFileChange}
                 disabled={loading}

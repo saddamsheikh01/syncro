@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.social.mapper;
 
+import com.syncro.backend.domain.social.dto.PostMediaPreviewResponse;
 import com.syncro.backend.domain.social.dto.PostResponse;
 import com.syncro.backend.domain.social.dto.TaggedUserResponse;
 import com.syncro.backend.domain.social.entity.Post;
@@ -19,7 +20,8 @@ public class PostMapper {
         String myReaction,
         boolean favoritedByMe,
         Integer matchScore,
-        List<TaggedUserResponse> taggedUsers
+        List<TaggedUserResponse> taggedUsers,
+        List<PostMediaPreviewResponse> media
     ) {
         return new PostResponse(
             post.getId(),
@@ -39,6 +41,7 @@ public class PostMapper {
             favoritedByMe,
             matchScore,
             taggedUsers,
+            media,
             post.getCreatedAt()
         );
     }

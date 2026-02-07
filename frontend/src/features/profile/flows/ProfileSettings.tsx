@@ -27,6 +27,7 @@ import { checkUsernameAvailability, getUserPosts } from "@/services/users";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ProfileMomentCard } from "@/features/profile/cards/ProfileMomentCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
+import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
@@ -36,6 +37,8 @@ import type { ReferralLinkResponse } from "@/types/referrals";
 const MIN_INTERESTS = 3;
 const USERNAME_MIN_LENGTH = 3;
 const MOMENTS_PAGE_SIZE = 3;
+const MAX_AVATAR_SIZE_MB = 10;
+const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -146,7 +149,9 @@ export const ProfileSettings = ({
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [username, setUsername] = useState("");
-  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
+    null,
+  );
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -172,7 +177,9 @@ export const ProfileSettings = ({
   const [recentPosts, setRecentPosts] = useState<PostResponse[]>([]);
   const [recentPostsLoading, setRecentPostsLoading] = useState(false);
   const [recentPostsError, setRecentPostsError] = useState<string | null>(null);
-  const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
+  const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(
+    null,
+  );
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -194,7 +201,9 @@ export const ProfileSettings = ({
       orientation,
       childrenStatus,
     ];
-    const filled = fields.filter((value) => Boolean(value && String(value).trim().length > 0)).length;
+    const filled = fields.filter((value) =>
+      Boolean(value && String(value).trim().length > 0),
+    ).length;
     if (fields.length === 0) return PROFILE_COMPLETENESS_TARGET;
     const computed = Math.round((filled / fields.length) * 100);
     return Math.max(PROFILE_COMPLETENESS_TARGET, computed);
@@ -255,7 +264,8 @@ export const ProfileSettings = ({
       ageMax !== (readNumber(storedFilters.ageMax)?.toString() ?? "") ||
       distanceKm !== (readNumber(storedFilters.distanceKm)?.toString() ?? "") ||
       gender !== (readString(storedFilters.gender) ?? "ANY") ||
-      sharedInterests !== (readBoolean(storedFilters.sharedInterests) ?? true) ||
+      sharedInterests !==
+        (readBoolean(storedFilters.sharedInterests) ?? true) ||
       feedRadiusKm !== (readNumber(storedFeed.radiusKm)?.toString() ?? "") ||
       feedOnlyNearby !== (readBoolean(storedFeed.onlyNearby) ?? true) ||
       feedAutoTranslate !== (readBoolean(storedFeed.autoTranslate) ?? true);
@@ -393,10 +403,7 @@ export const ProfileSettings = ({
       })
       .catch((loadError) => {
         setAvatarError(
-          resolveErrorMessage(
-            loadError,
-            "Error loading profile photo."
-          )
+          resolveErrorMessage(loadError, "Error loading profile photo."),
         );
       })
       .finally(() => setAvatarLoading(false));
@@ -440,10 +447,7 @@ export const ProfileSettings = ({
         })
         .catch((loadError) => {
           setUsernameError(
-            resolveErrorMessage(
-              loadError,
-              "Error checking username."
-            )
+            resolveErrorMessage(loadError, "Error checking username."),
           );
           setUsernameAvailable(null);
         })
@@ -464,10 +468,7 @@ export const ProfileSettings = ({
       })
       .catch((loadError) => {
         setRecentPostsError(
-          resolveErrorMessage(
-            loadError,
-            "Error loading moments."
-          )
+          resolveErrorMessage(loadError, "Error loading moments."),
         );
       })
       .finally(() => setRecentPostsLoading(false));
@@ -483,7 +484,7 @@ export const ProfileSettings = ({
         label: tag.name,
         selected: selectedTagIds.includes(tag.id),
       })),
-    [tags, selectedTagIds]
+    [tags, selectedTagIds],
   );
 
   const selectedTags = useMemo(() => {
@@ -501,7 +502,7 @@ export const ProfileSettings = ({
       })
       .filter(
         (item): item is { id: string; label: string; tone: "accent" } =>
-          item !== null
+          item !== null,
       );
   }, [interests, selectedTagIds, tags]);
 
@@ -528,12 +529,7 @@ export const ProfileSettings = ({
     if (usernameAvailable === true) return "Username available.";
     if (usernameAvailable === false) return "Username not available.";
     return "Checking availability...";
-  }, [
-    normalizedUsername,
-    usernameValid,
-    usernameChecking,
-    usernameAvailable,
-  ]);
+  }, [normalizedUsername, usernameValid, usernameChecking, usernameAvailable]);
 
   const handleSaveProfile = async () => {
     setProfileError(null);
@@ -587,9 +583,7 @@ export const ProfileSettings = ({
       setJobTitle(trimmedJobTitle);
       setCompanyName(trimmedCompanyName);
     } catch (saveError) {
-      setProfileError(
-        resolveErrorMessage(saveError, "Error while saving.")
-      );
+      setProfileError(resolveErrorMessage(saveError, "Error while saving."));
     } finally {
       setProfileSaving(false);
     }
@@ -639,7 +633,7 @@ export const ProfileSettings = ({
       });
     } catch (saveError) {
       setPreferencesError(
-        resolveErrorMessage(saveError, "Error while saving.")
+        resolveErrorMessage(saveError, "Error while saving."),
       );
     } finally {
       setPreferencesSaving(false);
@@ -649,7 +643,7 @@ export const ProfileSettings = ({
   const handleInterestToggle = (id: string, nextSelected: boolean) => {
     setInterestsError(null);
     setSelectedTagIds((prev) =>
-      nextSelected ? [...prev, id] : prev.filter((item) => item !== id)
+      nextSelected ? [...prev, id] : prev.filter((item) => item !== id),
     );
   };
 
@@ -665,9 +659,7 @@ export const ProfileSettings = ({
     try {
       await tagsActions.updateUserInterests({ tagIds: selectedTagIds });
     } catch (saveError) {
-      setInterestsError(
-        resolveErrorMessage(saveError, "Error while saving.")
-      );
+      setInterestsError(resolveErrorMessage(saveError, "Error while saving."));
     } finally {
       setInterestsSaving(false);
     }
@@ -682,6 +674,19 @@ export const ProfileSettings = ({
     if (!file) return;
     if (!user?.id) {
       setAvatarError("User unavailable.");
+      event.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Unsupported file type. Use an image.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      setAvatarError(
+        `Image is too large. Maximum size is ${MAX_AVATAR_SIZE_MB} MB.`,
+      );
+      event.target.value = "";
       return;
     }
 
@@ -694,9 +699,13 @@ export const ProfileSettings = ({
         ownerId: user.id,
       });
       setAvatar(uploaded);
+      dispatchProfileAvatarUpdated({
+        userId: user.id,
+        avatarUrl: uploaded.url,
+      });
     } catch (uploadError) {
       setAvatarError(
-        resolveErrorMessage(uploadError, "Error while loading.")
+        resolveErrorMessage(uploadError, "Error while uploading."),
       );
     } finally {
       setAvatarLoading(false);
@@ -723,9 +732,7 @@ export const ProfileSettings = ({
     try {
       await userActions.updateUser({ username: normalizedUsername });
     } catch (saveError) {
-      setUsernameError(
-        resolveErrorMessage(saveError, "Error while saving.")
-      );
+      setUsernameError(resolveErrorMessage(saveError, "Error while saving."));
     } finally {
       setUsernameSaving(false);
     }
@@ -742,9 +749,7 @@ export const ProfileSettings = ({
       })
       .catch((error) => {
         if (!active) return;
-        setReferralError(
-          resolveErrorMessage(error, "Error loading referral.")
-        );
+        setReferralError(resolveErrorMessage(error, "Error loading referral."));
       });
 
     return () => {
@@ -822,7 +827,7 @@ export const ProfileSettings = ({
             className="border-2 border-white shadow-sm"
           />
           <p className="text-sm font-semibold text-foreground">
-            "Define what you're looking for."
+            &apos;Define what you&apos;re looking for.&apos;
           </p>
           <p className="text-xs text-accent">- Zyra</p>
         </Card>
@@ -830,7 +835,7 @@ export const ProfileSettings = ({
 
       <Card className="space-y-2 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {displayFirstName}'s Public Profile
+          {displayFirstName}&apos;s Public Profile
         </h2>
         <p className="text-sm text-muted">
           Share your public profile. Get aligned matches and insights.
@@ -1088,9 +1093,7 @@ export const ProfileSettings = ({
           </Card>
         ) : recentPosts.length === 0 ? (
           <Card className="p-5">
-            <p className="text-sm text-muted">
-              No moments available.
-            </p>
+            <p className="text-sm text-muted">No moments available.</p>
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

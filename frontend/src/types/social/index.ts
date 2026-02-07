@@ -16,6 +16,13 @@ export type PostTimeframe = "ORA" | "OGGI";
 
 export type PostReactionType = "LIKE" | "LOVE" | "LAUGH" | "WOW" | "SUPPORT";
 
+export type PostMediaPreviewResponse = {
+  id: Uuid;
+  url: string;
+  mediaType: "IMAGE" | "VIDEO";
+  createdAt: IsoDateTime;
+};
+
 export type TaggedUserResponse = {
   userId: Uuid;
   username: string | null;
@@ -51,6 +58,7 @@ export type PostResponse = {
   favoritedByMe: boolean;
   matchScore?: number | null;
   taggedUsers: TaggedUserResponse[];
+  media?: PostMediaPreviewResponse[];
   createdAt: IsoDateTime;
 };
 

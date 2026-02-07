@@ -23,6 +23,7 @@ public record PostResponse(
     boolean favoritedByMe,
     Integer matchScore,
     List<TaggedUserResponse> taggedUsers,
+    List<PostMediaPreviewResponse> media,
     Instant createdAt
 ) {
 }

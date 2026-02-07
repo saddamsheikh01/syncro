@@ -24,12 +24,24 @@ export const PostMediaSlide = ({
     {...props}
   >
     {src ? (
-      <img
-        src={src}
-        alt={label ?? "Media"}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
+      isVideo ? (
+        <video
+          src={src}
+          className="h-full w-full object-cover"
+          controls
+          playsInline
+          preload="metadata"
+        >
+          Your browser does not support this video format.
+        </video>
+      ) : (
+        <img
+          src={src}
+          alt={label ?? "Media"}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      )
     ) : (
       <div className="flex h-full w-full items-center justify-center text-xs text-subtle">
         {label ?? (isVideo ? "Video" : "Media")}

@@ -59,20 +59,33 @@ export const ProfileMomentCard = ({
   post,
   ...props
 }: ProfileMomentCardProps) => {
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [fetchedCoverUrl, setFetchedCoverUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const previewCoverUrl =
+    Array.isArray(post.media) ? (post.media[0]?.url ?? null) : undefined;
+  const coverUrl = previewCoverUrl !== undefined ? previewCoverUrl : fetchedCoverUrl;
+  const coverLoading = previewCoverUrl !== undefined ? false : loading;
+
   useEffect(() => {
+    if (previewCoverUrl !== undefined) {
+      return;
+    }
+
     let active = true;
-    setLoading(true);
+    const frame = requestAnimationFrame(() => {
+      if (!active) return;
+      setFetchedCoverUrl(null);
+      setLoading(true);
+    });
     getPostMedia({ postId: post.id, page: 0, size: 1 })
       .then((response) => {
         if (!active) return;
-        setCoverUrl(response.content[0]?.url ?? null);
+        setFetchedCoverUrl(response.content[0]?.url ?? null);
       })
       .catch(() => {
         if (!active) return;
-        setCoverUrl(null);
+        setFetchedCoverUrl(null);
       })
       .finally(() => {
         if (!active) return;
@@ -81,8 +94,9 @@ export const ProfileMomentCard = ({
 
     return () => {
       active = false;
+      cancelAnimationFrame(frame);
     };
-  }, [post.id]);
+  }, [post.id, previewCoverUrl]);
 
   const title = useMemo(() => buildTitle(post.content ?? ""), [post.content]);
   const description = useMemo(
@@ -104,7 +118,7 @@ export const ProfileMomentCard = ({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-surface-muted text-xs text-subtle">
-            {loading ? "Loading..." : "No image"}
+            {coverLoading ? "Loading..." : "No image"}
           </div>
         )}
       </div>

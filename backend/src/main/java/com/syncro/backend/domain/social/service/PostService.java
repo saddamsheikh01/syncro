@@ -14,6 +14,7 @@ import com.syncro.backend.domain.media.entity.MediaObject;
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
 import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.social.dto.CreatePostRequest;
+import com.syncro.backend.domain.social.dto.PostMediaPreviewResponse;
 import com.syncro.backend.domain.social.dto.PostResponse;
 import com.syncro.backend.domain.social.dto.TaggedUserResponse;
 import com.syncro.backend.domain.social.entity.Post;
@@ -56,6 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PostService {
+    private static final int POST_MEDIA_PREVIEW_LIMIT = 6;
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
@@ -136,6 +138,7 @@ public class PostService {
             null,
             false,
             null,
+            List.of(),
             List.of()
         );
     }
@@ -293,6 +296,7 @@ public class PostService {
                 null,
                 false,
                 null,
+                List.of(),
                 List.of()
             ));
         }
@@ -306,6 +310,7 @@ public class PostService {
         Set<UUID> favoritedPosts = loadFavoritedPosts(userId, postIds);
         Map<UUID, List<TaggedUserResponse>> taggedUsers = loadTaggedUsers(postIds);
         Map<UUID, Integer> matchScores = calculateMatchScores(userId, posts.getContent());
+        Map<UUID, List<PostMediaPreviewResponse>> mediaByPost = loadPostMediaPreview(postIds);
 
         List<Post> filteredPosts = posts.getContent().stream()
             .filter(post -> {
@@ -336,7 +341,8 @@ public class PostService {
                 userReactions.get(post.getId()),
                 favoritedPosts.contains(post.getId()),
                 matchScores.get(post.getId()),
-                taggedUsers.getOrDefault(post.getId(), List.of())
+                taggedUsers.getOrDefault(post.getId(), List.of()),
+                mediaByPost.getOrDefault(post.getId(), List.of())
             ))
             .toList();
 
@@ -458,6 +464,38 @@ public class PostService {
             scores.put(post.getId(), score);
         }
         return scores;
+    }
+
+    private Map<UUID, List<PostMediaPreviewResponse>> loadPostMediaPreview(List<UUID> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Map.of();
+        }
+        List<MediaObject> media = mediaObjectRepository.findByOwnerTypeAndOwnerIdIn(
+            MediaOwnerType.POST,
+            postIds
+        );
+        if (media.isEmpty()) {
+            return Map.of();
+        }
+        media.sort(Comparator.comparing(MediaObject::getCreatedAt).reversed());
+        Map<UUID, List<PostMediaPreviewResponse>> result = new HashMap<>();
+        for (MediaObject item : media) {
+            UUID postId = item.getOwnerId();
+            if (postId == null) {
+                continue;
+            }
+            List<PostMediaPreviewResponse> preview = result.computeIfAbsent(postId, key -> new ArrayList<>());
+            if (preview.size() >= POST_MEDIA_PREVIEW_LIMIT) {
+                continue;
+            }
+            preview.add(new PostMediaPreviewResponse(
+                item.getId(),
+                item.getUrl(),
+                item.getMediaType().name(),
+                item.getCreatedAt()
+            ));
+        }
+        return result;
     }
 
     private Integer calculateCompatibilityScore(UUID viewerId, UUID authorId) {

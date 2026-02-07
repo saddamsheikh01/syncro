@@ -6,6 +6,10 @@ import { useAuth, useUser } from "@/hooks";
 import { Avatar } from "@/components/elements/Avatar";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { getMediaByOwner } from "@/services/media";
+import {
+  PROFILE_AVATAR_UPDATED_EVENT,
+  type ProfileAvatarUpdatedDetail,
+} from "@/lib/mediaEvents";
 import type { MediaResponse } from "@/types/media";
 
 export const User = () => {
@@ -13,6 +17,7 @@ export const User = () => {
   const { profile, actions: userActions } = useUser();
 
   const [avatar, setAvatar] = useState<MediaResponse | null>(null);
+  const [avatarReloadTick, setAvatarReloadTick] = useState(0);
   const avatarLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -29,7 +34,6 @@ export const User = () => {
   useEffect(() => {
     if (!user?.id || avatarLoadedRef.current) return;
     avatarLoadedRef.current = true;
-
     getMediaByOwner({
       ownerType: "USER_PROFILE",
       ownerId: user.id,
@@ -41,6 +45,36 @@ export const User = () => {
       })
       .catch(() => undefined);
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const handleAvatarUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<ProfileAvatarUpdatedDetail>;
+      if (customEvent.detail?.userId !== user.id) return;
+      setAvatarReloadTick((prev) => prev + 1);
+    };
+    window.addEventListener(PROFILE_AVATAR_UPDATED_EVENT, handleAvatarUpdated);
+    return () => {
+      window.removeEventListener(
+        PROFILE_AVATAR_UPDATED_EVENT,
+        handleAvatarUpdated
+      );
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || avatarReloadTick === 0) return;
+    getMediaByOwner({
+      ownerType: "USER_PROFILE",
+      ownerId: user.id,
+      page: 0,
+      size: 1,
+    })
+      .then((response) => {
+        setAvatar(response.content[0] ?? null);
+      })
+      .catch(() => undefined);
+  }, [avatarReloadTick, user?.id]);
 
   const email = user?.email ?? "";
   const username = user?.username?.trim() ?? "";

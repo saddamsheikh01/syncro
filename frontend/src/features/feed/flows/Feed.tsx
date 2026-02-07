@@ -22,6 +22,7 @@ import type { CreatePostRequest, PostScope, PostTimeframe } from "@/types/social
 import type { UserSummaryResponse } from "@/types/profile";
 
 const DEFAULT_PAGE_SIZE = 10;
+const POST_MEDIA_UPLOAD_RETRIES = 1;
 
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -68,6 +69,46 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
     if (message) return String(message);
   }
   return fallback;
+};
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const uploadPostMediaWithRetry = async (
+  postId: string,
+  file: File,
+  retries = POST_MEDIA_UPLOAD_RETRIES
+) => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await uploadPostMedia({ postId, file });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await sleep(350 * (attempt + 1));
+      }
+    }
+  }
+
+  throw lastError;
+};
+
+const formatUploadFailureNotice = (
+  failures: Array<{ name: string; reason: string }>
+) => {
+  if (failures.length === 0) return null;
+  const listed = failures
+    .slice(0, 3)
+    .map((failure) => `${failure.name}: ${failure.reason}`);
+  const suffix =
+    failures.length > 3 ? ` (+${failures.length - 3} more)` : "";
+  return `Post published, but some media failed to upload. ${listed.join(
+    " | "
+  )}${suffix}`;
 };
 
 export const Feed = () => {
@@ -326,16 +367,35 @@ export const Feed = () => {
       const created = await createPost(request);
 
       if (payload.files.length) {
-        try {
+        const failures = (
           await Promise.all(
-            payload.files.map((file) =>
-              uploadPostMedia({ postId: created.id, file })
-            )
-          );
-        } catch {
-          setComposerNotice(
-            "Post published, but some media failed to upload."
-          );
+            payload.files.map(async (file) => {
+              try {
+                await uploadPostMediaWithRetry(created.id, file);
+                return null;
+              } catch (mediaError) {
+                return {
+                  name: file.name,
+                  reason: resolveErrorMessage(
+                    mediaError,
+                    "Upload failed"
+                  ),
+                };
+              }
+            })
+          )
+        ).filter(
+          (
+            failure
+          ): failure is {
+            name: string;
+            reason: string;
+          } => failure !== null
+        );
+
+        const notice = formatUploadFailureNotice(failures);
+        if (notice) {
+          setComposerNotice(notice);
         }
       }
 

@@ -12,7 +12,11 @@ import { PostMediaCarousel } from "@/features/social/sections/PostMediaCarousel"
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
 import { getPostMedia } from "@/services/media";
 import type { MediaResponse } from "@/types/media";
-import type { PostReactionType, PostResponse } from "@/types/social";
+import type {
+  PostMediaPreviewResponse,
+  PostReactionType,
+  PostResponse,
+} from "@/types/social";
 import { cx } from "@/lib/classNames";
 
 const LIKE_ICON = (
@@ -89,6 +93,17 @@ const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
     selected: index === 0,
   }));
 
+const mapPreviewMediaToItems = (
+  media: PostMediaPreviewResponse[]
+): PostMediaItem[] =>
+  media.map((item, index) => ({
+    id: item.id,
+    src: item.url,
+    label: item.mediaType === "VIDEO" ? "Video" : `Foto ${index + 1}`,
+    isVideo: item.mediaType === "VIDEO",
+    selected: index === 0,
+  }));
+
 export interface PostCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   post: PostResponse;
@@ -152,19 +167,29 @@ export const PostCard = ({
   onCommentCountChange,
   ...props
 }: PostCardProps) => {
-  const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([]);
+  const [fetchedMediaItems, setFetchedMediaItems] = useState<PostMediaItem[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
 
+  const previewMediaItems = useMemo(() => {
+    if (!Array.isArray(post.media)) return null;
+    return mapPreviewMediaToItems(post.media.slice(0, mediaLimit));
+  }, [mediaLimit, post.media]);
+
+  const mediaItems = previewMediaItems ?? fetchedMediaItems;
+
   useEffect(() => {
     if (!showMedia) return;
+    if (previewMediaItems !== null) {
+      return;
+    }
     let active = true;
     const frame = requestAnimationFrame(() => {
       if (!active) return;
-      setMediaItems([]);
+      setFetchedMediaItems([]);
       setMediaError(null);
       setMediaLoading(true);
     });
@@ -172,7 +197,7 @@ export const PostCard = ({
     getPostMedia({ postId: post.id, page: 0, size: mediaLimit })
       .then((response) => {
         if (!active) return;
-        setMediaItems(mapMediaToItems(response.content));
+        setFetchedMediaItems(mapMediaToItems(response.content));
       })
       .catch(() => {
         if (!active) return;
@@ -187,7 +212,7 @@ export const PostCard = ({
       active = false;
       cancelAnimationFrame(frame);
     };
-  }, [mediaLimit, post.id, showMedia]);
+  }, [mediaLimit, post.id, previewMediaItems, showMedia]);
 
   const createdDate = formatPostDate(post.createdAt);
   const resolvedLocationLabel =
