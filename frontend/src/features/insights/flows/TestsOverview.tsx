@@ -12,7 +12,6 @@ import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { useTests } from "@/hooks";
 import { resolveTestCopy } from "@/lib/insightsCopy";
-import { getTestEmoji } from "@/lib/testEmoji";
 
 const isLocalhost = () =>
   typeof window !== "undefined" &&
@@ -56,7 +55,6 @@ export const TestsOverview = () => {
         });
 
         return {
-          emoji: getTestEmoji(test.testType, test.title),
           testType: test.testType,
           title: localized.title,
           description: localized.description,

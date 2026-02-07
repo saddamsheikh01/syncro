@@ -16,7 +16,6 @@ import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRo
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
 import { resolveTestCopy } from "@/lib/insightsCopy";
-import { getTestEmoji } from "@/lib/testEmoji";
 import type { UserMatchResponse } from "@/types/matches";
 import {
   useAuth,
@@ -279,7 +278,6 @@ export const HomeOverview = () => {
         });
 
         return {
-          emoji: getTestEmoji(test.testType, test.title),
           testType: test.testType,
           title: localized.title,
           description: localized.description,

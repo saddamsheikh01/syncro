@@ -28,6 +28,7 @@ import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ProfileMomentCard } from "@/features/profile/cards/ProfileMomentCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
+import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
@@ -65,6 +66,11 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
 
 const normalizeUsername = (value: string) =>
   value.trim().toLowerCase().replace(/\s+/g, "");
+
+const PHONE_PATTERN = /^\+?[1-9]\d{7,14}$/;
+
+const normalizePhone = (value: string) =>
+  value.trim().replace(/[\s()-]/g, "");
 
 const RELATIONSHIP_OPTIONS: SelectOption[] = [
   { value: "SINGLE", label: "Single" },
@@ -155,6 +161,9 @@ export const ProfileSettings = ({
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
@@ -413,8 +422,9 @@ export const ProfileSettings = ({
     if (!user?.id || usernameInitializedRef.current) return;
     usernameInitializedRef.current = true;
     setUsername(user.username ?? "");
+    setPhone(user.phone ?? "");
     setUsernameAvailable(user.username ? true : null);
-  }, [user?.id, user?.username]);
+  }, [user?.id, user?.phone, user?.username]);
 
   useEffect(() => {
     if (!usernameInitializedRef.current) return;
@@ -530,6 +540,19 @@ export const ProfileSettings = ({
     if (usernameAvailable === false) return "Username not available.";
     return "Checking availability...";
   }, [normalizedUsername, usernameValid, usernameChecking, usernameAvailable]);
+
+  const normalizedPhone = normalizePhone(phone);
+  const currentPhone = normalizePhone(user?.phone ?? "");
+  const phoneChanged = normalizedPhone !== currentPhone;
+  const phoneValid =
+    normalizedPhone.length === 0 || PHONE_PATTERN.test(normalizedPhone);
+  const canSavePhone = phoneChanged && phoneValid && !phoneSaving;
+
+  const phoneHint = useMemo(() => {
+    if (!normalizedPhone) return "Optional. Add your number if you want.";
+    if (!phoneValid) return "Use an international format, e.g. +393331234567.";
+    return "Phone looks good.";
+  }, [normalizedPhone, phoneValid]);
 
   const handleSaveProfile = async () => {
     setProfileError(null);
@@ -738,6 +761,24 @@ export const ProfileSettings = ({
     }
   };
 
+  const handleSavePhone = async () => {
+    setPhoneError(null);
+    if (!phoneValid) {
+      setPhoneError("Use an international format, e.g. +393331234567.");
+      return;
+    }
+
+    setPhoneSaving(true);
+    try {
+      await userActions.updateUser({ phone: normalizedPhone || "" });
+      setPhone(normalizedPhone);
+    } catch (saveError) {
+      setPhoneError(resolveErrorMessage(saveError, "Error while saving."));
+    } finally {
+      setPhoneSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (!user?.id) return;
     let active = true;
@@ -765,7 +806,8 @@ export const ProfileSettings = ({
     preferencesError ??
     interestsError ??
     avatarError ??
-    usernameError;
+    usernameError ??
+    phoneError;
   const baseError = error?.message ?? tagsError?.message;
   const showError = mergedError || baseError;
 
@@ -823,6 +865,7 @@ export const ProfileSettings = ({
         <Card className="flex flex-col items-center justify-center gap-3 p-5 text-center">
           <Avatar
             name="Zyra"
+            src={ZYRA_AVATAR_SRC}
             size="xl"
             className="border-2 border-white shadow-sm"
           />
@@ -833,7 +876,7 @@ export const ProfileSettings = ({
         </Card>
       </div>
 
-      <Card className="space-y-2 p-5">
+      <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
           {displayFirstName}&apos;s Public Profile
         </h2>
@@ -862,6 +905,31 @@ export const ProfileSettings = ({
               disabled={!canSaveUsername}
             >
               Save username
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <Input
+            label="Phone number (optional)"
+            value={phone}
+            onChange={(event) => {
+              setPhoneError(null);
+              setPhone(event.target.value);
+            }}
+            placeholder="+393331234567"
+            hint={phoneHint}
+            error={phoneError ?? undefined}
+          />
+          <div className="flex items-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleSavePhone}
+              loading={phoneSaving}
+              loadingText="Saving"
+              disabled={!canSavePhone}
+            >
+              Save phone
             </Button>
           </div>
         </div>

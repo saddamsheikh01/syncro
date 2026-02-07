@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
 import { useAuth, useZyra } from "@/hooks";
 import { cx } from "@/lib/classNames";
+import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { storeZyraSeedMessage } from "@/lib/zyraSeed";
 
 const QUICK_REPLIES = [
@@ -18,21 +19,10 @@ const QUICK_REPLIES = [
 const DEFAULT_MAIN_PROMPT =
   "Want to improve your matches right away?";
 
-const DEFAULT_ZYRA_MESSAGE =
-  "There’s a photography exhibition near you. Would you like to go tomorrow, or want more details?";
-
-const SECONDARY_ZYRA_MESSAGE =
-  "You’re improving yourself — it’s normal to feel this way.";
-
-const sanitizeSuggestion = (value: string) =>
-  value
-    .replace(/^\s*(suggerimento personalizzato|personalized suggestion)\s*:?\s*/i, "")
-    .trim();
-
 export const ZyraTipCard = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const { suggestions, loadingSuggestions, actions } = useZyra();
+  const { loadingSuggestions, actions } = useZyra();
   const [replyValue, setReplyValue] = useState("");
   const fetchedRef = useRef(false);
 
@@ -42,22 +32,7 @@ export const ZyraTipCard = () => {
     actions.fetchSuggestions({ size: 2 }).catch(() => undefined);
   }, [actions]);
 
-  const greetingName = useMemo(() => {
-    if (user?.username) return user.username;
-    if (user?.email) return user.email.split("@")[0];
-    return "there";
-  }, [user?.email, user?.username]);
-
-  const suggestionMessages = suggestions
-    .map((item) =>
-      typeof item.payload?.message === "string"
-        ? sanitizeSuggestion(item.payload.message)
-        : ""
-    )
-    .filter(Boolean);
-
-  const primaryMessage = suggestionMessages[0] ?? DEFAULT_ZYRA_MESSAGE;
-  const secondaryMessage = suggestionMessages[1] ?? SECONDARY_ZYRA_MESSAGE;
+  const greetingName = user?.username || user?.email?.split("@")[0] || "there";
 
   const handleSend = (message: string) => {
     const trimmed = message.trim();
@@ -75,7 +50,7 @@ export const ZyraTipCard = () => {
       )}
     >
       <div className="flex items-start gap-3">
-        <Avatar name="Zyra" size="lg" />
+        <Avatar name="Zyra" src={ZYRA_AVATAR_SRC} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="text-base font-semibold text-foreground">Zyra</p>
           <p className="text-xs text-muted">

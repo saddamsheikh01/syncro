@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAnalytics, useAuth, useUser } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
+import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 
 const CheckIcon = () => (
   <svg
@@ -54,6 +55,22 @@ const LockIcon = () => (
   </svg>
 );
 
+const PhoneIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5 text-subtle"
+    aria-hidden="true"
+  >
+    <rect x="7" y="2.5" width="10" height="19" rx="2" />
+    <path d="M11 19h2" />
+  </svg>
+);
+
 const EyeIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -88,6 +105,11 @@ const EyeOffIcon = () => (
   </svg>
 );
 
+const PHONE_PATTERN = /^\+?[1-9]\d{7,14}$/;
+
+const normalizePhone = (value: string) =>
+  value.trim().replace(/[\s()-]/g, "");
+
 export const Register = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,6 +117,8 @@ export const Register = () => {
   const { actions: analyticsActions } = useAnalytics();
   const { actions: userActions } = useUser();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -114,9 +138,21 @@ export const Register = () => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const normalizedPhone = normalizePhone(phone);
+    setPhoneError(null);
+
+    if (normalizedPhone && !PHONE_PATTERN.test(normalizedPhone)) {
+      setPhoneError("Use an international format, e.g. +393331234567.");
+      return;
+    }
 
     try {
-      await actions.register({ email, password, refCode });
+      await actions.register({
+        email,
+        password,
+        phone: normalizedPhone || undefined,
+        refCode,
+      });
       analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
       await userActions.updateUser({ onboardingCompleted: true });
       analyticsActions.trackEvent({ eventType: "ONBOARDING_COMPLETED" }).catch(() => undefined);
@@ -127,8 +163,8 @@ export const Register = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-6 py-10">
-      <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)]">
-        <div className="w-full max-w-[480px]">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)] lg:grid lg:grid-cols-[minmax(0,500px)_minmax(0,560px)] lg:items-center lg:justify-center lg:gap-10">
+        <div className="w-full max-w-[480px] lg:max-w-[500px]">
           <div className="rounded-[28px] border border-[#eef2f8] bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
             <div className="mb-6">
               <Logo width={130} className="h-auto w-[120px]" priority />
@@ -179,6 +215,29 @@ export const Register = () => {
 
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
+                  <PhoneIcon />
+                </span>
+                <input
+                  id="signup-phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(event) => {
+                    setPhone(event.target.value);
+                    if (phoneError) setPhoneError(null);
+                  }}
+                  className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
+                  placeholder="Phone number (optional)"
+                  aria-invalid={Boolean(phoneError)}
+                />
+              </div>
+              {phoneError ? (
+                <p className="-mt-2 text-xs text-danger">{phoneError}</p>
+              ) : null}
+
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
                   <LockIcon />
                 </span>
                 <input
@@ -224,7 +283,7 @@ export const Register = () => {
             </form>
 
             <p className="mt-6 text-xs text-subtle">
-              You'll Complete Your Profile Step By Step
+              You&apos;ll Complete Your Profile Step By Step
               <br />
               The More You Share, The Better Your Matches Become.
             </p>
@@ -237,6 +296,7 @@ export const Register = () => {
             </div>
           </div>
         </div>
+        <AuthDesktopVisual alt="Syncro registration visual" />
       </div>
     </div>
   );

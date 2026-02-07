@@ -14,6 +14,7 @@ export type TokenResponse = {
 export type UserResponse = {
   id: Uuid;
   email: string | null;
+  phone: string | null;
   username: string | null;
   language: string;
   onboardingCompleted: boolean;
@@ -35,6 +36,7 @@ export type LoginRequest = {
 export type RegisterRequest = {
   email: string;
   password: string;
+  phone?: string | null;
   refCode?: string | null;
 };
 
@@ -46,6 +48,7 @@ export type UpdateUserRequest = {
   language?: string | null;
   onboardingCompleted?: boolean | null;
   username?: string | null;
+  phone?: string | null;
 };
 
 export type UsernameAvailabilityResponse = {

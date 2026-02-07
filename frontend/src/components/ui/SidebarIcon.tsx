@@ -24,7 +24,7 @@ const ICONS: Record<SidebarIconName, string> = {
   profile: "/icons/profile.png",
   settings: "/icons/settings.png",
   support: "/icons/support.png",
-  zyra: "/icons/zyra.png",
+  zyra: "/AI/zyra.png",
 };
 
 export interface SidebarIconProps

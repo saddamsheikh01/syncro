@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
+import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 
 const CheckIcon = () => (
   <svg
@@ -133,8 +134,8 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-6 py-10">
-      <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)]">
-        <div className="w-full max-w-[480px]">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)] lg:grid lg:grid-cols-[minmax(0,500px)_minmax(0,560px)] lg:items-center lg:justify-center lg:gap-10">
+        <div className="w-full max-w-[480px] lg:max-w-[500px]">
           <div className="rounded-[28px] border border-[#eef2f8] bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
             <div className="mb-6">
               <Logo width={130} className="h-auto w-[120px]" priority />
@@ -218,7 +219,7 @@ export const Login = () => {
 
               {isAuthenticated && user ? (
                 <div className="rounded-[12px] border border-border-strong bg-surface px-4 py-2 text-sm text-foreground">
-                  You're signed in as {user.email ?? "user"}.
+                  You&apos;re signed in as {user.email ?? "user"}.
                 </div>
               ) : null}
 
@@ -241,7 +242,7 @@ export const Login = () => {
             <p className="mt-4 text-xs text-subtle">Syncro evolves with you.</p>
           </div>
         </div>
-
+        <AuthDesktopVisual alt="Syncro login visual" />
       </div>
     </div>
   );
