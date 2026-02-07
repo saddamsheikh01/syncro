@@ -30,6 +30,7 @@ const CLOSE_AFTER_SUBMIT_MS = 1_000;
 const STORAGE_PREFIX = "syncro.early_access_feedback";
 const ENABLED =
   (process.env.NEXT_PUBLIC_EARLY_ACCESS_FEEDBACK_ENABLED ?? "true") !== "false";
+const OPEN_EVENT = "syncro:open-early-access-feedback";
 
 const buildSentKey = (userId: string) => `${STORAGE_PREFIX}.sent.${userId}`;
 const buildDismissedKey = (userId: string) =>
@@ -103,6 +104,23 @@ export const EarlyAccessFeedbackModal = () => {
       );
     };
   }, [canShow, userId]);
+
+  useEffect(() => {
+    const handleOpenNow = () => {
+      setSubmitted(false);
+      setSubmitting(false);
+      setSubmitError(null);
+      setSelected(null);
+      setOtherText("");
+      shownRef.current = true;
+      setOpen(true);
+    };
+
+    window.addEventListener(OPEN_EVENT, handleOpenNow);
+    return () => {
+      window.removeEventListener(OPEN_EVENT, handleOpenNow);
+    };
+  }, []);
 
   const requiresOtherText = selected === "SOMETHING_ELSE";
   const trimmedOther = otherText.trim();

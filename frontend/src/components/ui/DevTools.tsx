@@ -5,6 +5,7 @@ import { cx } from "@/lib/classNames";
 import { useTutorial, useUi } from "@/hooks";
 
 const STORAGE_KEY_A2HS = "syncro_a2hs_dismissed";
+const OPEN_EARLY_ACCESS_FEEDBACK_EVENT = "syncro:open-early-access-feedback";
 
 const useIsLocalhost = () => {
   return useMemo(() => {
@@ -65,6 +66,10 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
       tone: "info",
       durationMs: 4500,
     });
+  };
+
+  const handleOpenEarlyAccessFeedback = () => {
+    window.dispatchEvent(new Event(OPEN_EARLY_ACCESS_FEEDBACK_EVENT));
   };
 
   return (
@@ -155,6 +160,27 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
               Reset Add to Home
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenEarlyAccessFeedback}
+              className="flex w-full items-center gap-2 rounded-[var(--radius-md)] bg-surface-muted px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-muted/80 hover:text-foreground"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M3 12h18" />
+                <path d="M12 3v18" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              Open early access feedback
             </button>
             <button
               type="button"
