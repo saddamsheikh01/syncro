@@ -43,18 +43,18 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
   if (!isDev) return null;
 
   const handleOpenTutorial = () => {
-    // Solo apre il tutorial senza resettare completed/skipped
+    // Apre l'onboarding intro senza reset dei flag persistiti
     tutorialActions.open();
   };
 
   const handleResetTutorial = () => {
-    // Reset completo per testare il primo accesso
+    // Reset completo per testare il primo accesso onboarding
     tutorialActions.reset();
   };
 
   const handleOpenA2HS = () => {
     // Rimuove il dismiss e ricarica per mostrare la modale
-    // Nota: questo triggera anche il tutorial se non completato
+    // Nota: questo puo triggerare anche l'onboarding intro se non completato
     localStorage.removeItem(STORAGE_KEY_A2HS);
     alert("A2HS localStorage cleared. Reload the page to see the modal.");
   };
@@ -118,7 +118,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <path d="M12 17h.01" />
               </svg>
-              Open tutorial
+              Open onboarding intro
             </button>
             <button
               type="button"
@@ -138,7 +138,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              Reset Tutorial
+              Reset onboarding intro
             </button>
             <button
               type="button"

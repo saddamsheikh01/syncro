@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { Avatar } from "@/components/elements/Avatar";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -31,11 +32,11 @@ import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 
 const RECO_PAGE_SIZE = 8;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
-const TUTORIAL_DELAY_MS = 800;
 const DISTANCE_EPSILON = 0.000001;
 
 
 export const HomeOverview = () => {
+  const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { actions: userActions } = useUser();
   const {
@@ -68,7 +69,6 @@ export const HomeOverview = () => {
     actions: chatActions,
   } = useChat();
   const {
-    currentStep: tutorialStep,
     isOpen: tutorialOpen,
     completed: tutorialCompleted,
     skipped: tutorialSkipped,
@@ -144,16 +144,17 @@ export const HomeOverview = () => {
   useEffect(() => {
     if (status !== "authenticated") return;
     if (tutorialTriggeredRef.current) return;
-    if (tutorialCompleted || tutorialSkipped) return;
+    if (tutorialCompleted || tutorialSkipped || user?.onboardingCompleted) return;
 
     tutorialTriggeredRef.current = true;
-
-    const timer = setTimeout(() => {
-      tutorialActions.open();
-    }, TUTORIAL_DELAY_MS);
-
-    return () => clearTimeout(timer);
-  }, [status, tutorialCompleted, tutorialSkipped, tutorialActions]);
+    tutorialActions.open();
+  }, [
+    status,
+    tutorialCompleted,
+    tutorialSkipped,
+    tutorialActions,
+    user?.onboardingCompleted,
+  ]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -205,6 +206,11 @@ export const HomeOverview = () => {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleCompleteOnboardingIntro = () => {
+    tutorialActions.complete();
+    router.push("/profile");
   };
 
   const recommendationPlaces = useMemo(
@@ -741,13 +747,9 @@ export const HomeOverview = () => {
 
       <TutorialModal
         open={tutorialOpen}
-        currentStep={tutorialStep}
-        onNext={tutorialActions.nextStep}
-        onPrevious={tutorialActions.previousStep}
         onSkip={tutorialActions.skip}
         onClose={tutorialActions.close}
-        onComplete={tutorialActions.complete}
-        onStepClick={tutorialActions.goToStep}
+        onComplete={handleCompleteOnboardingIntro}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import { createStore } from "../utils/createStore";
 import { readStorage, writeStorage } from "../utils/storage";
 
-const TUTORIAL_STORAGE_KEY = "syncro.tutorial.state";
+const TUTORIAL_STORAGE_KEY = "syncro.onboarding-intro.state";
 
 export type TutorialState = {
   currentStep: number;
@@ -18,7 +18,7 @@ type PersistedTutorialState = {
 
 const initialState: TutorialState = {
   currentStep: 0,
-  totalSteps: 8,
+  totalSteps: 1,
   completed: false,
   skipped: false,
   isOpen: false,
