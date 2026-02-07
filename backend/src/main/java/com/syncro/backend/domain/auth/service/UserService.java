@@ -24,6 +24,7 @@ public class UserService {
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9]{3,30}$");
     private static final Pattern USERNAME_RESERVED_PATTERN =
         Pattern.compile("(riccardociviero|michelasardo|admin|support|syncro)");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
 
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
@@ -64,6 +65,15 @@ public class UserService {
             if (!isSameUsername(user, normalized)) {
                 ensureUsernameAvailable(normalized, user.getId());
                 user.setUsername(normalized);
+            }
+        }
+        if (request.phone() != null) {
+            String normalizedPhone = normalizePhone(request.phone());
+            if (normalizedPhone == null) {
+                user.setPhone(null);
+            } else if (!normalizedPhone.equals(user.getPhone())) {
+                ensurePhoneAvailable(normalizedPhone, user.getId());
+                user.setPhone(normalizedPhone);
             }
         }
 
@@ -136,5 +146,27 @@ public class UserService {
             return user.getUsername() == null;
         }
         return normalized.equals(user.getUsername());
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String normalized = phone.trim().replaceAll("[\\s()\\-]", "");
+        if (normalized.isBlank()) {
+            return null;
+        }
+        if (!PHONE_PATTERN.matcher(normalized).matches()) {
+            throw new BadRequestException("Telefono non valido");
+        }
+        return normalized;
+    }
+
+    private void ensurePhoneAvailable(String phone, UUID userId) {
+        userRepository.findByPhone(phone)
+            .filter(existing -> !existing.getId().equals(userId))
+            .ifPresent(existing -> {
+                throw new ConflictException("Telefono gia in uso");
+            });
     }
 }

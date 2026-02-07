@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.auth.service;
 
+import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
@@ -22,12 +23,14 @@ import com.syncro.backend.security.SubjectType;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
 
     private final UserRepository userRepository;
     private final UserAuthProviderRepository providerRepository;
@@ -55,12 +58,17 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request, String ip, String userAgent) {
         String email = normalizeEmail(request.email());
+        String phone = normalizePhone(request.phone());
         if (userRepository.existsByEmail(email)) {
             throw new ConflictException("Email gia registrata");
+        }
+        if (phone != null && userRepository.existsByPhone(phone)) {
+            throw new ConflictException("Telefono gia registrato");
         }
 
         User user = new User();
         user.setEmail(email);
+        user.setPhone(phone);
         user.setLanguage("it");
         user.setOnboardingCompleted(false);
         user.setStatus(UserStatus.ACTIVE);
@@ -138,5 +146,19 @@ public class AuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String normalized = phone.trim().replaceAll("[\\s()\\-]", "");
+        if (normalized.isBlank()) {
+            return null;
+        }
+        if (!PHONE_PATTERN.matcher(normalized).matches()) {
+            throw new BadRequestException("Telefono non valido");
+        }
+        return normalized;
     }
 }
