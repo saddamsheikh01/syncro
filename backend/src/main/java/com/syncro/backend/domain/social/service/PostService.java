@@ -17,6 +17,7 @@ import com.syncro.backend.domain.social.dto.CreatePostRequest;
 import com.syncro.backend.domain.social.dto.PostMediaPreviewResponse;
 import com.syncro.backend.domain.social.dto.PostResponse;
 import com.syncro.backend.domain.social.dto.TaggedUserResponse;
+import com.syncro.backend.domain.social.dto.UpdatePostRequest;
 import com.syncro.backend.domain.social.entity.Post;
 import com.syncro.backend.domain.social.entity.PostLike;
 import com.syncro.backend.domain.social.entity.PostLikeId;
@@ -141,6 +142,32 @@ public class PostService {
             List.of(),
             List.of()
         );
+    }
+
+    @Transactional
+    public PostResponse updatePost(UserPrincipal principal, UUID postId, UpdatePostRequest request) {
+        User user = getUser(principal);
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post non trovato"));
+        if (!user.getId().equals(post.getUserId())) {
+            throw new UnauthorizedException("Operazione non consentita");
+        }
+
+        post.setContent(normalizeRequired(request.content()));
+        Post saved = postRepository.save(post);
+
+        return mapPostForUser(saved, user.getId());
+    }
+
+    @Transactional
+    public void deletePost(UserPrincipal principal, UUID postId) {
+        User user = getUser(principal);
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post non trovato"));
+        if (!user.getId().equals(post.getUserId())) {
+            throw new UnauthorizedException("Operazione non consentita");
+        }
+        postRepository.delete(post);
     }
 
     @Transactional(readOnly = true)
@@ -348,6 +375,21 @@ public class PostService {
 
         long totalElements = minCompatibility == null ? posts.getTotalElements() : responses.size();
         return new PageImpl<>(responses, posts.getPageable(), totalElements);
+    }
+
+    private PostResponse mapPostForUser(Post post, UUID userId) {
+        Page<PostResponse> mapped = mapFeed(
+            new PageImpl<>(List.of(post), PageRequest.of(0, 1), 1),
+            userId,
+            null,
+            null,
+            null,
+            null
+        );
+        if (mapped.isEmpty()) {
+            throw new NotFoundException("Post non trovato");
+        }
+        return mapped.getContent().get(0);
     }
 
     private Map<UUID, Long> loadLikeCounts(List<UUID> postIds) {

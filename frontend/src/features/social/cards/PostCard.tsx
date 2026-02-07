@@ -120,6 +120,8 @@ export interface PostCardProps
   onRemoveReaction?: (postId: string) => void;
   onToggleFavorite?: (postId: string, nextActive: boolean) => void;
   onCommentCountChange?: (postId: string, count: number) => void;
+  onEditPost?: (postId: string, payload: { content: string }) => Promise<void> | void;
+  onDeletePost?: (postId: string) => Promise<void> | void;
 }
 
 const formatPostDate = (isoDate?: string | null) => {
@@ -165,6 +167,8 @@ export const PostCard = ({
   onRemoveReaction,
   onToggleFavorite,
   onCommentCountChange,
+  onEditPost,
+  onDeletePost,
   ...props
 }: PostCardProps) => {
   const [fetchedMediaItems, setFetchedMediaItems] = useState<PostMediaItem[]>([]);
@@ -173,6 +177,11 @@ export const PostCard = ({
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
 
   const previewMediaItems = useMemo(() => {
     if (!Array.isArray(post.media)) return null;
@@ -180,6 +189,8 @@ export const PostCard = ({
   }, [mediaLimit, post.media]);
 
   const mediaItems = previewMediaItems ?? fetchedMediaItems;
+  const isOwner = Boolean(currentUserId && currentUserId === post.userId);
+  const canManagePost = isOwner && (Boolean(onEditPost) || Boolean(onDeletePost));
 
   useEffect(() => {
     if (!showMedia) return;
@@ -297,6 +308,61 @@ export const PostCard = ({
     onCommentCountChange?.(post.id, count);
   };
 
+  const handleStartEdit = () => {
+    if (!onEditPost) return;
+    setManageError(null);
+    setEditContent(post.content);
+    setEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+    setManageError(null);
+    setEditContent(post.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onEditPost) return;
+    const trimmed = editContent.trim();
+    if (!trimmed) {
+      setManageError("Write something before saving.");
+      return;
+    }
+    setEditLoading(true);
+    setManageError(null);
+    try {
+      await onEditPost(post.id, { content: trimmed });
+      setEditing(false);
+      setEditContent(trimmed);
+    } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message?: string }).message ?? "Unable to update post.")
+          : "Unable to update post.";
+      setManageError(message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!onDeletePost || deleteLoading) return;
+    if (!window.confirm("Delete this post permanently?")) return;
+    setDeleteLoading(true);
+    setManageError(null);
+    try {
+      await onDeletePost(post.id);
+    } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message?: string }).message ?? "Unable to delete post.")
+          : "Unable to delete post.";
+      setManageError(message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <Card className={cx("space-y-4 p-5", className)} {...props}>
       <PostHeader
@@ -308,14 +374,70 @@ export const PostCard = ({
         onProfileClick={onProfileClick}
       />
 
+      {canManagePost ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {onEditPost ? (
+            <button
+              type="button"
+              onClick={editing ? handleCancelEdit : handleStartEdit}
+              className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:border-border-strong"
+              disabled={editLoading || deleteLoading}
+            >
+              {editing ? "Cancel edit" : "Edit post"}
+            </button>
+          ) : null}
+          {onDeletePost ? (
+            <button
+              type="button"
+              onClick={handleDeletePost}
+              className="inline-flex items-center rounded-full border border-danger/30 bg-danger/10 px-3 py-1 text-xs font-semibold text-danger hover:bg-danger/15"
+              disabled={editLoading || deleteLoading}
+            >
+              {deleteLoading ? "Deleting..." : "Delete post"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="space-y-1">
-        <p className="whitespace-pre-line text-sm text-foreground">
-          {displayedContent}
-        </p>
+        {editing ? (
+          <div className="space-y-2">
+            <textarea
+              value={editContent}
+              onChange={(event) => setEditContent(event.target.value)}
+              rows={4}
+              className="w-full rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent/50"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:border-border-strong"
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={editLoading}
+              >
+                {editLoading ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="whitespace-pre-line text-sm text-foreground">
+            {displayedContent}
+          </p>
+        )}
         {resolvedLocationLabel ? (
           <p className="text-xs text-subtle">{resolvedLocationLabel}</p>
         ) : null}
       </div>
+
+      {manageError ? <p className="text-xs text-danger">{manageError}</p> : null}
 
       {(scopeLabel || moodLabel || timeframeLabel) && (
         <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/elements/Badge";
 import { Button } from "@/components/buttons/Button";
@@ -138,6 +138,7 @@ export const Feed = () => {
   const [composerLoading, setComposerLoading] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
+  const [postActionError, setPostActionError] = useState<string | null>(null);
   const [scopeFilter, setScopeFilter] = useState<"" | PostScope>("");
   const [timeframeFilter, setTimeframeFilter] = useState<"" | PostTimeframe>("");
   const [cityFilter, setCityFilter] = useState("");
@@ -253,6 +254,40 @@ export const Feed = () => {
       .catch(() => undefined);
   }, [feedActions, feedFilterKey, feedFilters, status]);
 
+  const handleEditPost = useCallback(
+    async (postId: string, payload: { content: string }) => {
+      setPostActionError(null);
+      try {
+        await feedActions.editPost(postId, payload);
+      } catch (error) {
+        const message = resolveErrorMessage(
+          error,
+          "Error while updating the post."
+        );
+        setPostActionError(message);
+        throw new Error(message);
+      }
+    },
+    [feedActions]
+  );
+
+  const handleDeletePost = useCallback(
+    async (postId: string) => {
+      setPostActionError(null);
+      try {
+        await feedActions.deletePost(postId);
+      } catch (error) {
+        const message = resolveErrorMessage(
+          error,
+          "Error while deleting the post."
+        );
+        setPostActionError(message);
+        throw new Error(message);
+      }
+    },
+    [feedActions]
+  );
+
   const postItems = useMemo(() => {
     const profileName = profile?.fullName?.trim();
     const selfName = profileName || user?.email || "You";
@@ -275,9 +310,13 @@ export const Feed = () => {
       onReact: feedActions.reactToPost,
       onRemoveReaction: feedActions.removeReaction,
       onToggleFavorite: feedActions.toggleFavorite,
+      onEditPost: handleEditPost,
+      onDeletePost: handleDeletePost,
       onProfileClick: () => router.push(`/profile/${post.userId}`),
     }));
   }, [
+    handleDeletePost,
+    handleEditPost,
     feedActions.reactToPost,
     feedActions.removeReaction,
     feedActions.toggleFavorite,
@@ -460,6 +499,24 @@ export const Feed = () => {
             size="sm"
             variant="ghost"
             onClick={() => setComposerNotice(null)}
+          >
+            Close
+          </Button>
+        </Card>
+      ) : null}
+
+      {postActionError ? (
+        <Card className="flex flex-wrap items-start justify-between gap-3 border-danger/30 bg-danger/10 p-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              Unable to complete post action
+            </p>
+            <p className="text-xs text-muted">{postActionError}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setPostActionError(null)}
           >
             Close
           </Button>

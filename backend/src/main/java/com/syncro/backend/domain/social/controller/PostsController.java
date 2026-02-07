@@ -3,6 +3,7 @@ package com.syncro.backend.domain.social.controller;
 import com.syncro.backend.domain.social.dto.CreatePostRequest;
 import com.syncro.backend.domain.social.dto.PostReactionRequest;
 import com.syncro.backend.domain.social.dto.PostResponse;
+import com.syncro.backend.domain.social.dto.UpdatePostRequest;
 import com.syncro.backend.domain.social.entity.PostMood;
 import com.syncro.backend.domain.social.entity.PostScope;
 import com.syncro.backend.domain.social.entity.PostTimeframe;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -94,6 +96,26 @@ public class PostsController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(postService.createPost(principal, request));
+    }
+
+    @PutMapping("/{postId}")
+    @Operation(summary = "Aggiorna post")
+    public ResponseEntity<PostResponse> updatePost(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID postId,
+        @Valid @RequestBody UpdatePostRequest request
+    ) {
+        return ResponseEntity.ok(postService.updatePost(principal, postId, request));
+    }
+
+    @DeleteMapping("/{postId}")
+    @Operation(summary = "Elimina post")
+    public ResponseEntity<Void> deletePost(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID postId
+    ) {
+        postService.deletePost(principal, postId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{postId}/likes")

@@ -8,6 +8,7 @@ import type {
   CreateCommentRequest,
   CreateConversationRequest,
   CreatePostRequest,
+  UpdatePostRequest,
   PostResponse,
   PostReactionType,
   PostScope,
@@ -57,6 +58,18 @@ export const createPost = async (
 ): Promise<PostResponse> => {
   const { data } = await apiClient.post<PostResponse>("/posts", payload);
   return data;
+};
+
+export const updatePost = async (
+  postId: Uuid,
+  payload: UpdatePostRequest
+): Promise<PostResponse> => {
+  const { data } = await apiClient.put<PostResponse>(`/posts/${postId}`, payload);
+  return data;
+};
+
+export const deletePost = async (postId: Uuid): Promise<void> => {
+  await apiClient.delete(`/posts/${postId}`);
 };
 
 export const likePost = async (postId: Uuid): Promise<void> => {

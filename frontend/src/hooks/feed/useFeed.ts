@@ -17,6 +17,8 @@ export const useFeed = () => {
       reactToPost: feedActions.reactToPost,
       removeReaction: feedActions.removeReaction,
       toggleFavorite: feedActions.toggleFavorite,
+      editPost: feedActions.editPost,
+      deletePost: feedActions.deletePost,
     }),
     []
   );

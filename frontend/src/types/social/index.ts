@@ -73,6 +73,10 @@ export type CreatePostRequest = {
   taggedUserIds?: Uuid[] | null;
 };
 
+export type UpdatePostRequest = {
+  content: string;
+};
+
 export type CommentResponse = {
   id: Uuid;
   postId: Uuid;

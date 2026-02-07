@@ -8,6 +8,8 @@ import {
   unlikePost,
   reactToPost,
   removeReaction,
+  updatePost as updatePostRequest,
+  deletePost as deletePostRequest,
   type FeedParams,
 } from "../../services/social";
 import { addFavorite, removeFavorite } from "../../services/favorites";
@@ -58,7 +60,7 @@ const applyFeedResponse = (
   }));
 };
 
-const updatePost = (
+const mutatePost = (
   postId: Uuid,
   updater: (post: PostResponse) => PostResponse
 ) => {
@@ -117,7 +119,7 @@ export const feedActions = {
   },
 
   likePost: async (postId: Uuid) => {
-    updatePost(postId, (post) => ({
+    mutatePost(postId, (post) => ({
       ...post,
       likedByMe: true,
       likeCount: post.likeCount + 1,
@@ -126,7 +128,7 @@ export const feedActions = {
     try {
       await likePost(postId);
     } catch (error) {
-      updatePost(postId, (post) => ({
+      mutatePost(postId, (post) => ({
         ...post,
         likedByMe: false,
         likeCount: Math.max(0, post.likeCount - 1),
@@ -137,7 +139,7 @@ export const feedActions = {
   },
 
   unlikePost: async (postId: Uuid) => {
-    updatePost(postId, (post) => ({
+    mutatePost(postId, (post) => ({
       ...post,
       likedByMe: false,
       likeCount: Math.max(0, post.likeCount - 1),
@@ -146,7 +148,7 @@ export const feedActions = {
     try {
       await unlikePost(postId);
     } catch (error) {
-      updatePost(postId, (post) => ({
+      mutatePost(postId, (post) => ({
         ...post,
         likedByMe: true,
         likeCount: post.likeCount + 1,
@@ -158,7 +160,7 @@ export const feedActions = {
 
   reactToPost: async (postId: Uuid, reaction: PostReactionType) => {
     let previousReaction: PostReactionType | null = null;
-    updatePost(postId, (post) => {
+    mutatePost(postId, (post) => {
       previousReaction = post.myReaction ?? null;
       return {
         ...post,
@@ -177,7 +179,7 @@ export const feedActions = {
     try {
       await reactToPost(postId, reaction);
     } catch (error) {
-      updatePost(postId, (post) => ({
+      mutatePost(postId, (post) => ({
         ...post,
         myReaction: previousReaction,
         reactions: updateReactionCounts(post.reactions, reaction, previousReaction),
@@ -196,7 +198,7 @@ export const feedActions = {
 
   removeReaction: async (postId: Uuid) => {
     let previousReaction: PostReactionType | null = null;
-    updatePost(postId, (post) => {
+    mutatePost(postId, (post) => {
       previousReaction = post.myReaction ?? null;
       return {
         ...post,
@@ -213,7 +215,7 @@ export const feedActions = {
     try {
       await removeReaction(postId);
     } catch (error) {
-      updatePost(postId, (post) => ({
+      mutatePost(postId, (post) => ({
         ...post,
         myReaction: previousReaction,
         reactions: updateReactionCounts(post.reactions, null, previousReaction),
@@ -229,7 +231,7 @@ export const feedActions = {
   },
 
   toggleFavorite: async (postId: Uuid, nextActive: boolean) => {
-    updatePost(postId, (post) => ({
+    mutatePost(postId, (post) => ({
       ...post,
       favoritedByMe: nextActive,
     }));
@@ -241,12 +243,26 @@ export const feedActions = {
         await removeFavorite({ postId });
       }
     } catch (error) {
-      updatePost(postId, (post) => ({
+      mutatePost(postId, (post) => ({
         ...post,
         favoritedByMe: !nextActive,
       }));
       feedStore.setState({ error: error as ApiError });
       throw error;
     }
+  },
+
+  editPost: async (postId: Uuid, payload: { content: string }) => {
+    const updated = await updatePostRequest(postId, payload);
+    mutatePost(postId, () => updated);
+    return updated;
+  },
+
+  deletePost: async (postId: Uuid) => {
+    await deletePostRequest(postId);
+    feedStore.setState((state) => ({
+      items: state.items.filter((post) => post.id !== postId),
+      totalElements: Math.max(0, state.totalElements - 1),
+    }));
   },
 };
