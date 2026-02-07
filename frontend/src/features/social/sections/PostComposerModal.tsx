@@ -41,7 +41,7 @@ export interface PostComposerModalProps {
   onSubmit: (payload: PostComposerPayload) => Promise<void>;
 }
 
-const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_MEDIA_FILES = 6;
 const ALLOWED_TYPES = ["image/", "video/"];

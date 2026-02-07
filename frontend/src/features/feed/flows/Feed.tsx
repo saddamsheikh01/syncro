@@ -15,7 +15,7 @@ import type { PostComposerPayload } from "@/features/social/sections/PostCompose
 import { PostComposerModal } from "@/features/social/sections/PostComposerModal";
 import { useAuth, useFeed, usePosition, useUser } from "@/hooks";
 import { uploadPostMedia } from "@/services/media";
-import { createPost } from "@/services/social";
+import { createPost, deletePost as deletePostRequest } from "@/services/social";
 import { getUserSummary } from "@/services/users";
 import type { JsonValue } from "@/types/shared";
 import type { CreatePostRequest, PostScope, PostTimeframe } from "@/types/social";
@@ -71,6 +71,28 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const resolveUploadErrorReason = (error: unknown) => {
+  if (!error || typeof error !== "object") return "Upload failed";
+  const candidate = error as {
+    code?: string;
+    status?: number;
+    message?: string;
+  };
+  if (candidate.status === 413) {
+    return "File exceeds the upload size limit.";
+  }
+  if (candidate.code === "TIMEOUT") {
+    return "Upload timeout. Try again with a stable connection.";
+  }
+  if (candidate.code === "NETWORK_ERROR") {
+    return "Network error during upload.";
+  }
+  if (candidate.message) {
+    return candidate.message;
+  }
+  return "Upload failed";
+};
+
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
@@ -97,16 +119,23 @@ const uploadPostMediaWithRetry = async (
   throw lastError;
 };
 
-const formatUploadFailureNotice = (
+type UploadFailure = {
+  name: string;
+  reason: string;
+};
+
+const formatUploadFailureError = (
   failures: Array<{ name: string; reason: string }>
 ) => {
-  if (failures.length === 0) return null;
+  if (failures.length === 0) {
+    return "Unable to publish the post because media upload failed.";
+  }
   const listed = failures
     .slice(0, 3)
     .map((failure) => `${failure.name}: ${failure.reason}`);
   const suffix =
     failures.length > 3 ? ` (+${failures.length - 3} more)` : "";
-  return `Post published, but some media failed to upload. ${listed.join(
+  return `Unable to publish the post because media upload failed. ${listed.join(
     " | "
   )}${suffix}`;
 };
@@ -137,7 +166,6 @@ export const Feed = () => {
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerLoading, setComposerLoading] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
-  const [composerNotice, setComposerNotice] = useState<string | null>(null);
   const [postActionError, setPostActionError] = useState<string | null>(null);
   const [scopeFilter, setScopeFilter] = useState<"" | PostScope>("");
   const [timeframeFilter, setTimeframeFilter] = useState<"" | PostTimeframe>("");
@@ -374,7 +402,6 @@ export const Feed = () => {
 
   const handleOpenComposer = () => {
     setComposerError(null);
-    setComposerNotice(null);
     setComposerOpen(true);
   };
 
@@ -385,7 +412,6 @@ export const Feed = () => {
 
   const handleComposerSubmit = async (payload: PostComposerPayload) => {
     setComposerError(null);
-    setComposerNotice(null);
     setComposerLoading(true);
 
     try {
@@ -406,35 +432,39 @@ export const Feed = () => {
       const created = await createPost(request);
 
       if (payload.files.length) {
-        const failures = (
-          await Promise.all(
-            payload.files.map(async (file) => {
-              try {
-                await uploadPostMediaWithRetry(created.id, file);
-                return null;
-              } catch (mediaError) {
-                return {
-                  name: file.name,
-                  reason: resolveErrorMessage(
-                    mediaError,
-                    "Upload failed"
-                  ),
-                };
-              }
-            })
-          )
-        ).filter(
-          (
-            failure
-          ): failure is {
-            name: string;
-            reason: string;
-          } => failure !== null
-        );
+        const failures: UploadFailure[] = [];
+        for (const file of payload.files) {
+          try {
+            await uploadPostMediaWithRetry(created.id, file);
+          } catch (mediaError) {
+            failures.push({
+              name: file.name,
+              reason: resolveUploadErrorReason(mediaError),
+            });
+            break;
+          }
+        }
 
-        const notice = formatUploadFailureNotice(failures);
-        if (notice) {
-          setComposerNotice(notice);
+        if (failures.length > 0) {
+          let rollbackError: unknown = null;
+          try {
+            await deletePostRequest(created.id);
+          } catch (error) {
+            rollbackError = error;
+          }
+
+          const uploadErrorMessage = formatUploadFailureError(failures);
+          if (rollbackError) {
+            const rollbackReason = resolveErrorMessage(
+              rollbackError,
+              "rollback failed"
+            );
+            throw new Error(
+              `${uploadErrorMessage}. The post text may still exist because automatic rollback failed (${rollbackReason}).`
+            );
+          }
+
+          throw new Error(uploadErrorMessage);
         }
       }
 
@@ -486,24 +516,6 @@ export const Feed = () => {
           </Button>
         </div>
       </header>
-
-      {composerNotice ? (
-        <Card className="flex flex-wrap items-start justify-between gap-3 border-warning/30 bg-warning/15 p-4">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              Media not uploaded
-            </p>
-            <p className="text-xs text-muted">{composerNotice}</p>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setComposerNotice(null)}
-          >
-            Close
-          </Button>
-        </Card>
-      ) : null}
 
       {postActionError ? (
         <Card className="flex flex-wrap items-start justify-between gap-3 border-danger/30 bg-danger/10 p-4">

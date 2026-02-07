@@ -3,6 +3,8 @@ import { buildQueryParams } from "../utils/queryParams";
 import type { MediaOwnerType, MediaResponse } from "../../types/media";
 import type { PageResponse, Uuid } from "../../types/shared";
 
+const MEDIA_UPLOAD_TIMEOUT_MS = 180_000;
+
 export type MediaListParams = {
   ownerType: MediaOwnerType;
   ownerId: Uuid;
@@ -35,7 +37,9 @@ export const uploadMedia = async (params: {
   formData.append("ownerType", params.ownerType);
   formData.append("ownerId", params.ownerId);
 
-  const { data } = await apiClient.post<MediaResponse>("/media", formData);
+  const { data } = await apiClient.post<MediaResponse>("/media", formData, {
+    timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+  });
   return data;
 };
 
@@ -59,7 +63,10 @@ export const uploadPostMedia = async (params: {
 
   const { data } = await apiClient.post<MediaResponse>(
     `/posts/${params.postId}/media`,
-    formData
+    formData,
+    {
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+    }
   );
   return data;
 };
