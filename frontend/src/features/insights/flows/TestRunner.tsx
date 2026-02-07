@@ -227,7 +227,20 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     return null;
   }
 
-  if (activeTest.completed) {
+  if (!questions.length) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+        <EmptyState
+          title="Insight unavailable"
+          description="There are no questions for this insight."
+          actionLabel="Back to insights"
+          actionHref="/insights"
+        />
+      </div>
+    );
+  }
+
+  if (activeTest.completed && !submitted) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="space-y-4 p-6">
@@ -257,19 +270,6 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
             <p className="text-sm text-danger">{submitError}</p>
           ) : null}
         </Card>
-      </div>
-    );
-  }
-
-  if (!questions.length) {
-    return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
-        <EmptyState
-          title="Insight unavailable"
-          description="There are no questions for this insight."
-          actionLabel="Back to insights"
-          actionHref="/insights"
-        />
       </div>
     );
   }
