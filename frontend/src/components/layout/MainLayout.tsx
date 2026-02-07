@@ -8,6 +8,7 @@ import { Leftbar } from "@/components/ui/Leftbar";
 import { Rightbar } from "@/components/ui/Rightbar";
 import { MobileBar } from "@/components/ui/MobileBar";
 import { AddToHomeScreenModal } from "@/components/ui/AddToHomeScreenModal";
+import { EarlyAccessFeedbackModal } from "@/components/ui/EarlyAccessFeedbackModal";
 import { CookieConsentDrawer } from "@/components/ui/CookieConsentDrawer";
 import { NotificationStack } from "@/components/ui/NotificationStack";
 import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
@@ -92,6 +93,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
       </div>
 
       <CookieConsentDrawer />
+      <EarlyAccessFeedbackModal />
       <NotificationStack />
       <AnalyticsTracker />
       <AuthInitializer />

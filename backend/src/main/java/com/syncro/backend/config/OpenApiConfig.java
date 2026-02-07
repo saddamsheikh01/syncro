@@ -235,6 +235,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi feedbackApi() {
+        return GroupedOpenApi.builder()
+            .group("feedback")
+            .pathsToMatch("/api/v1/feedback/**")
+            .build();
+    }
+
+    @Bean
     public GroupedOpenApi adminAnalyticsApi() {
         return GroupedOpenApi.builder()
             .group("admin-analytics")

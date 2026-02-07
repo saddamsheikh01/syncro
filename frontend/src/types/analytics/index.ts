@@ -7,7 +7,8 @@ export type AnalyticsEventType =
   | "MATCH_SECTION_OPENED"
   | "MAP_OPENED"
   | "PROFILE_VIEWED"
-  | "SESSION_DURATION";
+  | "SESSION_DURATION"
+  | "FEEDBACK_SUBMITTED";
 
 export type AnalyticsEventRequest = {
   eventType: AnalyticsEventType;
