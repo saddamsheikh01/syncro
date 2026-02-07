@@ -15,15 +15,15 @@ export type SidebarIconName =
   | "zyra";
 
 const ICONS: Record<SidebarIconName, string> = {
-  home: "/icons/home.png",
-  people: "/icons/people.png",
-  places: "/icons/places.png",
-  moments: "/icons/moments.png",
-  insights: "/icons/insights.png",
-  chat: "/icons/chat.png",
-  profile: "/icons/profile.png",
-  settings: "/icons/settings.png",
-  support: "/icons/support.png",
+  home: "/icons/svg/home.svg",
+  people: "/icons/svg/people.svg",
+  places: "/icons/svg/places.svg",
+  moments: "/icons/svg/moments.svg",
+  insights: "/icons/svg/insights.svg",
+  chat: "/icons/svg/chat.svg",
+  profile: "/icons/svg/profile.svg",
+  settings: "/icons/svg/settings.svg",
+  support: "/icons/svg/support.svg",
   zyra: "/AI/zyra.png",
 };
 

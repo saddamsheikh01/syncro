@@ -105,13 +105,13 @@ export const MobileBar = ({
               >
                 <span
                   className={cx(
-                    "flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 transition",
+                    "flex h-10 w-10 items-center justify-center transition",
                     active
-                      ? "border-white/70 bg-white shadow-[0_10px_20px_var(--accent-glow)]"
-                      : "bg-surface-muted/70 shadow-sm"
+                      ? "drop-shadow-[0_8px_16px_rgba(255,255,255,0.35)]"
+                      : "opacity-90"
                   )}
                 >
-                  <SidebarIcon name={item.icon} size={22} />
+                  <SidebarIcon name={item.icon} size={26} />
                 </span>
                 <span className={cx(active && "text-white")}>{item.label}</span>
               </Link>
@@ -133,8 +133,8 @@ export const MobileBar = ({
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-surface-muted/70 shadow-sm">
-            <SidebarIcon name="settings" size={22} />
+          <span className="flex h-10 w-10 items-center justify-center">
+            <SidebarIcon name="settings" size={26} />
           </span>
         </button>
       </div>

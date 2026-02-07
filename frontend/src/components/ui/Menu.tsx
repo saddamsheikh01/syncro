@@ -91,13 +91,11 @@ export const Menu = ({
           >
             <span
               className={cx(
-                "flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-white/90 shadow-sm transition",
-                active
-                  ? "border-white/70 bg-white"
-                  : "bg-surface-muted/70 group-hover:border-border-strong",
+                "flex h-10 w-10 shrink-0 items-center justify-center transition",
+                active && "drop-shadow-[0_8px_16px_rgba(255,255,255,0.35)]",
               )}
             >
-              <SidebarIcon name={item.icon} size={30} />
+              <SidebarIcon name={item.icon} size={36} />
             </span>
             <span
               className={cx(
