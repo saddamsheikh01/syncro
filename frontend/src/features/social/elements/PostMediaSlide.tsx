@@ -2,6 +2,7 @@
 
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 export interface PostMediaSlideProps extends HTMLAttributes<HTMLDivElement> {
   src?: string;
@@ -15,7 +16,10 @@ export const PostMediaSlide = ({
   label,
   isVideo,
   ...props
-}: PostMediaSlideProps) => (
+}: PostMediaSlideProps) => {
+  const safeSrc = resolveMediaUrl(src);
+
+  return (
   <div
     className={cx(
       "relative overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted",
@@ -23,10 +27,10 @@ export const PostMediaSlide = ({
     )}
     {...props}
   >
-    {src ? (
+    {safeSrc ? (
       isVideo ? (
         <video
-          src={src}
+          src={safeSrc}
           className="h-full w-full object-cover"
           controls
           playsInline
@@ -36,7 +40,7 @@ export const PostMediaSlide = ({
         </video>
       ) : (
         <img
-          src={src}
+          src={safeSrc}
           alt={label ?? "Media"}
           className="h-full w-full object-cover"
           loading="lazy"
@@ -53,4 +57,5 @@ export const PostMediaSlide = ({
       </span>
     ) : null}
   </div>
-);
+  );
+};

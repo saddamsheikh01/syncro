@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 export type AvatarSize = "sm" | "md" | "lg" | "xl";
 
@@ -32,6 +33,7 @@ export const Avatar = ({
   ...props
 }: AvatarProps) => {
   const initials = getInitials(name);
+  const safeSrc = resolveMediaUrl(src);
 
   return (
     <div
@@ -43,9 +45,9 @@ export const Avatar = ({
       aria-label={name ?? "Avatar"}
       {...props}
     >
-      {src ? (
+      {safeSrc ? (
         <img
-          src={src}
+          src={safeSrc}
           alt={name ?? "Avatar"}
           className="h-full w-full object-cover"
           loading="lazy"

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { getPostMedia } from "@/services/media";
 import type { PostResponse } from "@/types/social";
 
@@ -65,6 +66,7 @@ export const ProfileMomentCard = ({
   const previewCoverUrl =
     Array.isArray(post.media) ? (post.media[0]?.url ?? null) : undefined;
   const coverUrl = previewCoverUrl !== undefined ? previewCoverUrl : fetchedCoverUrl;
+  const safeCoverUrl = resolveMediaUrl(coverUrl);
   const coverLoading = previewCoverUrl !== undefined ? false : loading;
 
   useEffect(() => {
@@ -110,9 +112,9 @@ export const ProfileMomentCard = ({
       {...props}
     >
       <div className="h-44 w-full overflow-hidden bg-surface-muted">
-        {coverUrl ? (
+        {safeCoverUrl ? (
           <img
-            src={coverUrl}
+            src={safeCoverUrl}
             alt={title}
             className="h-full w-full object-cover"
           />
