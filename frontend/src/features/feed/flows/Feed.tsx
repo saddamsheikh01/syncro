@@ -332,7 +332,7 @@ export const Feed = () => {
     if (status !== "authenticated" || items.length === 0) return;
     const uniqueIds = Array.from(new Set(items.map((post) => post.userId)));
     const missingIds = uniqueIds.filter(
-      (id) => id && id !== user?.id && !authorSummaries[id]
+      (id) => id && !authorSummaries[id]
     );
     if (missingIds.length === 0) return;
     let active = true;
