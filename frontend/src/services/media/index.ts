@@ -54,6 +54,13 @@ export const getPostMedia = async (
   return data;
 };
 
+export const deletePostMedia = async (
+  postId: Uuid,
+  mediaId: Uuid
+): Promise<void> => {
+  await apiClient.delete(`/posts/${postId}/media/${mediaId}`);
+};
+
 export const uploadPostMedia = async (params: {
   postId: Uuid;
   file: File;

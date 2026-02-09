@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../auth/useAuth";
 import { useUser } from "../user/useUser";
 import { useTags } from "../tags/useTags";
 import { usePosition } from "../position/usePosition";
@@ -9,6 +10,7 @@ import {
   calculateProfileCompletion,
   type ProfileCompletionResult,
 } from "@/lib/profileCompletion";
+import { getMediaByOwner } from "@/services/media";
 import type { JsonValue } from "@/types/shared";
 
 const readNumber = (value: JsonValue) =>
@@ -20,12 +22,15 @@ const readString = (value: JsonValue) =>
 export const useProfileCompletion = (): ProfileCompletionResult & {
   loading: boolean;
 } => {
+  const { user } = useAuth();
   const { profile, preferences, actions: userActions } = useUser();
   const { interests, actions: tagsActions } = useTags();
   const { hasPosition, actions: positionActions } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
 
   const fetchedRef = useRef(false);
+  const avatarFetchedRef = useRef(false);
+  const [hasAvatarMedia, setHasAvatarMedia] = useState(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -37,6 +42,21 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
     testsActions.fetchTests().catch(() => undefined);
     testsActions.fetchCompletedCount().catch(() => undefined);
   }, [userActions, positionActions, tagsActions, testsActions]);
+
+  useEffect(() => {
+    if (!user?.id || avatarFetchedRef.current) return;
+    avatarFetchedRef.current = true;
+    getMediaByOwner({
+      ownerType: "USER_PROFILE",
+      ownerId: user.id,
+      page: 0,
+      size: 1,
+    })
+      .then((response) => {
+        setHasAvatarMedia(response.content.length > 0);
+      })
+      .catch(() => undefined);
+  }, [user?.id]);
 
   const loading = !profile && tests.length === 0 && completedCount === null;
 
@@ -64,7 +84,7 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
         orientation: profile?.orientation ?? null,
         childrenStatus: profile?.childrenStatus ?? null,
       },
-      hasAvatar: Boolean(profile?.avatarUrl),
+      hasAvatar: Boolean(profile?.avatarUrl) || hasAvatarMedia,
       interestCount: interests?.tags?.length ?? 0,
       matchmakingFilterValues: {
         ageMin: readNumber(storedFilters.ageMin),
@@ -76,7 +96,7 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
       testsCompleted: completedCount ?? 0,
       testsTotal: tests.length,
     });
-  }, [profile, preferences, interests, hasPosition, tests, completedCount]);
+  }, [profile, preferences, interests, hasPosition, tests, completedCount, hasAvatarMedia]);
 
   return { ...result, loading };
 };

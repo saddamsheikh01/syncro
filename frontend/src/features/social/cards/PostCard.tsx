@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { HTMLAttributes } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import type { ChangeEvent, HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { Badge } from "@/components/elements/Badge";
@@ -84,6 +84,20 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   OGGI: "Today",
 };
 
+const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_MEDIA_FILES = 6;
+const ALLOWED_TYPES = ["image/", "video/"];
+
+const formatFileSize = (bytes: number) => {
+  if (!Number.isFinite(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
+
 const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
   media.map((item, index) => ({
     id: item.id,
@@ -120,7 +134,7 @@ export interface PostCardProps
   onRemoveReaction?: (postId: string) => void;
   onToggleFavorite?: (postId: string, nextActive: boolean) => void;
   onCommentCountChange?: (postId: string, count: number) => void;
-  onEditPost?: (postId: string, payload: { content: string }) => Promise<void> | void;
+  onEditPost?: (postId: string, payload: { content: string; mediaToDelete?: string[]; newFiles?: File[] }) => Promise<void> | void;
   onDeletePost?: (postId: string) => Promise<void> | void;
 }
 
@@ -179,9 +193,12 @@ export const PostCard = ({
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
+  const [editMediaToDelete, setEditMediaToDelete] = useState<string[]>([]);
+  const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
+  const editFileInputId = useId();
 
   const previewMediaItems = useMemo(() => {
     if (!Array.isArray(post.media)) return null;
@@ -312,6 +329,8 @@ export const PostCard = ({
     if (!onEditPost) return;
     setManageError(null);
     setEditContent(post.content);
+    setEditMediaToDelete([]);
+    setEditNewFiles([]);
     setEditing(true);
   };
 
@@ -319,6 +338,8 @@ export const PostCard = ({
     setEditing(false);
     setManageError(null);
     setEditContent(post.content);
+    setEditMediaToDelete([]);
+    setEditNewFiles([]);
   };
 
   const handleSaveEdit = async () => {
@@ -331,9 +352,15 @@ export const PostCard = ({
     setEditLoading(true);
     setManageError(null);
     try {
-      await onEditPost(post.id, { content: trimmed });
+      await onEditPost(post.id, {
+        content: trimmed,
+        mediaToDelete: editMediaToDelete.length ? editMediaToDelete : undefined,
+        newFiles: editNewFiles.length ? editNewFiles : undefined,
+      });
       setEditing(false);
       setEditContent(trimmed);
+      setEditMediaToDelete([]);
+      setEditNewFiles([]);
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error
@@ -361,6 +388,60 @@ export const PostCard = ({
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  const existingMediaKept = useMemo(() => {
+    if (!Array.isArray(post.media)) return [];
+    return post.media.filter((m) => !editMediaToDelete.includes(m.id));
+  }, [post.media, editMediaToDelete]);
+
+  const totalEditMedia = existingMediaKept.length + editNewFiles.length;
+
+  const handleMarkMediaForDelete = (mediaId: string) => {
+    setEditMediaToDelete((prev) => [...prev, mediaId]);
+  };
+
+  const handleUndoMediaDelete = (mediaId: string) => {
+    setEditMediaToDelete((prev) => prev.filter((id) => id !== mediaId));
+  };
+
+  const handleEditFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const fileList = event.target.files;
+    if (!fileList) return;
+    const incoming = Array.from(fileList);
+    const errors: string[] = [];
+    const accepted: File[] = [];
+
+    for (const file of incoming) {
+      if (!ALLOWED_TYPES.some((t) => file.type.startsWith(t))) {
+        errors.push(`${file.name}: unsupported format.`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        errors.push(`${file.name}: exceeds ${MAX_FILE_SIZE_MB} MB.`);
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    const remaining = MAX_MEDIA_FILES - totalEditMedia;
+    if (accepted.length > remaining) {
+      errors.push(`Max ${MAX_MEDIA_FILES} files allowed. Only ${remaining} more can be added.`);
+      accepted.splice(remaining);
+    }
+
+    if (accepted.length) {
+      setEditNewFiles((prev) => [...prev, ...accepted]);
+    }
+    if (errors.length) {
+      setManageError(errors.join(" "));
+    }
+
+    event.target.value = "";
+  };
+
+  const handleRemoveNewFile = (index: number) => {
+    setEditNewFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -401,13 +482,119 @@ export const PostCard = ({
 
       <div className="space-y-1">
         {editing ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <textarea
               value={editContent}
               onChange={(event) => setEditContent(event.target.value)}
               rows={4}
               className="w-full rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent/50"
             />
+
+            {/* Existing media thumbnails */}
+            {Array.isArray(post.media) && post.media.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-subtle">Current media</p>
+                <div className="flex flex-wrap gap-2">
+                  {post.media.map((m) => {
+                    const markedForDelete = editMediaToDelete.includes(m.id);
+                    return (
+                      <div key={m.id} className="relative">
+                        <div
+                          className={cx(
+                            "relative h-16 w-16 overflow-hidden rounded-[var(--radius-sm)] border border-border/70",
+                            markedForDelete && "opacity-30"
+                          )}
+                        >
+                          {m.mediaType === "VIDEO" ? (
+                            <div className="flex h-full w-full items-center justify-center bg-surface-muted text-[10px] text-subtle">
+                              Video
+                            </div>
+                          ) : (
+                            <img
+                              src={m.url}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        {markedForDelete ? (
+                          <button
+                            type="button"
+                            onClick={() => handleUndoMediaDelete(m.id)}
+                            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-sm"
+                            title="Undo remove"
+                          >
+                            +
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkMediaForDelete(m.id)}
+                            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white shadow-sm"
+                            title="Remove media"
+                          >
+                            &times;
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* New files list */}
+            {editNewFiles.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-subtle">New files</p>
+                <div className="space-y-1">
+                  {editNewFiles.map((file, index) => (
+                    <div
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between rounded-[var(--radius-sm)] border border-border/70 bg-surface-muted px-3 py-1.5"
+                    >
+                      <span className="truncate text-xs text-foreground">
+                        {file.name}{" "}
+                        <span className="text-subtle">({formatFileSize(file.size)})</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewFile(index)}
+                        className="ml-2 text-xs font-semibold text-danger hover:text-danger/80"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add media button */}
+            {totalEditMedia < MAX_MEDIA_FILES && (
+              <div>
+                <label
+                  htmlFor={editFileInputId}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:border-border-strong"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="m21 15-5-5L5 21" />
+                  </svg>
+                  Add media
+                </label>
+                <input
+                  id={editFileInputId}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleEditFileChange}
+                  className="hidden"
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"

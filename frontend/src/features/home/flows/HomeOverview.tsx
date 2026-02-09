@@ -372,6 +372,7 @@ export const HomeOverview = () => {
           actionHref="/matches"
         />
 
+        {/* TODO: filtri match — da implementare con logica reale
         <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-muted">
           <span className="font-semibold text-foreground">Fine-Tune</span>
           <span>Age Range</span>
@@ -396,6 +397,7 @@ export const HomeOverview = () => {
             </span>
           ))}
         </div>
+        */}
 
         {loadingUserMatches && userMatches.length === 0 ? (
           <Card className="flex items-center gap-3 p-4">

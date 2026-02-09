@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
@@ -20,17 +20,27 @@ import {
   useAnalytics,
   useAuth,
   usePosition,
+  useProfileCompletion,
   useTags,
   useTests,
   useUser,
   useUnsavedChanges,
 } from "@/hooks";
-import { calculateProfileCompletion } from "@/lib/profileCompletion";
-import { getMediaByOwner, uploadMedia } from "@/services/media";
+import {
+  getMediaByOwner,
+  uploadMedia,
+  deletePostMedia,
+  uploadPostMedia,
+  getPostMedia,
+} from "@/services/media";
 import { getMyReferralLink } from "@/services/referrals";
 import { checkUsernameAvailability, getUserPosts } from "@/services/users";
+import {
+  updatePost as updatePostRequest,
+  deletePost as deletePostRequest,
+} from "@/services/social";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
-import { ProfileMomentCard } from "@/features/profile/cards/ProfileMomentCard";
+import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
@@ -42,7 +52,7 @@ import type { ReferralLinkResponse } from "@/types/referrals";
 
 const MIN_INTERESTS = 3;
 const USERNAME_MIN_LENGTH = 3;
-const MOMENTS_PAGE_SIZE = 3;
+const MOMENTS_PAGE_SIZE = 6;
 const MAX_AVATAR_SIZE_MB = 10;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const readNumber = (value: JsonValue | undefined) =>
@@ -133,6 +143,7 @@ export const ProfileSettings = ({
     completedCount,
     actions: testsActions,
   } = useTests();
+  const { percentage: profileCompleteness } = useProfileCompletion();
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
@@ -193,57 +204,17 @@ export const ProfileSettings = ({
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarLightbox, setAvatarLightbox] = useState(false);
   const [recentPosts, setRecentPosts] = useState<PostResponse[]>([]);
+  const [recentPostsPage, setRecentPostsPage] = useState(0);
+  const [recentPostsHasMore, setRecentPostsHasMore] = useState(false);
   const [recentPostsLoading, setRecentPostsLoading] = useState(false);
   const [recentPostsError, setRecentPostsError] = useState<string | null>(null);
+  const [postActionError, setPostActionError] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(
     null,
   );
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const profileCompleteness = useMemo(() => {
-    const result = calculateProfileCompletion({
-      profileFields: {
-        fullName: fullName || null,
-        birthDate: birthDate || null,
-        city: city || null,
-        country: country || null,
-        jobTitle: jobTitle || null,
-        companyName: companyName || null,
-        bio: bio || null,
-        traitsText: traitsText || null,
-        lovesText: lovesText || null,
-        dislikesText: dislikesText || null,
-        goalsText: goalsText || null,
-        valuesText: valuesText || null,
-        relationshipStatus: relationshipStatus || null,
-        orientation: orientation || null,
-        childrenStatus: childrenStatus || null,
-      },
-      hasAvatar: Boolean(avatar?.url || profile?.avatarUrl),
-      interestCount: selectedTagIds.length,
-      matchmakingFilterValues: {
-        ageMin: toNumber(ageMin),
-        ageMax: toNumber(ageMax),
-        distanceKm: toNumber(distanceKm),
-        gender: gender !== "ANY" ? gender : null,
-      },
-      hasPosition,
-      testsCompleted: completedCount ?? 0,
-      testsTotal: tests.length,
-    });
-    return result.percentage;
-  }, [
-    fullName, birthDate, city, country, jobTitle, companyName, bio,
-    traitsText, lovesText, dislikesText, goalsText, valuesText,
-    relationshipStatus, orientation, childrenStatus,
-    avatar, profile?.avatarUrl,
-    selectedTagIds,
-    ageMin, ageMax, distanceKm, gender,
-    hasPosition,
-    completedCount, tests,
-  ]);
 
   // Calcola se ci sono modifiche non salvate
   const isDirty = useMemo(() => {
@@ -489,6 +460,8 @@ export const ProfileSettings = ({
     getUserPosts(user.id, { page: 0, size: MOMENTS_PAGE_SIZE })
       .then((response) => {
         setRecentPosts(response.content ?? []);
+        setRecentPostsPage(response.number ?? 0);
+        setRecentPostsHasMore(!response.last);
       })
       .catch((loadError) => {
         setRecentPostsError(
@@ -846,6 +819,114 @@ export const ProfileSettings = ({
     }
   };
 
+  const handleEditPost = useCallback(
+    async (
+      postId: string,
+      payload: { content: string; mediaToDelete?: string[]; newFiles?: File[] },
+    ) => {
+      setPostActionError(null);
+      try {
+        const updated = await updatePostRequest(postId, {
+          content: payload.content,
+        });
+        setRecentPosts((prev) =>
+          prev.map((p) => (p.id === postId ? updated : p)),
+        );
+
+        if (payload.mediaToDelete?.length) {
+          for (const mediaId of payload.mediaToDelete) {
+            await deletePostMedia(postId, mediaId);
+          }
+        }
+
+        if (payload.newFiles?.length) {
+          for (const file of payload.newFiles) {
+            await uploadPostMedia({ postId, file });
+          }
+        }
+
+        if (payload.mediaToDelete?.length || payload.newFiles?.length) {
+          const mediaPage = await getPostMedia({ postId, page: 0, size: 20 });
+          const previews = mediaPage.content.map((m) => ({
+            id: m.id,
+            url: m.url,
+            mediaType: m.mediaType,
+            createdAt: m.createdAt,
+          }));
+          setRecentPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId ? { ...p, media: previews } : p,
+            ),
+          );
+        }
+      } catch (error) {
+        const message = resolveErrorMessage(
+          error,
+          "Error while updating the post.",
+        );
+        setPostActionError(message);
+        throw new Error(message);
+      }
+    },
+    [],
+  );
+
+  const handleDeletePost = useCallback(async (postId: string) => {
+    setPostActionError(null);
+    try {
+      await deletePostRequest(postId);
+      setRecentPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (error) {
+      const message = resolveErrorMessage(
+        error,
+        "Error while deleting the post.",
+      );
+      setPostActionError(message);
+      throw new Error(message);
+    }
+  }, []);
+
+  const handleLoadMorePosts = useCallback(() => {
+    if (recentPostsLoading || !recentPostsHasMore || !user?.id) return;
+    setRecentPostsLoading(true);
+    getUserPosts(user.id, {
+      page: recentPostsPage + 1,
+      size: MOMENTS_PAGE_SIZE,
+    })
+      .then((response) => {
+        setRecentPosts((prev) => [...prev, ...(response.content ?? [])]);
+        setRecentPostsPage(response.number ?? recentPostsPage + 1);
+        setRecentPostsHasMore(!response.last);
+      })
+      .catch((loadError) => {
+        setRecentPostsError(
+          resolveErrorMessage(loadError, "Error loading moments."),
+        );
+      })
+      .finally(() => setRecentPostsLoading(false));
+  }, [recentPostsHasMore, recentPostsLoading, recentPostsPage, user?.id]);
+
+  const postItems = useMemo(
+    () =>
+      recentPosts.map((post) => ({
+        post,
+        authorName: displayName,
+        avatarUrl: avatar?.url ?? profile?.avatarUrl ?? undefined,
+        currentUserId: user?.id,
+        onEditPost: handleEditPost,
+        onDeletePost: handleDeletePost,
+      })),
+    [
+      recentPosts,
+      displayName,
+      avatar?.url,
+      profile?.avatarUrl,
+      user?.id,
+      handleEditPost,
+      handleDeletePost,
+    ],
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
       <div className="grid gap-4 lg:grid-cols-[1.4fr,1fr]">
@@ -947,42 +1028,6 @@ export const ProfileSettings = ({
             </Button>
           </div>
         </div>
-      </Card>
-
-      <Card className="space-y-3 p-5">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-foreground">
-            Referral link
-          </h2>
-          <p className="text-sm text-muted">
-            Invite friends to Syncro with your personal link.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <Input
-            label="Your referral link"
-            value={referralUrl}
-            readOnly
-            placeholder={referralLoading ? "Loading..." : "Not available"}
-          />
-          <div className="flex items-end">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleCopyReferral}
-              disabled={!referralUrl || referralLoading}
-            >
-              {referralCopied ? "Copied" : "Copy link"}
-            </Button>
-          </div>
-        </div>
-        {referralError ? (
-          <p className="text-xs text-danger">{referralError}</p>
-        ) : (
-          <p className="text-xs text-subtle">
-            Used {referralLink?.usesCount ?? 0} times
-          </p>
-        )}
       </Card>
 
       <section className="space-y-4">
@@ -1177,12 +1222,62 @@ export const ProfileSettings = ({
         </div>
       </section>
 
+      <Card className="space-y-3 p-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-foreground">
+            Referral link
+          </h2>
+          <p className="text-sm text-muted">
+            Invite friends to Syncro with your personal link.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <Input
+            label="Your referral link"
+            value={referralUrl}
+            readOnly
+            placeholder={referralLoading ? "Loading..." : "Not available"}
+          />
+          <div className="flex items-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCopyReferral}
+              disabled={!referralUrl || referralLoading}
+            >
+              {referralCopied ? "Copied" : "Copy link"}
+            </Button>
+          </div>
+        </div>
+        {referralError ? (
+          <p className="text-xs text-danger">{referralError}</p>
+        ) : (
+          <p className="text-xs text-subtle">
+            Used {referralLink?.usesCount ?? 0} times
+          </p>
+        )}
+      </Card>
+
       <section className="space-y-4">
         <SectionHeader
           title="My Moments"
-          subtitle="Moments that matter. Even if they’re just for you."
+          subtitle="Moments that matter. Even if they're just for you."
         />
-        {recentPostsLoading ? (
+
+        {postActionError ? (
+          <Card className="flex flex-wrap items-start justify-between gap-3 border-danger/30 bg-danger/10 p-4">
+            <p className="text-sm text-danger">{postActionError}</p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPostActionError(null)}
+            >
+              Close
+            </Button>
+          </Card>
+        ) : null}
+
+        {recentPostsLoading && recentPosts.length === 0 ? (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
             <p className="text-sm text-muted">Loading moments...</p>
@@ -1196,12 +1291,22 @@ export const ProfileSettings = ({
             <p className="text-sm text-muted">No moments available.</p>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recentPosts.map((post) => (
-              <ProfileMomentCard key={post.id} post={post} />
-            ))}
-          </div>
+          <MapPostCard items={postItems} />
         )}
+
+        {recentPostsHasMore ? (
+          <div className="flex justify-center">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleLoadMorePosts}
+              loading={recentPostsLoading}
+              loadingText="Loading"
+            >
+              Load more
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       {showError ? (

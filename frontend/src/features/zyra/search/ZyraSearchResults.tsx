@@ -15,6 +15,7 @@ export interface ZyraSearchResultsProps {
   loading: boolean;
   query: string;
   onResultClick: (type: "place" | "user" | "post", id: string) => void;
+  onAskZyra?: () => void;
 }
 
 export const ZyraSearchResults = ({
@@ -24,6 +25,7 @@ export const ZyraSearchResults = ({
   loading,
   query,
   onResultClick,
+  onAskZyra,
 }: ZyraSearchResultsProps) => {
   const hasResults = places.length > 0 || users.length > 0 || posts.length > 0;
   const showNoResults = !loading && query.length >= 2 && !hasResults;
@@ -63,16 +65,31 @@ export const ZyraSearchResults = ({
         )}
 
         {showNoResults && (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted"
-            >
-              <NavIcon name="search" className="h-5 w-5 text-zyra-text" />
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted">
+              <NavIcon name="search" className="h-5 w-5 text-subtle" />
             </div>
             <p className="text-sm text-subtle">
               No results for &ldquo;{query}&rdquo;
             </p>
-            <p className="text-xs text-subtle">Try different terms</p>
+
+            {onAskZyra && (
+              <div className="mt-1 flex w-full flex-col items-center gap-3 rounded-[var(--radius-md)] border border-zyra-border/50 px-4 py-4 zyra-surface-soft">
+                <div className="flex items-center gap-2">
+                  <ZyraMark size="xs" glow={false} />
+                  <p className="text-xs text-foreground">
+                    Zyra might be able to help you
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onAskZyra}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end px-5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+                >
+                  Ask Zyra
+                </button>
+              </div>
+            )}
           </div>
         )}
 
