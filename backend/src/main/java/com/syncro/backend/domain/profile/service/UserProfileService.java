@@ -57,7 +57,8 @@ public class UserProfileService {
         User user = getUser(principal);
         UserProfile profile = profileRepository.findByUserId(user.getId())
             .orElseThrow(() -> new NotFoundException("Profilo non trovato"));
-        return profileMapper.toResponse(profile);
+        String avatarUrl = resolveAvatarUrl(user.getId());
+        return profileMapper.toResponse(profile, avatarUrl);
     }
 
     @Transactional
@@ -125,7 +126,8 @@ public class UserProfileService {
         UserProfile saved = profileRepository.save(profile);
         onboardingService.refreshOnboardingStatus(user);
         zyraService.refreshProfileRecap(user);
-        return profileMapper.toResponse(saved);
+        String avatarUrl = resolveAvatarUrl(user.getId());
+        return profileMapper.toResponse(saved, avatarUrl);
     }
 
     @Transactional(readOnly = true)

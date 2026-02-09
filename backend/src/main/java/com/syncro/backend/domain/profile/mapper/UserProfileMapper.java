@@ -12,12 +12,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserProfileMapper {
 
-    public UserProfileResponse toResponse(UserProfile profile) {
+    public UserProfileResponse toResponse(UserProfile profile, String avatarUrl) {
         Integer age = calculateAge(profile.getBirthDate());
         return new UserProfileResponse(
             profile.getId(),
             profile.getUser().getId(),
             profile.getFullName(),
+            avatarUrl,
             profile.getBirthDate(),
             age,
             profile.getCity(),

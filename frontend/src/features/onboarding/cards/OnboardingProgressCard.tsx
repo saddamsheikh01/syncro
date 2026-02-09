@@ -1,79 +1,66 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useUser, usePosition, useTags } from "@/hooks";
+import { useProfileCompletion } from "@/hooks";
+import type { CategoryScore } from "@/lib/profileCompletion";
 
-interface OnboardingStep {
-  id: string;
+interface Suggestion {
   label: string;
-  completed: boolean;
-  href?: string;
+  detail: string;
+  href: string;
 }
 
+const SUGGESTION_MAP: Record<
+  string,
+  { label: string; href: string }
+> = {
+  tests: { label: "Complete Insights", href: "/insights" },
+  profile: { label: "Fill Out Profile", href: "/settings#profile" },
+  interests: { label: "Select Interests", href: "/settings#interests" },
+  avatar: { label: "Add a Photo", href: "/settings#profile" },
+  preferences: { label: "Set Preferences", href: "/onboarding/step-3" },
+  location: { label: "Enable Location", href: "/settings" },
+};
+
+const buildSuggestions = (
+  categories: Record<string, CategoryScore>,
+): Suggestion[] => {
+  const items: Suggestion[] = [];
+
+  for (const [key, score] of Object.entries(categories)) {
+    if (score.ratio >= 1) continue;
+    const meta = SUGGESTION_MAP[key];
+    if (!meta) continue;
+    const potential = Math.round(score.weight - score.points);
+    if (potential <= 0) continue;
+    items.push({
+      label: meta.label,
+      detail: `+${potential}%`,
+      href: meta.href,
+    });
+  }
+
+  return items
+    .sort((a, b) => {
+      const aVal = parseInt(a.detail.replace(/[^0-9]/g, ""), 10);
+      const bVal = parseInt(b.detail.replace(/[^0-9]/g, ""), 10);
+      return bVal - aVal;
+    })
+    .slice(0, 3);
+};
+
 export const OnboardingProgressCard = () => {
-  const { status, actions: authActions } = useAuth();
-  const { profile, preferences, actions: userActions } = useUser();
-  const { hasPosition, actions: positionActions } = usePosition();
-  const { interests, actions: tagsActions } = useTags();
-  const hydratedRef = useRef(false);
+  const { percentage, categories } = useProfileCompletion();
 
-  useEffect(() => {
-    authActions.hydrate();
-    positionActions.hydrate();
-  }, [authActions, positionActions]);
+  const isComplete = percentage >= 100;
 
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    if (hydratedRef.current) return;
-    hydratedRef.current = true;
-
-    userActions.fetchProfile().catch(() => undefined);
-    userActions.fetchPreferences().catch(() => undefined);
-    positionActions.fetchPosition().catch(() => undefined);
-    tagsActions.fetchUserInterests().catch(() => undefined);
-  }, [status, userActions, positionActions, tagsActions]);
-
-  const steps: OnboardingStep[] = useMemo(
-    () => [
-      {
-        id: "profile",
-        label: "Complete your profile",
-        completed: Boolean(profile),
-        href: "/settings",
-      },
-      {
-        id: "interests",
-        label: "Select interests",
-        completed: Boolean(interests?.tags?.length),
-        href: "/settings",
-      },
-      {
-        id: "preferences",
-        label: "Set preferences",
-        completed: Boolean(preferences),
-        href: "/settings",
-      },
-      {
-        id: "position",
-        label: "Enable location",
-        completed: hasPosition,
-        href: "/settings",
-      },
-    ],
-    [profile, interests, preferences, hasPosition]
+  const suggestions = useMemo(
+    () => buildSuggestions(categories),
+    [categories],
   );
-
-  const completedCount = steps.filter((step) => step.completed).length;
-  const progress = Math.round((completedCount / steps.length) * 100);
-  const isComplete = completedCount === steps.length;
-
-  const suggestions = [
-    { label: "Values Test", detail: "(3 min) +20% reliability" },
-    { label: "Personal Profile", detail: "(5 min) +15% affinity" },
-  ];
 
   if (isComplete) {
     return (
@@ -113,7 +100,7 @@ export const OnboardingProgressCard = () => {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-2xl font-semibold text-foreground">
-            Profile {progress}% Complete
+            Profile {percentage}% Complete
           </p>
           <p className="mt-1 text-sm text-muted">
             Complete your profile to get more accurate matches.
@@ -127,38 +114,56 @@ export const OnboardingProgressCard = () => {
       <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
         <div
           className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${percentage}%` }}
         />
       </div>
 
-      <div className="mt-4 border-t border-border/70 pt-4">
-        <p className="text-sm font-semibold text-foreground">
-          You can improve it with:
-        </p>
-        <div className="mt-3 space-y-2">
-          {suggestions.map((item) => (
-            <div key={item.label} className="flex items-center gap-3 text-sm">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent">
+      {suggestions.length > 0 ? (
+        <div className="mt-4 border-t border-border/70 pt-4">
+          <p className="text-sm font-semibold text-foreground">
+            You can improve it with:
+          </p>
+          <div className="mt-3 space-y-2">
+            {suggestions.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="group flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-surface-muted"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                <span className="flex-1 text-foreground">
+                  {item.label}{" "}
+                  <span className="text-muted">{item.detail}</span>
+                </span>
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-3 w-3"
+                  className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
                 >
-                  <path d="M5 12l5 5L19 7" />
+                  <path d="M9 18l6-6-6-6" />
                 </svg>
-              </span>
-              <span className="text-foreground">
-                {item.label}{" "}
-                <span className="text-muted">{item.detail}</span>
-              </span>
-            </div>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </Card>
   );
 };

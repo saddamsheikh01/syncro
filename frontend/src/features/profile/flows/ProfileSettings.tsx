@@ -19,10 +19,13 @@ import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
 import {
   useAnalytics,
   useAuth,
+  usePosition,
   useTags,
+  useTests,
   useUser,
   useUnsavedChanges,
 } from "@/hooks";
+import { calculateProfileCompletion } from "@/lib/profileCompletion";
 import { getMediaByOwner, uploadMedia } from "@/services/media";
 import { getMyReferralLink } from "@/services/referrals";
 import { checkUsernameAvailability, getUserPosts } from "@/services/users";
@@ -98,8 +101,6 @@ const ORIENTATION_OPTIONS: SelectOption[] = [
   { value: "OTHER", label: "Other" },
 ];
 
-const PROFILE_COMPLETENESS_TARGET = 78;
-
 export interface ProfileSettingsProps {
   title?: string;
   subtitle?: string;
@@ -126,6 +127,12 @@ export const ProfileSettings = ({
     error: tagsError,
     actions: tagsActions,
   } = useTags();
+  const { hasPosition } = usePosition();
+  const {
+    tests,
+    completedCount,
+    actions: testsActions,
+  } = useTests();
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
@@ -196,43 +203,46 @@ export const ProfileSettings = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const profileCompleteness = useMemo(() => {
-    const fields = [
-      fullName,
-      birthDate,
-      city,
-      country,
-      jobTitle,
-      companyName,
-      traitsText,
-      goalsText,
-      lovesText,
-      valuesText,
-      dislikesText,
-      relationshipStatus,
-      orientation,
-      childrenStatus,
-    ];
-    const filled = fields.filter((value) =>
-      Boolean(value && String(value).trim().length > 0),
-    ).length;
-    if (fields.length === 0) return PROFILE_COMPLETENESS_TARGET;
-    const computed = Math.round((filled / fields.length) * 100);
-    return Math.max(PROFILE_COMPLETENESS_TARGET, computed);
+    const result = calculateProfileCompletion({
+      profileFields: {
+        fullName: fullName || null,
+        birthDate: birthDate || null,
+        city: city || null,
+        country: country || null,
+        jobTitle: jobTitle || null,
+        companyName: companyName || null,
+        bio: bio || null,
+        traitsText: traitsText || null,
+        lovesText: lovesText || null,
+        dislikesText: dislikesText || null,
+        goalsText: goalsText || null,
+        valuesText: valuesText || null,
+        relationshipStatus: relationshipStatus || null,
+        orientation: orientation || null,
+        childrenStatus: childrenStatus || null,
+      },
+      hasAvatar: Boolean(avatar?.url || profile?.avatarUrl),
+      interestCount: selectedTagIds.length,
+      matchmakingFilterValues: {
+        ageMin: toNumber(ageMin),
+        ageMax: toNumber(ageMax),
+        distanceKm: toNumber(distanceKm),
+        gender: gender !== "ANY" ? gender : null,
+      },
+      hasPosition,
+      testsCompleted: completedCount ?? 0,
+      testsTotal: tests.length,
+    });
+    return result.percentage;
   }, [
-    fullName,
-    birthDate,
-    city,
-    country,
-    jobTitle,
-    companyName,
-    traitsText,
-    goalsText,
-    lovesText,
-    valuesText,
-    dislikesText,
-    relationshipStatus,
-    orientation,
-    childrenStatus,
+    fullName, birthDate, city, country, jobTitle, companyName, bio,
+    traitsText, lovesText, dislikesText, goalsText, valuesText,
+    relationshipStatus, orientation, childrenStatus,
+    avatar, profile?.avatarUrl,
+    selectedTagIds,
+    ageMin, ageMax, distanceKm, gender,
+    hasPosition,
+    completedCount, tests,
   ]);
 
   // Calcola se ci sono modifiche non salvate
@@ -336,7 +346,9 @@ export const ProfileSettings = ({
     userActions.fetchPreferences().catch(() => undefined);
     tagsActions.fetchTags().catch(() => undefined);
     tagsActions.fetchUserInterests().catch(() => undefined);
-  }, [authActions, tagsActions, userActions]);
+    testsActions.fetchTests().catch(() => undefined);
+    testsActions.fetchCompletedCount().catch(() => undefined);
+  }, [authActions, tagsActions, testsActions, userActions]);
 
   useEffect(() => {
     if (analyticsTrackedRef.current) return;
@@ -981,7 +993,7 @@ export const ProfileSettings = ({
         <ZyraProfileRecap />
       </section>
 
-      <section className="space-y-4">
+      <section id="profile" className="space-y-4">
         <SectionHeader
           title="Who you are to Syncro"
           subtitle="Keep your profile fresh and aligned with your goals."
@@ -1130,10 +1142,10 @@ export const ProfileSettings = ({
         </Card>
       </section>
 
-      <section className="space-y-4">
+      <section id="interests" className="space-y-4">
         <SectionHeader
           title="What are you into right now?"
-          subtitle="Select what you’re into at the moment."
+          subtitle="Select what you're into at the moment."
         />
         {isTagsLoading ? (
           <Card className="flex items-center gap-3 p-5">

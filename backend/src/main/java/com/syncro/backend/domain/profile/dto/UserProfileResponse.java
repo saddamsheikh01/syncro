@@ -8,6 +8,7 @@ public record UserProfileResponse(
     UUID id,
     UUID userId,
     String fullName,
+    String avatarUrl,
     LocalDate birthDate,
     Integer age,
     String city,

@@ -14,6 +14,7 @@ export { useAnalytics } from "./analytics/useAnalytics";
 export { useOnboarding } from "./onboarding/useOnboarding";
 export { useI18n } from "./i18n/useI18n";
 export { useProfile } from "./profile/useProfile";
+export { useProfileCompletion } from "./profile/useProfileCompletion";
 export { usePreferences } from "./preferences/usePreferences";
 export { useAdminAuth } from "./admin/useAdminAuth";
 export { useTutorial } from "./tutorial/useTutorial";
