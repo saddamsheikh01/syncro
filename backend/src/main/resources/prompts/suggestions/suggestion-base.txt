@@ -1,2 +1,3 @@
-Generate a personalized suggestion for the user. Type: {{suggestionType}}.
+Think about what this user might enjoy and suggest something that feels right for them. The suggestion should be about: {{suggestionType}}.
+Make it feel personal — explain why you think it's a good fit, not just what it is.
 {{contextBlock}}

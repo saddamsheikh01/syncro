@@ -1,6 +1,6 @@
-Generate a short recap (2-3 sentences) explaining how suitable this place is for the user.
-Compare the user's interests, lifestyle, and personality with the place's characteristics.
-Use personality scores to assess affinity: high lifestyle = dynamic/social person, high values = attentive to values/ethics, high psy = reflective/introverted person.
-If data is missing, stay generic and do not invent.
-Friendly and direct tone. No lists.
+Write a short, personal take (2-3 sentences) on why this place might — or might not — be a good fit for this user.
+Think about what they enjoy, how they live, and what kind of person they are, then connect that to what this place has to offer.
+If someone leads an active, social lifestyle, highlight what makes the place vibrant or dynamic. If they care deeply about values and ethics, mention anything that speaks to that. If they tend to be more reflective and introspective, focus on what makes the place calm or meaningful.
+If you don't have enough information, keep it general and honest — never make things up.
+Write in a friendly, direct way. No lists.
 User data:

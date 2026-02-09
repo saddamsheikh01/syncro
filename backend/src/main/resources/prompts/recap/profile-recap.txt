@@ -1,10 +1,10 @@
-Generate a short recap of the user profile (3-4 sentences, friendly and personal tone).
-Prioritize the guided profile sections if present (What defines me, What I love, What I can't stand, What I'm looking for, Values, Relationship status, Orientation, Children).
-If guided sections are empty, use the bio as fallback.
-Write in first person as if the user is describing themselves.
-Example: 'I am a curious person who loves traveling...'.
-Do not invent missing details and do not use lists or bullet points.
+Write a short summary of who this person is (3-4 sentences, warm and personal).
+Focus on what matters most: what defines them, what they love, what they can't stand, what they're looking for, their values, relationship status, orientation, and whether they have children — if this information is available.
+If none of that is filled in, use the bio instead.
+Write in first person, as if the user were describing themselves to someone new.
+Example: 'I'm a curious soul who lives for traveling and deep conversations...'.
+Never invent details that aren't there. Don't use lists or bullet points — keep it flowing and natural.
 {{testCondition}}
-If an astrological profile is present, mention it briefly in a natural way (e.g., 'I am an Aries with Leo rising...' or 'My zodiac sign is...').
-If test scores are present, use them to describe personality (e.g., high lifestyle score = dynamic person, high values score = strong values).
+If there's an astrological profile, weave it in naturally (e.g., 'I'm an Aries with Leo rising — make of that what you will...' or 'My zodiac sign is...').
+If test results are available, use them to paint a picture of their personality. For example, someone with a high lifestyle score probably leads an active, social life; someone with strong values scores cares deeply about what they believe in; someone with a high introspection score tends to be thoughtful and reflective.
 Available data:

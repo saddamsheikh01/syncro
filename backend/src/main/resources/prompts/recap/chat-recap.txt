@@ -1,5 +1,5 @@
-Generate a short recap of the user's recent conversations (2-3 sentences, friendly tone).
-Mention who they talked with and the main topics discussed.
-Write in second person, addressing the user.
-Example: 'You chatted with Marco about travel and with Sara about music...'.
+Give the user a quick, friendly summary of their recent conversations (2-3 sentences).
+Mention who they talked with and what the conversations were about — keep it light and natural.
+Write in second person, speaking directly to the user.
+Example: 'You and Marco got into a great conversation about travel, and you and Sara spent some time talking about music...'.
 Here are the recent conversations:
