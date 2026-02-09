@@ -27,14 +27,17 @@ export const TutorialModal = ({
     } else {
       onClose();
     }
+    setDontShowAgain(false);
   }, [dontShowAgain, onClose, onSkip]);
 
   const handleSkipAlways = useCallback(() => {
     onSkip();
+    setDontShowAgain(false);
   }, [onSkip]);
 
   const handleGotIt = useCallback(() => {
     onComplete();
+    setDontShowAgain(false);
   }, [onComplete]);
 
   const handleKeyDown = useCallback(
@@ -45,7 +48,7 @@ export const TutorialModal = ({
         handleGotIt();
       }
     },
-    [handleDismiss, handleGotIt]
+    [handleDismiss, handleGotIt],
   );
 
   useEffect(() => {
@@ -60,7 +63,6 @@ export const TutorialModal = ({
       return;
     }
     document.body.style.overflow = "";
-    setDontShowAgain(false);
   }, [open]);
 
   if (!open) return null;
@@ -99,7 +101,11 @@ export const TutorialModal = ({
 
         <div className="grid lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
           <div className="relative z-10 bg-white px-6 py-7 sm:px-10 sm:py-10 lg:px-11">
-            <Logo width={156} className="h-auto w-[130px] sm:w-[150px]" priority />
+            <Logo
+              width={156}
+              className="h-auto w-[130px] sm:w-[150px]"
+              priority
+            />
 
             <h2 className="mt-5 text-3xl font-bold leading-tight text-[#2f5394] sm:text-[46px]">
               I&apos;ll Help You Focus On
@@ -186,13 +192,13 @@ export const TutorialModal = ({
             <div className="pointer-events-none absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-white via-white/65 to-transparent" />
 
             <div className="absolute bottom-8 left-6 right-6 rounded-[20px] border border-white/60 bg-white/92 p-5 shadow-[0_20px_40px_rgba(23,45,84,0.2)]">
-              <p className="text-[44px] font-semibold leading-tight text-[#0f4c87]">
+              <p className="text-[32px] font-semibold leading-tight text-[#0f4c87]">
                 Follow My Lead.
               </p>
-              <p className="mt-2 text-[34px] font-semibold leading-tight text-[#0d1e33]">
+              <p className="mt-2 text-[24px] font-semibold leading-tight text-[#0d1e33]">
                 I&apos;ll help you skip mismatches and get better connections.
               </p>
-              <p className="mt-3 text-[44px] font-bold leading-none text-[#1a4f93]">
+              <p className="mt-3 text-[32px] font-bold leading-none text-[#1a4f93]">
                 - Zyra
               </p>
             </div>
