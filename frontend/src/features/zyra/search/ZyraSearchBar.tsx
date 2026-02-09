@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { useSearchStore, searchActions } from "@/stores/search/useSearchStore";
+import { storeZyraSeedMessage } from "@/lib/zyraSeed";
 import { ZyraSearchResults } from "./ZyraSearchResults";
 
 export interface ZyraSearchBarProps {
@@ -56,6 +57,16 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
       inputRef.current?.blur();
     }
   };
+
+  const handleAskZyra = useCallback(() => {
+    searchActions.setOpen(false);
+    if (localQuery.trim()) {
+      storeZyraSeedMessage(localQuery.trim());
+    }
+    setLocalQuery("");
+    searchActions.clear();
+    router.push("/zyra");
+  }, [localQuery, router]);
 
   const handleResultClick = (
     type: "place" | "user" | "post",
@@ -156,6 +167,7 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
           loading={loading}
           query={localQuery}
           onResultClick={handleResultClick}
+          onAskZyra={handleAskZyra}
         />
       )}
     </div>
