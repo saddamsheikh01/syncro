@@ -13,6 +13,11 @@ import {
   type FeedParams,
 } from "../../services/social";
 import { addFavorite, removeFavorite } from "../../services/favorites";
+import {
+  deletePostMedia,
+  uploadPostMedia,
+  getPostMedia,
+} from "../../services/media";
 import type { PostReactionType } from "../../types/social";
 
 export type FeedState = {
@@ -252,9 +257,36 @@ export const feedActions = {
     }
   },
 
-  editPost: async (postId: Uuid, payload: { content: string }) => {
-    const updated = await updatePostRequest(postId, payload);
+  editPost: async (
+    postId: Uuid,
+    payload: { content: string; mediaToDelete?: string[]; newFiles?: File[] }
+  ) => {
+    const updated = await updatePostRequest(postId, { content: payload.content });
     mutatePost(postId, () => updated);
+
+    if (payload.mediaToDelete?.length) {
+      for (const mediaId of payload.mediaToDelete) {
+        await deletePostMedia(postId, mediaId);
+      }
+    }
+
+    if (payload.newFiles?.length) {
+      for (const file of payload.newFiles) {
+        await uploadPostMedia({ postId, file });
+      }
+    }
+
+    if (payload.mediaToDelete?.length || payload.newFiles?.length) {
+      const mediaPage = await getPostMedia({ postId, page: 0, size: 20 });
+      const previews = mediaPage.content.map((m) => ({
+        id: m.id,
+        url: m.url,
+        mediaType: m.mediaType,
+        createdAt: m.createdAt,
+      }));
+      mutatePost(postId, (post) => ({ ...post, media: previews }));
+    }
+
     return updated;
   },
 

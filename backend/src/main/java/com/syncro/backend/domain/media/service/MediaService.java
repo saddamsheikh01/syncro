@@ -138,6 +138,20 @@ public class MediaService {
             .map(mediaMapper::toResponse);
     }
 
+    @Transactional
+    public void deletePostMedia(UserPrincipal principal, UUID postId, UUID mediaId) {
+        User user = getUser(principal);
+        Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Post non trovato"));
+        if (!user.getId().equals(post.getUserId())) {
+            throw new UnauthorizedException("Operazione non consentita");
+        }
+        PostMedia link = postMediaRepository.findByPostIdAndMediaId(postId, mediaId)
+            .orElseThrow(() -> new NotFoundException("Media non associato al post"));
+        postMediaRepository.delete(link);
+        mediaObjectRepository.deleteById(mediaId);
+    }
+
     private void validateOwnership(User user, MediaOwnerType ownerType, UUID ownerId) {
         switch (ownerType) {
             case USER_PROFILE -> {

@@ -283,7 +283,10 @@ export const Feed = () => {
   }, [feedActions, feedFilterKey, feedFilters, status]);
 
   const handleEditPost = useCallback(
-    async (postId: string, payload: { content: string }) => {
+    async (
+      postId: string,
+      payload: { content: string; mediaToDelete?: string[]; newFiles?: File[] }
+    ) => {
       setPostActionError(null);
       try {
         await feedActions.editPost(postId, payload);
@@ -322,7 +325,12 @@ export const Feed = () => {
 
     return items.map((post) => ({
       post,
-      matchScore: typeof post.matchScore === "number" ? post.matchScore : undefined,
+      matchScore:
+        user?.id && post.userId === user.id
+          ? undefined
+          : typeof post.matchScore === "number"
+            ? post.matchScore
+            : undefined,
       authorName:
         user?.id && post.userId === user.id
           ? selfName

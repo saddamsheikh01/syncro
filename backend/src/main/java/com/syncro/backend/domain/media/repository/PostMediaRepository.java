@@ -3,6 +3,7 @@ package com.syncro.backend.domain.media.repository;
 import com.syncro.backend.domain.media.entity.MediaObject;
 import com.syncro.backend.domain.media.entity.PostMedia;
 import com.syncro.backend.domain.media.entity.PostMediaId;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,4 +15,6 @@ public interface PostMediaRepository extends JpaRepository<PostMedia, PostMediaI
 
     @Query("select pm.media from PostMedia pm where pm.postId = :postId")
     Page<MediaObject> findMediaByPostId(@Param("postId") UUID postId, Pageable pageable);
+
+    Optional<PostMedia> findByPostIdAndMediaId(UUID postId, UUID mediaId);
 }
