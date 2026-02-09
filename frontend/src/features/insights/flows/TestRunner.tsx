@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
@@ -11,6 +11,7 @@ import { Loader } from "@/components/elements/Loader";
 import { QuestionCard } from "@/features/insights/cards/QuestionCard";
 import { MapAnswerOptionCard } from "@/features/insights/lists/MapAnswerOptionCard";
 import { SubmissionProgress } from "@/features/insights/elements/SubmissionProgress";
+import { ShareInsightCard } from "@/features/insights/cards/ShareInsightCard";
 import { ZyraTestRecap } from "@/features/zyra/cards/ZyraTestRecap";
 import type { TestQuestionResponse } from "@/types/insights";
 import type { ApiError } from "@/types/api";
@@ -35,7 +36,17 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [recapText, setRecapText] = useState<string | null>(null);
+  const [recapTitle, setRecapTitle] = useState<string | null>(null);
   const isValidTestId = isUuid(testId);
+
+  const handleRecapLoaded = useCallback(
+    (recap: string, testTitle: string) => {
+      setRecapText(recap);
+      setRecapTitle(testTitle);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isValidTestId) {
@@ -52,6 +63,8 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setSubmitted(false);
     setSubmissionId(null);
     setSubmitError(null);
+    setRecapText(null);
+    setRecapTitle(null);
   }, [testId, activeTest?.id]);
 
   const questions = useMemo(
@@ -287,7 +300,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         </header>
 
         {submissionId ? (
-          <ZyraTestRecap submissionId={submissionId} />
+          <ZyraTestRecap
+            submissionId={submissionId}
+            onRecapLoaded={handleRecapLoaded}
+          />
         ) : (
           <Card className="space-y-4 p-6">
             <p className="text-sm text-muted">
@@ -295,6 +311,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
             </p>
           </Card>
         )}
+
+        {recapText && recapTitle ? (
+          <ShareInsightCard testTitle={recapTitle} recap={recapText} />
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           <Button

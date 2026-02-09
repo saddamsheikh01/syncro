@@ -13,12 +13,14 @@ export interface ZyraTestRecapProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   submissionId: string;
   title?: string;
+  onRecapLoaded?: (recap: string, testTitle: string) => void;
 }
 
 export const ZyraTestRecap = ({
   className,
   submissionId,
   title = "Here is what I learned about you",
+  onRecapLoaded,
   ...props
 }: ZyraTestRecapProps) => {
   const [recap, setRecap] = useState<string | null>(null);
@@ -34,12 +36,13 @@ export const ZyraTestRecap = ({
       const response = await getTestRecap(submissionId);
       setRecap(response.recap);
       setTestTitle(response.testTitle);
+      onRecapLoaded?.(response.recap, response.testTitle);
     } catch {
       setError("Unable to generate the recap. Try again.");
     } finally {
       setLoading(false);
     }
-  }, [submissionId]);
+  }, [submissionId, onRecapLoaded]);
 
   useEffect(() => {
     fetchRecap();
