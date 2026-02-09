@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks";
+import { resetAllStores } from "@/stores/utils/resetAllStores";
 import { Button } from "@/components/buttons/Button";
 
 export interface LogoutProps {
@@ -17,6 +18,7 @@ export const Logout = ({ className, size = "sm", fullWidth }: LogoutProps) => {
 
   const handleLogout = async () => {
     try {
+      resetAllStores();
       await actions.logout();
     } finally {
       router.replace("/login");

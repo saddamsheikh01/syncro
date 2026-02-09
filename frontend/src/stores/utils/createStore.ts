@@ -9,6 +9,7 @@ export type StoreApi<State extends Record<string, unknown>> = {
   getState: () => State;
   setState: (updater: StoreUpdater<State>, replace?: boolean) => void;
   subscribe: (listener: StoreListener) => () => void;
+  reset: () => void;
 };
 
 export const createStore = <State extends Record<string, unknown>>(
@@ -38,9 +39,15 @@ export const createStore = <State extends Record<string, unknown>>(
     return () => listeners.delete(listener);
   };
 
+  const reset = () => {
+    state = initialState;
+    listeners.forEach((listener) => listener());
+  };
+
   return {
     getState,
     setState,
     subscribe,
+    reset,
   };
 };

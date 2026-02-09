@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { setOnUnauthorized } from "@/services/axiosConfig";
+import { resetAllStores } from "@/stores/utils/resetAllStores";
 import { useAuth } from "@/hooks";
 
 const PUBLIC_PATHS = ["/login", "/register", "/"];
@@ -15,6 +16,8 @@ export const AuthInitializer = () => {
   useEffect(() => {
     // Set up the unauthorized callback
     setOnUnauthorized(() => {
+      // Reset all user-specific stores and localStorage
+      resetAllStores();
       // Clear auth session
       actions.clearSession();
       // Redirect to login if not already on a public path
