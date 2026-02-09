@@ -107,8 +107,7 @@ const EyeOffIcon = () => (
 
 const PHONE_PATTERN = /^\+?[1-9]\d{7,14}$/;
 
-const normalizePhone = (value: string) =>
-  value.trim().replace(/[\s()-]/g, "");
+const normalizePhone = (value: string) => value.trim().replace(/[\s()-]/g, "");
 
 export const Register = () => {
   const router = useRouter();
@@ -152,10 +151,11 @@ export const Register = () => {
         phone: normalizedPhone || undefined,
         refCode,
       });
-      analyticsActions.trackEvent({ eventType: "USER_REGISTERED" }).catch(() => undefined);
+      analyticsActions
+        .trackEvent({ eventType: "USER_REGISTERED" })
+        .catch(() => undefined);
       router.push("/home");
-    } catch {
-    }
+    } catch {}
   };
 
   return (
@@ -225,7 +225,7 @@ export const Register = () => {
                     if (phoneError) setPhoneError(null);
                   }}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="Phone number (optional)"
+                  placeholder="Phone number"
                   aria-invalid={Boolean(phoneError)}
                 />
               </div>

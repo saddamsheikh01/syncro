@@ -69,8 +69,7 @@ const normalizeUsername = (value: string) =>
 
 const PHONE_PATTERN = /^\+?[1-9]\d{7,14}$/;
 
-const normalizePhone = (value: string) =>
-  value.trim().replace(/[\s()-]/g, "");
+const normalizePhone = (value: string) => value.trim().replace(/[\s()-]/g, "");
 
 const RELATIONSHIP_OPTIONS: SelectOption[] = [
   { value: "SINGLE", label: "Single" },
@@ -549,7 +548,7 @@ export const ProfileSettings = ({
   const canSavePhone = phoneChanged && phoneValid && !phoneSaving;
 
   const phoneHint = useMemo(() => {
-    if (!normalizedPhone) return "Optional. Add your number if you want.";
+    if (!normalizedPhone) return "Add your number if you want.";
     if (!phoneValid) return "Use an international format, e.g. +393331234567.";
     return "Phone looks good.";
   }, [normalizedPhone, phoneValid]);
