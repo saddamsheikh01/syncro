@@ -1,5 +1,8 @@
-import type { HTMLAttributes } from "react";
+"use client";
+
+import { useState, type HTMLAttributes } from "react";
 import { Avatar } from "@/components/elements/Avatar";
+import { ImageLightbox } from "@/components/elements/ImageLightbox";
 import { Tag } from "@/components/elements/Tag";
 import { formatInterestLabel } from "@/lib/interestEmoji";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
@@ -34,6 +37,7 @@ export const ProfileSummaryCard = ({
   ...props
 }: ProfileSummaryCardProps) => {
   const jobLabel = [jobTitle, companyName].filter(Boolean).join(" · ");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const normalizedName = name.trim().toLowerCase();
   const normalizedUsername = username?.trim().toLowerCase();
   const shouldShowUsername =
@@ -41,10 +45,29 @@ export const ProfileSummaryCard = ({
 
   return (
     <Card className={cx("space-y-4 p-5", className)} {...props}>
+      {lightboxOpen && avatarUrl ? (
+        <ImageLightbox
+          src={avatarUrl}
+          alt={name}
+          onClose={() => setLightboxOpen(false)}
+        />
+      ) : null}
+
       {showIdentity ? (
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Avatar name={name} src={avatarUrl} size="lg" />
+            <button
+              type="button"
+              onClick={() => avatarUrl && setLightboxOpen(true)}
+              className={cx(
+                "flex-shrink-0 rounded-full transition-transform hover:scale-105",
+                avatarUrl && "cursor-pointer"
+              )}
+              aria-label="View profile photo"
+              disabled={!avatarUrl}
+            >
+              <Avatar name={name} src={avatarUrl} size="2xl" />
+            </button>
             <div className="min-w-0 space-y-1">
               <p className="truncate text-base font-semibold text-foreground">{name}</p>
               {shouldShowUsername ? (

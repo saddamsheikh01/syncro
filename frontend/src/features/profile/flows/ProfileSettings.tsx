@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
+import { ImageLightbox } from "@/components/elements/ImageLightbox";
+import { cx } from "@/lib/classNames";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { DatePicker } from "@/components/elements/DatePicker";
@@ -182,6 +184,7 @@ export const ProfileSettings = ({
   const [avatar, setAvatar] = useState<MediaResponse | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarLightbox, setAvatarLightbox] = useState(false);
   const [recentPosts, setRecentPosts] = useState<PostResponse[]>([]);
   const [recentPostsLoading, setRecentPostsLoading] = useState(false);
   const [recentPostsError, setRecentPostsError] = useState<string | null>(null);
@@ -986,7 +989,25 @@ export const ProfileSettings = ({
         <Card className="p-6">
           <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
             <div className="flex flex-col items-center gap-3">
-              <Avatar name={displayName} src={avatar?.url} size="xl" />
+              <button
+                type="button"
+                onClick={() => avatar?.url && setAvatarLightbox(true)}
+                className={cx(
+                  "flex-shrink-0 rounded-full transition-transform hover:scale-105",
+                  avatar?.url && "cursor-pointer"
+                )}
+                aria-label="View profile photo"
+                disabled={!avatar?.url}
+              >
+                <Avatar name={displayName} src={avatar?.url} size="2xl" />
+              </button>
+              {avatarLightbox && avatar?.url ? (
+                <ImageLightbox
+                  src={avatar.url}
+                  alt={displayName}
+                  onClose={() => setAvatarLightbox(false)}
+                />
+              ) : null}
               <Button
                 size="sm"
                 variant="secondary"

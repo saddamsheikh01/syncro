@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 
-export type AvatarSize = "sm" | "md" | "lg" | "xl";
+export type AvatarSize = "sm" | "md" | "lg" | "xl" | "2xl";
 
 export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   src?: string | null;
@@ -15,6 +15,7 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
   md: "h-10 w-10 text-sm",
   lg: "h-12 w-12 text-base",
   xl: "h-14 w-14 text-base",
+  "2xl": "h-20 w-20 text-lg",
 };
 
 const getInitials = (name?: string) => {
