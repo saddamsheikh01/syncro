@@ -1096,6 +1096,24 @@ export const ProfileSettings = ({
             </Button>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/50 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Password
+            </p>
+            <p className="text-xs text-muted">
+              Change your password in a dedicated security page.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push("/profile/password")}
+          >
+            Change password
+          </Button>
+        </div>
       </Card>
 
       <section id="profile" className="space-y-4">

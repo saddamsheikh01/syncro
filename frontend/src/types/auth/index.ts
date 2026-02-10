@@ -44,11 +44,29 @@ export type RefreshTokenRequest = {
   refreshToken: string;
 };
 
+export type PasswordResetRequest = {
+  email: string;
+};
+
+export type PasswordResetRequestResponse = {
+  message: string;
+};
+
+export type PasswordResetConfirmRequest = {
+  token: string;
+  newPassword: string;
+};
+
 export type UpdateUserRequest = {
   language?: string | null;
   onboardingCompleted?: boolean | null;
   username?: string | null;
   phone?: string | null;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 export type UsernameAvailabilityResponse = {

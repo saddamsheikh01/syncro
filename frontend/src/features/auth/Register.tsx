@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAnalytics, useAuth } from "../../hooks";
+import { useAuth } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 
@@ -113,7 +113,6 @@ export const Register = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, error, isAuthenticated, user, actions } = useAuth();
-  const { actions: analyticsActions } = useAnalytics();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -151,9 +150,6 @@ export const Register = () => {
         phone: normalizedPhone || undefined,
         refCode,
       });
-      analyticsActions
-        .trackEvent({ eventType: "USER_REGISTERED" })
-        .catch(() => undefined);
       router.push("/home");
     } catch {}
   };

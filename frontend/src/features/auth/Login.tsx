@@ -91,7 +91,7 @@ const EyeOffIcon = () => (
 
 const DEV_CREDENTIALS = {
   email: "riccardoc19@gmail.com",
-  password: "Dadodado98",
+  password: "Dadodado98@",
 };
 
 const isLocalhost = (): boolean => {
@@ -104,10 +104,10 @@ export const Login = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
   const [email, setEmail] = useState(() =>
-    isLocalhost() ? DEV_CREDENTIALS.email : ""
+    isLocalhost() ? DEV_CREDENTIALS.email : "",
   );
   const [password, setPassword] = useState(() =>
-    isLocalhost() ? DEV_CREDENTIALS.password : ""
+    isLocalhost() ? DEV_CREDENTIALS.password : "",
   );
   const [showPassword, setShowPassword] = useState(false);
 
@@ -192,23 +192,17 @@ export const Login = () => {
                   required
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-[14px] border border-border bg-white px-11 py-3 pr-28 text-sm text-foreground shadow-sm placeholder:text-subtle"
+                  className="w-full rounded-[14px] border border-border bg-white px-11 py-3 pr-12 text-sm text-foreground shadow-sm placeholder:text-subtle"
                   placeholder="enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-24 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
-                <Link
-                  href="/login"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-subtle hover:text-foreground"
-                >
-                  forget password?
-                </Link>
               </div>
 
               {error ? (

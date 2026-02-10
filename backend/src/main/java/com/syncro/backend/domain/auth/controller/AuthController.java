@@ -2,6 +2,9 @@ package com.syncro.backend.domain.auth.controller;
 
 import com.syncro.backend.domain.auth.dto.AuthResponse;
 import com.syncro.backend.domain.auth.dto.LoginRequest;
+import com.syncro.backend.domain.auth.dto.PasswordResetConfirmRequest;
+import com.syncro.backend.domain.auth.dto.PasswordResetRequest;
+import com.syncro.backend.domain.auth.dto.PasswordResetRequestResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.RegisterRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
@@ -57,6 +60,21 @@ public class AuthController {
     @Operation(summary = "Refresh access token")
     public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/password/forgot")
+    @Operation(summary = "Request password reset")
+    public ResponseEntity<PasswordResetRequestResponse> requestPasswordReset(
+        @Valid @RequestBody PasswordResetRequest request
+    ) {
+        return ResponseEntity.accepted().body(authService.requestPasswordReset(request));
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "Confirm password reset")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")
