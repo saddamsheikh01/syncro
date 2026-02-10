@@ -6,6 +6,7 @@ import type {
   TestSubmissionRequest,
   TestSubmissionResponse,
   TestSummaryResponse,
+  TestType,
 } from "../../types/insights";
 import {
   getMyTestsCount,
@@ -43,14 +44,29 @@ const initialState: TestsState = {
 
 export const testsStore = createStore<TestsState>(initialState);
 
+const DISABLED_TEST_TYPES: ReadonlySet<TestType> = new Set(["ASTRO"]);
+
+const isTestTypeEnabled = (testType: TestType): boolean =>
+  !DISABLED_TEST_TYPES.has(testType);
+
+const filterEnabledTests = (
+  tests: TestSummaryResponse[]
+): TestSummaryResponse[] =>
+  tests.filter((test) => isTestTypeEnabled(test.testType));
+
 export const testsActions = {
   fetchTests: async (): Promise<TestListResponse> => {
     testsStore.setState({ loading: true, error: null });
 
     try {
       const response = await getTests();
-      testsStore.setState({ tests: response.tests, loading: false });
-      return response;
+      const enabledTests = filterEnabledTests(response.tests);
+      testsStore.setState({
+        tests: enabledTests,
+        completedCount: enabledTests.filter((test) => test.completed).length,
+        loading: false,
+      });
+      return { ...response, tests: enabledTests };
     } catch (error) {
       testsStore.setState({ loading: false, error: error as ApiError });
       throw error;
@@ -112,15 +128,25 @@ export const testsActions = {
     if (current.completedCount != null) {
       return { count: current.completedCount };
     }
+    if (current.tests.length > 0) {
+      const count = current.tests.filter((test) => test.completed).length;
+      testsStore.setState({ completedCount: count, countLoading: false });
+      return { count };
+    }
     testsStore.setState({ countLoading: true, countError: null });
 
     try {
       const response = await getMyTestsCount();
+      const latestState = testsStore.getState();
+      const hasLoadedTests = latestState.tests.length > 0;
+      const resolvedCount = hasLoadedTests
+        ? latestState.tests.filter((test) => test.completed).length
+        : response.count;
       testsStore.setState({
-        completedCount: response.count,
+        completedCount: resolvedCount,
         countLoading: false,
       });
-      return response;
+      return { count: resolvedCount };
     } catch (error) {
       testsStore.setState({ countLoading: false, countError: error as ApiError });
       throw error;

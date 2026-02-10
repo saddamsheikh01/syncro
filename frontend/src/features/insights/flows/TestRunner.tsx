@@ -303,6 +303,19 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     );
   }
 
+  if (activeTest.testType === "ASTRO") {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+        <EmptyState
+          title="Insight temporarily unavailable"
+          description="This insight is not available yet. Please come back later."
+          actionLabel="Back to insights"
+          actionHref="/insights"
+        />
+      </div>
+    );
+  }
+
   if (activeTest.completed && !submitted) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
