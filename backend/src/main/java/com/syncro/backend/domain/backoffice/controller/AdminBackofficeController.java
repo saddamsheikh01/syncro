@@ -2,9 +2,13 @@ package com.syncro.backend.domain.backoffice.controller;
 
 import com.syncro.backend.domain.auth.dto.AdminUserResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
+import com.syncro.backend.domain.auth.entity.AdminRole;
+import com.syncro.backend.domain.auth.entity.AdminStatus;
+import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
@@ -13,9 +17,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import com.syncro.backend.domain.auth.entity.AdminRole;
-import com.syncro.backend.domain.auth.entity.AdminStatus;
-import com.syncro.backend.domain.auth.entity.UserStatus;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -99,6 +100,17 @@ public class AdminBackofficeController {
         @Valid @RequestBody AdminUpdateUserRequest request
     ) {
         return ResponseEntity.ok(adminBackofficeService.updateUser(principal, userId, request));
+    }
+
+    @PatchMapping("/users/{userId}/password")
+    @Operation(summary = "Aggiorna password utente app")
+    public ResponseEntity<Void> updateUserPassword(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId,
+        @Valid @RequestBody AdminUpdateUserPasswordRequest request
+    ) {
+        adminBackofficeService.updateUserPassword(principal, userId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/users/{userId}")

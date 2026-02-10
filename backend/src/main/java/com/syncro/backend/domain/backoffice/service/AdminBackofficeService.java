@@ -1,5 +1,6 @@
 package com.syncro.backend.domain.backoffice.service;
 
+import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
@@ -20,6 +21,7 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
@@ -143,6 +145,33 @@ public class AdminBackofficeService {
         }
         User saved = userRepository.save(user);
         return authMapper.toUserResponse(saved);
+    }
+
+    @Transactional
+    public void updateUserPassword(
+        AdminPrincipal principal,
+        UUID userId,
+        AdminUpdateUserPasswordRequest request
+    ) {
+        ensureSuperAdmin(principal);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        UserAuthProvider provider = userAuthProviderRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL)
+            .orElseGet(() -> {
+                UserAuthProvider newProvider = new UserAuthProvider();
+                newProvider.setUser(user);
+                newProvider.setProvider(AuthProvider.EMAIL);
+                return newProvider;
+            });
+
+        String currentPasswordHash = provider.getProviderUserId();
+        if (currentPasswordHash != null && !currentPasswordHash.isBlank()
+            && passwordEncoder.matches(request.newPassword(), currentPasswordHash)) {
+            throw new BadRequestException("La nuova password deve essere diversa da quella attuale");
+        }
+
+        provider.setProviderUserId(passwordEncoder.encode(request.newPassword()));
+        userAuthProviderRepository.save(provider);
     }
 
     @Transactional
