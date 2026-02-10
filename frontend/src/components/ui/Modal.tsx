@@ -9,6 +9,9 @@ export interface ModalAction {
   label: string;
   onClick: () => void;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  disabled?: boolean;
+  loading?: boolean;
+  loadingText?: string;
 }
 
 export interface ModalProps {
@@ -69,6 +72,9 @@ export const Modal = ({
             <Button
               variant={secondaryAction.variant ?? "secondary"}
               onClick={secondaryAction.onClick}
+              disabled={secondaryAction.disabled}
+              loading={secondaryAction.loading}
+              loadingText={secondaryAction.loadingText}
             >
               {secondaryAction.label}
             </Button>
@@ -77,6 +83,9 @@ export const Modal = ({
             <Button
               variant={primaryAction.variant ?? "primary"}
               onClick={primaryAction.onClick}
+              disabled={primaryAction.disabled}
+              loading={primaryAction.loading}
+              loadingText={primaryAction.loadingText}
             >
               {primaryAction.label}
             </Button>

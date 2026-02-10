@@ -1,5 +1,9 @@
 package com.syncro.backend.security;
 
+import com.syncro.backend.domain.auth.entity.AdminStatus;
+import com.syncro.backend.domain.auth.entity.UserStatus;
+import com.syncro.backend.domain.auth.repository.AdminUserRepository;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,9 +24,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
+    private final AdminUserRepository adminUserRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(
+        JwtService jwtService,
+        UserRepository userRepository,
+        AdminUserRepository adminUserRepository
+    ) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
+        this.adminUserRepository = adminUserRepository;
     }
 
     @Override
@@ -40,6 +52,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = header.substring(7);
         try {
             JwtIdentity identity = jwtService.parseAccessToken(token);
+            if (!isActive(identity)) {
+                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
+            }
             Object principal = buildPrincipal(identity);
             List<GrantedAuthority> authorities = identity.subjectType() == SubjectType.ADMIN && identity.role() != null
                 ? List.of(new SimpleGrantedAuthority("ROLE_" + identity.role()))
@@ -56,6 +73,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isActive(JwtIdentity identity) {
+        if (identity.subjectType() == SubjectType.ADMIN) {
+            return adminUserRepository.existsByIdAndStatus(identity.subjectId(), AdminStatus.ACTIVE);
+        }
+        return userRepository.existsByIdAndStatus(identity.subjectId(), UserStatus.ACTIVE);
     }
 
     private Object buildPrincipal(JwtIdentity identity) {

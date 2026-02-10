@@ -4,6 +4,7 @@ import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
+import com.syncro.backend.domain.auth.dto.DeleteUserRequest;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9]{3,30}$");
+    private static final String ACCOUNT_DELETION_CONFIRMATION_PHRASE = "DELETE MY PROFILE";
     private static final Pattern USERNAME_RESERVED_PATTERN =
         Pattern.compile("(riccardociviero|michelasardo|admin|support|syncro)");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
@@ -100,6 +102,24 @@ public class UserService {
         Optional<User> existing = userRepository.findByUsernameIgnoreCase(normalized);
         boolean available = existing.isEmpty() || existing.map(User::getId).get().equals(userId);
         return new UsernameAvailabilityResponse(available);
+    }
+
+    @Transactional
+    public void deleteMe(UserPrincipal principal, DeleteUserRequest request) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        String confirmationPhrase = request.confirmationPhrase() == null
+            ? ""
+            : request.confirmationPhrase().trim();
+        if (!ACCOUNT_DELETION_CONFIRMATION_PHRASE.equals(confirmationPhrase)) {
+            throw new BadRequestException("Frase di conferma non valida");
+        }
+
+        UUID userId = principal.userId();
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        userRepository.delete(user);
     }
 
     private String normalizeLanguage(String language) {

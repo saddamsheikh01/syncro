@@ -54,3 +54,7 @@ export type UpdateUserRequest = {
 export type UsernameAvailabilityResponse = {
   available: boolean;
 };
+
+export type DeleteCurrentUserRequest = {
+  confirmationPhrase: string;
+};

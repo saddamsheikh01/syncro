@@ -15,6 +15,7 @@ import { Select } from "@/components/elements/Select";
 import { Loader } from "@/components/elements/Loader";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
+import { Modal } from "@/components/ui/Modal";
 import { UnsavedChangesModal } from "@/components/ui/UnsavedChangesModal";
 import {
   useAnalytics,
@@ -34,7 +35,11 @@ import {
   getPostMedia,
 } from "@/services/media";
 import { getMyReferralLink } from "@/services/referrals";
-import { checkUsernameAvailability, getUserPosts } from "@/services/users";
+import {
+  checkUsernameAvailability,
+  deleteCurrentUser,
+  getUserPosts,
+} from "@/services/users";
 import {
   updatePost as updatePostRequest,
   deletePost as deletePostRequest,
@@ -44,6 +49,7 @@ import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
+import { resetAllStores } from "@/stores/utils/resetAllStores";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
 import type { JsonObject, JsonValue } from "@/types/shared";
@@ -55,6 +61,7 @@ const USERNAME_MIN_LENGTH = 3;
 const MOMENTS_PAGE_SIZE = 6;
 const MAX_AVATAR_SIZE_MB = 10;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
+const DELETE_PROFILE_CONFIRMATION_PHRASE = "DELETE MY PROFILE";
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -214,6 +221,12 @@ export const ProfileSettings = ({
   );
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
+  const [deleteProfileModalOpen, setDeleteProfileModalOpen] = useState(false);
+  const [deleteProfileConfirmation, setDeleteProfileConfirmation] = useState("");
+  const [deleteProfileLoading, setDeleteProfileLoading] = useState(false);
+  const [deleteProfileError, setDeleteProfileError] = useState<string | null>(
+    null,
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Calcola se ci sono modifiche non salvate
@@ -786,6 +799,9 @@ export const ProfileSettings = ({
   }, [user?.id]);
 
   const isAuthLoading = status === "loading";
+  const canConfirmProfileDeletion =
+    deleteProfileConfirmation.trim() === DELETE_PROFILE_CONFIRMATION_PHRASE &&
+    !deleteProfileLoading;
   const isTagsReady = tags.length > 0;
   const isTagsLoading = tagsLoading && !isTagsReady;
   const mergedError =
@@ -816,6 +832,44 @@ export const ProfileSettings = ({
       setTimeout(() => setReferralCopied(false), 2000);
     } catch {
       setReferralError("Unable to copy the link.");
+    }
+  };
+
+  const handleOpenDeleteProfileModal = () => {
+    setDeleteProfileError(null);
+    setDeleteProfileConfirmation("");
+    setDeleteProfileModalOpen(true);
+  };
+
+  const handleCloseDeleteProfileModal = () => {
+    if (deleteProfileLoading) return;
+    setDeleteProfileModalOpen(false);
+    setDeleteProfileError(null);
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!canConfirmProfileDeletion) {
+      setDeleteProfileError(
+        `Type "${DELETE_PROFILE_CONFIRMATION_PHRASE}" to continue.`,
+      );
+      return;
+    }
+
+    setDeleteProfileLoading(true);
+    setDeleteProfileError(null);
+    try {
+      await deleteCurrentUser({
+        confirmationPhrase: deleteProfileConfirmation.trim(),
+      });
+      resetAllStores();
+      authActions.clearSession();
+      router.replace("/login");
+    } catch (deleteError) {
+      setDeleteProfileError(
+        resolveErrorMessage(deleteError, "Unable to delete your profile."),
+      );
+    } finally {
+      setDeleteProfileLoading(false);
     }
   };
 
@@ -1316,6 +1370,68 @@ export const ProfileSettings = ({
           </p>
         </Card>
       ) : null}
+
+      <Card className="space-y-3 border-danger/40 bg-danger/10 p-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-danger">Danger zone</h2>
+          <p className="text-sm text-danger/90">
+            Deleting your profile is permanent and cannot be undone.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={handleOpenDeleteProfileModal}
+          >
+            Delete profile
+          </Button>
+          <p className="text-xs text-danger/80">
+            You will need to type a confirmation phrase.
+          </p>
+        </div>
+      </Card>
+
+      <Modal
+        open={deleteProfileModalOpen}
+        title="Delete your profile"
+        description="This action permanently removes your account and data."
+        onClose={handleCloseDeleteProfileModal}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: handleCloseDeleteProfileModal,
+          variant: "secondary",
+          disabled: deleteProfileLoading,
+        }}
+        primaryAction={{
+          label: "Delete permanently",
+          onClick: handleDeleteProfile,
+          variant: "danger",
+          disabled: !canConfirmProfileDeletion,
+          loading: deleteProfileLoading,
+          loadingText: "Deleting",
+        }}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
+            Type <strong>{DELETE_PROFILE_CONFIRMATION_PHRASE}</strong> to
+            confirm.
+          </p>
+          <Input
+            label="Confirmation phrase"
+            value={deleteProfileConfirmation}
+            onChange={(event) => {
+              setDeleteProfileError(null);
+              setDeleteProfileConfirmation(event.target.value);
+            }}
+            placeholder={DELETE_PROFILE_CONFIRMATION_PHRASE}
+            autoComplete="off"
+          />
+          {deleteProfileError ? (
+            <p className="text-xs text-danger">{deleteProfileError}</p>
+          ) : null}
+        </div>
+      </Modal>
 
       <UnsavedChangesModal
         open={showUnsavedModal}

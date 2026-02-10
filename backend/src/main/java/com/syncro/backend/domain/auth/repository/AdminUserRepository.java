@@ -15,6 +15,8 @@ public interface AdminUserRepository extends JpaRepository<AdminUser, UUID> {
 
     Optional<AdminUser> findByEmail(String email);
 
+    boolean existsByIdAndStatus(UUID id, AdminStatus status);
+
     @Query("""
         select a from AdminUser a
         where (:email is null or lower(a.email) like lower(concat('%', :email, '%')))

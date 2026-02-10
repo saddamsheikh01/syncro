@@ -3,6 +3,7 @@ package com.syncro.backend.domain.auth.controller;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
+import com.syncro.backend.domain.auth.dto.DeleteUserRequest;
 import com.syncro.backend.domain.auth.service.UserService;
 import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,5 +59,15 @@ public class UserController {
         String username
     ) {
         return ResponseEntity.ok(userService.checkUsernameAvailability(principal, username));
+    }
+
+    @PostMapping("/me/delete")
+    @Operation(summary = "Delete current user profile")
+    public ResponseEntity<Void> deleteMe(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @Valid @RequestBody DeleteUserRequest request
+    ) {
+        userService.deleteMe(principal, request);
+        return ResponseEntity.noContent().build();
     }
 }

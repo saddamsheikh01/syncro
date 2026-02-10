@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByPhone(String phone);
 
+    boolean existsByIdAndStatus(UUID id, UserStatus status);
+
     @Query("""
         select u from User u
         where (:email is null or lower(u.email) like lower(concat('%', :email, '%')))
