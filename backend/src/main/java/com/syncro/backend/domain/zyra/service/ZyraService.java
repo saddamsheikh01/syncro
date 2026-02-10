@@ -81,6 +81,8 @@ public class ZyraService {
     private static final int MAX_QUESTIONS_PER_TEST = 3;
     private static final int MAX_OPTIONS_PER_QUESTION = 2;
     private static final int MAX_QUESTION_TEXT = 80;
+    private static final String ENGLISH_ONLY_POLICY =
+        "Always reply in English. Never reply in Italian or any other language.";
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
@@ -228,7 +230,7 @@ public class ZyraService {
         }
 
         List<ZyraChatMessage> promptMessages = buildPromptMessages(user, session.getId());
-        String assistantReply = zyraClient.chat(promptMessages);
+        String assistantReply = zyraClient.chat(withEnglishGuard(promptMessages));
 
         ZyraMessage assistantMessage = new ZyraMessage();
         assistantMessage.setSession(session);
@@ -260,7 +262,7 @@ public class ZyraService {
         String context = normalizeOptional(request.context());
         String prompt = buildSuggestionPrompt(request, context);
         List<ZyraChatMessage> messages = buildSuggestionMessages(user, prompt);
-        String reply = zyraClient.chat(messages);
+        String reply = zyraClient.chat(withEnglishGuard(messages));
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", reply);
@@ -349,10 +351,10 @@ public class ZyraService {
 
         String testCondition;
         if (testSummaries != null && !testSummaries.isEmpty()) {
-            testCondition = "Integra naturalmente i risultati dei test completati, "
-                + "evidenziando i tratti di personalita emersi (es. 'Dai test emerge che sono...').";
+            testCondition = "Naturally integrate completed test results, "
+                + "highlighting the personality traits that emerged (e.g., 'My test results suggest I am...').";
         } else {
-            testCondition = "Se non risultano test completati, non menzionare i test.";
+            testCondition = "If there are no completed tests, do not mention tests.";
         }
 
         StringBuilder prompt = new StringBuilder(
@@ -365,16 +367,16 @@ public class ZyraService {
 
         if (profile != null) {
             if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
-                prompt.append("- Nome: ").append(profile.getFullName()).append("\n");
+                prompt.append("- Name: ").append(profile.getFullName()).append("\n");
             }
             if (profile.getCity() != null && !profile.getCity().isBlank()) {
-                prompt.append("- Citta: ").append(profile.getCity()).append("\n");
+                prompt.append("- City: ").append(profile.getCity()).append("\n");
             }
             if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
-                prompt.append("- Paese: ").append(profile.getCountry()).append("\n");
+                prompt.append("- Country: ").append(profile.getCountry()).append("\n");
             }
             if (profile.getBirthDate() != null) {
-                prompt.append("- Eta: ").append(formatAge(profile.getBirthDate())).append(" anni\n");
+                prompt.append("- Age: ").append(formatAge(profile.getBirthDate())).append(" years\n");
             }
             appendExtendedProfileInfo(prompt, profile);
             if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
@@ -382,7 +384,7 @@ public class ZyraService {
             }
             String jobLabel = buildJobLabel(profile);
             if (jobLabel != null) {
-                prompt.append("- Lavoro: ").append(jobLabel).append("\n");
+                prompt.append("- Job: ").append(jobLabel).append("\n");
             }
         }
 
@@ -393,38 +395,38 @@ public class ZyraService {
                 .distinct()
                 .collect(Collectors.joining(", "));
             if (!interestNames.isBlank()) {
-                prompt.append("- Interessi: ").append(interestNames).append("\n");
+                prompt.append("- Interests: ").append(interestNames).append("\n");
             }
         }
 
         if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
-            prompt.append("- Profilo psicologico: ").append(safeJson(psyProfile.getProfile())).append("\n");
+            prompt.append("- Psychological profile: ").append(safeJson(psyProfile.getProfile())).append("\n");
         }
 
         // Aggregated scores from tests
         if (psyProfile != null) {
             StringBuilder scores = new StringBuilder();
             if (psyProfile.getInterestsScore() != null) {
-                scores.append("Interessi: ").append(psyProfile.getInterestsScore()).append("%, ");
+                scores.append("Interests: ").append(psyProfile.getInterestsScore()).append("%, ");
             }
             if (psyProfile.getLifestyleScore() != null) {
                 scores.append("Lifestyle: ").append(psyProfile.getLifestyleScore()).append("%, ");
             }
             if (psyProfile.getValuesScore() != null) {
-                scores.append("Valori: ").append(psyProfile.getValuesScore()).append("%, ");
+                scores.append("Values: ").append(psyProfile.getValuesScore()).append("%, ");
             }
             if (psyProfile.getObjectivesScore() != null) {
-                scores.append("Obiettivi: ").append(psyProfile.getObjectivesScore()).append("%, ");
+                scores.append("Objectives: ").append(psyProfile.getObjectivesScore()).append("%, ");
             }
             if (psyProfile.getPsyScore() != null) {
-                scores.append("Personalita: ").append(psyProfile.getPsyScore()).append("%, ");
+                scores.append("Personality: ").append(psyProfile.getPsyScore()).append("%, ");
             }
             if (psyProfile.getAstroScore() != null) {
-                scores.append("Astrologia: ").append(psyProfile.getAstroScore()).append("%");
+                scores.append("Astrology: ").append(psyProfile.getAstroScore()).append("%");
             }
             String scoresStr = scores.toString().replaceAll(", $", "");
             if (!scoresStr.isBlank()) {
-                prompt.append("- Punteggi test completati: ").append(scoresStr).append("\n");
+                prompt.append("- Completed test scores: ").append(scoresStr).append("\n");
             }
         }
 
@@ -432,34 +434,34 @@ public class ZyraService {
         if (profile != null) {
             StringBuilder astro = new StringBuilder();
             if (profile.getZodiacSign() != null) {
-                astro.append("Segno: ").append(formatZodiacSign(profile.getZodiacSign())).append(", ");
+                astro.append("Sign: ").append(formatZodiacSign(profile.getZodiacSign())).append(", ");
             }
             if (profile.getSunSign() != null) {
-                astro.append("Sole: ").append(formatZodiacSign(profile.getSunSign())).append(", ");
+                astro.append("Sun: ").append(formatZodiacSign(profile.getSunSign())).append(", ");
             }
             if (profile.getMoonSign() != null) {
-                astro.append("Luna: ").append(formatZodiacSign(profile.getMoonSign())).append(", ");
+                astro.append("Moon: ").append(formatZodiacSign(profile.getMoonSign())).append(", ");
             }
             if (profile.getAscSign() != null) {
-                astro.append("Ascendente: ").append(formatZodiacSign(profile.getAscSign())).append(", ");
+                astro.append("Ascendant: ").append(formatZodiacSign(profile.getAscSign())).append(", ");
             }
             if (profile.getVenusSign() != null) {
-                astro.append("Venere: ").append(formatZodiacSign(profile.getVenusSign())).append(", ");
+                astro.append("Venus: ").append(formatZodiacSign(profile.getVenusSign())).append(", ");
             }
             if (profile.getMarsSign() != null) {
-                astro.append("Marte: ").append(formatZodiacSign(profile.getMarsSign()));
+                astro.append("Mars: ").append(formatZodiacSign(profile.getMarsSign()));
             }
             String astroStr = astro.toString().replaceAll(", $", "");
             if (!astroStr.isBlank()) {
-                prompt.append("- Profilo astrologico: ").append(astroStr).append("\n");
+                prompt.append("- Astrological profile: ").append(astroStr).append("\n");
             }
             if (profile.getGender() != null) {
-                prompt.append("- Genere: ").append(formatGender(profile.getGender())).append("\n");
+                prompt.append("- Gender: ").append(formatGender(profile.getGender())).append("\n");
             }
         }
 
         if (testSummaries != null && !testSummaries.isEmpty()) {
-            prompt.append("- Test completati (riassunto per test):\n");
+            prompt.append("- Completed tests (summary by test):\n");
             testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
         }
 
@@ -469,10 +471,10 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(messages);
-            return recap != null ? recap.trim() : "Completa il tuo profilo per un riepilogo personalizzato.";
+            String recap = zyraClient.chat(withEnglishGuard(messages));
+            return recap != null ? recap.trim() : "Complete your profile to get a personalized recap.";
         } catch (Exception ex) {
-            return "Completa il tuo profilo per un riepilogo personalizzato.";
+            return "Complete your profile to get a personalized recap.";
         }
     }
 
@@ -536,11 +538,11 @@ public class ZyraService {
         StringBuilder summary = new StringBuilder();
         summary.append(title != null ? title : "Test");
         if (profileLabel != null) {
-            summary.append(": profilo ").append(profileLabel);
+            summary.append(": profile ").append(profileLabel);
         }
         if (answersSummary != null) {
             summary.append(profileLabel != null ? ". " : ": ");
-            summary.append("Risposte chiave: ").append(answersSummary);
+            summary.append("Key answers: ").append(answersSummary);
         }
         return summary.toString();
     }
@@ -681,20 +683,20 @@ public class ZyraService {
 
         if (profile != null) {
             if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
-                prompt.append("- Nome: ").append(profile.getFullName()).append("\n");
+                prompt.append("- Name: ").append(profile.getFullName()).append("\n");
             }
             if (profile.getCity() != null && !profile.getCity().isBlank()) {
-                prompt.append("- Citta: ").append(profile.getCity()).append("\n");
+                prompt.append("- City: ").append(profile.getCity()).append("\n");
             }
             if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
-                prompt.append("- Paese: ").append(profile.getCountry()).append("\n");
+                prompt.append("- Country: ").append(profile.getCountry()).append("\n");
             }
             if (profile.getBirthDate() != null) {
-                prompt.append("- Eta: ").append(formatAge(profile.getBirthDate())).append(" anni\n");
+                prompt.append("- Age: ").append(formatAge(profile.getBirthDate())).append(" years\n");
             }
             String jobLabel = buildJobLabel(profile);
             if (jobLabel != null) {
-                prompt.append("- Lavoro: ").append(jobLabel).append("\n");
+                prompt.append("- Job: ").append(jobLabel).append("\n");
             }
             appendExtendedProfileInfo(prompt, profile);
             if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
@@ -709,7 +711,7 @@ public class ZyraService {
                 .distinct()
                 .collect(Collectors.joining(", "));
             if (!interestNames.isBlank()) {
-                prompt.append("- Interessi: ").append(interestNames).append("\n");
+                prompt.append("- Interests: ").append(interestNames).append("\n");
             }
         }
 
@@ -720,38 +722,38 @@ public class ZyraService {
                 scores.append("Lifestyle: ").append(psyProfile.getLifestyleScore()).append("%, ");
             }
             if (psyProfile.getValuesScore() != null) {
-                scores.append("Valori: ").append(psyProfile.getValuesScore()).append("%, ");
+                scores.append("Values: ").append(psyProfile.getValuesScore()).append("%, ");
             }
             if (psyProfile.getPsyScore() != null) {
-                scores.append("Personalita: ").append(psyProfile.getPsyScore()).append("%");
+                scores.append("Personality: ").append(psyProfile.getPsyScore()).append("%");
             }
             String scoresStr = scores.toString().replaceAll(", $", "");
             if (!scoresStr.isBlank()) {
-                prompt.append("- Profilo personalita: ").append(scoresStr).append("\n");
+                prompt.append("- Personality profile: ").append(scoresStr).append("\n");
             }
         }
 
         // Gender for context
         if (profile != null && profile.getGender() != null) {
-            prompt.append("- Genere: ").append(formatGender(profile.getGender())).append("\n");
+            prompt.append("- Gender: ").append(formatGender(profile.getGender())).append("\n");
         }
 
-        prompt.append("Dati luogo:\n");
-        prompt.append("- Nome: ").append(place.getName()).append("\n");
+        prompt.append("Place data:\n");
+        prompt.append("- Name: ").append(place.getName()).append("\n");
         if (place.getCategory() != null && place.getCategory().getName() != null) {
-            prompt.append("- Categoria: ").append(place.getCategory().getName()).append("\n");
+            prompt.append("- Category: ").append(place.getCategory().getName()).append("\n");
         }
         if (place.getDescription() != null && !place.getDescription().isBlank()) {
-            prompt.append("- Descrizione: ").append(place.getDescription()).append("\n");
+            prompt.append("- Description: ").append(place.getDescription()).append("\n");
         }
         if (place.getCity() != null && !place.getCity().isBlank()) {
-            prompt.append("- Citta: ").append(place.getCity()).append("\n");
+            prompt.append("- City: ").append(place.getCity()).append("\n");
         }
         if (place.getAddress() != null && !place.getAddress().isBlank()) {
-            prompt.append("- Indirizzo: ").append(place.getAddress()).append("\n");
+            prompt.append("- Address: ").append(place.getAddress()).append("\n");
         }
         if (!placeTags.isEmpty()) {
-            prompt.append("- Tag: ").append(String.join(", ", placeTags)).append("\n");
+            prompt.append("- Tags: ").append(String.join(", ", placeTags)).append("\n");
         }
         if (place.getGoogleTypes() != null && !place.getGoogleTypes().isEmpty()) {
             String types = place.getGoogleTypes().stream()
@@ -759,21 +761,21 @@ public class ZyraService {
                 .distinct()
                 .collect(Collectors.joining(", "));
             if (!types.isBlank()) {
-                prompt.append("- Tipi Google: ").append(types).append("\n");
+                prompt.append("- Google types: ").append(types).append("\n");
             }
         }
         if (place.getGoogleRating() != null) {
-            prompt.append("- Rating Google: ").append(place.getGoogleRating()).append("\n");
+            prompt.append("- Google rating: ").append(place.getGoogleRating()).append("\n");
         }
         if (place.getGoogleReviewCount() != null && place.getGoogleReviewCount() > 0) {
-            prompt.append("- Recensioni: ").append(place.getGoogleReviewCount()).append("\n");
+            prompt.append("- Reviews: ").append(place.getGoogleReviewCount()).append("\n");
         }
         if (place.getPriceLevel() != null) {
-            prompt.append("- Prezzo: ").append(formatPriceLevel(place.getPriceLevel())).append("\n");
+            prompt.append("- Price: ").append(formatPriceLevel(place.getPriceLevel())).append("\n");
         }
         Boolean openNow = extractOpenNow(place.getOpeningHours());
         if (openNow != null) {
-            prompt.append("- Stato attuale: ").append(openNow ? "Aperto ora" : "Chiuso ora").append("\n");
+            prompt.append("- Current status: ").append(openNow ? "Open now" : "Closed now").append("\n");
         }
 
         List<ZyraChatMessage> messages = List.of(
@@ -782,10 +784,10 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(messages);
-            return recap != null ? recap.trim() : "Luogo interessante: aggiorna il profilo per un match piu preciso.";
+            String recap = zyraClient.chat(withEnglishGuard(messages));
+            return recap != null ? recap.trim() : "Interesting place: update your profile for a more accurate match.";
         } catch (Exception ex) {
-            return "Luogo interessante: aggiorna il profilo per un match piu preciso.";
+            return "Interesting place: update your profile for a more accurate match.";
         }
     }
 
@@ -825,7 +827,7 @@ public class ZyraService {
 
     private String generateTestRecap(UserTestSubmission submission) {
         if (submission == null || submission.getTestDefinition() == null) {
-            return "Test completato. Completa altri test per un profilo piu completo.";
+            return "Test completed. Complete more tests for a richer profile.";
         }
         List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_Id(submission.getId());
         String testTitle = normalizeOptional(submission.getTestDefinition().getTitle());
@@ -835,17 +837,17 @@ public class ZyraService {
         StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.TEST_RECAP));
         prompt.append("\n\n");
 
-        prompt.append("Informazioni sul test:\n");
-        prompt.append("- Titolo: ").append(testTitle != null ? testTitle : "Test").append("\n");
+        prompt.append("Test information:\n");
+        prompt.append("- Title: ").append(testTitle != null ? testTitle : "Test").append("\n");
         if (testDescription != null) {
-            prompt.append("- Descrizione: ").append(testDescription).append("\n");
+            prompt.append("- Description: ").append(testDescription).append("\n");
         }
-        prompt.append("- Tipo: ").append(formatTestType(testType)).append("\n\n");
+        prompt.append("- Type: ").append(formatTestType(testType)).append("\n\n");
 
         if (answers.isEmpty()) {
-            prompt.append("L'utente ha completato il test ma non ci sono risposte registrate.\n");
+            prompt.append("The user completed the test but no answers were recorded.\n");
         } else {
-            prompt.append("Risposte dell'utente:\n");
+            prompt.append("User answers:\n");
             Map<UUID, List<UserTestAnswer>> answersByQuestion = answers.stream()
                 .filter(a -> a.getQuestion() != null && a.getAnswerOption() != null)
                 .collect(Collectors.groupingBy(a -> a.getQuestion().getId()));
@@ -874,23 +876,23 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(messages);
-            return recap != null ? recap.trim() : "Ottimo lavoro! Hai completato il test con successo.";
+            String recap = zyraClient.chat(withEnglishGuard(messages));
+            return recap != null ? recap.trim() : "Great job! You completed the test successfully.";
         } catch (Exception ex) {
-            return "Ottimo lavoro! Hai completato il test con successo.";
+            return "Great job! You completed the test successfully.";
         }
     }
 
     private String formatTestType(String testType) {
-        if (testType == null) return "Generale";
+        if (testType == null) return "General";
         return switch (testType) {
-            case "INTERESTS" -> "Interessi e passioni";
-            case "LIFESTYLE" -> "Stile di vita";
-            case "VALUES" -> "Valori personali";
-            case "OBJECTIVES" -> "Obiettivi di vita";
-            case "PSY" -> "Profilo psicologico";
-            case "ASTRO" -> "Astrologia";
-            default -> "Generale";
+            case "INTERESTS" -> "Interests and passions";
+            case "LIFESTYLE" -> "Lifestyle";
+            case "VALUES" -> "Personal values";
+            case "OBJECTIVES" -> "Life goals";
+            case "PSY" -> "Psychological profile";
+            case "ASTRO" -> "Astrology";
+            default -> "General";
         };
     }
 
@@ -901,7 +903,7 @@ public class ZyraService {
 
         if (participants.isEmpty()) {
             ZyraChatRecapResponse response = new ZyraChatRecapResponse(
-                "Non hai ancora conversazioni. Inizia a chattare con qualcuno per vedere un riepilogo qui!",
+                "You don't have any conversations yet. Start chatting to see a recap here.",
                 0,
                 List.of(),
                 java.time.Instant.now()
@@ -926,7 +928,7 @@ public class ZyraService {
                 .findFirst()
                 .orElse(null);
 
-            String otherName = "Utente";
+            String otherName = "User";
             if (otherParticipant != null) {
                 UserProfile otherProfile = userProfileRepository.findByUserId(otherParticipant.getUserId()).orElse(null);
                 if (otherProfile != null && otherProfile.getFullName() != null) {
@@ -940,11 +942,11 @@ public class ZyraService {
             List<ChatMessage> messages = chatMessageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, msgPageable).getContent();
 
             if (!messages.isEmpty()) {
-                conversationData.append("Conversazione con ").append(otherName).append(":\n");
+                conversationData.append("Conversation with ").append(otherName).append(":\n");
                 List<ChatMessage> orderedMessages = new ArrayList<>(messages);
                 Collections.reverse(orderedMessages);
                 for (ChatMessage msg : orderedMessages) {
-                    String sender = msg.getUser().getId().equals(user.getId()) ? "Tu" : otherName;
+                    String sender = msg.getUser().getId().equals(user.getId()) ? "You" : otherName;
                     String content = msg.getContent().length() > 100
                         ? msg.getContent().substring(0, 100) + "..."
                         : msg.getContent();
@@ -968,7 +970,7 @@ public class ZyraService {
 
     private String generateChatRecap(String conversationData, int conversationCount) {
         if (conversationData.isBlank()) {
-            return "Le tue conversazioni sono ancora vuote. Inizia a scambiare messaggi!";
+            return "Your conversations are still empty. Start exchanging messages!";
         }
 
         StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.CHAT_RECAP));
@@ -981,10 +983,10 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(messages);
-            return recap != null ? recap.trim() : "Hai " + conversationCount + " conversazioni attive.";
+            String recap = zyraClient.chat(withEnglishGuard(messages));
+            return recap != null ? recap.trim() : "You have " + conversationCount + " active conversations.";
         } catch (Exception ex) {
-            return "Hai " + conversationCount + " conversazioni attive.";
+            return "You have " + conversationCount + " active conversations.";
         }
     }
 
@@ -1028,17 +1030,17 @@ public class ZyraService {
 
     private String buildUserContextLines(User user) {
         StringBuilder builder = new StringBuilder();
-        builder.append("- lingua: ").append(safeValue(user.getLanguage())).append("\n");
+        builder.append("- language: ").append(safeValue(user.getLanguage())).append("\n");
 
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         if (profile != null) {
-            builder.append("- nome: ").append(safeValue(profile.getFullName())).append("\n");
-            builder.append("- citta: ").append(safeValue(profile.getCity())).append("\n");
-            builder.append("- paese: ").append(safeValue(profile.getCountry())).append("\n");
-            builder.append("- eta: ").append(formatAge(profile.getBirthDate())).append("\n");
+            builder.append("- name: ").append(safeValue(profile.getFullName())).append("\n");
+            builder.append("- city: ").append(safeValue(profile.getCity())).append("\n");
+            builder.append("- country: ").append(safeValue(profile.getCountry())).append("\n");
+            builder.append("- age: ").append(formatAge(profile.getBirthDate())).append("\n");
             String jobLabel = buildJobLabel(profile);
             if (jobLabel != null) {
-                builder.append("- lavoro: ").append(jobLabel).append("\n");
+                builder.append("- job: ").append(jobLabel).append("\n");
             }
             appendExtendedProfileInfo(builder, profile);
             if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
@@ -1054,13 +1056,13 @@ public class ZyraService {
                 .distinct()
                 .collect(Collectors.joining(", "));
             if (!interestNames.isBlank()) {
-                builder.append("- interessi: ").append(interestNames).append("\n");
+                builder.append("- interests: ").append(interestNames).append("\n");
             }
         }
 
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
-            builder.append("- profilo_psicologico: ")
+            builder.append("- psychological_profile: ")
                 .append(safeJson(psyProfile.getProfile()))
                 .append("\n");
         }
@@ -1068,16 +1070,16 @@ public class ZyraService {
         if (psyProfile != null) {
             StringBuilder scores = new StringBuilder();
             if (psyProfile.getInterestsScore() != null) {
-                scores.append("interessi:").append(psyProfile.getInterestsScore()).append("% ");
+                scores.append("interests:").append(psyProfile.getInterestsScore()).append("% ");
             }
             if (psyProfile.getLifestyleScore() != null) {
                 scores.append("lifestyle:").append(psyProfile.getLifestyleScore()).append("% ");
             }
             if (psyProfile.getValuesScore() != null) {
-                scores.append("valori:").append(psyProfile.getValuesScore()).append("% ");
+                scores.append("values:").append(psyProfile.getValuesScore()).append("% ");
             }
             if (psyProfile.getObjectivesScore() != null) {
-                scores.append("obiettivi:").append(psyProfile.getObjectivesScore()).append("% ");
+                scores.append("objectives:").append(psyProfile.getObjectivesScore()).append("% ");
             }
             if (psyProfile.getPsyScore() != null) {
                 scores.append("psy:").append(psyProfile.getPsyScore()).append("% ");
@@ -1087,7 +1089,7 @@ public class ZyraService {
             }
             String scoresStr = scores.toString().trim();
             if (!scoresStr.isBlank()) {
-                builder.append("- punteggi_test: ").append(scoresStr).append("\n");
+                builder.append("- test_scores: ").append(scoresStr).append("\n");
             }
         }
 
@@ -1100,14 +1102,14 @@ public class ZyraService {
                 astro.append("asc:").append(formatZodiacSign(profile.getAscSign())).append(" ");
             }
             if (profile.getMoonSign() != null) {
-                astro.append("luna:").append(formatZodiacSign(profile.getMoonSign()));
+                astro.append("moon:").append(formatZodiacSign(profile.getMoonSign()));
             }
             String astroStr = astro.toString().trim();
             if (!astroStr.isBlank()) {
-                builder.append("- segni: ").append(astroStr).append("\n");
+                builder.append("- signs: ").append(astroStr).append("\n");
             }
             if (profile.getGender() != null) {
-                builder.append("- genere: ").append(formatGender(profile.getGender())).append("\n");
+                builder.append("- gender: ").append(formatGender(profile.getGender())).append("\n");
             }
         }
 
@@ -1115,7 +1117,7 @@ public class ZyraService {
     }
 
     private String buildSuggestionPrompt(ZyraSuggestionRequest request, String context) {
-        String contextBlock = context != null ? "Contesto aggiuntivo: " + context : "";
+        String contextBlock = context != null ? "Additional context: " + context : "";
         return promptLoader.getPrompt(
             PromptType.SUGGESTION_BASE,
             Map.of(
@@ -1184,12 +1186,12 @@ public class ZyraService {
             return null;
         }
         return switch (level) {
-            case 0 -> "Gratis";
-            case 1 -> "Economico";
-            case 2 -> "Medio";
-            case 3 -> "Costoso";
-            case 4 -> "Molto costoso";
-            default -> "Non disponibile";
+            case 0 -> "Free";
+            case 1 -> "Budget";
+            case 2 -> "Moderate";
+            case 3 -> "Expensive";
+            case 4 -> "Very expensive";
+            default -> "Not available";
         };
     }
 
@@ -1238,32 +1240,32 @@ public class ZyraService {
             return;
         }
         if (isNotBlank(profile.getTraitsText())) {
-            builder.append("- Cosa mi caratterizza: ").append(profile.getTraitsText()).append("\n");
+            builder.append("- What defines me: ").append(profile.getTraitsText()).append("\n");
         }
         if (isNotBlank(profile.getLovesText())) {
-            builder.append("- Cosa amo: ").append(profile.getLovesText()).append("\n");
+            builder.append("- What I love: ").append(profile.getLovesText()).append("\n");
         }
         if (isNotBlank(profile.getDislikesText())) {
-            builder.append("- Cosa non sopporto: ").append(profile.getDislikesText()).append("\n");
+            builder.append("- What I dislike: ").append(profile.getDislikesText()).append("\n");
         }
         if (isNotBlank(profile.getGoalsText())) {
-            builder.append("- Cosa cerco: ").append(profile.getGoalsText()).append("\n");
+            builder.append("- What I am looking for: ").append(profile.getGoalsText()).append("\n");
         }
         if (isNotBlank(profile.getValuesText())) {
-            builder.append("- Valori: ").append(profile.getValuesText()).append("\n");
+            builder.append("- Values: ").append(profile.getValuesText()).append("\n");
         }
         if (profile.getRelationshipStatus() != null) {
-            builder.append("- Stato relazionale: ")
+            builder.append("- Relationship status: ")
                 .append(formatRelationshipStatus(profile.getRelationshipStatus()))
                 .append("\n");
         }
         if (profile.getOrientation() != null) {
-            builder.append("- Orientamento: ")
+            builder.append("- Orientation: ")
                 .append(formatOrientation(profile.getOrientation()))
                 .append("\n");
         }
         if (profile.getChildrenStatus() != null) {
-            builder.append("- Figli: ")
+            builder.append("- Children: ")
                 .append(formatChildrenStatus(profile.getChildrenStatus()))
                 .append("\n");
         }
@@ -1275,11 +1277,11 @@ public class ZyraService {
         }
         return switch (status) {
             case SINGLE -> "Single";
-            case IN_RELATIONSHIP -> "In relazione";
-            case MARRIED -> "Sposato/a";
-            case SEPARATED -> "Separato/a";
-            case COMPLICATED -> "Situazione complicata";
-            case OTHER -> "Altro";
+            case IN_RELATIONSHIP -> "In a relationship";
+            case MARRIED -> "Married";
+            case SEPARATED -> "Separated";
+            case COMPLICATED -> "It's complicated";
+            case OTHER -> "Other";
         };
     }
 
@@ -1288,11 +1290,11 @@ public class ZyraService {
             return "";
         }
         return switch (orientation) {
-            case HETERO -> "Etero";
+            case HETERO -> "Straight";
             case GAY -> "Gay";
-            case BI -> "Bisessuale";
-            case ASEXUAL -> "Asessuale";
-            case OTHER -> "Altro";
+            case BI -> "Bisexual";
+            case ASEXUAL -> "Asexual";
+            case OTHER -> "Other";
         };
     }
 
@@ -1301,11 +1303,11 @@ public class ZyraService {
             return "";
         }
         return switch (status) {
-            case NO_CHILDREN -> "Nessun figlio";
-            case HAS_CHILDREN -> "Ha figli";
-            case WANTS_CHILDREN -> "Vuole figli";
-            case DOES_NOT_WANT -> "Non vuole figli";
-            case UNDECIDED -> "Indeciso/a";
+            case NO_CHILDREN -> "No children";
+            case HAS_CHILDREN -> "Has children";
+            case WANTS_CHILDREN -> "Wants children";
+            case DOES_NOT_WANT -> "Does not want children";
+            case UNDECIDED -> "Undecided";
         };
     }
 
@@ -1314,19 +1316,19 @@ public class ZyraService {
             return "";
         }
         return switch (sign) {
-            case ARIES -> "Ariete";
-            case TAURUS -> "Toro";
-            case GEMINI -> "Gemelli";
-            case CANCER -> "Cancro";
-            case LEO -> "Leone";
-            case VIRGO -> "Vergine";
-            case LIBRA -> "Bilancia";
-            case SCORPIO -> "Scorpione";
-            case SAGITTARIUS -> "Sagittario";
-            case CAPRICORN -> "Capricorno";
-            case AQUARIUS -> "Acquario";
-            case PISCES -> "Pesci";
-            case UNKNOWN -> "Non specificato";
+            case ARIES -> "Aries";
+            case TAURUS -> "Taurus";
+            case GEMINI -> "Gemini";
+            case CANCER -> "Cancer";
+            case LEO -> "Leo";
+            case VIRGO -> "Virgo";
+            case LIBRA -> "Libra";
+            case SCORPIO -> "Scorpio";
+            case SAGITTARIUS -> "Sagittarius";
+            case CAPRICORN -> "Capricorn";
+            case AQUARIUS -> "Aquarius";
+            case PISCES -> "Pisces";
+            case UNKNOWN -> "Not specified";
         };
     }
 
@@ -1335,11 +1337,11 @@ public class ZyraService {
             return "";
         }
         return switch (gender) {
-            case MALE -> "Uomo";
-            case FEMALE -> "Donna";
-            case NON_BINARY -> "Non binario";
-            case OTHER -> "Altro";
-            case PREFER_NOT_TO_SAY -> "Preferisce non dirlo";
+            case MALE -> "Male";
+            case FEMALE -> "Female";
+            case NON_BINARY -> "Non-binary";
+            case OTHER -> "Other";
+            case PREFER_NOT_TO_SAY -> "Prefer not to say";
         };
     }
 
@@ -1374,7 +1376,7 @@ public class ZyraService {
             new ZyraChatMessage("user", firstUserMessage)
         );
         try {
-            String title = zyraClient.chat(messages);
+            String title = zyraClient.chat(withEnglishGuard(messages));
             if (title == null) {
                 return null;
             }
@@ -1387,10 +1389,19 @@ public class ZyraService {
 
     private String buildFallbackTitle(String content) {
         if (content == null || content.isBlank()) {
-            return "Chat con Zyra";
+            return "Chat with Zyra";
         }
         String trimmed = content.trim();
         return trimmed.length() > 48 ? trimmed.substring(0, 48) + "..." : trimmed;
+    }
+
+    private List<ZyraChatMessage> withEnglishGuard(List<ZyraChatMessage> messages) {
+        List<ZyraChatMessage> guarded = new ArrayList<>((messages != null ? messages.size() : 0) + 1);
+        guarded.add(new ZyraChatMessage("system", ENGLISH_ONLY_POLICY));
+        if (messages != null && !messages.isEmpty()) {
+            guarded.addAll(messages);
+        }
+        return guarded;
     }
 
     private ZyraChatSession getSession(UUID userId, UUID sessionId) {
