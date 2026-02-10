@@ -2,6 +2,9 @@ import { apiClient } from "../axiosConfig";
 import type {
   AuthResponse,
   LoginRequest,
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
+  PasswordResetRequestResponse,
   RefreshTokenRequest,
   RegisterRequest,
   TokenResponse,
@@ -27,6 +30,22 @@ export const refreshToken = async (
 
 export const logout = async (): Promise<void> => {
   await apiClient.post("/auth/logout");
+};
+
+export const requestPasswordReset = async (
+  payload: PasswordResetRequest
+): Promise<PasswordResetRequestResponse> => {
+  const { data } = await apiClient.post<PasswordResetRequestResponse>(
+    "/auth/password/forgot",
+    payload
+  );
+  return data;
+};
+
+export const confirmPasswordReset = async (
+  payload: PasswordResetConfirmRequest
+): Promise<void> => {
+  await apiClient.post("/auth/password/reset", payload);
 };
 
 export const getMe = async (): Promise<UserResponse> => {

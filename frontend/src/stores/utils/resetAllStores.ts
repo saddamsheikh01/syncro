@@ -18,6 +18,9 @@ import { writeStorage } from "./storage";
 const LANGUAGE_STORAGE_KEY = "syncro.user.language";
 const POSITION_STORAGE_KEY = "syncro.user.position";
 const TUTORIAL_STORAGE_KEY = "syncro.onboarding-intro.state";
+const ANALYTICS_QUEUE_STORAGE_KEY = "syncro.analytics.queue";
+const ANALYTICS_SESSION_STORAGE_KEY = "syncro.analytics.session_id";
+const ANALYTICS_APP_OPENED_STORAGE_KEY = "syncro.analytics.app_opened";
 
 export const resetAllStores = () => {
   userStore.reset();
@@ -39,4 +42,10 @@ export const resetAllStores = () => {
   writeStorage(LANGUAGE_STORAGE_KEY, null);
   writeStorage(POSITION_STORAGE_KEY, null);
   writeStorage(TUTORIAL_STORAGE_KEY, null);
+  writeStorage(ANALYTICS_QUEUE_STORAGE_KEY, null);
+
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(ANALYTICS_SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(ANALYTICS_APP_OPENED_STORAGE_KEY);
+  }
 };

@@ -10,7 +10,7 @@ import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { TestsHelperCard } from "@/features/insights/cards/TestsHelperCard";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
-import { useTests } from "@/hooks";
+import { useAnalytics, useTests } from "@/hooks";
 import { resolveTestCopy } from "@/lib/insightsCopy";
 
 const isLocalhost = () =>
@@ -21,7 +21,9 @@ const isLocalhost = () =>
 export const TestsOverview = () => {
   const { tests, loading, error, completedCount, countLoading, actions } =
     useTests();
+  const { actions: analyticsActions } = useAnalytics();
   const bootstrappedRef = useRef(false);
+  const analyticsTrackedRef = useRef(false);
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
@@ -31,6 +33,17 @@ export const TestsOverview = () => {
     actions.fetchCompletedCount().catch(() => undefined);
   }, [actions]);
 
+  useEffect(() => {
+    if (analyticsTrackedRef.current) return;
+    analyticsTrackedRef.current = true;
+    void analyticsActions.trackEvent({
+      eventName: "INSIGHTS_OVERVIEW_OPENED",
+      payload: {
+        route: "/insights",
+      },
+    });
+  }, [analyticsActions]);
+
   const handleResetSubmissions = async () => {
     if (resetting) return;
     setResetting(true);
@@ -38,6 +51,9 @@ export const TestsOverview = () => {
       await actions.resetSubmissions();
       await actions.fetchTests();
       await actions.fetchCompletedCount();
+      void analyticsActions.trackEvent({
+        eventName: "INSIGHTS_RESET_ALL_SUBMISSIONS",
+      });
     } catch {
       // gestito dallo store
     } finally {
@@ -59,11 +75,21 @@ export const TestsOverview = () => {
           title: localized.title,
           description: localized.description,
           href: `/insights/${test.id}`,
+          onOpen: () => {
+            void analyticsActions.trackEvent({
+              eventName: "INSIGHT_OPENED_FROM_LIST",
+              payload: {
+                testId: test.id,
+                testType: test.testType,
+                completed: test.completed,
+              },
+            });
+          },
           actionLabel: "View Insights",
           completed: test.completed,
         };
       }),
-    [tests]
+    [analyticsActions, tests]
   );
 
   const isInitialLoading = loading && tests.length === 0;

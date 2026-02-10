@@ -1,6 +1,15 @@
 import { apiClient } from "../axiosConfig";
-import type { AnalyticsEventRequest } from "../../types/analytics";
+import type {
+  AnalyticsBatchRequest,
+  AnalyticsBatchResponse,
+} from "../../types/analytics";
 
-export const trackEvent = async (payload: AnalyticsEventRequest): Promise<void> => {
-  await apiClient.post("/analytics/events", payload);
+export const trackEventsBatch = async (
+  payload: AnalyticsBatchRequest
+): Promise<AnalyticsBatchResponse> => {
+  const { data } = await apiClient.post<AnalyticsBatchResponse>(
+    "/analytics/events/batch",
+    payload
+  );
+  return data;
 };

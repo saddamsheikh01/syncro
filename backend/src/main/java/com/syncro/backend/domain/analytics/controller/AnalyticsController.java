@@ -1,5 +1,7 @@
 package com.syncro.backend.domain.analytics.controller;
 
+import com.syncro.backend.domain.analytics.dto.AnalyticsBatchRequest;
+import com.syncro.backend.domain.analytics.dto.AnalyticsBatchResponse;
 import com.syncro.backend.domain.analytics.dto.AnalyticsEventRequest;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.security.UserPrincipal;
@@ -35,5 +37,14 @@ public class AnalyticsController {
     ) {
         analyticsService.trackEvent(principal, request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/events/batch")
+    @Operation(summary = "Registra un batch di eventi analytics")
+    public ResponseEntity<AnalyticsBatchResponse> trackEventsBatch(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @Valid @RequestBody AnalyticsBatchRequest request
+    ) {
+        return ResponseEntity.ok(analyticsService.trackEventsBatch(principal, request));
     }
 }

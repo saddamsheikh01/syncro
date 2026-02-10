@@ -192,7 +192,16 @@ export const MapOverview = () => {
     setSearchQuery("");
     setSelectedPlace(null);
     setSelectedRecommendation(null);
-  }, []);
+    void analyticsActions.trackEvent({
+      eventName: "MAP_SEARCH_LOCATION_SELECTED",
+      payload: {
+        latitude: place.latitude,
+        longitude: place.longitude,
+        name: place.name,
+        address: place.address,
+      },
+    });
+  }, [analyticsActions]);
 
   const handleAutocompleteClear = useCallback(() => {
     setSearchLocation(null);
@@ -284,7 +293,15 @@ export const MapOverview = () => {
   // Gestione selezione luogo
   const handlePlaceSelect = useCallback((place: PlaceSummaryResponse) => {
     setSelectedPlace(place);
-  }, []);
+    void analyticsActions.trackEvent({
+      eventName: "MAP_PLACE_SELECTED",
+      payload: {
+        placeId: place.id,
+        categoryId: place.category?.id ?? null,
+        categoryName: place.category?.name ?? null,
+      },
+    });
+  }, [analyticsActions]);
 
   const handleClosePreview = useCallback(() => {
     setSelectedPlace(null);
@@ -293,9 +310,13 @@ export const MapOverview = () => {
   // Apri Google Maps
   const handleOpenDirections = useCallback(() => {
     if (!selectedPlace?.latitude || !selectedPlace?.longitude) return;
+    void analyticsActions.trackEvent({
+      eventName: "MAP_DIRECTIONS_OPENED",
+      payload: { placeId: selectedPlace.id },
+    });
     const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.latitude},${selectedPlace.longitude}`;
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [selectedPlace]);
+  }, [analyticsActions, selectedPlace]);
 
   // Categorie come opzioni select
   const categoryOptions: SelectOption[] = useMemo(
@@ -315,6 +336,10 @@ export const MapOverview = () => {
 
   // Gestione toggle filtri chip
   const handleFilterToggle = useCallback((id: string, nextSelected: boolean) => {
+    void analyticsActions.trackEvent({
+      eventName: "MAP_FILTER_TOGGLED",
+      payload: { filterId: id, selected: nextSelected },
+    });
     if (id === "forYou") {
       setForYouMode(nextSelected);
       if (nextSelected) {
@@ -322,7 +347,7 @@ export const MapOverview = () => {
         setSelectedRecommendation(null);
       }
     }
-  }, []);
+  }, [analyticsActions]);
 
   // Calcola distanza per il luogo selezionato
   const selectedPlaceDistance = useMemo(() => {

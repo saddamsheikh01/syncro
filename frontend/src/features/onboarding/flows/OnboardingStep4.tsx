@@ -6,7 +6,7 @@ import { OnboardingStepHeader } from "@/features/onboarding/sections/OnboardingS
 import { LocationPermissionGate } from "@/features/onboarding/sections/LocationPermissionGate";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useAnalytics, useAuth, useOnboarding, usePosition, useUser } from "@/hooks";
+import { useAuth, useOnboarding, usePosition, useUser } from "@/hooks";
 
 export const OnboardingStep4 = () => {
   const router = useRouter();
@@ -14,7 +14,6 @@ export const OnboardingStep4 = () => {
   const { position, hasPosition, loading, error, permission, actions } =
     usePosition();
   const { actions: userActions } = useUser();
-  const { actions: analyticsActions } = useAnalytics();
   const { actions: onboardingActions } = useOnboarding();
   const [localError, setLocalError] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -82,9 +81,6 @@ export const OnboardingStep4 = () => {
 
     try {
       await userActions.updateUser({ onboardingCompleted: true });
-      analyticsActions
-        .trackEvent({ eventType: "ONBOARDING_COMPLETED" })
-        .catch(() => undefined);
       onboardingActions.completeStep(4);
       router.push("/insights");
     } catch (submitError) {

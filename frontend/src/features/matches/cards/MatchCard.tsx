@@ -44,6 +44,7 @@ export interface MatchCardProps
   match: UserMatchResponse;
   href?: string;
   onPress?: () => void;
+  onOpen?: () => void;
 }
 
 const resolveName = (match: UserMatchResponse) =>
@@ -79,7 +80,14 @@ const getInitials = (name?: string) => {
   return (first + second).toUpperCase() || "?";
 };
 
-export const MatchCard = ({ match, href, onPress, className, ...props }: MatchCardProps) => {
+export const MatchCard = ({
+  match,
+  href,
+  onPress,
+  onOpen,
+  className,
+  ...props
+}: MatchCardProps) => {
   const name = resolveName(match);
   const location = resolveLocation(match);
   const category = resolveCategory(match);
@@ -133,7 +141,7 @@ export const MatchCard = ({ match, href, onPress, className, ...props }: MatchCa
 
   if (href) {
     return (
-      <Link href={href} className="block">
+      <Link href={href} className="block" onClick={onOpen}>
         {card}
       </Link>
     );

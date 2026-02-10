@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
@@ -15,7 +15,7 @@ import { ShareInsightCard } from "@/features/insights/cards/ShareInsightCard";
 import { ZyraTestRecap } from "@/features/zyra/cards/ZyraTestRecap";
 import type { TestQuestionResponse } from "@/types/insights";
 import type { ApiError } from "@/types/api";
-import { useTests } from "@/hooks";
+import { useAnalytics, useTests } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 import { getTestEmoji } from "@/lib/testEmoji";
 
@@ -29,6 +29,7 @@ export interface TestRunnerProps {
 export const TestRunner = ({ testId }: TestRunnerProps) => {
   const router = useRouter();
   const { activeTest, loading, error, actions } = useTests();
+  const { actions: analyticsActions } = useAnalytics();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -39,6 +40,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const [recapText, setRecapText] = useState<string | null>(null);
   const [recapTitle, setRecapTitle] = useState<string | null>(null);
   const isValidTestId = isUuid(testId);
+  const openedTrackedRef = useRef(false);
 
   const handleRecapLoaded = useCallback(
     (recap: string, testTitle: string) => {
@@ -65,7 +67,23 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setSubmitError(null);
     setRecapText(null);
     setRecapTitle(null);
+    openedTrackedRef.current = false;
   }, [testId, activeTest?.id]);
+
+  useEffect(() => {
+    if (!activeTest) return;
+    if (openedTrackedRef.current) return;
+    openedTrackedRef.current = true;
+    void analyticsActions.trackEvent({
+      eventName: "INSIGHT_OPENED",
+      payload: {
+        testId: activeTest.id,
+        testType: activeTest.testType,
+        completed: activeTest.completed,
+        questionsCount: activeTest.questions.length,
+      },
+    });
+  }, [activeTest, analyticsActions]);
 
   const questions = useMemo(
     () => (activeTest ? sortQuestions(activeTest.questions) : []),
@@ -134,6 +152,16 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       }
       return next;
     });
+
+    void analyticsActions.trackEvent({
+      eventName: "INSIGHT_ANSWER_UPDATED",
+      payload: {
+        testId,
+        questionId: currentQuestion.id,
+        optionId,
+        selected: nextSelected,
+      },
+    });
   };
 
   const handleNext = () => {
@@ -155,6 +183,14 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       setSubmitError("Complete the required questions before submitting.");
       return;
     }
+    void analyticsActions.trackEvent({
+      eventName: "INSIGHT_SUBMIT_ATTEMPTED",
+      payload: {
+        testId,
+        answeredCount,
+        requiredCount,
+      },
+    });
     setSubmitError(null);
     setSubmitting(true);
     try {
@@ -168,6 +204,16 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       });
       setSubmissionId(response.submissionId);
       setSubmitted(true);
+      void analyticsActions.trackEvent({
+        eventName: "INSIGHT_COMPLETED",
+        payload: {
+          testId,
+          submissionId: response.submissionId,
+          answeredCount,
+          requiredCount,
+          totalQuestions: questions.length,
+        },
+      });
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error
@@ -184,6 +230,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setSubmitError(null);
     setResetting(true);
     try {
+      void analyticsActions.trackEvent({
+        eventName: "INSIGHT_RETAKE_REQUESTED",
+        payload: { testId },
+      });
       await actions.resetSubmission(testId);
       await actions.fetchTest(testId);
       setCurrentIndex(0);
@@ -275,7 +325,15 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
             <Button variant="secondary" onClick={() => router.push("/insights")}>
               Back to insights
             </Button>
-            <Button onClick={() => router.push("/profile")}>
+            <Button
+              onClick={() => {
+                void analyticsActions.trackEvent({
+                  eventName: "INSIGHT_NAVIGATED_TO_PROFILE",
+                  payload: { testId },
+                });
+                router.push("/profile");
+              }}
+            >
               Go to profile
             </Button>
           </div>
@@ -319,11 +377,25 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         <div className="flex flex-wrap gap-3">
           <Button
             variant="secondary"
-            onClick={() => router.push("/insights")}
+            onClick={() => {
+              void analyticsActions.trackEvent({
+                eventName: "INSIGHT_BACK_TO_LIST",
+                payload: { testId },
+              });
+              router.push("/insights");
+            }}
           >
             Back to insights
           </Button>
-          <Button onClick={() => router.push("/profile")}>
+          <Button
+            onClick={() => {
+              void analyticsActions.trackEvent({
+                eventName: "INSIGHT_NAVIGATED_TO_PROFILE",
+                payload: { testId },
+              });
+              router.push("/profile");
+            }}
+          >
             Go to profile
           </Button>
         </div>
@@ -423,7 +495,19 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           Back
         </Button>
         <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" onClick={() => router.push("/insights")}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              void analyticsActions.trackEvent({
+                eventName: "INSIGHT_EXITED",
+                payload: {
+                  testId,
+                  currentQuestionIndex: currentIndex + 1,
+                },
+              });
+              router.push("/insights");
+            }}
+          >
             Exit
           </Button>
           {isLastQuestion ? (

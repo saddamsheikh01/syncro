@@ -136,6 +136,16 @@ export const MatchesOverview = () => {
                 key={match.matchId}
                 match={match}
                 href={`/profile/${match.userId}`}
+                onOpen={() => {
+                  void analyticsActions.trackEvent({
+                    eventName: "MATCH_CARD_OPENED",
+                    payload: {
+                      matchId: match.matchId,
+                      targetUserId: match.userId,
+                      scoreTotal: match.scoreTotal ?? null,
+                    },
+                  });
+                }}
               />
             ))}
           </div>

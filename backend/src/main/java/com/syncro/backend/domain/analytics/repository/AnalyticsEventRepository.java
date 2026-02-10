@@ -10,14 +10,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, UUID> {
 
+    boolean existsByIdempotencyKey(String idempotencyKey);
+
     @Query(
         value = """
-            SELECT date_trunc('day', created_at) AS bucket,
+            SELECT date_trunc('day', occurred_at) AS bucket,
                    COUNT(*) AS total
             FROM analytics_events
             WHERE event_type = :eventType
-              AND created_at >= :from
-              AND created_at < :to
+              AND occurred_at >= :from
+              AND occurred_at < :to
             GROUP BY bucket
             ORDER BY bucket
             """,
@@ -31,12 +33,12 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
 
     @Query(
         value = """
-            SELECT date_trunc('week', created_at) AS bucket,
+            SELECT date_trunc('week', occurred_at) AS bucket,
                    COUNT(*) AS total
             FROM analytics_events
             WHERE event_type = :eventType
-              AND created_at >= :from
-              AND created_at < :to
+              AND occurred_at >= :from
+              AND occurred_at < :to
             GROUP BY bucket
             ORDER BY bucket
             """,
@@ -50,12 +52,12 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
 
     @Query(
         value = """
-            SELECT date_trunc('day', created_at) AS bucket,
+            SELECT date_trunc('day', occurred_at) AS bucket,
                    COUNT(DISTINCT user_id) AS total
             FROM analytics_events
             WHERE user_id IS NOT NULL
-              AND created_at >= :from
-              AND created_at < :to
+              AND occurred_at >= :from
+              AND occurred_at < :to
             GROUP BY bucket
             ORDER BY bucket
             """,
@@ -68,12 +70,12 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
 
     @Query(
         value = """
-            SELECT date_trunc('week', created_at) AS bucket,
+            SELECT date_trunc('week', occurred_at) AS bucket,
                    COUNT(DISTINCT user_id) AS total
             FROM analytics_events
             WHERE user_id IS NOT NULL
-              AND created_at >= :from
-              AND created_at < :to
+              AND occurred_at >= :from
+              AND occurred_at < :to
             GROUP BY bucket
             ORDER BY bucket
             """,
@@ -91,16 +93,16 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
                 SELECT user_id
                 FROM analytics_events
                 WHERE user_id IS NOT NULL
-                  AND created_at >= :currentFrom
-                  AND created_at < :currentTo
+                  AND occurred_at >= :currentFrom
+                  AND occurred_at < :currentTo
                 GROUP BY user_id
             ) current_users
             INNER JOIN (
                 SELECT user_id
                 FROM analytics_events
                 WHERE user_id IS NOT NULL
-                  AND created_at >= :previousFrom
-                  AND created_at < :previousTo
+                  AND occurred_at >= :previousFrom
+                  AND occurred_at < :previousTo
                 GROUP BY user_id
             ) previous_users ON current_users.user_id = previous_users.user_id
             """,
@@ -118,8 +120,8 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
             SELECT AVG((payload->>'duration_seconds')::numeric)
             FROM analytics_events
             WHERE event_type = 'SESSION_DURATION'
-              AND created_at >= :from
-              AND created_at < :to
+              AND occurred_at >= :from
+              AND occurred_at < :to
             """,
         nativeQuery = true
     )

@@ -1,8 +1,6 @@
-import type { IsoDate, IsoDateTime, JsonObject } from "../shared";
+import type { IsoDate, IsoDateTime, JsonObject, Uuid } from "../shared";
 
-export type AnalyticsEventType =
-  | "USER_REGISTERED"
-  | "ONBOARDING_COMPLETED"
+export type AnalyticsLegacyEventType =
   | "APP_OPEN"
   | "MATCH_SECTION_OPENED"
   | "MAP_OPENED"
@@ -10,9 +8,39 @@ export type AnalyticsEventType =
   | "SESSION_DURATION"
   | "FEEDBACK_SUBMITTED";
 
-export type AnalyticsEventRequest = {
-  eventType: AnalyticsEventType;
+export type AnalyticsTrackInput = {
+  eventName?: string;
+  // Compatibilità con i punti legacy già presenti nell'app.
+  eventType?: AnalyticsLegacyEventType;
   payload?: JsonObject | null;
+  route?: string | null;
+  occurredAt?: IsoDateTime;
+};
+
+export type AnalyticsBatchEventRequest = {
+  eventId: Uuid;
+  eventName: string;
+  eventVersion: number;
+  idempotencyKey: string;
+  sessionId: Uuid;
+  occurredAt: IsoDateTime;
+  route?: string | null;
+  platform?: string | null;
+  appVersion?: string | null;
+  eventSource?: string | null;
+  consentAnalytics?: boolean | null;
+  userAgent?: string | null;
+  payload?: JsonObject | null;
+};
+
+export type AnalyticsBatchRequest = {
+  events: AnalyticsBatchEventRequest[];
+};
+
+export type AnalyticsBatchResponse = {
+  accepted: number;
+  duplicates: number;
+  rejected: number;
 };
 
 export type KpiPoint = {

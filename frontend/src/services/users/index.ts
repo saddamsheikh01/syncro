@@ -1,5 +1,6 @@
 import { apiClient } from "../axiosConfig";
 import type {
+  ChangePasswordRequest,
   DeleteCurrentUserRequest,
   UpdateUserRequest,
   UserResponse,
@@ -34,6 +35,12 @@ export const deleteCurrentUser = async (
   payload: DeleteCurrentUserRequest
 ): Promise<void> => {
   await apiClient.post("/users/me/delete", payload);
+};
+
+export const changeCurrentUserPassword = async (
+  payload: ChangePasswordRequest
+): Promise<void> => {
+  await apiClient.patch("/users/me/password", payload);
 };
 
 export const checkUsernameAvailability = async (

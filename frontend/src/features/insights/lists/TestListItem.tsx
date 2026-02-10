@@ -17,6 +17,7 @@ export interface TestListItemProps
   statusLabel?: string;
   href?: string;
   onPress?: () => void;
+  onOpen?: () => void;
   actionLabel?: string;
   completed?: boolean;
   testType?: TestType;
@@ -31,6 +32,7 @@ export const TestListItem = ({
   statusLabel,
   href,
   onPress,
+  onOpen,
   actionLabel = "Start",
   completed = false,
   testType,
@@ -110,7 +112,7 @@ export const TestListItem = ({
 
   if (href && (isRetakeAvailable || !completed)) {
     return (
-      <Link href={href} className="block">
+      <Link href={href} className="block" onClick={onOpen}>
         {content}
       </Link>
     );

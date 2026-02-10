@@ -9,7 +9,11 @@ export const useAnalytics = () => {
 
   const actions = useMemo(
     () => ({
+      bootstrap: analyticsActions.bootstrap,
       trackEvent: analyticsActions.trackEvent,
+      trackScreenViewed: analyticsActions.trackScreenViewed,
+      markAppOpenedInSession: analyticsActions.markAppOpenedInSession,
+      flushQueue: analyticsActions.flushQueue,
       clearLastEvent: analyticsActions.clearLastEvent,
     }),
     []
