@@ -14,12 +14,14 @@ export interface ZyraProfileRecapProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   title?: string;
   userId?: string;
+  onRecapLoaded?: (recap: string) => void;
 }
 
 export const ZyraProfileRecap = ({
   className,
   title = "Your profile according to Zyra",
   userId,
+  onRecapLoaded,
   ...props
 }: ZyraProfileRecapProps) => {
   const { profile, actions: userActions } = useUser();
@@ -41,6 +43,11 @@ export const ZyraProfileRecap = ({
       setEditedRecap(savedRecap);
     }
   }, [isOwnProfile, savedRecap, recap]);
+
+  useEffect(() => {
+    if (!recap) return;
+    onRecapLoaded?.(recap);
+  }, [recap, onRecapLoaded]);
 
   const fetchRecap = useCallback(async () => {
     setLoading(true);

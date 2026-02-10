@@ -47,6 +47,7 @@ import {
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
+import { ShareZyraRecapCard } from "@/features/zyra/cards/ShareZyraRecapCard";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
@@ -145,11 +146,7 @@ export const ProfileSettings = ({
     actions: tagsActions,
   } = useTags();
   const { hasPosition } = usePosition();
-  const {
-    tests,
-    completedCount,
-    actions: testsActions,
-  } = useTests();
+  const { tests, completedCount, actions: testsActions } = useTests();
   const { percentage: profileCompleteness } = useProfileCompletion();
 
   const initializedRef = useRef(false);
@@ -222,9 +219,13 @@ export const ProfileSettings = ({
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
   const [deleteProfileModalOpen, setDeleteProfileModalOpen] = useState(false);
-  const [deleteProfileConfirmation, setDeleteProfileConfirmation] = useState("");
+  const [deleteProfileConfirmation, setDeleteProfileConfirmation] =
+    useState("");
   const [deleteProfileLoading, setDeleteProfileLoading] = useState(false);
   const [deleteProfileError, setDeleteProfileError] = useState<string | null>(
+    null,
+  );
+  const [profileRecapToShare, setProfileRecapToShare] = useState<string | null>(
     null,
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -873,6 +874,10 @@ export const ProfileSettings = ({
     }
   };
 
+  const handleProfileRecapLoaded = useCallback((nextRecap: string) => {
+    setProfileRecapToShare(nextRecap);
+  }, []);
+
   const handleEditPost = useCallback(
     async (
       postId: string,
@@ -908,9 +913,7 @@ export const ProfileSettings = ({
             createdAt: m.createdAt,
           }));
           setRecentPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId ? { ...p, media: previews } : p,
-            ),
+            prev.map((p) => (p.id === postId ? { ...p, media: previews } : p)),
           );
         }
       } catch (error) {
@@ -1025,6 +1028,17 @@ export const ProfileSettings = ({
         </Card>
       </div>
 
+      <section className="space-y-4">
+        <SectionHeader
+          title="Zyra recap"
+          subtitle="Review and edit how Zyra describes you."
+        />
+        <ZyraProfileRecap onRecapLoaded={handleProfileRecapLoaded} />
+        {profileRecapToShare ? (
+          <ShareZyraRecapCard recap={profileRecapToShare} />
+        ) : null}
+      </section>
+
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
           {displayFirstName}&apos;s Public Profile
@@ -1084,14 +1098,6 @@ export const ProfileSettings = ({
         </div>
       </Card>
 
-      <section className="space-y-4">
-        <SectionHeader
-          title="Zyra recap"
-          subtitle="Review and edit how Zyra describes you."
-        />
-        <ZyraProfileRecap />
-      </section>
-
       <section id="profile" className="space-y-4">
         <SectionHeader
           title="Who you are to Syncro"
@@ -1105,7 +1111,7 @@ export const ProfileSettings = ({
                 onClick={() => avatar?.url && setAvatarLightbox(true)}
                 className={cx(
                   "flex-shrink-0 rounded-full transition-transform hover:scale-105",
-                  avatar?.url && "cursor-pointer"
+                  avatar?.url && "cursor-pointer",
                 )}
                 aria-label="View profile photo"
                 disabled={!avatar?.url}
@@ -1138,7 +1144,7 @@ export const ProfileSettings = ({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="Name or nickname"
+                label="Full name"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 placeholder="E.g. Marco · Mark · M"
