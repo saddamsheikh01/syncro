@@ -1,0 +1,392 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/buttons/Button";
+import { Badge } from "@/components/elements/Badge";
+import { Card } from "@/components/elements/Card";
+import { Input } from "@/components/elements/Input";
+import { Loader } from "@/components/elements/Loader";
+import { Select } from "@/components/elements/Select";
+import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
+import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
+import {
+  createAdmin,
+  deleteAdmin,
+  getAdminUsers,
+  updateAdmin,
+} from "@/services/admin";
+import type { AdminAdminsParams } from "@/services/admin";
+import type { ApiError } from "@/types/api";
+import type { AdminRole, AdminStatus, AdminUserResponse } from "@/types/admin";
+import type { PageResponse } from "@/types/shared";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "Tutti gli stati" },
+  { value: "ACTIVE", label: "ACTIVE" },
+  { value: "SUSPENDED", label: "SUSPENDED" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "", label: "Tutti i ruoli" },
+  { value: "ADMIN", label: "ADMIN" },
+  { value: "SUPER_ADMIN", label: "SUPER_ADMIN" },
+];
+
+const UPDATE_STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "ACTIVE" },
+  { value: "SUSPENDED", label: "SUSPENDED" },
+];
+
+const statusTone = (status: AdminStatus) =>
+  status === "ACTIVE" ? ("success" as const) : ("warning" as const);
+
+const roleTone = (role: AdminRole) =>
+  role === "SUPER_ADMIN" ? ("accent" as const) : ("neutral" as const);
+
+export const AdminAdminsOverview = () => {
+  const [query, setQuery] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [response, setResponse] = useState<PageResponse<AdminUserResponse> | null>(null);
+
+  const [creating, setCreating] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+
+  const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<AdminStatus>("ACTIVE");
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const params = useMemo<AdminAdminsParams>(
+    () => ({
+      email: emailFilter || undefined,
+      status: (statusFilter || undefined) as AdminStatus | undefined,
+      role: (roleFilter || undefined) as AdminRole | undefined,
+      page,
+      size: 20,
+    }),
+    [emailFilter, page, roleFilter, statusFilter]
+  );
+
+  const loadAdmins = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const next = await getAdminUsers(params);
+      setResponse(next);
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setLoading(false);
+    }
+  }, [params]);
+
+  useEffect(() => {
+    void loadAdmins();
+  }, [loadAdmins]);
+
+  const selectedAdmin = useMemo(
+    () => response?.content.find((admin) => admin.id === selectedAdminId) ?? null,
+    [response, selectedAdminId]
+  );
+
+  useEffect(() => {
+    if (!selectedAdmin) {
+      return;
+    }
+    setSelectedStatus(selectedAdmin.status);
+  }, [selectedAdmin]);
+
+  const rows = useMemo(() => {
+    if (!response?.content.length) {
+      return [];
+    }
+
+    return response.content.map((admin) => ({
+      id: admin.id,
+      email: admin.email,
+      role: <Badge tone={roleTone(admin.role)}>{admin.role}</Badge>,
+      status: <Badge tone={statusTone(admin.status)}>{admin.status}</Badge>,
+      lastLogin: admin.lastLogin ? formatDateTime(admin.lastLogin) : "-",
+      createdAt: formatDateTime(admin.createdAt),
+      actions: (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setSelectedAdminId(admin.id)}
+        >
+          Gestisci
+        </Button>
+      ),
+    }));
+  }, [response]);
+
+  const superAdminsInPage = useMemo(
+    () => response?.content.filter((admin) => admin.role === "SUPER_ADMIN").length ?? 0,
+    [response]
+  );
+
+  const handleCreateAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreating(true);
+    setError(null);
+
+    try {
+      await createAdmin({
+        email: createEmail.trim(),
+        password: createPassword,
+      });
+      setCreateEmail("");
+      setCreatePassword("");
+      await loadAdmins();
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpdateAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedAdmin) {
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      await updateAdmin(selectedAdmin.id, {
+        status: selectedStatus,
+      });
+      await loadAdmins();
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteAdmin = async () => {
+    if (!selectedAdmin) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Confermi l'eliminazione di questo account admin?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await deleteAdmin(selectedAdmin.id);
+      setSelectedAdminId(null);
+      await loadAdmins();
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">Admin users</h1>
+        <p className="mt-1 text-sm text-muted">
+          Governance accessi backoffice con focus sul ruolo SUPER_ADMIN.
+        </p>
+      </div>
+
+      <Card className="space-y-4 p-5">
+        <h2 className="text-base font-semibold text-foreground">Crea nuovo admin</h2>
+        <form className="grid gap-3 lg:grid-cols-[1fr,1fr,auto]" onSubmit={handleCreateAdmin}>
+          <Input
+            label="Email"
+            type="email"
+            value={createEmail}
+            onChange={(event) => setCreateEmail(event.target.value)}
+            required
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={createPassword}
+            onChange={(event) => setCreatePassword(event.target.value)}
+            required
+          />
+          <div className="flex items-end">
+            <Button type="submit" size="sm" loading={creating} loadingText="Creazione">
+              Crea admin
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      <Card className="space-y-4 p-5">
+        <form
+          className="grid gap-3 lg:grid-cols-[1fr,220px,220px,auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setPage(0);
+            setEmailFilter(query.trim());
+          }}
+        >
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cerca per email admin"
+          />
+          <Select
+            value={statusFilter}
+            options={STATUS_OPTIONS}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(0);
+            }}
+          />
+          <Select
+            value={roleFilter}
+            options={ROLE_OPTIONS}
+            onValueChange={(value) => {
+              setRoleFilter(value);
+              setPage(0);
+            }}
+          />
+          <Button type="submit" size="sm">
+            Applica filtri
+          </Button>
+        </form>
+      </Card>
+
+      {selectedAdmin ? (
+        <Card className="space-y-4 border-accent/30 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-foreground">
+              Gestione admin selezionato: {selectedAdmin.email}
+            </h2>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedAdminId(null)}>
+              Chiudi
+            </Button>
+          </div>
+
+          <form className="grid gap-3 lg:grid-cols-[240px,auto]" onSubmit={handleUpdateAdmin}>
+            <Select
+              label="Stato"
+              value={selectedStatus}
+              options={UPDATE_STATUS_OPTIONS}
+              onValueChange={(value) => setSelectedStatus(value as AdminStatus)}
+            />
+            <div className="flex items-end gap-2">
+              <Button type="submit" size="sm" loading={updating} loadingText="Salvataggio">
+                Salva stato
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="danger"
+                onClick={handleDeleteAdmin}
+                loading={deleting}
+                loadingText="Eliminazione"
+              >
+                Elimina admin
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <AdminStatCard
+          label="Totale admin"
+          value={formatNumber(response?.totalElements ?? 0)}
+          trend="neutral"
+          trendLabel="Dataset filtrato"
+        />
+        <AdminStatCard
+          label="SUPER_ADMIN (pagina)"
+          value={formatNumber(superAdminsInPage)}
+          trend="neutral"
+          trendLabel="Pagina corrente"
+        />
+        <AdminStatCard
+          label="ACTIVE (pagina)"
+          value={formatNumber(
+            response?.content.filter((admin) => admin.status === "ACTIVE").length ?? 0
+          )}
+          trend="neutral"
+          trendLabel="Pagina corrente"
+        />
+      </div>
+
+      {loading ? (
+        <Card className="flex items-center gap-3 p-5">
+          <Loader size="sm" />
+          <p className="text-sm text-muted">Caricamento admin...</p>
+        </Card>
+      ) : null}
+
+      {error ? (
+        <Card className="space-y-3 border-danger/30 p-5">
+          <p className="text-sm font-semibold text-danger">Errore caricamento admin</p>
+          <p className="text-sm text-muted">{error.message}</p>
+          <Button size="sm" variant="outline" onClick={() => void loadAdmins()}>
+            Riprova
+          </Button>
+        </Card>
+      ) : null}
+
+      {!loading && !error ? (
+        <>
+          <AdminTable
+            columns={[
+              { key: "email", label: "Email" },
+              { key: "role", label: "Ruolo" },
+              { key: "status", label: "Stato" },
+              { key: "lastLogin", label: "Ultimo login" },
+              { key: "createdAt", label: "Creato il" },
+              { key: "actions", label: "Azioni", align: "right" },
+            ]}
+            rows={rows}
+            emptyLabel="Nessun admin trovato con i filtri correnti"
+          />
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-subtle">
+              Pagina {(response?.number ?? 0) + 1} di {Math.max(response?.totalPages ?? 1, 1)}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPage((current) => Math.max(current - 1, 0))}
+                disabled={(response?.number ?? 0) <= 0}
+              >
+                Precedente
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={Boolean(response?.last ?? true)}
+              >
+                Successiva
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};

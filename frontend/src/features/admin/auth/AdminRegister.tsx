@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import type { AdminRole } from "../../../types/admin";
 import { Select } from "@/components/elements/Select";
@@ -14,6 +15,7 @@ const ADMIN_ROLE_OPTIONS = ADMIN_ROLES.map((roleItem) => ({
 }));
 
 export const AdminRegister = () => {
+  const router = useRouter();
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +26,12 @@ export const AdminRegister = () => {
   useEffect(() => {
     actions.hydrate();
   }, [actions]);
+
+  useEffect(() => {
+    if (isAuthenticated && admin) {
+      router.replace("/admin/analytics");
+    }
+  }, [admin, isAuthenticated, router]);
 
   const isSubmitting = status === "loading";
 

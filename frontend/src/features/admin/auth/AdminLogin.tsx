@@ -2,31 +2,31 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import { Logo } from "@/components/elements/Logo";
 
 export const AdminLogin = () => {
+  const router = useRouter();
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     actions.hydrate();
   }, [actions]);
 
+  useEffect(() => {
+    if (isAuthenticated && admin) {
+      router.replace("/admin/analytics");
+    }
+  }, [admin, isAuthenticated, router]);
+
   const isSubmitting = status === "loading";
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSuccess(false);
-
-    try {
-      await actions.login({ email, password });
-      setSuccess(true);
-    } catch {
-      setSuccess(false);
-    }
+    await actions.login({ email, password });
   };
 
   return (
@@ -82,12 +82,6 @@ export const AdminLogin = () => {
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
               {error.message}
-            </div>
-          ) : null}
-
-          {success && !error ? (
-            <div className="rounded-[var(--radius-md)] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-              Admin login successful.
             </div>
           ) : null}
 

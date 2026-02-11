@@ -11,3 +11,11 @@ export const getKpis = async (
   );
   return data;
 };
+
+export const refreshKpis = async (
+  params: AnalyticsKpiParams = {}
+): Promise<void> => {
+  await apiClient.post("/admin/analytics/refresh", null, {
+    params: buildQueryParams(params),
+  });
+};

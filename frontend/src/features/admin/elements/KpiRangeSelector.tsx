@@ -11,12 +11,14 @@ export interface KpiRangeSelectorProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   ranges: KpiRangeItem[];
   selectedId?: string;
+  onRangeSelect?: (rangeId: string) => void;
 }
 
 export const KpiRangeSelector = ({
   className,
   ranges,
   selectedId,
+  onRangeSelect,
   ...props
 }: KpiRangeSelectorProps) => (
   <div className={cx("flex flex-wrap items-center gap-2", className)} {...props}>
@@ -28,6 +30,7 @@ export const KpiRangeSelector = ({
           size="sm"
           variant={isSelected ? "secondary" : "ghost"}
           aria-pressed={isSelected}
+          onClick={() => onRangeSelect?.(range.id)}
         >
           {range.label}
         </Button>

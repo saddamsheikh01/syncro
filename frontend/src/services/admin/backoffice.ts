@@ -1,6 +1,7 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
 import type {
+  AdminUpdateUserPasswordRequest,
   AdminCreateAdminRequest,
   AdminCreateUserRequest,
   AdminUpdateAdminRequest,
@@ -10,6 +11,7 @@ import type {
   AdminStatus,
 } from "../../types/admin";
 import type { UserResponse, UserStatus } from "../../types/auth";
+import type { TestCountResponse } from "../../types/insights";
 import type { PageResponse, Uuid } from "../../types/shared";
 
 export type AdminUsersParams = {
@@ -43,6 +45,15 @@ export const getUser = async (userId: Uuid): Promise<UserResponse> => {
   return data;
 };
 
+export const getUserTestsCount = async (
+  userId: Uuid
+): Promise<TestCountResponse> => {
+  const { data } = await apiClient.get<TestCountResponse>(
+    `/admin/users/${userId}/tests/count`
+  );
+  return data;
+};
+
 export const createUser = async (
   payload: AdminCreateUserRequest
 ): Promise<UserResponse> => {
@@ -63,6 +74,13 @@ export const updateUser = async (
 
 export const deleteUser = async (userId: Uuid): Promise<void> => {
   await apiClient.delete(`/admin/users/${userId}`);
+};
+
+export const updateUserPassword = async (
+  userId: Uuid,
+  payload: AdminUpdateUserPasswordRequest
+): Promise<void> => {
+  await apiClient.patch(`/admin/users/${userId}/password`, payload);
 };
 
 export const getAdminUsers = async (

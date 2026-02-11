@@ -10,6 +10,7 @@ import type {
   AdminPlaceRequest,
   AdminPlaceUpdateRequest,
   AffiliationLinkResponse,
+  CatalogSource,
   CategoryResponse,
   ExperienceDetailResponse,
   ExperienceSummaryResponse,
@@ -25,6 +26,7 @@ export type AdminCatalogSearchParams = {
   lng?: number;
   radiusKm?: number;
   q?: string;
+  source?: CatalogSource;
   page?: number;
   size?: number;
 };

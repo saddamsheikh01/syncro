@@ -49,3 +49,85 @@ export type AdminUpdateUserRequest = {
   onboardingCompleted?: boolean | null;
   status?: UserStatus | null;
 };
+
+export type AdminUpdateUserPasswordRequest = {
+  newPassword: string;
+};
+
+export type AdminReferralCodeResponse = {
+  userId: Uuid | null;
+  email: string | null;
+  username: string | null;
+  code: string;
+  usesCount: number;
+  createdAt: IsoDateTime;
+};
+
+export type AdminReferralDetailResponse = {
+  userId: Uuid | null;
+  email: string | null;
+  username: string | null;
+  code: string;
+  usesCount: number;
+  createdAt: IsoDateTime;
+};
+
+export type AdminReferralUsageResponse = {
+  invitedUserId: Uuid | null;
+  invitedEmail: string | null;
+  invitedUsername: string | null;
+  createdAt: IsoDateTime;
+  ip: string | null;
+  userAgent: string | null;
+};
+
+export type AdminCreateNotificationRequest = {
+  userIds: Uuid[];
+  title: string;
+  body?: string | null;
+  data?: Record<string, unknown> | null;
+};
+
+export type NotificationResponse = {
+  id: Uuid;
+  userId: Uuid;
+  type: string;
+  title: string;
+  body: string | null;
+  data: Record<string, unknown> | null;
+  conversationId: Uuid | null;
+  messageId: Uuid | null;
+  createdByAdminId: Uuid | null;
+  createdAt: IsoDateTime;
+  readAt: IsoDateTime | null;
+};
+
+export type GoogleMapsSyncStatusResponse = {
+  configured: boolean;
+  message: string;
+};
+
+export type GoogleMapsSyncRequest = {
+  latitude: number;
+  longitude: number;
+  radiusMeters?: number | null;
+  type?: string | null;
+  maxResults?: number | null;
+};
+
+export type GoogleMapsTextSearchSyncRequest = {
+  query: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  radiusMeters?: number | null;
+  maxResults?: number | null;
+};
+
+export type GoogleMapsSyncResponse = {
+  totalFound: number;
+  created: number;
+  updated: number;
+  errors: number;
+  errorMessages: string[];
+  message: string;
+};
