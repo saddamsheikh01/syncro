@@ -51,7 +51,57 @@ public class DomainScoreCalculator {
      * Calcola il punteggio totale come media ponderata dei domini.
      */
     public int calculateTotalScore(DomainScores domains) {
-        return domains.average();
+        return calculateTotalScore(domains, null);
+    }
+
+    /**
+     * Calcola il punteggio totale usando pesi dominio forniti dal chiamante.
+     * Un dominio con peso <= 0 viene escluso dal totale.
+     * Se nessun dominio e attivo/disponibile, usa la media semplice come fallback.
+     */
+    public int calculateTotalScore(DomainScores domains, Map<MatchDomain, Integer> domainWeights) {
+        if (domainWeights == null || domainWeights.isEmpty()) {
+            return domains.average();
+        }
+
+        double weightedSum = 0;
+        double totalWeight = 0;
+
+        for (MatchDomain domain : MatchDomain.values()) {
+            Integer score = getDomainScore(domains, domain);
+            if (score == null) {
+                continue;
+            }
+
+            int weight = Math.max(0, domainWeights.getOrDefault(domain, 0));
+            if (weight == 0) {
+                continue;
+            }
+
+            weightedSum += score * weight;
+            totalWeight += weight;
+        }
+
+        if (totalWeight == 0) {
+            return domains.average();
+        }
+
+        int total = (int) Math.round(weightedSum / totalWeight);
+        return Math.max(0, Math.min(100, total));
+    }
+
+    public Integer getDomainScore(DomainScores domains, MatchDomain domain) {
+        if (domain == null) {
+            return null;
+        }
+        return switch (domain) {
+            case LOVE -> domains.love();
+            case FRIENDSHIP -> domains.friendship();
+            case WORK -> domains.work();
+            case PROJECTS -> domains.projects();
+            case HOBBY -> domains.hobby();
+            case GROWTH -> domains.growth();
+        };
     }
 
     /**

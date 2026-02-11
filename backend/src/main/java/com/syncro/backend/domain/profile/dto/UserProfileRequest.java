@@ -20,6 +20,11 @@ public record UserProfileRequest(
     @Size(max = 500) String valuesText,
     @Size(max = 5000) String zyraRecap,
     @Pattern(
+        regexp = "^(MALE|FEMALE|NON_BINARY|OTHER|PREFER_NOT_TO_SAY)?$",
+        message = "Genere non valido"
+    )
+    String gender,
+    @Pattern(
         regexp = "^(SINGLE|IN_RELATIONSHIP|MARRIED|SEPARATED|COMPLICATED|OTHER)?$",
         message = "Stato relazionale non valido"
     )

@@ -16,7 +16,37 @@ const GENDER_OPTIONS = [
   { value: "FEMALE", label: "Female" },
   { value: "MALE", label: "Male" },
   { value: "NON_BINARY", label: "Non-binary" },
+  { value: "OTHER", label: "Other" },
 ];
+
+const GEO_AVAILABILITY_OPTIONS = [
+  { value: "MIXED", label: "Mixed (in-person + remote)" },
+  { value: "IN_PERSON", label: "In person only" },
+  { value: "REMOTE", label: "Remote only" },
+];
+
+const DOMAIN_LABELS = {
+  love: "Love",
+  friendship: "Friendship",
+  work: "Work",
+  projects: "Projects",
+  hobby: "Hobby & Experiences",
+  growth: "Growth & Mentorship",
+} as const;
+
+type MatchDomainKey = keyof typeof DOMAIN_LABELS;
+type DomainFlags = Record<MatchDomainKey, boolean>;
+
+const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
+  love: true,
+  friendship: true,
+  work: true,
+  projects: true,
+  hobby: true,
+  growth: true,
+};
+
+const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
 
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -45,7 +75,9 @@ export const OnboardingStep3 = () => {
   const [ageMax, setAgeMax] = useState("");
   const [distanceKm, setDistanceKm] = useState("");
   const [gender, setGender] = useState("ANY");
-  const [sharedInterests, setSharedInterests] = useState(true);
+  const [locationCityFilter, setLocationCityFilter] = useState("");
+  const [locationCountryFilter, setLocationCountryFilter] = useState("");
+  const [geoAvailability, setGeoAvailability] = useState("MIXED");
   const [feedRadiusKm, setFeedRadiusKm] = useState("");
   const [feedOnlyNearby, setFeedOnlyNearby] = useState(true);
   const [feedAutoTranslate, setFeedAutoTranslate] = useState(true);
@@ -70,7 +102,9 @@ export const OnboardingStep3 = () => {
     setAgeMax(readNumber(storedFilters.ageMax)?.toString() ?? "");
     setDistanceKm(readNumber(storedFilters.distanceKm)?.toString() ?? "");
     setGender(readString(storedFilters.gender) ?? "ANY");
-    setSharedInterests(readBoolean(storedFilters.sharedInterests) ?? true);
+    setLocationCityFilter(readString(storedFilters.locationCity) ?? "");
+    setLocationCountryFilter(readString(storedFilters.locationCountry) ?? "");
+    setGeoAvailability(readString(storedFilters.geoAvailability) ?? "MIXED");
 
     setFeedRadiusKm(readNumber(storedFeed.radiusKm)?.toString() ?? "");
     setFeedOnlyNearby(readBoolean(storedFeed.onlyNearby) ?? true);
@@ -102,7 +136,14 @@ export const OnboardingStep3 = () => {
       ageMax: maxAgeValue,
       distanceKm: distanceValue,
       gender,
-      sharedInterests,
+      locationCity: locationCityFilter.trim() || null,
+      locationCountry: locationCountryFilter.trim() || null,
+      geoAvailability,
+      openToNewConnections: true,
+      activeDomains: {
+        ...DEFAULT_ACTIVE_DOMAINS,
+      } as JsonObject,
+      sharedInterests: true,
     };
 
     const feedPreferences: JsonObject = {
@@ -181,12 +222,46 @@ export const OnboardingStep3 = () => {
             value={gender}
             onValueChange={setGender}
           />
-          <Switch
-            label="Shared interests"
-            description="Prioritize people who share your tags."
-            checked={sharedInterests}
-            onChange={(event) => setSharedInterests(event.target.checked)}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="City filter (optional)"
+              value={locationCityFilter}
+              onChange={(event) => setLocationCityFilter(event.target.value)}
+              placeholder="E.g. Milan"
+            />
+            <Input
+              label="Country filter (optional)"
+              value={locationCountryFilter}
+              onChange={(event) =>
+                setLocationCountryFilter(event.target.value)
+              }
+              placeholder="E.g. Italy"
+            />
+          </div>
+          <Select
+            label="Availability"
+            options={GEO_AVAILABILITY_OPTIONS}
+            value={geoAvailability}
+            onValueChange={setGeoAvailability}
           />
+          <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
+            <p className="text-sm font-semibold text-foreground">
+              Match domains
+            </p>
+            <p className="text-xs text-muted">
+              All domains are always active.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {DOMAIN_KEYS.map((domainKey) => (
+                <span
+                  key={domainKey}
+                  className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-foreground"
+                >
+                  {DOMAIN_LABELS[domainKey]}
+                </span>
+              ))}
+            </div>
+          </div>
         </Card>
 
         <Card className="space-y-4 p-5">

@@ -11,6 +11,8 @@ import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
 import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class UserPreferenceService {
         User user = getUser(principal);
         UserPreference preferences = preferenceRepository.findByUserId(user.getId())
             .orElseThrow(() -> new NotFoundException("Preferenze non trovate"));
+        preferences.setMatchmakingFilters(enforceAlwaysOnFlags(preferences.getMatchmakingFilters()));
         return preferenceMapper.toResponse(preferences);
     }
 
@@ -54,7 +57,7 @@ public class UserPreferenceService {
             });
 
         if (request.matchmakingFilters() != null) {
-            preferences.setMatchmakingFilters(request.matchmakingFilters());
+            preferences.setMatchmakingFilters(enforceAlwaysOnFlags(request.matchmakingFilters()));
         }
         if (request.feedPreferences() != null) {
             preferences.setFeedPreferences(request.feedPreferences());
@@ -92,5 +95,14 @@ public class UserPreferenceService {
         UUID userId = principal.userId();
         return userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+    }
+
+    private Map<String, Object> enforceAlwaysOnFlags(Map<String, Object> filters) {
+        Map<String, Object> normalized = filters == null
+            ? new LinkedHashMap<>()
+            : new LinkedHashMap<>(filters);
+        normalized.put("openToNewConnections", true);
+        normalized.put("sharedInterests", true);
+        return normalized;
     }
 }

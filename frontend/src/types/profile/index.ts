@@ -16,6 +16,7 @@ export type UserProfileRequest = {
   goalsText?: string | null;
   valuesText?: string | null;
   zyraRecap?: string | null;
+  gender?: string | null;
   relationshipStatus?: string | null;
   orientation?: string | null;
   childrenStatus?: string | null;
@@ -40,6 +41,7 @@ export type UserProfileResponse = {
   goalsText: string | null;
   valuesText: string | null;
   zyraRecap: string | null;
+  gender: string | null;
   relationshipStatus: string | null;
   orientation: string | null;
   childrenStatus: string | null;

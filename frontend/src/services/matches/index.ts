@@ -1,6 +1,7 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
 import type {
+  MatchDomain,
   RecommendationResponse,
   RecommendationType,
   UserMatchResponse,
@@ -11,6 +12,7 @@ export type UserMatchesParams = {
   refresh?: boolean;
   page?: number;
   size?: number;
+  domain?: MatchDomain;
 };
 
 export type RecommendationsParams = {
@@ -31,19 +33,24 @@ export const getUserMatches = async (
 };
 
 export const getMatchWithUser = async (
-  userId: string
+  userId: string,
+  params: { domain?: MatchDomain } = {}
 ): Promise<UserMatchResponse> => {
   const { data } = await apiClient.get<UserMatchResponse>(
-    `/matches/users/${userId}`
+    `/matches/users/${userId}`,
+    { params: buildQueryParams(params) }
   );
   return data;
 };
 
 export const refreshUserMatch = async (
-  userId: string
+  userId: string,
+  params: { domain?: MatchDomain } = {}
 ): Promise<UserMatchResponse> => {
   const { data } = await apiClient.post<UserMatchResponse>(
-    `/matches/users/${userId}/refresh`
+    `/matches/users/${userId}/refresh`,
+    null,
+    { params: buildQueryParams(params) }
   );
   return data;
 };

@@ -2,6 +2,14 @@ import type { IsoDateTime, JsonObject, Uuid } from "../shared";
 import type { ExperienceSummaryResponse, PlaceSummaryResponse } from "../catalog";
 import type { ProfileVisibility } from "../profile";
 
+export type MatchDomain =
+  | "LOVE"
+  | "FRIENDSHIP"
+  | "WORK"
+  | "PROJECTS"
+  | "HOBBY"
+  | "GROWTH";
+
 /**
  * Punteggi per ogni dimensione di valutazione del match.
  * Tutti i valori sono 0-100 o null se non disponibili.
@@ -34,11 +42,14 @@ export type DomainScores = {
 export type MatchBreakdown = {
   dimensions?: DimensionScores;
   domains?: DomainScores;
+  activeDomains?: Record<string, boolean>;
+  domainWeights?: Record<string, number>;
   sharedTags?: string[] | number;
   distanceKm?: number | null;
   completeness?: number;
   availableDimensions?: number;
   totalDimensions?: number;
+  loveReciprocal?: boolean;
 };
 
 export type RecommendationType = "PLACE" | "EXPERIENCE";

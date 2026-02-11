@@ -32,4 +32,9 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
         @Param("visibility") ProfileVisibility visibility,
         Pageable pageable
     );
+
+    Page<UserProfile> findByVisibilityOrderByFullNameAsc(
+        ProfileVisibility visibility,
+        Pageable pageable
+    );
 }

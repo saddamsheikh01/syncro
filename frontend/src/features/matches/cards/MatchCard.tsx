@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import {
+  resolveMatchDomainScores,
+} from "@/lib/matchDomains";
 import type { UserMatchResponse } from "@/types/matches";
 
 const DEFAULT_MATCH_DESCRIPTION =
@@ -45,6 +48,9 @@ export interface MatchCardProps
   href?: string;
   onPress?: () => void;
   onOpen?: () => void;
+  showDomainTag?: boolean;
+  showScore?: boolean;
+  descriptionOverride?: string | null;
 }
 
 const resolveName = (match: UserMatchResponse) =>
@@ -54,23 +60,6 @@ const resolveName = (match: UserMatchResponse) =>
 
 const resolveLocation = (match: UserMatchResponse) =>
   [match.user?.city, match.user?.country].filter(Boolean).join(", ");
-
-const resolveCategory = (match: UserMatchResponse) => {
-  const breakdown = match.breakdown as Record<string, unknown> | null;
-  const domains = (breakdown?.domains ?? {}) as Record<string, number | null>;
-  const entries = Object.entries(domains).filter(([, value]) => typeof value === "number");
-  if (entries.length === 0) return "Connections";
-  const [topKey] = entries.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
-  const labelMap: Record<string, string> = {
-    work: "Work",
-    friendship: "Friends",
-    love: "Relationships",
-    projects: "Goals",
-    hobby: "Share Interests",
-    growth: "Learn & Grow",
-  };
-  return labelMap[topKey] ?? "Connections";
-};
 
 const getInitials = (name?: string) => {
   if (!name) return "?";
@@ -85,14 +74,19 @@ export const MatchCard = ({
   href,
   onPress,
   onOpen,
+  showDomainTag = true,
+  showScore = true,
+  descriptionOverride,
   className,
   ...props
 }: MatchCardProps) => {
   const name = resolveName(match);
   const location = resolveLocation(match);
-  const category = resolveCategory(match);
+  const domainScores = showDomainTag
+    ? resolveMatchDomainScores(match.breakdown)
+    : [];
   const score = Math.round(match.scoreTotal ?? 0);
-  const description = resolveDescription(match.explanation);
+  const description = descriptionOverride ?? resolveDescription(match.explanation);
   const imageUrl = match.user?.avatarUrl ?? null;
   const initials = getInitials(name);
 
@@ -116,20 +110,39 @@ export const MatchCard = ({
             {initials}
           </div>
         )}
-        <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm">
-          {score}%
-        </div>
+        {showScore ? (
+          <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm">
+            {score}%
+          </div>
+        ) : (
+          <div className="absolute right-3 top-3 rounded-full border border-border/70 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-subtle shadow-sm">
+            No match
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-sm font-semibold text-foreground">{name}</p>
           {location ? <span className="text-xs text-subtle">{location}</span> : null}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">
-            {score}% {category}
-          </span>
-        </div>
+        {domainScores.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {domainScores.map((domain, index) => (
+              <span
+                key={domain.domain}
+                title={`${domain.label}: ${Math.round(domain.score)}%`}
+                className={cx(
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  index === 0
+                    ? "bg-accent-soft text-accent"
+                    : "bg-surface-muted text-foreground"
+                )}
+              >
+                {domain.emoji} {Math.round(domain.score)}%
+              </span>
+            ))}
+          </div>
+        ) : null}
         <p className="line-clamp-2 text-xs text-muted">{description}</p>
         <div className="mt-auto flex items-center justify-between text-[11px] text-subtle">
           <span>View Profile</span>

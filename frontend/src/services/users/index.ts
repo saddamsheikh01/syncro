@@ -14,7 +14,7 @@ import type { PostResponse } from "../../types/social";
 import type { PageResponse } from "../../types/shared";
 
 export type UserSearchParams = {
-  q: string;
+  q?: string;
   page?: number;
   size?: number;
 };

@@ -50,7 +50,7 @@ public class ProfileController {
     @GetMapping("/search")
     @Operation(summary = "Search users by name, username or city")
     public ResponseEntity<Page<UserSummaryResponse>> searchUsers(
-        @RequestParam String q,
+        @RequestParam(required = false, defaultValue = "") String q,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {

@@ -32,6 +32,7 @@ public class UserProfileMapper {
             profile.getGoalsText(),
             profile.getValuesText(),
             profile.getZyraRecap(),
+            profile.getGender() != null ? profile.getGender().name() : null,
             profile.getRelationshipStatus() != null ? profile.getRelationshipStatus().name() : null,
             profile.getOrientation() != null ? profile.getOrientation().name() : null,
             profile.getChildrenStatus() != null ? profile.getChildrenStatus().name() : null,

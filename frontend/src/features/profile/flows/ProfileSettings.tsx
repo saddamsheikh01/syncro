@@ -119,6 +119,51 @@ const ORIENTATION_OPTIONS: SelectOption[] = [
   { value: "OTHER", label: "Other" },
 ];
 
+const PROFILE_GENDER_OPTIONS: SelectOption[] = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+  { value: "NON_BINARY", label: "Non-binary" },
+  { value: "OTHER", label: "Other" },
+  { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
+];
+
+const MATCH_GENDER_OPTIONS: SelectOption[] = [
+  { value: "ANY", label: "Any" },
+  { value: "FEMALE", label: "Women" },
+  { value: "MALE", label: "Men" },
+  { value: "NON_BINARY", label: "Non-binary" },
+  { value: "OTHER", label: "Other" },
+];
+
+const GEO_AVAILABILITY_OPTIONS: SelectOption[] = [
+  { value: "MIXED", label: "Mixed (in-person + remote)" },
+  { value: "IN_PERSON", label: "In person only" },
+  { value: "REMOTE", label: "Remote only" },
+];
+
+const DOMAIN_LABELS = {
+  love: "Love",
+  friendship: "Friendship",
+  work: "Work",
+  projects: "Projects",
+  hobby: "Hobby & Experiences",
+  growth: "Growth & Mentorship",
+} as const;
+
+type MatchDomainKey = keyof typeof DOMAIN_LABELS;
+type DomainFlags = Record<MatchDomainKey, boolean>;
+
+const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
+  love: true,
+  friendship: true,
+  work: true,
+  projects: true,
+  hobby: true,
+  growth: true,
+};
+
+const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
+
 export interface ProfileSettingsProps {
   title?: string;
   subtitle?: string;
@@ -170,6 +215,7 @@ export const ProfileSettings = ({
   const [dislikesText, setDislikesText] = useState("");
   const [goalsText, setGoalsText] = useState("");
   const [valuesText, setValuesText] = useState("");
+  const [profileGender, setProfileGender] = useState("");
   const [relationshipStatus, setRelationshipStatus] = useState("");
   const [orientation, setOrientation] = useState("");
   const [childrenStatus, setChildrenStatus] = useState("");
@@ -191,8 +237,10 @@ export const ProfileSettings = ({
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
   const [distanceKm, setDistanceKm] = useState("");
-  const [gender, setGender] = useState("ANY");
-  const [sharedInterests, setSharedInterests] = useState(true);
+  const [matchGender, setMatchGender] = useState("ANY");
+  const [locationCityFilter, setLocationCityFilter] = useState("");
+  const [locationCountryFilter, setLocationCountryFilter] = useState("");
+  const [geoAvailability, setGeoAvailability] = useState("MIXED");
   const [feedRadiusKm, setFeedRadiusKm] = useState("");
   const [feedOnlyNearby, setFeedOnlyNearby] = useState(true);
   const [feedAutoTranslate, setFeedAutoTranslate] = useState(true);
@@ -251,6 +299,7 @@ export const ProfileSettings = ({
       dislikesText !== (profile?.dislikesText ?? "") ||
       goalsText !== (profile?.goalsText ?? "") ||
       valuesText !== (profile?.valuesText ?? "") ||
+      profileGender !== (profile?.gender ?? "") ||
       relationshipStatus !== (profile?.relationshipStatus ?? "") ||
       orientation !== (profile?.orientation ?? "") ||
       childrenStatus !== (profile?.childrenStatus ?? "") ||
@@ -269,9 +318,11 @@ export const ProfileSettings = ({
       ageMin !== (readNumber(storedFilters.ageMin)?.toString() ?? "") ||
       ageMax !== (readNumber(storedFilters.ageMax)?.toString() ?? "") ||
       distanceKm !== (readNumber(storedFilters.distanceKm)?.toString() ?? "") ||
-      gender !== (readString(storedFilters.gender) ?? "ANY") ||
-      sharedInterests !==
-        (readBoolean(storedFilters.sharedInterests) ?? true) ||
+      matchGender !== (readString(storedFilters.gender) ?? "ANY") ||
+      locationCityFilter !== (readString(storedFilters.locationCity) ?? "") ||
+      locationCountryFilter !==
+        (readString(storedFilters.locationCountry) ?? "") ||
+      geoAvailability !== (readString(storedFilters.geoAvailability) ?? "MIXED") ||
       feedRadiusKm !== (readNumber(storedFeed.radiusKm)?.toString() ?? "") ||
       feedOnlyNearby !== (readBoolean(storedFeed.onlyNearby) ?? true) ||
       feedAutoTranslate !== (readBoolean(storedFeed.autoTranslate) ?? true);
@@ -300,6 +351,7 @@ export const ProfileSettings = ({
     dislikesText,
     goalsText,
     valuesText,
+    profileGender,
     relationshipStatus,
     orientation,
     childrenStatus,
@@ -307,8 +359,10 @@ export const ProfileSettings = ({
     ageMin,
     ageMax,
     distanceKm,
-    gender,
-    sharedInterests,
+    matchGender,
+    locationCityFilter,
+    locationCountryFilter,
+    geoAvailability,
     feedRadiusKm,
     feedOnlyNearby,
     feedAutoTranslate,
@@ -358,6 +412,7 @@ export const ProfileSettings = ({
     setDislikesText(profile.dislikesText ?? "");
     setGoalsText(profile.goalsText ?? "");
     setValuesText(profile.valuesText ?? "");
+    setProfileGender(profile.gender ?? "");
     setRelationshipStatus(profile.relationshipStatus ?? "");
     setOrientation(profile.orientation ?? "");
     setChildrenStatus(profile.childrenStatus ?? "");
@@ -379,8 +434,10 @@ export const ProfileSettings = ({
     setAgeMin(readNumber(storedFilters.ageMin)?.toString() ?? "");
     setAgeMax(readNumber(storedFilters.ageMax)?.toString() ?? "");
     setDistanceKm(readNumber(storedFilters.distanceKm)?.toString() ?? "");
-    setGender(readString(storedFilters.gender) ?? "ANY");
-    setSharedInterests(readBoolean(storedFilters.sharedInterests) ?? true);
+    setMatchGender(readString(storedFilters.gender) ?? "ANY");
+    setLocationCityFilter(readString(storedFilters.locationCity) ?? "");
+    setLocationCountryFilter(readString(storedFilters.locationCountry) ?? "");
+    setGeoAvailability(readString(storedFilters.geoAvailability) ?? "MIXED");
 
     setFeedRadiusKm(readNumber(storedFeed.radiusKm)?.toString() ?? "");
     setFeedOnlyNearby(readBoolean(storedFeed.onlyNearby) ?? true);
@@ -592,6 +649,7 @@ export const ProfileSettings = ({
       dislikesText: trimmedDislikes,
       goalsText: trimmedGoals,
       valuesText: trimmedValues,
+      gender: profileGender || null,
       relationshipStatus,
       orientation,
       childrenStatus,
@@ -639,8 +697,15 @@ export const ProfileSettings = ({
       ageMin: minAgeValue,
       ageMax: maxAgeValue,
       distanceKm: distanceValue,
-      gender,
-      sharedInterests,
+      gender: matchGender,
+      locationCity: locationCityFilter.trim() || null,
+      locationCountry: locationCountryFilter.trim() || null,
+      geoAvailability,
+      openToNewConnections: true,
+      activeDomains: {
+        ...DEFAULT_ACTIVE_DOMAINS,
+      } as JsonObject,
+      sharedInterests: true,
     };
 
     const feedPreferences: JsonObject = {
@@ -1230,6 +1295,13 @@ export const ProfileSettings = ({
                 placeholder="E.g. A genuine relationship, meaningful connections"
               />
               <Select
+                label="Gender identity"
+                value={profileGender}
+                onValueChange={setProfileGender}
+                options={PROFILE_GENDER_OPTIONS}
+                placeholder="Select gender"
+              />
+              <Select
                 label="Sexual orientation"
                 value={orientation}
                 onValueChange={setOrientation}
@@ -1260,6 +1332,107 @@ export const ProfileSettings = ({
               onClick={handleSaveProfile}
             >
               Save profile
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      <section id="match-preferences" className="space-y-4">
+        <SectionHeader
+          title="Match contexts & hard filters"
+          subtitle="Hard filters define visibility. Domains define compatibility scoring."
+        />
+        <Card className="space-y-5 p-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Minimum age"
+              type="number"
+              min={18}
+              value={ageMin}
+              onChange={(event) => setAgeMin(event.target.value)}
+              placeholder="18"
+            />
+            <Input
+              label="Maximum age"
+              type="number"
+              min={18}
+              value={ageMax}
+              onChange={(event) => setAgeMax(event.target.value)}
+              placeholder="45"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Maximum distance (km)"
+              type="number"
+              min={0}
+              value={distanceKm}
+              onChange={(event) => setDistanceKm(event.target.value)}
+              placeholder="25"
+            />
+            <Select
+              label="Availability"
+              value={geoAvailability}
+              onValueChange={setGeoAvailability}
+              options={GEO_AVAILABILITY_OPTIONS}
+              placeholder="Select availability"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="City filter (optional)"
+              value={locationCityFilter}
+              onChange={(event) => setLocationCityFilter(event.target.value)}
+              placeholder="E.g. Milan"
+            />
+            <Input
+              label="Country filter (optional)"
+              value={locationCountryFilter}
+              onChange={(event) =>
+                setLocationCountryFilter(event.target.value)
+              }
+              placeholder="E.g. Italy"
+            />
+          </div>
+
+          <Select
+            label="Preferred gender (hard filter)"
+            value={matchGender}
+            onValueChange={setMatchGender}
+            options={MATCH_GENDER_OPTIONS}
+            placeholder="Select preference"
+          />
+
+          <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
+            <p className="text-sm font-semibold text-foreground">
+              Match domains
+            </p>
+            <p className="text-xs text-muted">
+              All domains are always active.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {DOMAIN_KEYS.map((domainKey) => (
+                <span
+                  key={domainKey}
+                  className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-foreground"
+                >
+                  {DOMAIN_LABELS[domainKey]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={preferencesSaving}
+              loadingText="Saving"
+              onClick={handleSavePreferences}
+            >
+              Save match preferences
             </Button>
           </div>
         </Card>

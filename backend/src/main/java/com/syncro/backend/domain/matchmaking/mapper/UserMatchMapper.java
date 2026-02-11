@@ -12,6 +12,7 @@ public class UserMatchMapper {
     public UserMatchResponse toResponse(
         UserMatchScore matchScore,
         UUID currentUserId,
+        Integer scoreTotal,
         String explanation,
         UserSummaryResponse userSummary
     ) {
@@ -20,7 +21,7 @@ public class UserMatchMapper {
             matchScore.getId(),
             otherUserId,
             userSummary,
-            matchScore.getScoreTotal(),
+            scoreTotal != null ? scoreTotal : matchScore.getScoreTotal(),
             matchScore.getBreakdown(),
             explanation,
             matchScore.getCreatedAt(),

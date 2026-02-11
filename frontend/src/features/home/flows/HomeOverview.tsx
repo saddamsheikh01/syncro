@@ -13,10 +13,13 @@ import { LocationRequestModal } from "@/features/home/sections/LocationRequestMo
 import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingProgressCard";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
+import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
 import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
 import { resolveTestCopy } from "@/lib/insightsCopy";
+import { getDomainFilterItems } from "@/lib/matchDomains";
+import type { DomainFilter } from "@/lib/matchDomains";
 import type { UserMatchResponse } from "@/types/matches";
 import {
   useAuth,
@@ -33,7 +36,7 @@ import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 const RECO_PAGE_SIZE = 8;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
 const DISTANCE_EPSILON = 0.000001;
-
+const HOME_MATCH_DOMAIN_FILTER_ITEMS = getDomainFilterItems();
 
 export const HomeOverview = () => {
   const router = useRouter();
@@ -80,6 +83,7 @@ export const HomeOverview = () => {
   const locationFetchRef = useRef<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationModalLoading, setLocationModalLoading] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState<DomainFilter>("ALL");
 
   useEffect(() => {
     authActions.hydrate();
@@ -98,9 +102,6 @@ export const HomeOverview = () => {
     positionActions.fetchPosition().catch(() => undefined);
 
     matchesActions
-      .fetchUserMatches({ size: 5 })
-      .catch(() => undefined);
-    matchesActions
       .fetchRecommendations({ size: RECO_PAGE_SIZE })
       .catch(() => undefined);
 
@@ -117,6 +118,16 @@ export const HomeOverview = () => {
     testsActions,
     chatActions,
   ]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    matchesActions
+      .fetchUserMatches({
+        size: 5,
+        domain: selectedDomain === "ALL" ? undefined : selectedDomain,
+      })
+      .catch(() => undefined);
+  }, [matchesActions, selectedDomain, status]);
 
   useEffect(() => {
     if (
@@ -303,16 +314,6 @@ export const HomeOverview = () => {
       }
     });
 
-    const categoryToneMap: Record<string, string> = {
-      Work: "bg-emerald-50 text-emerald-700",
-      Friends: "bg-amber-50 text-amber-700",
-      "Learn&Grow": "bg-indigo-50 text-indigo-700",
-      Relationships: "bg-rose-50 text-rose-700",
-      Goals: "bg-teal-50 text-teal-700",
-      "Share Interests": "bg-sky-50 text-sky-700",
-      Connections: "bg-slate-100 text-slate-600",
-    };
-
     return conversations.slice(0, 3).map((conversation) => {
       const otherParticipant = conversation.participants?.find(
         (participant) => participant.userId !== user?.id
@@ -326,22 +327,6 @@ export const HomeOverview = () => {
         : undefined;
       const score =
         match?.scoreTotal != null ? Math.round(match.scoreTotal) : null;
-      const breakdown = match?.breakdown as Record<string, unknown> | null;
-      const domains = (breakdown?.domains ?? {}) as Record<string, number | null>;
-      const entries = Object.entries(domains).filter(([, value]) => typeof value === "number");
-      const [topKey] = entries.length
-        ? entries.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0]
-        : [];
-      const labelMap: Record<string, string> = {
-        work: "Work",
-        friendship: "Friends",
-        love: "Relationships",
-        projects: "Goals",
-        hobby: "Share Interests",
-        growth: "Learn&Grow",
-      };
-      const category = topKey ? labelMap[topKey] ?? "Connections" : "Connections";
-      const categoryTone = categoryToneMap[category] ?? categoryToneMap.Connections;
       const unreadCount = (conversation as { unreadCount?: number }).unreadCount;
       return {
         id: conversation.id,
@@ -349,8 +334,6 @@ export const HomeOverview = () => {
         avatarUrl,
         message,
         score,
-        category,
-        categoryTone,
         unreadCount,
       };
     });
@@ -372,32 +355,19 @@ export const HomeOverview = () => {
           actionHref="/matches"
         />
 
-        {/* TODO: filtri match — da implementare con logica reale
-        <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-muted">
-          <span className="font-semibold text-foreground">Fine-Tune</span>
-          <span>Age Range</span>
-          <span className="text-subtle">30 - 40</span>
-          <span>Nearby</span>
-          <span className="text-subtle">Anywhere</span>
-          <span>Distance</span>
-          <span className="text-subtle">10 Km</span>
-          <span>Gender</span>
-          <span className="text-subtle">All</span>
-          <span>Interested In</span>
-          <span className="text-subtle">All</span>
-        </div>
-
         <div className="flex flex-wrap gap-2">
-          {["Work", "Goals", "Friends", "Share Interests", "Learn & Grow", "Relationships"].map((label) => (
-            <span
-              key={label}
-              className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
-            >
-              {label}
-            </span>
+          {HOME_MATCH_DOMAIN_FILTER_ITEMS.map((domain) => (
+            <MatchTypeChip
+              key={domain.id}
+              label={domain.label}
+              selected={selectedDomain === domain.id}
+              onToggleState={(nextSelected) => {
+                if (!nextSelected) return;
+                setSelectedDomain(domain.id);
+              }}
+            />
           ))}
         </div>
-        */}
 
         {loadingUserMatches && userMatches.length === 0 ? (
           <Card className="flex items-center gap-3 p-4">
@@ -647,9 +617,6 @@ export const HomeOverview = () => {
                         <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 shadow-sm">
                           <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
                             {conversation.score}%
-                          </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${conversation.categoryTone}`}>
-                            {conversation.category}
                           </span>
                         </div>
                       ) : null}

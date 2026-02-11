@@ -4,6 +4,7 @@ import { Card } from "@/components/elements/Card";
 import { ProgressBar, type ProgressBarTone } from "@/components/elements/ProgressBar";
 import type { DimensionScores, MatchBreakdown } from "@/types/matches";
 import { cx } from "@/lib/classNames";
+import { resolveMatchDomainSlots } from "@/lib/matchDomains";
 
 const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
   interests: { label: "Interests", emoji: "💫" },
@@ -44,6 +45,43 @@ const DimensionItem = ({ emoji, label, value }: DimensionItemProps) => {
   );
 };
 
+interface DomainItemProps {
+  emoji: string;
+  label: string;
+  value: number | null;
+  missing: boolean;
+}
+
+const DomainItem = ({ emoji, label, value, missing }: DomainItemProps) => {
+  const normalized = value == null ? 0 : value;
+  const tone = missing ? "neutral" : getProgressTone(normalized);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span
+          className={cx(
+            "flex items-center gap-1.5 text-xs font-medium",
+            missing ? "text-subtle" : "text-foreground"
+          )}
+        >
+          <span>{emoji}</span>
+          {label}
+        </span>
+        <span
+          className={cx(
+            "text-xs font-semibold",
+            missing ? "text-subtle" : "text-foreground"
+          )}
+        >
+          {missing ? null : `${Math.round(normalized)}%`}
+        </span>
+      </div>
+      <ProgressBar value={normalized} tone={tone} size="sm" />
+    </div>
+  );
+};
+
 
 export interface MatchBreakdownCardProps {
   breakdown?: MatchBreakdown | null;
@@ -55,7 +93,8 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
     return null;
   }
 
-  const { dimensions, completeness, availableDimensions, totalDimensions } = breakdown;
+  const { dimensions, completeness, availableDimensions, totalDimensions, loveReciprocal } = breakdown;
+  const domainSlots = resolveMatchDomainSlots(breakdown);
 
   // Separa dimensioni disponibili e mancanti
   // Normalizza i valori negativi a 0
@@ -68,12 +107,40 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
     .map((key) => DIMENSION_CONFIG[key].label);
 
   // Se non c'e nulla, non mostrare
-  if (availableDims.length === 0) {
+  if (availableDims.length === 0 && domainSlots.length === 0) {
     return null;
   }
 
   return (
     <div className={cx("space-y-4", className)}>
+      {domainSlots.length > 0 && (
+        <Card>
+          <div className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                Domain fit
+              </h4>
+              {typeof loveReciprocal === "boolean" ? (
+                <span className="text-[11px] text-muted">
+                  Love reciprocity: {loveReciprocal ? "Yes" : "No"}
+                </span>
+              ) : null}
+            </div>
+            <div className="space-y-3">
+              {domainSlots.map((domain) => (
+                <DomainItem
+                  key={domain.domain}
+                  emoji={domain.emoji}
+                  label={domain.label}
+                  value={domain.score}
+                  missing={domain.missing}
+                />
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Dimensioni analizzate */}
       {availableDims.length > 0 && (
         <Card>

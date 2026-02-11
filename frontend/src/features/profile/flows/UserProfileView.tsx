@@ -13,7 +13,8 @@ import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { MatchBreakdownCard } from "@/features/matches/sections/MatchBreakdownCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { TestCountCard } from "@/components/ui/TestCountCard";
-import { useAnalytics, useAuth, useChat } from "@/hooks";
+import { MATCH_DOMAIN_ORDER, getMatchDomainMeta } from "@/lib/matchDomains";
+import { useAnalytics, useAuth, useChat, useUser } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserTestsCount } from "@/services/insights";
 import { getUserPosts, getUserProfile } from "@/services/users";
@@ -23,6 +24,7 @@ import type { PostReactionType } from "@/types/social";
 import type { UserPublicProfileResponse } from "@/types/profile";
 import type { PostResponse } from "@/types/social";
 import type { UserMatchResponse, MatchBreakdown, DimensionScores, DomainScores } from "@/types/matches";
+import type { JsonValue } from "@/types/shared";
 
 const PAGE_SIZE = 6;
 
@@ -31,8 +33,14 @@ const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | n
   return {
     dimensions: raw.dimensions as DimensionScores | undefined,
     domains: raw.domains as DomainScores | undefined,
+    activeDomains: raw.activeDomains as Record<string, boolean> | undefined,
+    domainWeights: raw.domainWeights as Record<string, number> | undefined,
     sharedTags: raw.sharedTags as string[] | number | undefined,
     distanceKm: raw.distanceKm as number | undefined,
+    completeness: raw.completeness as number | undefined,
+    availableDimensions: raw.availableDimensions as number | undefined,
+    totalDimensions: raw.totalDimensions as number | undefined,
+    loveReciprocal: raw.loveReciprocal as boolean | undefined,
   };
 };
 
@@ -60,6 +68,26 @@ const CHILDREN_LABELS: Record<string, string> = {
   DOES_NOT_WANT: "Does not want children",
   UNDECIDED: "Undecided",
 };
+
+const MATCH_GENDER_LABELS: Record<string, string> = {
+  ANY: "Any",
+  FEMALE: "Women",
+  MALE: "Men",
+  NON_BINARY: "Non-binary",
+  OTHER: "Other",
+};
+
+const GEO_AVAILABILITY_LABELS: Record<string, string> = {
+  MIXED: "Mixed",
+  IN_PERSON: "In person",
+  REMOTE: "Remote",
+};
+
+const readNumber = (value: JsonValue | undefined) =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const readString = (value: JsonValue | undefined) =>
+  typeof value === "string" ? value : undefined;
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === "object" && "message" in error) {
@@ -132,6 +160,7 @@ export interface UserProfileViewProps {
 export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
+  const { preferences, actions: userActions } = useUser();
   const { actions: chatActions, loadingConversations } = useChat();
   const { actions: analyticsActions } = useAnalytics();
 
@@ -158,6 +187,12 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     authActions.hydrate();
     authActions.fetchMe().catch(() => undefined);
   }, [authActions]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (preferences) return;
+    userActions.fetchPreferences().catch(() => undefined);
+  }, [status, preferences, userActions]);
 
   // Traccia PROFILE_VIEWED quando il profilo è caricato
   useEffect(() => {
@@ -320,6 +355,125 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     () => resolveMatchExplanation(match?.explanation),
     [match?.explanation]
   );
+  const parsedBreakdown = useMemo(
+    () => parseBreakdown((match?.breakdown as Record<string, unknown> | null) ?? null),
+    [match?.breakdown]
+  );
+  const currentFilters = useMemo(
+    () => (preferences?.matchmakingFilters ?? {}) as Record<string, JsonValue>,
+    [preferences?.matchmakingFilters]
+  );
+  const activeFilterDomains = useMemo(
+    () => MATCH_DOMAIN_ORDER.map((domain) => getMatchDomainMeta(domain)),
+    []
+  );
+  const matchFilterItems = useMemo(() => {
+    const ageMin = readNumber(currentFilters.ageMin);
+    const ageMax = readNumber(currentFilters.ageMax);
+    const preferredGender = readString(currentFilters.gender) ?? "ANY";
+    const city = readString(currentFilters.locationCity)?.trim();
+    const country = readString(currentFilters.locationCountry)?.trim();
+    const distanceKm = readNumber(currentFilters.distanceKm);
+    const availability = readString(currentFilters.geoAvailability) ?? "MIXED";
+
+    const ageLabel =
+      ageMin != null || ageMax != null
+        ? `${ageMin != null ? ageMin : "Any"}-${ageMax != null ? ageMax : "Any"}`
+        : "Any";
+
+    const locationLabel =
+      city || country
+        ? [city, country].filter(Boolean).join(", ")
+        : "Any location";
+
+    return [
+      { label: "Age range", value: ageLabel },
+      {
+        label: "Preferred gender",
+        value: MATCH_GENDER_LABELS[preferredGender] ?? preferredGender,
+      },
+      {
+        label: "Distance",
+        value: distanceKm != null && distanceKm > 0 ? `Within ${distanceKm} km` : "Any distance",
+      },
+      {
+        label: "Availability",
+        value: GEO_AVAILABILITY_LABELS[availability] ?? availability,
+      },
+      {
+        label: "Location filter",
+        value: locationLabel,
+      },
+    ];
+  }, [currentFilters]);
+  const matchContextItems = useMemo(() => {
+    if (!parsedBreakdown) return [];
+
+    const sharedTagsRaw = parsedBreakdown.sharedTags;
+    const sharedCount = Array.isArray(sharedTagsRaw)
+      ? sharedTagsRaw.length
+      : typeof sharedTagsRaw === "number"
+        ? sharedTagsRaw
+        : null;
+
+    const items: Array<{ label: string; value: string }> = [];
+    if (sharedCount != null) {
+      items.push({
+        label: "Shared interests found",
+        value: `${sharedCount}`,
+      });
+    }
+    if (
+      typeof parsedBreakdown.distanceKm === "number" &&
+      Number.isFinite(parsedBreakdown.distanceKm)
+    ) {
+      items.push({
+        label: "Distance",
+        value: `${parsedBreakdown.distanceKm.toFixed(1)} km`,
+      });
+    }
+    if (typeof parsedBreakdown.loveReciprocal === "boolean") {
+      items.push({
+        label: "Love reciprocity",
+        value: parsedBreakdown.loveReciprocal ? "Mutual" : "Not reciprocal",
+      });
+    }
+    if (
+      typeof parsedBreakdown.availableDimensions === "number" &&
+      typeof parsedBreakdown.totalDimensions === "number"
+    ) {
+      items.push({
+        label: "Data completeness",
+        value: `${parsedBreakdown.availableDimensions}/${parsedBreakdown.totalDimensions} dimensions`,
+      });
+    }
+    return items;
+  }, [parsedBreakdown]);
+  const resolvedMatchScore = useMemo(() => {
+    if (!parsedBreakdown?.domains) {
+      return match?.scoreTotal ?? undefined;
+    }
+
+    let sum = 0;
+    let count = 0;
+
+    for (const domain of MATCH_DOMAIN_ORDER) {
+      const meta = getMatchDomainMeta(domain);
+      const score = parsedBreakdown.domains[meta.key];
+      if (typeof score !== "number" || !Number.isFinite(score)) {
+        continue;
+      }
+
+      sum += score;
+      count += 1;
+    }
+
+    if (count === 0) {
+      return match?.scoreTotal ?? undefined;
+    }
+
+    return Math.round(sum / count);
+  }, [match?.scoreTotal, parsedBreakdown]);
 
 
   const updatePost = useCallback(
@@ -543,7 +697,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         companyName={profile.companyName ?? undefined}
         bio={hasExtendedContent ? undefined : profile.bio ?? undefined}
         avatarUrl={profile.avatarUrl ?? undefined}
-        matchScore={match?.scoreTotal ?? undefined}
+        matchScore={resolvedMatchScore}
       />
 
       {hasExtendedContent ? (
@@ -629,8 +783,8 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
                 Current compatibility
               </h3>
             </div>
-            {match?.scoreTotal != null ? (
-              <MatchScoreBadge score={match.scoreTotal} />
+            {typeof resolvedMatchScore === "number" ? (
+              <MatchScoreBadge score={resolvedMatchScore} />
             ) : null}
           </div>
           {matchLoading ? (
@@ -645,8 +799,63 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
               {matchExplanation ? (
                 <p className="text-sm text-muted">{matchExplanation}</p>
               ) : null}
+              <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-subtle">
+                    Match context
+                  </p>
+                  <p className="text-sm text-muted">
+                    Why this profile is compatible with your current settings.
+                  </p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {matchFilterItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[var(--radius-sm)] border border-border/60 bg-background px-3 py-2"
+                    >
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
+                        {item.label}
+                      </p>
+                      <p className="text-sm font-semibold text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {activeFilterDomains.length > 0 ? (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
+                      Active match domains
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeFilterDomains.map((domain) => (
+                        <span
+                          key={domain.domain}
+                          className="inline-flex items-center rounded-full bg-background px-2 py-0.5 text-xs font-semibold text-foreground"
+                        >
+                          {domain.emoji} {domain.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {matchContextItems.length > 0 ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {matchContextItems.map((item) => (
+                      <div key={item.label} className="rounded-[var(--radius-sm)] bg-background px-3 py-2">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
+                          {item.label}
+                        </p>
+                        <p className="text-sm font-semibold text-foreground">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <MatchBreakdownCard
-                breakdown={parseBreakdown(match.breakdown as Record<string, unknown> | null)}
+                breakdown={parsedBreakdown}
               />
             </>
           ) : (

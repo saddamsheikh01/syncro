@@ -35,26 +35,29 @@ public class UserMatchesController {
         @AuthenticationPrincipal UserPrincipal principal,
         @RequestParam(defaultValue = "false") boolean refresh,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String domain
     ) {
-        return ResponseEntity.ok(userMatchService.getMatches(principal, refresh, page, size));
+        return ResponseEntity.ok(userMatchService.getMatches(principal, refresh, page, size, domain));
     }
 
     @GetMapping("/{userId}")
     @Operation(summary = "Dettaglio match con utente")
     public ResponseEntity<UserMatchResponse> getMatchWithUser(
         @AuthenticationPrincipal UserPrincipal principal,
-        @PathVariable UUID userId
+        @PathVariable UUID userId,
+        @RequestParam(required = false) String domain
     ) {
-        return ResponseEntity.ok(userMatchService.getMatchWithUser(principal, userId));
+        return ResponseEntity.ok(userMatchService.getMatchWithUser(principal, userId, domain));
     }
 
     @PostMapping("/{userId}/refresh")
     @Operation(summary = "Ricalcola match con utente")
     public ResponseEntity<UserMatchResponse> refreshMatchWithUser(
         @AuthenticationPrincipal UserPrincipal principal,
-        @PathVariable UUID userId
+        @PathVariable UUID userId,
+        @RequestParam(required = false) String domain
     ) {
-        return ResponseEntity.ok(userMatchService.refreshMatchWithUser(principal, userId));
+        return ResponseEntity.ok(userMatchService.refreshMatchWithUser(principal, userId, domain));
     }
 }

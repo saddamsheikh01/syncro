@@ -1,5 +1,6 @@
 import type { ApiError } from "../../types/api";
 import type {
+  MatchDomain,
   RecommendationResponse,
   UserMatchResponse,
 } from "../../types/matches";
@@ -99,11 +100,14 @@ export const matchesActions = {
     }
   },
 
-  refreshMatch: async (userId: string): Promise<UserMatchResponse> => {
+  refreshMatch: async (
+    userId: string,
+    params: { domain?: MatchDomain } = {}
+  ): Promise<UserMatchResponse> => {
     matchesStore.setState({ loadingUserMatches: true, error: null });
 
     try {
-      const updatedMatch = await refreshUserMatch(userId);
+      const updatedMatch = await refreshUserMatch(userId, params);
       matchesStore.setState((state) => ({
         userMatches: state.userMatches.map((m) =>
           m.userId === userId ? updatedMatch : m

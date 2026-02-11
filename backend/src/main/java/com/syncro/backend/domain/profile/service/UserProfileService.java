@@ -11,6 +11,7 @@ import com.syncro.backend.domain.profile.dto.UserProfileRequest;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
 import com.syncro.backend.domain.profile.entity.ChildrenStatus;
+import com.syncro.backend.domain.profile.entity.Gender;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.RelationshipStatus;
 import com.syncro.backend.domain.profile.entity.UserProfile;
@@ -110,6 +111,9 @@ public class UserProfileService {
         if (request.zyraRecap() != null) {
             profile.setZyraRecap(normalizeOptionalText(request.zyraRecap()));
         }
+        if (request.gender() != null) {
+            profile.setGender(parseGender(request.gender()));
+        }
         if (request.relationshipStatus() != null) {
             profile.setRelationshipStatus(parseRelationshipStatus(request.relationshipStatus()));
         }
@@ -169,10 +173,22 @@ public class UserProfileService {
 
     @Transactional(readOnly = true)
     public Page<UserSummaryResponse> searchUsers(String q, Pageable pageable) {
-        if (q == null || q.trim().length() < 2) {
+        String normalized = q == null ? "" : q.trim();
+
+        if (normalized.isEmpty()) {
+            return profileRepository
+                .findByVisibilityOrderByFullNameAsc(ProfileVisibility.PUBLIC, pageable)
+                .map(profile -> {
+                    UUID userId = profile.getUser().getId();
+                    String avatarUrl = resolveAvatarUrl(userId);
+                    return profileMapper.toSummary(userId, profile.getUser().getUsername(), profile, avatarUrl);
+                });
+        }
+
+        if (normalized.length() < 2) {
             return Page.empty(pageable);
         }
-        return profileRepository.searchByNameOrCity(q.trim(), ProfileVisibility.PUBLIC, pageable)
+        return profileRepository.searchByNameOrCity(normalized, ProfileVisibility.PUBLIC, pageable)
             .map(profile -> {
                 UUID userId = profile.getUser().getId();
                 String avatarUrl = resolveAvatarUrl(userId);
@@ -199,6 +215,14 @@ public class UserProfileService {
             return null;
         }
         return RelationshipStatus.valueOf(normalized.toUpperCase(Locale.ROOT));
+    }
+
+    private Gender parseGender(String gender) {
+        String normalized = normalizeOptionalText(gender);
+        if (normalized == null) {
+            return null;
+        }
+        return Gender.valueOf(normalized.toUpperCase(Locale.ROOT));
     }
 
     private Orientation parseOrientation(String orientation) {

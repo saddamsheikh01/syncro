@@ -13,20 +13,19 @@ const StatusDot = ({ className }: { className?: string }) => (
   />
 );
 
-export interface RightbarStatusCardProps extends HTMLAttributes<HTMLDivElement> {}
+export type RightbarStatusCardProps = HTMLAttributes<HTMLDivElement>;
 
 export const RightbarStatusCard = ({
   className,
   ...props
 }: RightbarStatusCardProps) => {
-  const { profile, preferences, actions } = useUser();
+  const { profile, actions } = useUser();
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     actions.fetchProfile().catch(() => undefined);
-    actions.fetchPreferences().catch(() => undefined);
   }, [actions]);
 
   const city = profile?.city?.trim();
@@ -39,19 +38,10 @@ export const RightbarStatusCard = ({
     return "Exploration";
   }, [profile?.goalsText]);
 
-  const opennessLabel = useMemo(() => {
-    const filters = (preferences?.matchmakingFilters ?? {}) as Record<
-      string,
-      unknown
-    >;
-    if (filters.openToNewConnections === false) return "Paused";
-    return "Open to new connections";
-  }, [preferences?.matchmakingFilters]);
-
   const items = [
     location ? `Currently in ${location}` : "Currently in Milan",
     `Current focus: ${focusLabel}`,
-    opennessLabel,
+    "Open to new connections",
   ];
 
   return (
