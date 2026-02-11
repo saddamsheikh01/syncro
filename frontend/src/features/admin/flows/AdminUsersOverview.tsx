@@ -10,6 +10,7 @@ import { Select } from "@/components/elements/Select";
 import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   createUser,
   deleteUser,
@@ -24,16 +25,16 @@ import type { UserResponse, UserStatus } from "@/types/auth";
 import type { PageResponse } from "@/types/shared";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Tutti gli stati" },
+  { value: "", label: "All statuses" },
   { value: "ACTIVE", label: "ACTIVE" },
   { value: "SUSPENDED", label: "SUSPENDED" },
   { value: "DELETED", label: "DELETED" },
 ];
 
 const ONBOARDING_OPTIONS = [
-  { value: "", label: "Onboarding: tutti" },
-  { value: "true", label: "Completato" },
-  { value: "false", label: "Non completato" },
+  { value: "", label: "Onboarding: all" },
+  { value: "true", label: "Completed" },
+  { value: "false", label: "Not completed" },
 ];
 
 const EDIT_STATUS_OPTIONS = [
@@ -43,8 +44,8 @@ const EDIT_STATUS_OPTIONS = [
 ];
 
 const EDIT_ONBOARDING_OPTIONS = [
-  { value: "true", label: "Completato" },
-  { value: "false", label: "Non completato" },
+  { value: "true", label: "Completed" },
+  { value: "false", label: "Not completed" },
 ];
 
 const toneByStatus = (status: UserStatus) => {
@@ -156,23 +157,23 @@ export const AdminUsersOverview = () => {
       return [];
     }
 
-    return response.content.map((user) => ({
-      id: user.id,
-      email: user.email ?? "-",
-      username: user.username ?? "-",
-      status: <Badge tone={toneByStatus(user.status)}>{user.status}</Badge>,
-      onboarding: user.onboardingCompleted ? "Completato" : "In corso",
-      createdAt: formatDateTime(user.createdAt),
-      actions: (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setSelectedUserId(user.id)}
-        >
-          Gestisci
-        </Button>
-      ),
-    }));
+      return response.content.map((user) => ({
+        id: user.id,
+        email: user.email ?? "-",
+        username: user.username ?? "-",
+        status: <Badge tone={toneByStatus(user.status)}>{user.status}</Badge>,
+        onboarding: user.onboardingCompleted ? "Completed" : "In progress",
+        createdAt: formatDateTime(user.createdAt),
+        actions: (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedUserId(user.id)}
+          >
+            Manage
+          </Button>
+        ),
+      }));
   }, [response]);
 
   const activeInPage = useMemo(
@@ -256,7 +257,7 @@ export const AdminUsersOverview = () => {
     }
 
     const confirmed = window.confirm(
-      "Confermi la disattivazione (soft delete) di questo utente?"
+      "Confirm soft delete for this user?"
     );
     if (!confirmed) {
       return;
@@ -278,15 +279,13 @@ export const AdminUsersOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Utenti applicazione</h1>
-        <p className="mt-1 text-sm text-muted">
-          Monitoraggio utenti, stato account e avanzamento onboarding.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Application users"
+        subtitle="Monitor user accounts, status, and onboarding progress."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Crea nuovo utente</h2>
+        <h2 className="text-base font-semibold text-foreground">Create new user</h2>
         <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleCreateUser}>
           <Input
             label="Email"
@@ -303,14 +302,14 @@ export const AdminUsersOverview = () => {
             required
           />
           <Input
-            label="Lingua"
+            label="Language"
             value={createLanguage}
             onChange={(event) => setCreateLanguage(event.target.value)}
             required
           />
           <div className="flex items-end">
-            <Button type="submit" size="sm" loading={creating} loadingText="Creazione">
-              Crea utente
+            <Button type="submit" size="sm" loading={creating} loadingText="Creating">
+              Create user
             </Button>
           </div>
         </form>
@@ -328,7 +327,7 @@ export const AdminUsersOverview = () => {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca per email"
+            placeholder="Search by email"
           />
           <Select
             value={statusFilter}
@@ -347,7 +346,7 @@ export const AdminUsersOverview = () => {
             }}
           />
           <Button type="submit" size="sm">
-            Applica filtri
+            Apply filters
           </Button>
         </form>
       </Card>
@@ -356,22 +355,22 @@ export const AdminUsersOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Gestione utente selezionato: {selectedUser.email ?? selectedUser.id}
+              Selected user: {selectedUser.email ?? selectedUser.id}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedUserId(null)}>
-              Chiudi
+              Close
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleUpdateSelectedUser}>
             <Input
-              label="Lingua"
+              label="Language"
               value={editLanguage}
               onChange={(event) => setEditLanguage(event.target.value)}
               required
             />
             <Select
-              label="Stato"
+              label="Status"
               value={editStatus}
               options={EDIT_STATUS_OPTIONS}
               onValueChange={(value) => setEditStatus(value as UserStatus)}
@@ -383,19 +382,19 @@ export const AdminUsersOverview = () => {
               onValueChange={setEditOnboarding}
             />
             <div className="flex items-end">
-              <Button type="submit" size="sm" loading={updating} loadingText="Salvataggio">
-                Salva modifiche
+              <Button type="submit" size="sm" loading={updating} loadingText="Saving">
+                Save changes
               </Button>
             </div>
           </form>
 
           <div className="grid gap-3 lg:grid-cols-[1fr,auto,auto]">
             <Input
-              label="Nuova password"
+              label="New password"
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="Minimo 8 caratteri"
+              placeholder="Minimum 8 characters"
             />
             <div className="flex items-end">
               <Button
@@ -403,7 +402,7 @@ export const AdminUsersOverview = () => {
                 variant="outline"
                 onClick={handleResetPassword}
                 loading={resettingPassword}
-                loadingText="Reset"
+                loadingText="Resetting"
                 disabled={!newPassword.trim()}
               >
                 Reset password
@@ -415,19 +414,19 @@ export const AdminUsersOverview = () => {
                 variant="danger"
                 onClick={handleDeleteUser}
                 loading={deleting}
-                loadingText="Eliminazione"
+                loadingText="Deleting"
               >
-                Soft delete utente
+                Soft delete user
               </Button>
             </div>
           </div>
 
           <Card className="p-4">
             <p className="text-sm text-muted">
-              Test completati:{" "}
+              Tests completed:{" "}
               <span className="font-semibold text-foreground">
                 {loadingUserTestsCount
-                  ? "Caricamento..."
+                  ? "Loading..."
                   : formatNumber(userTestsCount ?? 0)}
               </span>
             </p>
@@ -437,38 +436,38 @@ export const AdminUsersOverview = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Totale utenti"
+          label="Total users"
           value={formatNumber(response?.totalElements ?? 0)}
           trend="neutral"
-          trendLabel="Dataset filtrato"
+          trendLabel="Filtered dataset"
         />
         <AdminStatCard
-          label="ACTIVE (pagina)"
+          label="ACTIVE (page)"
           value={formatNumber(activeInPage)}
           trend="neutral"
-          trendLabel="Conteggio pagina corrente"
+          trendLabel="Current page count"
         />
         <AdminStatCard
-          label="Onboarding completato (pagina)"
+          label="Onboarding completed (page)"
           value={formatNumber(completedInPage)}
           trend="neutral"
-          trendLabel="Conteggio pagina corrente"
+          trendLabel="Current page count"
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento utenti...</p>
+          <p className="text-sm text-muted">Loading users...</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore caricamento utenti</p>
+          <p className="text-sm font-semibold text-danger">Unable to load users</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadUsers()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -479,18 +478,18 @@ export const AdminUsersOverview = () => {
             columns={[
               { key: "email", label: "Email" },
               { key: "username", label: "Username" },
-              { key: "status", label: "Stato" },
+              { key: "status", label: "Status" },
               { key: "onboarding", label: "Onboarding" },
-              { key: "createdAt", label: "Creato il" },
-              { key: "actions", label: "Azioni", align: "right" },
+              { key: "createdAt", label: "Created at" },
+              { key: "actions", label: "Actions", align: "right" },
             ]}
             rows={rows}
-            emptyLabel="Nessun utente trovato con i filtri correnti"
+            emptyLabel="No users found with the current filters"
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Pagina {(response?.number ?? 0) + 1} di {Math.max(response?.totalPages ?? 1, 1)}
+              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -499,7 +498,7 @@ export const AdminUsersOverview = () => {
                 onClick={() => setPage((current) => Math.max(current - 1, 0))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -507,7 +506,7 @@ export const AdminUsersOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>

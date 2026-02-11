@@ -4,7 +4,7 @@ import { AdminPlacesOverview } from "@/features/admin/flows/catalog/AdminPlacesO
 
 export const metadata: Metadata = {
   title: "Admin Places | Syncro",
-  description: "Gestione luoghi catalogo dal backoffice admin.",
+  description: "Manage catalog places from the admin back office.",
 };
 
 export default function AdminPlacesPage() {

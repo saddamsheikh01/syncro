@@ -6,6 +6,7 @@ import { Card } from "@/components/elements/Card";
 import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
 import { formatNumber } from "@/features/admin/lib/formatters";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   getGoogleMapsSyncStatus,
   syncGoogleMapsNearby,
@@ -138,30 +139,28 @@ export const AdminGoogleMapsSyncOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Sync Google Maps</h1>
-        <p className="mt-1 text-sm text-muted">
-          Sincronizzazione catalogo luoghi da Google Maps API.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Google Maps Sync"
+        subtitle="Sync the places catalog from Google Maps APIs."
+      />
 
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-foreground">Stato integrazione</h2>
+          <h2 className="text-base font-semibold text-foreground">Integration status</h2>
           <Button size="sm" variant="outline" onClick={() => void loadStatus()}>
-            Aggiorna stato
+            Refresh status
           </Button>
         </div>
 
         {statusLoading ? (
           <div className="flex items-center gap-3">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Verifica configurazione Google Maps...</p>
+            <p className="text-sm text-muted">Checking Google Maps configuration...</p>
           </div>
         ) : (
           <p className="text-sm text-muted">
-            <span className="font-semibold text-foreground">Configurata:</span>{" "}
-            {status?.configured ? "SI" : "NO"}
+            <span className="font-semibold text-foreground">Configured:</span>{" "}
+            {status?.configured ? "YES" : "NO"}
             {" · "}
             {status?.message ?? "N/A"}
           </p>
@@ -169,7 +168,7 @@ export const AdminGoogleMapsSyncOverview = () => {
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Sync nearby</h2>
+        <h2 className="text-base font-semibold text-foreground">Nearby sync</h2>
         <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleNearbySync}>
           <Input
             label="Latitude"
@@ -203,16 +202,16 @@ export const AdminGoogleMapsSyncOverview = () => {
               type="submit"
               size="sm"
               loading={runningAction === "Nearby Sync"}
-              loadingText="Sincronizzazione"
+              loadingText="Syncing"
             >
-              Avvia nearby sync
+              Start nearby sync
             </Button>
           </div>
         </form>
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Sync text search</h2>
+        <h2 className="text-base font-semibold text-foreground">Text search sync</h2>
         <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleSearchSync}>
           <Input
             label="Query"
@@ -245,16 +244,16 @@ export const AdminGoogleMapsSyncOverview = () => {
               type="submit"
               size="sm"
               loading={runningAction === "Text Search Sync"}
-              loadingText="Sincronizzazione"
+              loadingText="Syncing"
             >
-              Avvia text search sync
+              Start text search sync
             </Button>
           </div>
         </form>
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Sync singolo place ID</h2>
+        <h2 className="text-base font-semibold text-foreground">Single place ID sync</h2>
         <form className="grid gap-3 lg:grid-cols-[1fr,auto]" onSubmit={handlePlaceSync}>
           <Input
             label="Google Place ID"
@@ -267,9 +266,9 @@ export const AdminGoogleMapsSyncOverview = () => {
               type="submit"
               size="sm"
               loading={runningAction === "Single Place Sync"}
-              loadingText="Sincronizzazione"
+              loadingText="Syncing"
             >
-              Avvia sync place
+              Start place sync
             </Button>
           </div>
         </form>
@@ -277,7 +276,7 @@ export const AdminGoogleMapsSyncOverview = () => {
 
       {error ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore sincronizzazione</p>
+          <p className="text-sm font-semibold text-danger">Sync error</p>
           <p className="text-sm text-muted">{error.message}</p>
         </Card>
       ) : null}
@@ -285,24 +284,24 @@ export const AdminGoogleMapsSyncOverview = () => {
       {lastResult ? (
         <Card className="space-y-3 p-5">
           <h2 className="text-base font-semibold text-foreground">
-            Ultimo risultato: {lastAction}
+            Latest result: {lastAction}
           </h2>
           <p className="text-sm text-muted">{lastResult.message}</p>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Totale trovati:</span>{" "}
+              <span className="font-semibold text-foreground">Total found:</span>{" "}
               {formatNumber(lastResult.totalFound)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Creati:</span>{" "}
+              <span className="font-semibold text-foreground">Created:</span>{" "}
               {formatNumber(lastResult.created)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Aggiornati:</span>{" "}
+              <span className="font-semibold text-foreground">Updated:</span>{" "}
               {formatNumber(lastResult.updated)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Errori:</span>{" "}
+              <span className="font-semibold text-foreground">Errors:</span>{" "}
               {formatNumber(lastResult.errors)}
             </p>
           </div>

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   createAdminAnswerOption,
   createAdminQuestion,
@@ -33,7 +34,7 @@ import type {
 } from "@/types/insights";
 
 const TEST_TYPE_OPTIONS = [
-  { value: "", label: "Tutte le tipologie" },
+  { value: "", label: "All types" },
   { value: "INTERESTS", label: "INTERESTS" },
   { value: "LIFESTYLE", label: "LIFESTYLE" },
   { value: "VALUES", label: "VALUES" },
@@ -50,9 +51,9 @@ const SCORING_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Stato: tutti" },
-  { value: "active", label: "Attivi" },
-  { value: "inactive", label: "Inattivi" },
+  { value: "", label: "Status: all" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
 ];
 
 const QUESTION_TYPE_OPTIONS = [
@@ -162,7 +163,7 @@ export const AdminTestsOverview = () => {
     });
   }, [query, statusFilter, tests, typeFilter]);
 
-  const rows = useMemo(
+    const rows = useMemo(
     () =>
       filteredTests.map((test) => ({
         id: test.id,
@@ -181,7 +182,7 @@ export const AdminTestsOverview = () => {
             variant="outline"
             onClick={() => setSelectedTestId(test.id)}
           >
-            Gestisci
+            Manage
           </Button>
         ),
       })),
@@ -248,7 +249,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confermi l'eliminazione del test?");
+    const confirmed = window.confirm("Confirm test deletion?");
     if (!confirmed) {
       return;
     }
@@ -312,23 +313,23 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const nextQuestion = window.prompt("Testo domanda", currentQuestion);
+    const nextQuestion = window.prompt("Question text", currentQuestion);
     if (!nextQuestion || !nextQuestion.trim()) {
       return;
     }
 
-    const nextPositionRaw = window.prompt("Posizione", String(currentPosition));
+    const nextPositionRaw = window.prompt("Position", String(currentPosition));
     const nextPosition = Math.max(1, Number(nextPositionRaw || currentPosition) || currentPosition);
 
-    const nextRequired = window.confirm("Domanda obbligatoria? OK = si, Annulla = no");
+    const nextRequired = window.confirm("Required question? OK = yes, Cancel = no");
 
-    const nextTypeRaw = window.prompt("Tipo domanda (SINGLE/MULTI)", currentType);
+    const nextTypeRaw = window.prompt("Question type (SINGLE/MULTI)", currentType);
     const nextType = nextTypeRaw === "MULTI" ? "MULTI" : "SINGLE";
 
     let nextMaxSelections = 1;
     if (nextType === "MULTI") {
       const raw = window.prompt(
-        "Max selezioni",
+        "Max selections",
         String(currentMaxSelections ?? 1)
       );
       nextMaxSelections = Math.max(1, Number(raw || currentMaxSelections || 1) || 1);
@@ -354,7 +355,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confermi l'eliminazione della domanda?");
+    const confirmed = window.confirm("Confirm question deletion?");
     if (!confirmed) {
       return;
     }
@@ -401,12 +402,12 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const nextLabel = window.prompt("Label opzione", currentLabel);
+    const nextLabel = window.prompt("Option label", currentLabel);
     if (!nextLabel || !nextLabel.trim()) {
       return;
     }
 
-    const nextWeightRaw = window.prompt("Peso opzione", String(currentWeight));
+    const nextWeightRaw = window.prompt("Option weight", String(currentWeight));
     const nextWeight = Number(nextWeightRaw || currentWeight) || currentWeight;
 
     setError(null);
@@ -426,7 +427,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confermi l'eliminazione dell'opzione?");
+    const confirmed = window.confirm("Confirm option deletion?");
     if (!confirmed) {
       return;
     }
@@ -442,18 +443,16 @@ export const AdminTestsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Insights tests</h1>
-        <p className="mt-1 text-sm text-muted">
-          Gestione completa test, domande e opzioni.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Insights tests"
+        subtitle="Full management of tests, questions, and options."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Crea nuovo test</h2>
+        <h2 className="text-base font-semibold text-foreground">Create new test</h2>
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleCreateTest}>
           <Input
-            label="Titolo"
+            label="Title"
             value={createTitle}
             onChange={(event) => setCreateTitle(event.target.value)}
             required
@@ -471,7 +470,7 @@ export const AdminTestsOverview = () => {
             onValueChange={(value) => setCreateScoring(value as TestScoringStrategy)}
           />
           <Select
-            label="Stato"
+            label="Status"
             value={createActive}
             options={[
               { value: "true", label: "ACTIVE" },
@@ -481,14 +480,14 @@ export const AdminTestsOverview = () => {
           />
           <div className="lg:col-span-2">
             <Textarea
-              label="Descrizione"
+              label="Description"
               value={createDescription}
               onChange={(event) => setCreateDescription(event.target.value)}
             />
           </div>
           <div>
-            <Button type="submit" size="sm" loading={creatingTest} loadingText="Creazione">
-              Crea test
+            <Button type="submit" size="sm" loading={creatingTest} loadingText="Creating">
+              Create test
             </Button>
           </div>
         </form>
@@ -498,7 +497,7 @@ export const AdminTestsOverview = () => {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Cerca per titolo o descrizione"
+          placeholder="Search by title or description"
         />
         <Select
           value={typeFilter}
@@ -514,38 +513,38 @@ export const AdminTestsOverview = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Totale test"
+          label="Total tests"
           value={formatNumber(filteredTests.length)}
           trend="neutral"
-          trendLabel="Filtri correnti"
+          trendLabel="Current filters"
         />
         <AdminStatCard
-          label="Test attivi"
+          label="Active tests"
           value={formatNumber(activeCount)}
           trend="neutral"
-          trendLabel="Filtri correnti"
+          trendLabel="Current filters"
         />
         <AdminStatCard
-          label="Test inattivi"
+          label="Inactive tests"
           value={formatNumber(Math.max(filteredTests.length - activeCount, 0))}
           trend="neutral"
-          trendLabel="Filtri correnti"
+          trendLabel="Current filters"
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento test...</p>
+          <p className="text-sm text-muted">Loading tests...</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore backoffice tests</p>
+          <p className="text-sm font-semibold text-danger">Unable to load tests</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadTests()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -553,22 +552,22 @@ export const AdminTestsOverview = () => {
       {!loading && !error ? (
         <AdminTable
           columns={[
-            { key: "title", label: "Titolo" },
-            { key: "type", label: "Tipo" },
+            { key: "title", label: "Title" },
+            { key: "type", label: "Type" },
             { key: "strategy", label: "Scoring" },
-            { key: "status", label: "Stato" },
-            { key: "updatedAt", label: "Aggiornato il" },
-            { key: "actions", label: "Azioni", align: "right" },
+            { key: "status", label: "Status" },
+            { key: "updatedAt", label: "Updated at" },
+            { key: "actions", label: "Actions", align: "right" },
           ]}
           rows={rows}
-          emptyLabel="Nessun test trovato"
+          emptyLabel="No tests found"
         />
       ) : null}
 
       {detailLoading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento dettaglio test...</p>
+          <p className="text-sm text-muted">Loading test details...</p>
         </Card>
       ) : null}
 
@@ -576,16 +575,16 @@ export const AdminTestsOverview = () => {
         <Card className="space-y-5 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">
-              Gestione test: {selectedTestDetail.title}
+              Test management: {selectedTestDetail.title}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedTestId(null)}>
-              Chiudi
+              Close
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleUpdateTest}>
             <Input
-              label="Titolo"
+              label="Title"
               value={editTitle}
               onChange={(event) => setEditTitle(event.target.value)}
               required
@@ -603,7 +602,7 @@ export const AdminTestsOverview = () => {
               onValueChange={(value) => setEditScoring(value as TestScoringStrategy)}
             />
             <Select
-              label="Stato"
+              label="Status"
               value={editActive}
               options={[
                 { value: "true", label: "ACTIVE" },
@@ -613,14 +612,14 @@ export const AdminTestsOverview = () => {
             />
             <div className="lg:col-span-2">
               <Textarea
-                label="Descrizione"
+                label="Description"
                 value={editDescription}
                 onChange={(event) => setEditDescription(event.target.value)}
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button type="submit" size="sm" loading={updatingTest} loadingText="Salvataggio">
-                Salva test
+              <Button type="submit" size="sm" loading={updatingTest} loadingText="Saving">
+                Save test
               </Button>
               <Button
                 type="button"
@@ -628,24 +627,24 @@ export const AdminTestsOverview = () => {
                 variant="danger"
                 onClick={handleDeleteTest}
                 loading={deletingTest}
-                loadingText="Eliminazione"
+                loadingText="Deleting"
               >
-                Elimina test
+                Delete test
               </Button>
             </div>
           </form>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-base font-semibold text-foreground">Crea domanda</h3>
+            <h3 className="text-base font-semibold text-foreground">Create question</h3>
             <form className="grid gap-3 lg:grid-cols-5" onSubmit={handleCreateQuestion}>
               <Input
-                label="Domanda"
+                label="Question"
                 value={questionText}
                 onChange={(event) => setQuestionText(event.target.value)}
                 required
               />
               <Input
-                label="Posizione"
+                label="Position"
                 type="number"
                 min={1}
                 value={questionPosition}
@@ -653,7 +652,7 @@ export const AdminTestsOverview = () => {
                 required
               />
               <Select
-                label="Tipo"
+                label="Type"
                 value={questionType}
                 options={QUESTION_TYPE_OPTIONS}
                 onValueChange={setQuestionType}
@@ -676,17 +675,17 @@ export const AdminTestsOverview = () => {
                 disabled={questionType !== "MULTI"}
               />
               <div className="lg:col-span-5">
-                <Button type="submit" size="sm" loading={creatingQuestion} loadingText="Creazione">
-                  Crea domanda
+                <Button type="submit" size="sm" loading={creatingQuestion} loadingText="Creating">
+                  Create question
                 </Button>
               </div>
             </form>
           </Card>
 
           <div className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Domande e opzioni</h3>
+            <h3 className="text-base font-semibold text-foreground">Questions and options</h3>
             {selectedTestDetail.questions.length === 0 ? (
-              <Card className="p-4 text-sm text-muted">Nessuna domanda presente.</Card>
+              <Card className="p-4 text-sm text-muted">No questions available.</Card>
             ) : (
               selectedTestDetail.questions.map((question) => (
                 <Card key={question.id} className="space-y-3 p-4">
@@ -696,7 +695,7 @@ export const AdminTestsOverview = () => {
                         #{question.position} - {question.question}
                       </p>
                       <p className="text-xs text-subtle">
-                        Tipo: {question.questionType} | Required: {String(question.required)} | Max selections: {question.maxSelections ?? "-"}
+                        Type: {question.questionType} | Required: {String(question.required)} | Max selections: {question.maxSelections ?? "-"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -714,23 +713,23 @@ export const AdminTestsOverview = () => {
                           )
                         }
                       >
-                        Modifica
+                        Edit
                       </Button>
                       <Button
                         size="sm"
                         variant="danger"
                         onClick={() => void handleDeleteQuestion(question.id)}
                       >
-                        Elimina
+                        Delete
                       </Button>
                     </div>
                   </div>
 
                   <AdminTable
                     columns={[
-                      { key: "label", label: "Opzione" },
-                      { key: "weight", label: "Peso" },
-                      { key: "actions", label: "Azioni", align: "right" },
+                      { key: "label", label: "Option" },
+                      { key: "weight", label: "Weight" },
+                      { key: "actions", label: "Actions", align: "right" },
                     ]}
                     rows={question.options.map((option) => ({
                       id: option.id,
@@ -750,29 +749,29 @@ export const AdminTestsOverview = () => {
                               )
                             }
                           >
-                            Modifica
+                            Edit
                           </Button>
                           <Button
                             size="sm"
                             variant="danger"
                             onClick={() => void handleDeleteOption(question.id, option.id)}
                           >
-                            Elimina
+                            Delete
                           </Button>
                         </div>
                       ),
                     }))}
-                    emptyLabel="Nessuna opzione"
+                    emptyLabel="No options"
                   />
 
                   <div className="grid gap-2 lg:grid-cols-[1fr,160px,auto]">
                     <Input
-                      label="Nuova opzione"
+                      label="New option"
                       value={optionLabel}
                       onChange={(event) => setOptionLabel(event.target.value)}
                     />
                     <Input
-                      label="Peso"
+                      label="Weight"
                       type="number"
                       value={optionWeight}
                       onChange={(event) => setOptionWeight(event.target.value)}
@@ -782,10 +781,10 @@ export const AdminTestsOverview = () => {
                         size="sm"
                         onClick={() => void handleCreateOption(question.id)}
                         loading={creatingOptionForQuestionId === question.id}
-                        loadingText="Creazione"
+                        loadingText="Creating"
                         disabled={!optionLabel.trim()}
                       >
-                        Aggiungi opzione
+                        Add option
                       </Button>
                     </div>
                   </div>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import { Logo } from "@/components/elements/Logo";
+import { Input } from "@/components/elements/Input";
+import { Button } from "@/components/buttons/Button";
 
 export const AdminLogin = () => {
   const router = useRouter();
@@ -45,39 +47,29 @@ export const AdminLogin = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="admin-login-email">
-              Email
-            </label>
-            <input
-              id="admin-login-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="admin@email.com"
-            />
-          </div>
+          <Input
+            id="admin-login-email"
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="admin@email.com"
+          />
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="admin-login-password">
-              Password
-            </label>
-            <input
-              id="admin-login-password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="********"
-            />
-          </div>
+          <Input
+            id="admin-login-password"
+            label="Password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="********"
+          />
 
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -91,13 +83,15 @@ export const AdminLogin = () => {
             </div>
           ) : null}
 
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            size="lg"
+            fullWidth
+            loading={isSubmitting}
+            loadingText="Signing in"
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
+            Sign in
+          </Button>
         </form>
 
         <div className="mt-8 text-sm text-muted">

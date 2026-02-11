@@ -4,7 +4,7 @@ import { AdminCategoriesOverview } from "@/features/admin/flows/catalog/AdminCat
 
 export const metadata: Metadata = {
   title: "Admin Categories | Syncro",
-  description: "Gestione categorie catalogo dal backoffice admin.",
+  description: "Manage catalog categories from the admin back office.",
 };
 
 export default function AdminCategoriesPage() {

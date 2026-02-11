@@ -19,13 +19,13 @@ export interface AdminTableToolbarProps
 
 export const AdminTableToolbar = ({
   className,
-  title = "Gestione contenuti",
+  title = "Content management",
   subtitle = "Filter and manage the available entities.",
   searchPlaceholder = "Search by name or ID",
   filterOptions = [],
-  filterPlaceholder = "Tutti",
+  filterPlaceholder = "All",
   selectedFilter,
-  actionLabel = "Nuovo",
+  actionLabel = "New",
   ...props
 }: AdminTableToolbarProps) => (
   <Card className={cx("space-y-4 p-5", className)} {...props}>

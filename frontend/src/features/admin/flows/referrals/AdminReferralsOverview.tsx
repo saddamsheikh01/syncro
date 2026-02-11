@@ -6,6 +6,7 @@ import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { getReferralCodes, getReferralDetail, getReferralUsages } from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type {
@@ -133,16 +134,14 @@ export const AdminReferralsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Referrals</h1>
-        <p className="mt-1 text-sm text-muted">
-          Monitoraggio codici referral e relativi utilizzi.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Referrals"
+        subtitle="Monitor referral codes and their usage."
+      />
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Totale codici referral: {formatNumber(codesResponse?.totalElements ?? 0)}
+          Total referral codes: {formatNumber(codesResponse?.totalElements ?? 0)}
         </p>
       </Card>
 
@@ -150,10 +149,10 @@ export const AdminReferralsOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Dettaglio codice: {selectedCode}
+              Code details: {selectedCode}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedCode(null)}>
-              Chiudi dettaglio
+              Close details
             </Button>
           </div>
 
@@ -168,7 +167,7 @@ export const AdminReferralsOverview = () => {
                 {formatNumber(detail.usesCount)}
               </p>
               <p className="text-sm text-muted md:col-span-2">
-                <span className="font-semibold text-foreground">Creato il:</span>{" "}
+                <span className="font-semibold text-foreground">Created at:</span>{" "}
                 {formatDateTime(detail.createdAt)}
               </p>
             </div>
@@ -176,21 +175,21 @@ export const AdminReferralsOverview = () => {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-foreground">Utilizzi codice</h3>
+              <h3 className="text-sm font-semibold text-foreground">Code usage</h3>
               <p className="text-xs text-subtle">
-                Totale: {formatNumber(usageResponse?.totalElements ?? 0)}
+                Total: {formatNumber(usageResponse?.totalElements ?? 0)}
               </p>
             </div>
 
             <AdminTable
               columns={[
-                { key: "invited", label: "Utente invitato" },
-                { key: "createdAt", label: "Data utilizzo" },
+                { key: "invited", label: "Invited user" },
+                { key: "createdAt", label: "Used at" },
                 { key: "ip", label: "IP" },
                 { key: "userAgent", label: "User Agent" },
               ]}
               rows={usageRows}
-              emptyLabel="Nessun utilizzo rilevato"
+              emptyLabel="No usage found"
             />
 
             <div className="flex items-center justify-end gap-2">
@@ -200,7 +199,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setUsagePage((current) => Math.max(0, current - 1))}
                 disabled={(usageResponse?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -208,7 +207,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setUsagePage((current) => current + 1)}
                 disabled={Boolean(usageResponse?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>
@@ -220,20 +219,20 @@ export const AdminReferralsOverview = () => {
           <Loader size="sm" />
           <p className="text-sm text-muted">
             {loading
-              ? "Caricamento referral..."
+              ? "Loading referrals..."
               : detailLoading
-                ? "Caricamento dettaglio referral..."
-                : "Caricamento utilizzi referral..."}
+                ? "Loading referral details..."
+                : "Loading referral usage..."}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore referrals</p>
+          <p className="text-sm font-semibold text-danger">Unable to load referrals</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadCodes()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -242,19 +241,19 @@ export const AdminReferralsOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "code", label: "Codice" },
+              { key: "code", label: "Code" },
               { key: "owner", label: "Owner" },
-              { key: "usesCount", label: "Utilizzi" },
-              { key: "createdAt", label: "Creato il" },
-              { key: "actions", label: "Azioni", align: "right" },
+              { key: "usesCount", label: "Uses" },
+              { key: "createdAt", label: "Created at" },
+              { key: "actions", label: "Actions", align: "right" },
             ]}
             rows={codeRows}
-            emptyLabel="Nessun referral trovato"
+            emptyLabel="No referrals found"
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Pagina {(codesResponse?.number ?? 0) + 1} di {Math.max(codesResponse?.totalPages ?? 1, 1)}
+              Page {(codesResponse?.number ?? 0) + 1} of {Math.max(codesResponse?.totalPages ?? 1, 1)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -263,7 +262,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(codesResponse?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -271,7 +270,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(codesResponse?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>

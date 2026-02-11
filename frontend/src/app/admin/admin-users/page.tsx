@@ -4,7 +4,7 @@ import { AdminAdminsOverview } from "@/features/admin/flows/AdminAdminsOverview"
 
 export const metadata: Metadata = {
   title: "Admin Admin Users | Syncro",
-  description: "Gestione e controllo utenti amministratori.",
+  description: "Manage and control administrator accounts.",
 };
 
 export default function AdminAdminsPage() {

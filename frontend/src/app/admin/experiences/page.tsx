@@ -4,7 +4,7 @@ import { AdminExperiencesOverview } from "@/features/admin/flows/catalog/AdminEx
 
 export const metadata: Metadata = {
   title: "Admin Experiences | Syncro",
-  description: "Gestione esperienze catalogo dal backoffice admin.",
+  description: "Manage catalog experiences from the admin back office.",
 };
 
 export default function AdminExperiencesPage() {

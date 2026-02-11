@@ -9,6 +9,7 @@ import { Select } from "@/components/elements/Select";
 import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   createAdminPlace,
   createPlaceAffiliation,
@@ -32,7 +33,7 @@ import type {
 import type { PageResponse } from "@/types/shared";
 
 const SOURCE_OPTIONS = [
-  { value: "", label: "Tutte le fonti" },
+  { value: "", label: "All sources" },
   { value: "MANUAL", label: "MANUAL" },
   { value: "API", label: "API" },
   { value: "GOOGLE", label: "GOOGLE" },
@@ -92,7 +93,7 @@ export const AdminPlacesOverview = () => {
 
   const categoryOptions = useMemo(
     () => [
-      { value: "", label: "Tutte le categorie" },
+      { value: "", label: "All categories" },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
     [categories]
@@ -100,7 +101,7 @@ export const AdminPlacesOverview = () => {
 
   const formCategoryOptions = useMemo(
     () => [
-      { value: "", label: "Nessuna categoria" },
+      { value: "", label: "No category" },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
     [categories]
@@ -211,7 +212,7 @@ export const AdminPlacesOverview = () => {
               variant="danger"
               onClick={() =>
                 void (async () => {
-                  const confirmed = window.confirm("Confermi eliminazione luogo?");
+                  const confirmed = window.confirm("Confirm place deletion?");
                   if (!confirmed) {
                     return;
                   }
@@ -230,7 +231,7 @@ export const AdminPlacesOverview = () => {
                 })()
               }
             >
-              Elimina
+              Delete
             </Button>
           </div>
         ),
@@ -298,13 +299,13 @@ export const AdminPlacesOverview = () => {
       return;
     }
 
-    const nextUrl = window.prompt("URL affiliazione", affiliation.url);
+    const nextUrl = window.prompt("Affiliation URL", affiliation.url);
     if (!nextUrl || !nextUrl.trim()) {
       return;
     }
 
     const nextProvider = window.prompt(
-      "Provider (opzionale)",
+      "Provider (optional)",
       affiliation.provider ?? ""
     );
 
@@ -326,7 +327,7 @@ export const AdminPlacesOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confermi eliminazione affiliazione?");
+    const confirmed = window.confirm("Confirm affiliation deletion?");
     if (!confirmed) {
       return;
     }
@@ -343,15 +344,13 @@ export const AdminPlacesOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Places</h1>
-        <p className="mt-1 text-sm text-muted">
-          CRUD luoghi catalogo con gestione affiliazioni.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Places"
+        subtitle="Manage catalog places with affiliation links."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Filtri lista</h2>
+        <h2 className="text-base font-semibold text-foreground">List filters</h2>
         <form
           className="grid gap-3 lg:grid-cols-[1fr,260px,220px,auto]"
           onSubmit={(event) => {
@@ -363,7 +362,7 @@ export const AdminPlacesOverview = () => {
           <Input
             value={queryDraft}
             onChange={(event) => setQueryDraft(event.target.value)}
-            placeholder="Cerca per nome o testo"
+            placeholder="Search by name or text"
           />
           <Select
             value={categoryFilter}
@@ -383,7 +382,7 @@ export const AdminPlacesOverview = () => {
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm">
-              Applica
+              Apply
             </Button>
             <Button
               type="button"
@@ -405,10 +404,10 @@ export const AdminPlacesOverview = () => {
 
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {selectedPlaceId ? "Modifica luogo" : "Crea luogo"}
+          {selectedPlaceId ? "Edit place" : "Create place"}
         </h2>
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleSubmit}>
-          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input label="Name" value={name} onChange={(event) => setName(event.target.value)} required />
           <Select
             label="Source"
             value={source}
@@ -416,23 +415,23 @@ export const AdminPlacesOverview = () => {
             onValueChange={setSource}
           />
           <Select
-            label="Categoria"
+            label="Category"
             value={categoryId}
             options={formCategoryOptions}
             onValueChange={setCategoryId}
           />
-          <Input label="Latitudine" value={lat} onChange={(event) => setLat(event.target.value)} />
-          <Input label="Longitudine" value={lng} onChange={(event) => setLng(event.target.value)} />
+          <Input label="Latitude" value={lat} onChange={(event) => setLat(event.target.value)} />
+          <Input label="Longitude" value={lng} onChange={(event) => setLng(event.target.value)} />
           <div className="lg:col-span-2">
             <Textarea
-              label="Descrizione"
+              label="Description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Salvataggio">
-              {selectedPlaceId ? "Salva modifiche" : "Crea luogo"}
+            <Button type="submit" size="sm" loading={saving} loadingText="Saving">
+              {selectedPlaceId ? "Save changes" : "Create place"}
             </Button>
             {selectedPlaceId ? (
               <Button
@@ -444,7 +443,7 @@ export const AdminPlacesOverview = () => {
                   resetForm();
                 }}
               >
-                Annulla modifica
+                Cancel edit
               </Button>
             ) : null}
           </div>
@@ -455,10 +454,10 @@ export const AdminPlacesOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Luogo selezionato: {selectedPlaceDetail.name}
+              Selected place: {selectedPlaceDetail.name}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedPlaceId(null)}>
-              Chiudi dettaglio
+              Close details
             </Button>
           </div>
 
@@ -467,17 +466,17 @@ export const AdminPlacesOverview = () => {
               <span className="font-semibold text-foreground">ID:</span> {selectedPlaceDetail.id}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Creato il:</span>{" "}
+              <span className="font-semibold text-foreground">Created at:</span>{" "}
               {formatDateTime(selectedPlaceDetail.createdAt)}
             </p>
             <p className="text-sm text-muted md:col-span-2">
-              <span className="font-semibold text-foreground">Indirizzo:</span>{" "}
+              <span className="font-semibold text-foreground">Address:</span>{" "}
               {selectedPlaceDetail.address ?? "-"}
             </p>
           </div>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-foreground">Affiliazioni</h3>
+            <h3 className="text-sm font-semibold text-foreground">Affiliations</h3>
             <form className="grid gap-3 lg:grid-cols-[1fr,240px,auto]" onSubmit={handleCreateAffiliation}>
               <Input
                 label="URL"
@@ -489,16 +488,16 @@ export const AdminPlacesOverview = () => {
                 label="Provider"
                 value={affiliationProvider}
                 onChange={(event) => setAffiliationProvider(event.target.value)}
-                placeholder="Opzionale"
+                placeholder="Optional"
               />
               <div className="flex items-end">
                 <Button
                   type="submit"
                   size="sm"
                   loading={creatingAffiliation}
-                  loadingText="Creazione"
+                  loadingText="Creating"
                 >
-                  Aggiungi link
+                  Add link
                 </Button>
               </div>
             </form>
@@ -507,8 +506,8 @@ export const AdminPlacesOverview = () => {
               columns={[
                 { key: "url", label: "URL" },
                 { key: "provider", label: "Provider" },
-                { key: "createdAt", label: "Creato il" },
-                { key: "actions", label: "Azioni", align: "right" },
+                { key: "createdAt", label: "Created at" },
+                { key: "actions", label: "Actions", align: "right" },
               ]}
               rows={affiliations.map((affiliation) => ({
                 id: affiliation.id,
@@ -522,19 +521,19 @@ export const AdminPlacesOverview = () => {
                       variant="outline"
                       onClick={() => void handleUpdateAffiliation(affiliation)}
                     >
-                      Modifica
+                      Edit
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={() => void handleDeleteAffiliation(affiliation)}
                     >
-                      Elimina
+                      Delete
                     </Button>
                   </div>
                 ),
               }))}
-              emptyLabel="Nessun link affiliazione"
+              emptyLabel="No affiliation links"
             />
           </Card>
         </Card>
@@ -542,7 +541,7 @@ export const AdminPlacesOverview = () => {
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Totale luoghi: {formatNumber(response?.totalElements ?? 0)}
+          Total places: {formatNumber(response?.totalElements ?? 0)}
         </p>
       </Card>
 
@@ -550,17 +549,17 @@ export const AdminPlacesOverview = () => {
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
           <p className="text-sm text-muted">
-            {detailLoading ? "Caricamento dettaglio luogo..." : "Caricamento places..."}
+            {detailLoading ? "Loading place details..." : "Loading places..."}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore places</p>
+          <p className="text-sm font-semibold text-danger">Unable to load places</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadPlaces()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -569,19 +568,19 @@ export const AdminPlacesOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "name", label: "Nome" },
-              { key: "category", label: "Categoria" },
+              { key: "name", label: "Name" },
+              { key: "category", label: "Category" },
               { key: "source", label: "Source" },
-              { key: "coordinates", label: "Coordinate" },
-              { key: "actions", label: "Azioni", align: "right" },
+              { key: "coordinates", label: "Coordinates" },
+              { key: "actions", label: "Actions", align: "right" },
             ]}
             rows={rows}
-            emptyLabel="Nessun luogo"
+            emptyLabel="No places"
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Pagina {(response?.number ?? 0) + 1} di {Math.max(response?.totalPages ?? 1, 1)}
+              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -590,7 +589,7 @@ export const AdminPlacesOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -598,7 +597,7 @@ export const AdminPlacesOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>

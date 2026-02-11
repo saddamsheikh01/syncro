@@ -4,7 +4,7 @@ import { AdminGoogleMapsSyncOverview } from "@/features/admin/flows/sync/AdminGo
 
 export const metadata: Metadata = {
   title: "Admin Sync Google Maps | Syncro",
-  description: "Sincronizzazione catalogo con Google Maps dal backoffice admin.",
+  description: "Sync the catalog with Google Maps from the admin back office.",
 };
 
 export default function AdminGoogleMapsSyncPage() {

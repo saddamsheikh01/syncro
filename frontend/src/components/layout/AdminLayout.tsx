@@ -2,76 +2,69 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { AdminAuthInitializer } from "@/components/auth/AdminAuthInitializer";
 import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
-import { Logo } from "@/components/elements/Logo";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { AdminTopbar } from "@/components/layout/AdminTopbar";
 import { useAdminAuth } from "@/hooks";
-import { cx } from "@/lib/classNames";
 
 export interface AdminLayoutProps {
   children: ReactNode;
 }
 
-type AdminNavItem = {
-  href: string;
-  label: string;
-  description: string;
-};
-
-const NAV_ITEMS: AdminNavItem[] = [
+const NAV_ITEMS = [
   {
     href: "/admin/analytics",
     label: "Analytics",
-    description: "KPI e andamento prodotto",
+    description: "Product KPIs and trends",
   },
   {
     href: "/admin/users",
-    label: "Utenti",
-    description: "Panoramica utenti applicazione",
+    label: "Users",
+    description: "Application user overview",
   },
   {
     href: "/admin/admin-users",
     label: "Admin",
-    description: "Gestione accessi backoffice",
+    description: "Back office access control",
   },
   {
     href: "/admin/tests",
     label: "Insights",
-    description: "Configurazione test e stato",
+    description: "Test configuration and status",
   },
   {
     href: "/admin/categories",
-    label: "Categorie",
-    description: "CRUD categorie catalogo",
+    label: "Categories",
+    description: "Catalog categories",
   },
   {
     href: "/admin/places",
     label: "Places",
-    description: "CRUD luoghi e affiliazioni",
+    description: "Places and affiliations",
   },
   {
     href: "/admin/experiences",
     label: "Experiences",
-    description: "CRUD esperienze e affiliazioni",
+    description: "Experiences and affiliations",
   },
   {
     href: "/admin/referrals",
     label: "Referrals",
-    description: "Codici referral e usages",
+    description: "Referral codes and usage",
   },
   {
     href: "/admin/notifications",
-    label: "Notifiche",
-    description: "Invio notifiche custom",
+    label: "Notifications",
+    description: "Custom notification send",
   },
   {
     href: "/admin/sync/google-maps",
     label: "Sync Maps",
-    description: "Sincronizzazione Google Maps",
+    description: "Google Maps sync",
   },
 ];
 
@@ -108,7 +101,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento area admin...</p>
+          <p className="text-sm text-muted">Loading admin area...</p>
         </Card>
       </div>
     );
@@ -118,9 +111,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <Card className="w-full max-w-lg space-y-4 p-6">
-          <h1 className="text-xl font-semibold text-foreground">Accesso negato</h1>
+          <h1 className="text-xl font-semibold text-foreground">Access denied</h1>
           <p className="text-sm text-muted">
-            Questa area e disponibile solo per utenti con ruolo SUPER_ADMIN.
+            This area is available only to users with the SUPER_ADMIN role.
           </p>
           <div>
             <Button
@@ -129,7 +122,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 void actions.logout();
               }}
             >
-              Esci
+              Log out
             </Button>
           </div>
         </Card>
@@ -138,60 +131,32 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[280px,1fr]">
-      <aside className="border-b border-border/80 bg-surface-muted/40 p-4 lg:min-h-screen lg:border-r lg:border-b-0 lg:p-6">
-        <div className="mb-6 flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-accent-soft">
-            <Logo width={24} className="h-auto w-6" priority />
+    <div className="min-h-screen bg-background">
+      <div className="hidden lg:block">
+        <AdminSidebar
+          items={NAV_ITEMS}
+          pathname={pathname}
+          adminEmail={admin.email}
+          onLogout={() => void actions.logout()}
+        />
+      </div>
+
+      <div className="lg:pl-[300px]">
+        <div className="px-4 pb-10 pt-4 lg:px-0 lg:pb-12 lg:pt-6 lg:pr-8">
+          <div className="lg:sticky lg:top-6 lg:z-20">
+            <AdminTopbar
+              email={admin.email}
+              role={admin.role}
+              onLogout={() => void actions.logout()}
+            />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Syncro Admin</p>
-            <p className="text-xs text-subtle">Backoffice Super Admin</p>
+
+          <div className="mt-4 lg:hidden">
+            <AdminSidebar items={NAV_ITEMS} pathname={pathname} variant="mobile" />
           </div>
+
+          <main className="mt-6">{children}</main>
         </div>
-
-        <nav className="space-y-2" aria-label="Navigazione backoffice">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cx(
-                  "block rounded-[var(--radius-md)] border px-3 py-3 transition",
-                  isActive
-                    ? "border-accent/40 bg-accent-soft text-foreground"
-                    : "border-transparent text-muted hover:border-border hover:bg-card"
-                )}
-              >
-                <p className="text-sm font-semibold">{item.label}</p>
-                <p className="mt-1 text-xs text-subtle">{item.description}</p>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
-
-      <div className="min-h-screen">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-card px-5 py-4">
-          <div>
-            <p className="text-sm font-semibold text-foreground">{admin.email}</p>
-            <p className="text-xs text-subtle">Ruolo: {admin.role}</p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              void actions.logout();
-            }}
-          >
-            Logout
-          </Button>
-        </header>
-
-        <main className="p-5 lg:p-8">{children}</main>
       </div>
 
       <AdminAuthInitializer />

@@ -36,7 +36,7 @@ export const buildTrend = (series: KpiPoint[] | undefined): TrendData => {
   if (!series?.length || series.length < 2) {
     return {
       direction: "neutral",
-      label: "Periodo precedente non disponibile",
+      label: "Previous period not available",
     };
   }
 
@@ -51,20 +51,20 @@ export const buildTrend = (series: KpiPoint[] | undefined): TrendData => {
   if (Math.abs(delta) < 0.1) {
     return {
       direction: "neutral",
-      label: "Stabile vs periodo precedente",
+      label: "Stable vs previous period",
     };
   }
 
   if (delta > 0) {
     return {
       direction: "up",
-      label: `+${delta.toFixed(1)}% vs periodo precedente`,
+      label: `+${delta.toFixed(1)}% vs previous period`,
     };
   }
 
   return {
     direction: "down",
-    label: `${delta.toFixed(1)}% vs periodo precedente`,
+    label: `${delta.toFixed(1)}% vs previous period`,
   };
 };
 

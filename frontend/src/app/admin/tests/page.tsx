@@ -4,7 +4,7 @@ import { AdminTestsOverview } from "@/features/admin/flows/AdminTestsOverview";
 
 export const metadata: Metadata = {
   title: "Admin Insights | Syncro",
-  description: "Panoramica test insights e configurazione attuale.",
+  description: "Insights test overview and current configuration.",
 };
 
 export default function AdminTestsPage() {

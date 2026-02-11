@@ -4,7 +4,7 @@ import { AdminReferralsOverview } from "@/features/admin/flows/referrals/AdminRe
 
 export const metadata: Metadata = {
   title: "Admin Referrals | Syncro",
-  description: "Monitoraggio referral dal backoffice admin.",
+  description: "Monitor referrals from the admin back office.",
 };
 
 export default function AdminReferralsPage() {

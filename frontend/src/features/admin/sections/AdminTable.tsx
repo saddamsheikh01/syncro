@@ -38,14 +38,18 @@ export const AdminTable = ({
 }: AdminTableProps) => (
   <Card className={cx("overflow-hidden", className)} {...props}>
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-surface-muted text-xs uppercase tracking-wide text-subtle">
+      <table className="min-w-[720px] w-full border-collapse text-sm">
+        <thead className="bg-surface-muted/80 text-xs uppercase tracking-wide text-subtle">
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
-                className={cx("px-4 py-3 font-semibold", ALIGN_CLASSES[column.align ?? "left"])}
+                className={cx(
+                  "px-4 py-3 font-semibold",
+                  "whitespace-nowrap",
+                  ALIGN_CLASSES[column.align ?? "left"]
+                )}
                 style={column.width ? { width: column.width } : undefined}
               >
                 {column.label}
@@ -56,11 +60,15 @@ export const AdminTable = ({
         <tbody className="divide-y divide-border">
           {rows.length ? (
             rows.map((row) => (
-              <tr key={row.id} className="bg-card">
+              <tr key={row.id} className="bg-card transition-colors hover:bg-surface-muted/60">
                 {columns.map((column) => (
                   <td
                     key={`${row.id}-${column.key}`}
-                    className={cx("px-4 py-3", ALIGN_CLASSES[column.align ?? "left"])}
+                    className={cx(
+                      "px-4 py-3",
+                      "whitespace-nowrap",
+                      ALIGN_CLASSES[column.align ?? "left"]
+                    )}
                   >
                     {row[column.key] ?? "-"}
                   </td>

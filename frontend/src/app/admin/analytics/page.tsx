@@ -4,7 +4,7 @@ import { AdminAnalyticsOverview } from "@/features/admin/flows/AdminAnalyticsOve
 
 export const metadata: Metadata = {
   title: "Admin Analytics | Syncro",
-  description: "KPI analytics, trend utenti e performance di prodotto.",
+  description: "KPI analytics, user trends, and product performance.",
 };
 
 export default function AdminAnalyticsPage() {

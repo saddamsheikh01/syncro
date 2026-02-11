@@ -4,7 +4,7 @@ import { AdminNotificationsOverview } from "@/features/admin/flows/notifications
 
 export const metadata: Metadata = {
   title: "Admin Notifications | Syncro",
-  description: "Invio notifiche custom dal backoffice admin.",
+  description: "Send custom notifications from the admin back office.",
 };
 
 export default function AdminNotificationsPage() {

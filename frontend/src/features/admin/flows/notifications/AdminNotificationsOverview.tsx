@@ -7,6 +7,7 @@ import { Input } from "@/components/elements/Input";
 import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { createCustomNotifications } from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type { NotificationResponse } from "@/types/admin";
@@ -26,7 +27,7 @@ const parseDataPayload = (value: string): Record<string, unknown> | null => {
 
   const parsed = JSON.parse(trimmed) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Il campo data deve essere un oggetto JSON valido.");
+    throw new Error("The data field must be a valid JSON object.");
   }
 
   return parsed as Record<string, unknown>;
@@ -78,7 +79,7 @@ export const AdminNotificationsOverview = () => {
     try {
       const userIds = parseUserIds(userIdsRaw);
       if (!userIds.length) {
-        setValidationError("Inserisci almeno un userId valido.");
+        setValidationError("Enter at least one valid userId.");
         return;
       }
 
@@ -101,7 +102,7 @@ export const AdminNotificationsOverview = () => {
           requestError.message.includes("JSON") ||
           requestError.message.includes("Unexpected token"))
       ) {
-        setValidationError(requestError.message || "Data JSON non valida.");
+        setValidationError(requestError.message || "Invalid JSON data.");
         return;
       }
 
@@ -111,7 +112,7 @@ export const AdminNotificationsOverview = () => {
         setError({
           code: "UNKNOWN",
           status: 0,
-          message: "Errore inatteso durante l'invio notifiche.",
+          message: "Unexpected error while sending notifications.",
         });
       }
     } finally {
@@ -121,26 +122,24 @@ export const AdminNotificationsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Notifiche custom</h1>
-        <p className="mt-1 text-sm text-muted">
-          Invio notifiche push custom a uno o piu utenti.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Custom notifications"
+        subtitle="Send custom push notifications to one or more users."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Crea notifica</h2>
+        <h2 className="text-base font-semibold text-foreground">Create notification</h2>
         <form className="space-y-3" onSubmit={handleSubmit}>
           <Textarea
             label="User IDs"
             value={userIdsRaw}
             onChange={(event) => setUserIdsRaw(event.target.value)}
-            placeholder="UUID separati da virgola, spazio o newline"
+            placeholder="UUIDs separated by comma, space, or newline"
             required
           />
 
           <Input
-            label="Titolo"
+            label="Title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={120}
@@ -152,19 +151,19 @@ export const AdminNotificationsOverview = () => {
             value={body}
             onChange={(event) => setBody(event.target.value)}
             maxLength={1000}
-            placeholder="Testo opzionale"
+            placeholder="Optional text"
           />
 
           <Textarea
-            label="Data JSON"
+            label="JSON data"
             value={dataRaw}
             onChange={(event) => setDataRaw(event.target.value)}
             placeholder='{"source":"backoffice","priority":"high"}'
           />
 
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Invio">
-              Invia notifiche
+            <Button type="submit" size="sm" loading={saving} loadingText="Sending">
+              Send notifications
             </Button>
             <Button
               type="button"
@@ -186,21 +185,21 @@ export const AdminNotificationsOverview = () => {
 
       {validationError ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore validazione</p>
+          <p className="text-sm font-semibold text-danger">Validation error</p>
           <p className="text-sm text-muted">{validationError}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore invio notifiche</p>
+          <p className="text-sm font-semibold text-danger">Notification send error</p>
           <p className="text-sm text-muted">{error.message}</p>
         </Card>
       ) : null}
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Ultimo invio: {formatNumber(createdNotifications.length)} notifiche create
+          Last send: {formatNumber(createdNotifications.length)} notifications created
         </p>
       </Card>
 
@@ -208,12 +207,12 @@ export const AdminNotificationsOverview = () => {
         columns={[
           { key: "idShort", label: "Notification ID" },
           { key: "userId", label: "User ID" },
-          { key: "title", label: "Titolo" },
-          { key: "type", label: "Tipo" },
-          { key: "createdAt", label: "Creata il" },
+          { key: "title", label: "Title" },
+          { key: "type", label: "Type" },
+          { key: "createdAt", label: "Created at" },
         ]}
         rows={rows}
-        emptyLabel="Nessuna notifica inviata in questa sessione"
+        emptyLabel="No notifications sent in this session"
       />
     </div>
   );

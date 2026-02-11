@@ -10,6 +10,7 @@ import { Select } from "@/components/elements/Select";
 import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   createAdmin,
   deleteAdmin,
@@ -22,13 +23,13 @@ import type { AdminRole, AdminStatus, AdminUserResponse } from "@/types/admin";
 import type { PageResponse } from "@/types/shared";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Tutti gli stati" },
+  { value: "", label: "All statuses" },
   { value: "ACTIVE", label: "ACTIVE" },
   { value: "SUSPENDED", label: "SUSPENDED" },
 ];
 
 const ROLE_OPTIONS = [
-  { value: "", label: "Tutti i ruoli" },
+  { value: "", label: "All roles" },
   { value: "ADMIN", label: "ADMIN" },
   { value: "SUPER_ADMIN", label: "SUPER_ADMIN" },
 ];
@@ -109,23 +110,23 @@ export const AdminAdminsOverview = () => {
       return [];
     }
 
-    return response.content.map((admin) => ({
-      id: admin.id,
-      email: admin.email,
-      role: <Badge tone={roleTone(admin.role)}>{admin.role}</Badge>,
-      status: <Badge tone={statusTone(admin.status)}>{admin.status}</Badge>,
-      lastLogin: admin.lastLogin ? formatDateTime(admin.lastLogin) : "-",
-      createdAt: formatDateTime(admin.createdAt),
-      actions: (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setSelectedAdminId(admin.id)}
-        >
-          Gestisci
-        </Button>
-      ),
-    }));
+      return response.content.map((admin) => ({
+        id: admin.id,
+        email: admin.email,
+        role: <Badge tone={roleTone(admin.role)}>{admin.role}</Badge>,
+        status: <Badge tone={statusTone(admin.status)}>{admin.status}</Badge>,
+        lastLogin: admin.lastLogin ? formatDateTime(admin.lastLogin) : "-",
+        createdAt: formatDateTime(admin.createdAt),
+        actions: (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedAdminId(admin.id)}
+          >
+            Manage
+          </Button>
+        ),
+      }));
   }, [response]);
 
   const superAdminsInPage = useMemo(
@@ -180,7 +181,7 @@ export const AdminAdminsOverview = () => {
     }
 
     const confirmed = window.confirm(
-      "Confermi l'eliminazione di questo account admin?"
+      "Confirm deletion for this admin account?"
     );
     if (!confirmed) {
       return;
@@ -202,15 +203,13 @@ export const AdminAdminsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Admin users</h1>
-        <p className="mt-1 text-sm text-muted">
-          Governance accessi backoffice con focus sul ruolo SUPER_ADMIN.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Admin users"
+        subtitle="Back office access governance with a focus on SUPER_ADMIN roles."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Crea nuovo admin</h2>
+        <h2 className="text-base font-semibold text-foreground">Create new admin</h2>
         <form className="grid gap-3 lg:grid-cols-[1fr,1fr,auto]" onSubmit={handleCreateAdmin}>
           <Input
             label="Email"
@@ -227,8 +226,8 @@ export const AdminAdminsOverview = () => {
             required
           />
           <div className="flex items-end">
-            <Button type="submit" size="sm" loading={creating} loadingText="Creazione">
-              Crea admin
+            <Button type="submit" size="sm" loading={creating} loadingText="Creating">
+              Create admin
             </Button>
           </div>
         </form>
@@ -246,7 +245,7 @@ export const AdminAdminsOverview = () => {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca per email admin"
+            placeholder="Search by admin email"
           />
           <Select
             value={statusFilter}
@@ -265,7 +264,7 @@ export const AdminAdminsOverview = () => {
             }}
           />
           <Button type="submit" size="sm">
-            Applica filtri
+            Apply filters
           </Button>
         </form>
       </Card>
@@ -274,23 +273,23 @@ export const AdminAdminsOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Gestione admin selezionato: {selectedAdmin.email}
+              Selected admin: {selectedAdmin.email}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedAdminId(null)}>
-              Chiudi
+              Close
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-[240px,auto]" onSubmit={handleUpdateAdmin}>
             <Select
-              label="Stato"
+              label="Status"
               value={selectedStatus}
               options={UPDATE_STATUS_OPTIONS}
               onValueChange={(value) => setSelectedStatus(value as AdminStatus)}
             />
             <div className="flex items-end gap-2">
-              <Button type="submit" size="sm" loading={updating} loadingText="Salvataggio">
-                Salva stato
+              <Button type="submit" size="sm" loading={updating} loadingText="Saving">
+                Save status
               </Button>
               <Button
                 type="button"
@@ -298,9 +297,9 @@ export const AdminAdminsOverview = () => {
                 variant="danger"
                 onClick={handleDeleteAdmin}
                 loading={deleting}
-                loadingText="Eliminazione"
+                loadingText="Deleting"
               >
-                Elimina admin
+                Delete admin
               </Button>
             </div>
           </form>
@@ -309,40 +308,40 @@ export const AdminAdminsOverview = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Totale admin"
+          label="Total admins"
           value={formatNumber(response?.totalElements ?? 0)}
           trend="neutral"
-          trendLabel="Dataset filtrato"
+          trendLabel="Filtered dataset"
         />
         <AdminStatCard
-          label="SUPER_ADMIN (pagina)"
+          label="SUPER_ADMIN (page)"
           value={formatNumber(superAdminsInPage)}
           trend="neutral"
-          trendLabel="Pagina corrente"
+          trendLabel="Current page"
         />
         <AdminStatCard
-          label="ACTIVE (pagina)"
+          label="ACTIVE (page)"
           value={formatNumber(
             response?.content.filter((admin) => admin.status === "ACTIVE").length ?? 0
           )}
           trend="neutral"
-          trendLabel="Pagina corrente"
+          trendLabel="Current page"
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Caricamento admin...</p>
+          <p className="text-sm text-muted">Loading admins...</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore caricamento admin</p>
+          <p className="text-sm font-semibold text-danger">Unable to load admins</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadAdmins()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -352,19 +351,19 @@ export const AdminAdminsOverview = () => {
           <AdminTable
             columns={[
               { key: "email", label: "Email" },
-              { key: "role", label: "Ruolo" },
-              { key: "status", label: "Stato" },
-              { key: "lastLogin", label: "Ultimo login" },
-              { key: "createdAt", label: "Creato il" },
-              { key: "actions", label: "Azioni", align: "right" },
+              { key: "role", label: "Role" },
+              { key: "status", label: "Status" },
+              { key: "lastLogin", label: "Last login" },
+              { key: "createdAt", label: "Created at" },
+              { key: "actions", label: "Actions", align: "right" },
             ]}
             rows={rows}
-            emptyLabel="Nessun admin trovato con i filtri correnti"
+            emptyLabel="No admins found with the current filters"
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Pagina {(response?.number ?? 0) + 1} di {Math.max(response?.totalPages ?? 1, 1)}
+              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -373,7 +372,7 @@ export const AdminAdminsOverview = () => {
                 onClick={() => setPage((current) => Math.max(current - 1, 0))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -381,7 +380,7 @@ export const AdminAdminsOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>

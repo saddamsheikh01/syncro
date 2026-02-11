@@ -9,6 +9,7 @@ import { Select } from "@/components/elements/Select";
 import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import {
   createAdminExperience,
   createExperienceAffiliation,
@@ -46,7 +47,7 @@ const SOURCE_OPTIONS = [
 ];
 
 const PROVIDER_OPTIONS = [
-  { value: "", label: "Nessun provider" },
+  { value: "", label: "No provider" },
   { value: "GETYOURGUIDE", label: "GETYOURGUIDE" },
   { value: "VIATOR", label: "VIATOR" },
   { value: "MUSEMENT", label: "MUSEMENT" },
@@ -56,8 +57,8 @@ const PROVIDER_OPTIONS = [
 ];
 
 const ACTIVE_OPTIONS = [
-  { value: "true", label: "Attiva" },
-  { value: "false", label: "Non attiva" },
+  { value: "true", label: "Active" },
+  { value: "false", label: "Inactive" },
 ];
 
 const parseOptionalNumber = (value: string): number | null => {
@@ -123,7 +124,7 @@ export const AdminExperiencesOverview = () => {
 
   const categoryOptions = useMemo(
     () => [
-      { value: "", label: "Nessuna categoria" },
+      { value: "", label: "No category" },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
     [categories]
@@ -131,7 +132,7 @@ export const AdminExperiencesOverview = () => {
 
   const placeOptions = useMemo(
     () => [
-      { value: "", label: "Nessun luogo" },
+      { value: "", label: "No place" },
       ...places.map((place) => ({ value: place.id, label: place.name })),
     ],
     [places]
@@ -242,7 +243,7 @@ export const AdminExperiencesOverview = () => {
         place: experience.place?.name ?? "-",
         source: experience.source,
         provider: experience.provider ?? "-",
-        active: experience.isActive ? "SI" : "NO",
+        active: experience.isActive ? "YES" : "NO",
         actions: (
           <div className="flex items-center justify-end gap-2">
             <Button
@@ -257,7 +258,7 @@ export const AdminExperiencesOverview = () => {
               variant="danger"
               onClick={() =>
                 void (async () => {
-                  const confirmed = window.confirm("Confermi eliminazione esperienza?");
+                  const confirmed = window.confirm("Confirm experience deletion?");
                   if (!confirmed) {
                     return;
                   }
@@ -276,7 +277,7 @@ export const AdminExperiencesOverview = () => {
                 })()
               }
             >
-              Elimina
+              Delete
             </Button>
           </div>
         ),
@@ -350,13 +351,13 @@ export const AdminExperiencesOverview = () => {
       return;
     }
 
-    const nextUrl = window.prompt("URL affiliazione", affiliation.url);
+    const nextUrl = window.prompt("Affiliation URL", affiliation.url);
     if (!nextUrl || !nextUrl.trim()) {
       return;
     }
 
     const nextProvider = window.prompt(
-      "Provider (opzionale)",
+      "Provider (optional)",
       affiliation.provider ?? ""
     );
 
@@ -378,7 +379,7 @@ export const AdminExperiencesOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confermi eliminazione affiliazione?");
+    const confirmed = window.confirm("Confirm affiliation deletion?");
     if (!confirmed) {
       return;
     }
@@ -395,15 +396,13 @@ export const AdminExperiencesOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Experiences</h1>
-        <p className="mt-1 text-sm text-muted">
-          CRUD esperienze catalogo con gestione affiliazioni.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Experiences"
+        subtitle="Manage catalog experiences with affiliation links."
+      />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Filtri lista</h2>
+        <h2 className="text-base font-semibold text-foreground">List filters</h2>
         <form
           className="grid gap-3 lg:grid-cols-[1fr,auto,auto]"
           onSubmit={(event) => {
@@ -415,10 +414,10 @@ export const AdminExperiencesOverview = () => {
           <Input
             value={queryDraft}
             onChange={(event) => setQueryDraft(event.target.value)}
-            placeholder="Cerca per titolo o descrizione"
+            placeholder="Search by title or description"
           />
           <Button type="submit" size="sm">
-            Applica
+            Apply
           </Button>
           <Button
             type="button"
@@ -437,19 +436,19 @@ export const AdminExperiencesOverview = () => {
 
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {selectedExperienceId ? "Modifica esperienza" : "Crea esperienza"}
+          {selectedExperienceId ? "Edit experience" : "Create experience"}
         </h2>
 
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleSubmit}>
-          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input label="Name" value={name} onChange={(event) => setName(event.target.value)} required />
           <Select label="Source" value={source} options={SOURCE_OPTIONS} onValueChange={setSource} />
           <Select
-            label="Categoria"
+            label="Category"
             value={categoryId}
             options={categoryOptions}
             onValueChange={setCategoryId}
           />
-          <Select label="Luogo" value={placeId} options={placeOptions} onValueChange={setPlaceId} />
+          <Select label="Place" value={placeId} options={placeOptions} onValueChange={setPlaceId} />
           <Select
             label="Provider"
             value={provider}
@@ -457,19 +456,19 @@ export const AdminExperiencesOverview = () => {
             onValueChange={setProvider}
           />
           <Select
-            label="Attiva"
+            label="Active"
             value={isActive}
             options={ACTIVE_OPTIONS}
             onValueChange={setIsActive}
           />
-          <Input label="Prezzo" value={price} onChange={(event) => setPrice(event.target.value)} />
+          <Input label="Price" value={price} onChange={(event) => setPrice(event.target.value)} />
           <Input
-            label="Valuta"
+            label="Currency"
             value={priceCurrency}
             onChange={(event) => setPriceCurrency(event.target.value)}
           />
           <Input
-            label="Durata (min)"
+            label="Duration (min)"
             value={durationMinutes}
             onChange={(event) => setDurationMinutes(event.target.value)}
           />
@@ -487,14 +486,14 @@ export const AdminExperiencesOverview = () => {
           </div>
           <div className="lg:col-span-2">
             <Textarea
-              label="Descrizione"
+              label="Description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Salvataggio">
-              {selectedExperienceId ? "Salva modifiche" : "Crea esperienza"}
+            <Button type="submit" size="sm" loading={saving} loadingText="Saving">
+              {selectedExperienceId ? "Save changes" : "Create experience"}
             </Button>
             {selectedExperienceId ? (
               <Button
@@ -506,7 +505,7 @@ export const AdminExperiencesOverview = () => {
                   resetForm();
                 }}
               >
-                Annulla modifica
+                Cancel edit
               </Button>
             ) : null}
           </div>
@@ -517,10 +516,10 @@ export const AdminExperiencesOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Esperienza selezionata: {selectedExperienceDetail.name}
+              Selected experience: {selectedExperienceDetail.name}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedExperienceId(null)}>
-              Chiudi dettaglio
+              Close details
             </Button>
           </div>
 
@@ -529,13 +528,13 @@ export const AdminExperiencesOverview = () => {
               <span className="font-semibold text-foreground">ID:</span> {selectedExperienceDetail.id}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Aggiornata il:</span>{" "}
+              <span className="font-semibold text-foreground">Updated at:</span>{" "}
               {formatDateTime(selectedExperienceDetail.updatedAt)}
             </p>
           </div>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-foreground">Affiliazioni</h3>
+            <h3 className="text-sm font-semibold text-foreground">Affiliations</h3>
             <form className="grid gap-3 lg:grid-cols-[1fr,240px,auto]" onSubmit={handleCreateAffiliation}>
               <Input
                 label="URL"
@@ -547,16 +546,16 @@ export const AdminExperiencesOverview = () => {
                 label="Provider"
                 value={affiliationProvider}
                 onChange={(event) => setAffiliationProvider(event.target.value)}
-                placeholder="Opzionale"
+                placeholder="Optional"
               />
               <div className="flex items-end">
                 <Button
                   type="submit"
                   size="sm"
                   loading={creatingAffiliation}
-                  loadingText="Creazione"
+                  loadingText="Creating"
                 >
-                  Aggiungi link
+                  Add link
                 </Button>
               </div>
             </form>
@@ -565,8 +564,8 @@ export const AdminExperiencesOverview = () => {
               columns={[
                 { key: "url", label: "URL" },
                 { key: "provider", label: "Provider" },
-                { key: "createdAt", label: "Creato il" },
-                { key: "actions", label: "Azioni", align: "right" },
+                { key: "createdAt", label: "Created at" },
+                { key: "actions", label: "Actions", align: "right" },
               ]}
               rows={affiliations.map((affiliation) => ({
                 id: affiliation.id,
@@ -580,19 +579,19 @@ export const AdminExperiencesOverview = () => {
                       variant="outline"
                       onClick={() => void handleUpdateAffiliation(affiliation)}
                     >
-                      Modifica
+                      Edit
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={() => void handleDeleteAffiliation(affiliation)}
                     >
-                      Elimina
+                      Delete
                     </Button>
                   </div>
                 ),
               }))}
-              emptyLabel="Nessun link affiliazione"
+              emptyLabel="No affiliation links"
             />
           </Card>
         </Card>
@@ -600,7 +599,7 @@ export const AdminExperiencesOverview = () => {
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Totale esperienze: {formatNumber(response?.totalElements ?? 0)}
+          Total experiences: {formatNumber(response?.totalElements ?? 0)}
         </p>
       </Card>
 
@@ -609,18 +608,18 @@ export const AdminExperiencesOverview = () => {
           <Loader size="sm" />
           <p className="text-sm text-muted">
             {detailLoading
-              ? "Caricamento dettaglio esperienza..."
-              : "Caricamento esperienze..."}
+              ? "Loading experience details..."
+              : "Loading experiences..."}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Errore experiences</p>
+          <p className="text-sm font-semibold text-danger">Unable to load experiences</p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadExperiences()}>
-            Riprova
+            Try again
           </Button>
         </Card>
       ) : null}
@@ -629,21 +628,21 @@ export const AdminExperiencesOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "name", label: "Nome" },
-              { key: "category", label: "Categoria" },
-              { key: "place", label: "Luogo" },
+              { key: "name", label: "Name" },
+              { key: "category", label: "Category" },
+              { key: "place", label: "Place" },
               { key: "source", label: "Source" },
               { key: "provider", label: "Provider" },
-              { key: "active", label: "Attiva" },
-              { key: "actions", label: "Azioni", align: "right" },
+              { key: "active", label: "Active" },
+              { key: "actions", label: "Actions", align: "right" },
             ]}
             rows={rows}
-            emptyLabel="Nessuna esperienza"
+            emptyLabel="No experiences"
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Pagina {(response?.number ?? 0) + 1} di {Math.max(response?.totalPages ?? 1, 1)}
+              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -652,7 +651,7 @@ export const AdminExperiencesOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Precedente
+                Previous
               </Button>
               <Button
                 size="sm"
@@ -660,7 +659,7 @@ export const AdminExperiencesOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Successiva
+                Next
               </Button>
             </div>
           </div>

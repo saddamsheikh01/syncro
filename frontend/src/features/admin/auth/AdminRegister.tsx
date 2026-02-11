@@ -7,6 +7,8 @@ import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import type { AdminRole } from "../../../types/admin";
 import { Select } from "@/components/elements/Select";
 import { Logo } from "@/components/elements/Logo";
+import { Input } from "@/components/elements/Input";
+import { Button } from "@/components/buttons/Button";
 
 const ADMIN_ROLES: AdminRole[] = ["ADMIN", "SUPER_ADMIN"];
 const ADMIN_ROLE_OPTIONS = ADMIN_ROLES.map((roleItem) => ({
@@ -66,39 +68,29 @@ export const AdminRegister = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="admin-register-email">
-              Email
-            </label>
-            <input
-              id="admin-register-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="admin@email.com"
-            />
-          </div>
+          <Input
+            id="admin-register-email"
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="admin@email.com"
+          />
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="admin-register-password">
-              Password
-            </label>
-            <input
-              id="admin-register-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="Create a password"
-            />
-          </div>
+          <Input
+            id="admin-register-password"
+            label="Password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Create a password"
+          />
 
           <Select
             label="Role"
@@ -108,23 +100,15 @@ export const AdminRegister = () => {
             onValueChange={(nextRole) => setRole(nextRole as AdminRole)}
           />
 
-          <div className="space-y-2">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="admin-register-bootstrap"
-            >
-              Bootstrap secret (optional)
-            </label>
-            <input
-              id="admin-register-bootstrap"
-              name="bootstrapSecret"
-              type="text"
-              value={bootstrapSecret}
-              onChange={(event) => setBootstrapSecret(event.target.value)}
-              className="w-full rounded-[var(--radius-md)] border border-border bg-surface px-4 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-              placeholder="Only for the first setup"
-            />
-          </div>
+          <Input
+            id="admin-register-bootstrap"
+            label="Bootstrap secret (optional)"
+            name="bootstrapSecret"
+            type="text"
+            value={bootstrapSecret}
+            onChange={(event) => setBootstrapSecret(event.target.value)}
+            placeholder="Only for the first setup"
+          />
 
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -144,13 +128,15 @@ export const AdminRegister = () => {
             </div>
           ) : null}
 
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center rounded-[var(--radius-md)] bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            size="lg"
+            fullWidth
+            loading={isSubmitting}
+            loadingText="Creating"
           >
-            {isSubmitting ? "Creating..." : "Create admin"}
-          </button>
+            Create admin
+          </Button>
         </form>
 
         <div className="mt-8 text-sm text-muted">
