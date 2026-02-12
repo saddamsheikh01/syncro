@@ -8,11 +8,26 @@ import { Logo } from "@/components/elements/Logo";
 import { Input } from "@/components/elements/Input";
 import { Button } from "@/components/buttons/Button";
 
+const DEV_ADMIN_CREDENTIALS = {
+  email: "riccardoc19@gmail.com",
+  password: "Dadodado98",
+};
+
+const isLocalhost = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1";
+};
+
 export const AdminLogin = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(() =>
+    isLocalhost() ? DEV_ADMIN_CREDENTIALS.email : "",
+  );
+  const [password, setPassword] = useState(() =>
+    isLocalhost() ? DEV_ADMIN_CREDENTIALS.password : "",
+  );
 
   useEffect(() => {
     actions.hydrate();

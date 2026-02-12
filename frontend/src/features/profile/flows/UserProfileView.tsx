@@ -450,30 +450,11 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     return items;
   }, [parsedBreakdown]);
   const resolvedMatchScore = useMemo(() => {
-    if (!parsedBreakdown?.domains) {
-      return match?.scoreTotal ?? undefined;
+    if (typeof match?.scoreTotal !== "number" || !Number.isFinite(match.scoreTotal)) {
+      return undefined;
     }
-
-    let sum = 0;
-    let count = 0;
-
-    for (const domain of MATCH_DOMAIN_ORDER) {
-      const meta = getMatchDomainMeta(domain);
-      const score = parsedBreakdown.domains[meta.key];
-      if (typeof score !== "number" || !Number.isFinite(score)) {
-        continue;
-      }
-
-      sum += score;
-      count += 1;
-    }
-
-    if (count === 0) {
-      return match?.scoreTotal ?? undefined;
-    }
-
-    return Math.round(sum / count);
-  }, [match?.scoreTotal, parsedBreakdown]);
+    return Math.round(match.scoreTotal);
+  }, [match?.scoreTotal]);
 
 
   const updatePost = useCallback(

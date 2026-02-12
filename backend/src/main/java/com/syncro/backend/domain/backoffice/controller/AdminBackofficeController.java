@@ -8,8 +8,10 @@ import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
+import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.security.AdminPrincipal;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -80,6 +83,27 @@ public class AdminBackofficeController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(adminBackofficeService.getUserTestsCount(principal, userId));
+    }
+
+    @GetMapping("/users/{userId}/preferences")
+    @Operation(summary = "Preferenze utente app")
+    public ResponseEntity<UserPreferencesResponse> getUserPreferences(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(adminBackofficeService.getUserPreferences(principal, userId));
+    }
+
+    @PutMapping("/users/{userId}/preferences/matchmaking")
+    @Operation(summary = "Aggiorna filtri matchmaking utente app")
+    public ResponseEntity<UserPreferencesResponse> updateUserMatchmakingPreferences(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId,
+        @Valid @RequestBody AdminUpdateUserMatchmakingRequest request
+    ) {
+        return ResponseEntity.ok(
+            adminBackofficeService.updateUserMatchmakingPreferences(principal, userId, request)
+        );
     }
 
     @PostMapping("/users")

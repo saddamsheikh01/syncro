@@ -21,12 +21,20 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
+import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
+import com.syncro.backend.domain.profile.entity.UserPreference;
+import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
+import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.security.AdminPrincipal;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,30 +45,44 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AdminBackofficeService {
+    private static final List<String> MATCH_DOMAIN_KEYS = List.of(
+        "love",
+        "friendship",
+        "work",
+        "projects",
+        "hobby",
+        "growth"
+    );
 
     private final UserRepository userRepository;
     private final UserAuthProviderRepository userAuthProviderRepository;
+    private final UserPreferenceRepository userPreferenceRepository;
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
     private final AdminAuthMapper adminAuthMapper;
+    private final UserPreferenceMapper userPreferenceMapper;
     private final UserTestSubmissionRepository userTestSubmissionRepository;
 
     public AdminBackofficeService(
         UserRepository userRepository,
         UserAuthProviderRepository userAuthProviderRepository,
+        UserPreferenceRepository userPreferenceRepository,
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         AuthMapper authMapper,
         AdminAuthMapper adminAuthMapper,
+        UserPreferenceMapper userPreferenceMapper,
         UserTestSubmissionRepository userTestSubmissionRepository
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
+        this.userPreferenceRepository = userPreferenceRepository;
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.authMapper = authMapper;
         this.adminAuthMapper = adminAuthMapper;
+        this.userPreferenceMapper = userPreferenceMapper;
         this.userTestSubmissionRepository = userTestSubmissionRepository;
     }
 
@@ -98,6 +120,56 @@ public class AdminBackofficeService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(user.getId());
         return new TestCountResponse(count);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPreferencesResponse getUserPreferences(AdminPrincipal principal, UUID userId) {
+        ensureSuperAdmin(principal);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        UserPreference preferences = userPreferenceRepository.findByUserId(user.getId()).orElse(null);
+        if (preferences == null) {
+            UserPreference created = new UserPreference();
+            created.setUser(user);
+            created.setMatchmakingFilters(normalizeMatchmakingFilters(null));
+            created.setFeedPreferences(Map.of());
+            preferences = userPreferenceRepository.save(created);
+        }
+
+        preferences.setMatchmakingFilters(normalizeMatchmakingFilters(preferences.getMatchmakingFilters()));
+        if (preferences.getFeedPreferences() == null) {
+            preferences.setFeedPreferences(Map.of());
+        }
+
+        return userPreferenceMapper.toResponse(preferences);
+    }
+
+    @Transactional
+    public UserPreferencesResponse updateUserMatchmakingPreferences(
+        AdminPrincipal principal,
+        UUID userId,
+        AdminUpdateUserMatchmakingRequest request
+    ) {
+        ensureSuperAdmin(principal);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        UserPreference preferences = userPreferenceRepository.findByUserId(user.getId())
+            .orElseGet(() -> {
+                UserPreference created = new UserPreference();
+                created.setUser(user);
+                created.setFeedPreferences(Map.of());
+                return created;
+            });
+
+        preferences.setMatchmakingFilters(normalizeMatchmakingFilters(request.matchmakingFilters()));
+        if (preferences.getFeedPreferences() == null) {
+            preferences.setFeedPreferences(Map.of());
+        }
+
+        UserPreference saved = userPreferenceRepository.save(preferences);
+        return userPreferenceMapper.toResponse(saved);
     }
 
     @Transactional
@@ -284,5 +356,65 @@ public class AdminBackofficeService {
             return "it";
         }
         return language.trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
+    }
+
+    private Integer toInteger(Object value) {
+        if (value instanceof Integer intValue) {
+            return intValue;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String str && !str.isBlank()) {
+            try {
+                return Integer.parseInt(str.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private Map<String, Object> normalizeMatchmakingFilters(Map<String, Object> rawFilters) {
+        Map<String, Object> normalized = rawFilters == null
+            ? new LinkedHashMap<>()
+            : new LinkedHashMap<>(rawFilters);
+
+        normalized.put("openToNewConnections", true);
+        normalized.put("sharedInterests", true);
+
+        Map<String, Object> activeDomains = new LinkedHashMap<>();
+        for (String domainKey : MATCH_DOMAIN_KEYS) {
+            activeDomains.put(domainKey, true);
+        }
+        normalized.put("activeDomains", activeDomains);
+
+        Map<String, Object> configuredDomainWeights = toMap(normalized.get("domainWeights"));
+        Map<String, Object> normalizedDomainWeights = new LinkedHashMap<>();
+        boolean hasPositiveWeight = false;
+        for (String domainKey : MATCH_DOMAIN_KEYS) {
+            Integer configuredWeight = toInteger(configuredDomainWeights.get(domainKey));
+            int weight = Math.max(0, configuredWeight != null ? configuredWeight : 1);
+            if (weight > 0) {
+                hasPositiveWeight = true;
+            }
+            normalizedDomainWeights.put(domainKey, weight);
+        }
+        if (!hasPositiveWeight) {
+            for (String domainKey : MATCH_DOMAIN_KEYS) {
+                normalizedDomainWeights.put(domainKey, 1);
+            }
+        }
+        normalized.put("domainWeights", normalizedDomainWeights);
+
+        return normalized;
     }
 }

@@ -4,9 +4,11 @@ import type {
   AdminUpdateUserPasswordRequest,
   AdminCreateAdminRequest,
   AdminCreateUserRequest,
+  AdminUpdateUserMatchmakingRequest,
   AdminUpdateAdminRequest,
   AdminUpdateUserRequest,
   AdminUserResponse,
+  AdminUserPreferencesResponse,
   AdminRole,
   AdminStatus,
 } from "../../types/admin";
@@ -50,6 +52,26 @@ export const getUserTestsCount = async (
 ): Promise<TestCountResponse> => {
   const { data } = await apiClient.get<TestCountResponse>(
     `/admin/users/${userId}/tests/count`
+  );
+  return data;
+};
+
+export const getUserPreferences = async (
+  userId: Uuid
+): Promise<AdminUserPreferencesResponse> => {
+  const { data } = await apiClient.get<AdminUserPreferencesResponse>(
+    `/admin/users/${userId}/preferences`
+  );
+  return data;
+};
+
+export const updateUserMatchmakingPreferences = async (
+  userId: Uuid,
+  payload: AdminUpdateUserMatchmakingRequest
+): Promise<AdminUserPreferencesResponse> => {
+  const { data } = await apiClient.put<AdminUserPreferencesResponse>(
+    `/admin/users/${userId}/preferences/matchmaking`,
+    payload
   );
   return data;
 };

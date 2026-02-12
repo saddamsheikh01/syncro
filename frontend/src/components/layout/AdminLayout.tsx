@@ -27,6 +27,11 @@ const NAV_ITEMS = [
     description: "Application user overview",
   },
   {
+    href: "/admin/matchmaking",
+    label: "Matchmaking",
+    description: "Weights and filter control",
+  },
+  {
     href: "/admin/admin-users",
     label: "Admin",
     description: "Back office access control",

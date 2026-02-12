@@ -56,6 +56,7 @@ public class UserMatchService {
 
     private static final int MIN_CANDIDATES = 20;
     private static final int STALE_DAYS = 7;
+    private static final int MATCH_ALGORITHM_VERSION = 2;
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     private final UserRepository userRepository;
@@ -219,6 +220,10 @@ public class UserMatchService {
         if (!breakdown.containsKey("domains")) {
             return true;
         }
+        Integer algorithmVersion = toInteger(breakdown.get("algorithmVersion"));
+        if (algorithmVersion == null || algorithmVersion < MATCH_ALGORITHM_VERSION) {
+            return true;
+        }
 
         if (match.getUpdatedAt() != null) {
             Instant threshold = Instant.now().minus(STALE_DAYS, ChronoUnit.DAYS);
@@ -367,6 +372,7 @@ public class UserMatchService {
         breakdown.put("activeDomains", activeDomains);
         breakdown.put("domainWeights", domainWeights);
         breakdown.put("loveReciprocal", loveReciprocal);
+        breakdown.put("algorithmVersion", MATCH_ALGORITHM_VERSION);
 
         return breakdown;
     }
@@ -628,9 +634,23 @@ public class UserMatchService {
     }
 
     private Map<MatchDomain, Integer> parseActiveDomainWeights(Map<String, Object> filters) {
+        Map<String, Object> configuredWeights = toMap(filters.get("domainWeights"));
         Map<MatchDomain, Integer> weights = new EnumMap<>(MatchDomain.class);
+        boolean hasPositiveWeight = false;
+
         for (MatchDomain domain : MatchDomain.values()) {
-            weights.put(domain, 1);
+            Integer configured = toInteger(getByDomainKey(configuredWeights, domain));
+            int weight = configured != null ? Math.max(0, configured) : 1;
+            if (weight > 0) {
+                hasPositiveWeight = true;
+            }
+            weights.put(domain, weight);
+        }
+
+        if (!hasPositiveWeight) {
+            for (MatchDomain domain : MatchDomain.values()) {
+                weights.put(domain, 1);
+            }
         }
 
         return weights;

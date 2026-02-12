@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 /**
  * Servizio per il calcolo dei punteggi per ogni dominio di compatibilita.
  * Ogni dominio ha pesi diversi per le dimensioni.
- * Se una dimensione non e disponibile, i pesi vengono redistribuiti.
+ * Se una dimensione non e disponibile, applica una penalizzazione di copertura.
  */
 @Service
 public class DomainScoreCalculator {
+    private static final double NEUTRAL_BASELINE = 50.0;
 
     // Pesi per ogni dominio (in percentuale, devono sommare a 100)
     private static final Map<MatchDomain, DomainWeights> DOMAIN_WEIGHTS = new EnumMap<>(MatchDomain.class);
@@ -106,7 +107,8 @@ public class DomainScoreCalculator {
 
     /**
      * Calcola il punteggio per un singolo dominio.
-     * Redistribuisce i pesi se alcune dimensioni non sono disponibili.
+     * Usa media ponderata sulle dimensioni presenti e una penalizzazione
+     * proporzionale alle dimensioni mancanti per evitare score artificialmente uguali.
      */
     private Integer calculateDomainScore(MatchDomain domain, DimensionScores dimensions) {
         if (!dimensions.hasAnyDimension()) {
@@ -118,40 +120,48 @@ public class DomainScoreCalculator {
             return null;
         }
 
-        // Calcola i pesi effettivi (redistribuiti se dimensioni mancanti)
-        double totalWeight = 0;
-        double weightedSum = 0;
-
-        if (dimensions.interests() != null && weights.interests > 0) {
-            totalWeight += weights.interests;
-            weightedSum += dimensions.interests() * weights.interests;
-        }
-        if (dimensions.lifestyle() != null && weights.lifestyle > 0) {
-            totalWeight += weights.lifestyle;
-            weightedSum += dimensions.lifestyle() * weights.lifestyle;
-        }
-        if (dimensions.values() != null && weights.values > 0) {
-            totalWeight += weights.values;
-            weightedSum += dimensions.values() * weights.values;
-        }
-        if (dimensions.objectives() != null && weights.objectives > 0) {
-            totalWeight += weights.objectives;
-            weightedSum += dimensions.objectives() * weights.objectives;
-        }
-        if (dimensions.psy() != null && weights.psy > 0) {
-            totalWeight += weights.psy;
-            weightedSum += dimensions.psy() * weights.psy;
-        }
-        if (dimensions.astro() != null && weights.astro > 0) {
-            totalWeight += weights.astro;
-            weightedSum += dimensions.astro() * weights.astro;
-        }
-
-        if (totalWeight == 0) {
+        double configuredWeight = weights.totalWeight();
+        if (configuredWeight <= 0) {
             return null;
         }
 
-        int score = (int) Math.round(weightedSum / totalWeight);
+        double availableWeight = 0;
+        double weightedSum = 0;
+
+        if (dimensions.interests() != null && weights.interests > 0) {
+            availableWeight += weights.interests;
+            weightedSum += dimensions.interests() * weights.interests;
+        }
+        if (dimensions.lifestyle() != null && weights.lifestyle > 0) {
+            availableWeight += weights.lifestyle;
+            weightedSum += dimensions.lifestyle() * weights.lifestyle;
+        }
+        if (dimensions.values() != null && weights.values > 0) {
+            availableWeight += weights.values;
+            weightedSum += dimensions.values() * weights.values;
+        }
+        if (dimensions.objectives() != null && weights.objectives > 0) {
+            availableWeight += weights.objectives;
+            weightedSum += dimensions.objectives() * weights.objectives;
+        }
+        if (dimensions.psy() != null && weights.psy > 0) {
+            availableWeight += weights.psy;
+            weightedSum += dimensions.psy() * weights.psy;
+        }
+        if (dimensions.astro() != null && weights.astro > 0) {
+            availableWeight += weights.astro;
+            weightedSum += dimensions.astro() * weights.astro;
+        }
+
+        if (availableWeight == 0) {
+            return null;
+        }
+
+        double rawScore = weightedSum / availableWeight;
+        double coverage = availableWeight / configuredWeight;
+        double adjustedScore = rawScore * coverage + NEUTRAL_BASELINE * (1 - coverage);
+
+        int score = (int) Math.round(adjustedScore);
         return Math.max(0, Math.min(100, score));
     }
 
@@ -165,5 +175,9 @@ public class DomainScoreCalculator {
         int objectives,
         int psy,
         int astro
-    ) {}
+    ) {
+        private int totalWeight() {
+            return interests + lifestyle + values + objectives + psy + astro;
+        }
+    }
 }

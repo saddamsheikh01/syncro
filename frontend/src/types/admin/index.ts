@@ -1,4 +1,4 @@
-import type { IsoDateTime, Uuid } from "../shared";
+import type { IsoDateTime, JsonObject, Uuid } from "../shared";
 import type { TokenResponse, UserStatus } from "../auth";
 
 export type AdminStatus = "ACTIVE" | "SUSPENDED";
@@ -52,6 +52,23 @@ export type AdminUpdateUserRequest = {
 
 export type AdminUpdateUserPasswordRequest = {
   newPassword: string;
+};
+
+export type AdminUserPreferencesResponse = {
+  id: Uuid;
+  userId: Uuid;
+  matchmakingFilters: JsonObject;
+  feedPreferences: JsonObject;
+  privacyPolicyAccepted: boolean;
+  privacyPolicyAcceptedAt: IsoDateTime | null;
+  newsletterConsent: boolean;
+  newsletterConsentAt: IsoDateTime | null;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+export type AdminUpdateUserMatchmakingRequest = {
+  matchmakingFilters: JsonObject;
 };
 
 export type AdminReferralCodeResponse = {
