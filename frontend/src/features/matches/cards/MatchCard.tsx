@@ -4,42 +4,14 @@ import { cx } from "@/lib/classNames";
 import {
   resolveMatchDomainScores,
 } from "@/lib/matchDomains";
+import { resolveMatchCopy } from "@/lib/matchCopy";
 import type { UserMatchResponse } from "@/types/matches";
 
 const DEFAULT_MATCH_DESCRIPTION =
   "Relevant connection based on your current context.";
 
-const ITALIAN_DESCRIPTION_HINTS = [
-  "interessi",
-  "valori",
-  "obiettivi",
-  "affin",
-  "compatibil",
-  "condivis",
-  "vicin",
-  "citta",
-  "luogo",
-  "esperien",
-  "profilo",
-  "amicizia",
-  "amore",
-  "lavoro",
-  "contesto",
-  "buona",
-  "energia",
-];
-
-const looksItalian = (value?: string | null) => {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return ITALIAN_DESCRIPTION_HINTS.some((hint) =>
-    normalized.includes(hint)
-  );
-};
-
 const resolveDescription = (value?: string | null) => {
-  if (!value) return DEFAULT_MATCH_DESCRIPTION;
-  return looksItalian(value) ? DEFAULT_MATCH_DESCRIPTION : value;
+  return resolveMatchCopy(value, DEFAULT_MATCH_DESCRIPTION);
 };
 
 export interface MatchCardProps
@@ -50,6 +22,7 @@ export interface MatchCardProps
   onOpen?: () => void;
   showDomainTag?: boolean;
   showScore?: boolean;
+  scoreLabel?: string;
   descriptionOverride?: string | null;
 }
 
@@ -76,6 +49,7 @@ export const MatchCard = ({
   onOpen,
   showDomainTag = true,
   showScore = true,
+  scoreLabel = "Overall",
   descriptionOverride,
   className,
   ...props
@@ -111,8 +85,8 @@ export const MatchCard = ({
           </div>
         )}
         {showScore ? (
-          <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm">
-            {score}%
+          <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm whitespace-nowrap">
+            {scoreLabel} {score}%
           </div>
         ) : (
           <div className="absolute right-3 top-3 rounded-full border border-border/70 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-subtle shadow-sm">

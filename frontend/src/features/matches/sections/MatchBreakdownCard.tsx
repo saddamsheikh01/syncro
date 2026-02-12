@@ -93,7 +93,7 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
     return null;
   }
 
-  const { dimensions, completeness, availableDimensions, totalDimensions, loveReciprocal } = breakdown;
+  const { dimensions, completeness, availableDimensions, totalDimensions } = breakdown;
   const domainSlots = resolveMatchDomainSlots(breakdown);
 
   // Separa dimensioni disponibili e mancanti
@@ -120,11 +120,6 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
               <h4 className="text-xs font-semibold uppercase tracking-wide text-subtle">
                 Domain fit
               </h4>
-              {typeof loveReciprocal === "boolean" ? (
-                <span className="text-[11px] text-muted">
-                  Love reciprocity: {loveReciprocal ? "Yes" : "No"}
-                </span>
-              ) : null}
             </div>
             <div className="space-y-3">
               {domainSlots.map((domain) => (

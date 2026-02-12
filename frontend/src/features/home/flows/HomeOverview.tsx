@@ -18,7 +18,7 @@ import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRo
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
 import { resolveTestCopy } from "@/lib/insightsCopy";
-import { getDomainFilterItems } from "@/lib/matchDomains";
+import { getDomainFilterItems, getMatchDomainMeta } from "@/lib/matchDomains";
 import type { DomainFilter } from "@/lib/matchDomains";
 import type { UserMatchResponse } from "@/types/matches";
 import {
@@ -231,6 +231,13 @@ export const HomeOverview = () => {
         .map((rec) => rec.place!),
     [recommendations],
   );
+  const matchScoreLabel = useMemo(
+    () =>
+      selectedDomain === "ALL"
+        ? "Overall"
+        : getMatchDomainMeta(selectedDomain).label,
+    [selectedDomain]
+  );
 
   const placeCards = useMemo(() => {
     const list =
@@ -391,6 +398,7 @@ export const HomeOverview = () => {
                 key={match.matchId}
                 match={match}
                 href={`/profile/${match.userId}`}
+                scoreLabel={matchScoreLabel}
               />
             ))}
           </div>

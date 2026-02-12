@@ -14,6 +14,7 @@ import { MatchBreakdownCard } from "@/features/matches/sections/MatchBreakdownCa
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { TestCountCard } from "@/components/ui/TestCountCard";
 import { MATCH_DOMAIN_ORDER, getMatchDomainMeta } from "@/lib/matchDomains";
+import { resolveMatchCopy } from "@/lib/matchCopy";
 import { useAnalytics, useAuth, useChat, useUser } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserTestsCount } from "@/services/insights";
@@ -40,7 +41,6 @@ const parseBreakdown = (raw: Record<string, unknown> | null): MatchBreakdown | n
     completeness: raw.completeness as number | undefined,
     availableDimensions: raw.availableDimensions as number | undefined,
     totalDimensions: raw.totalDimensions as number | undefined,
-    loveReciprocal: raw.loveReciprocal as boolean | undefined,
   };
 };
 
@@ -110,33 +110,8 @@ const resolveLabel = (value: string | null | undefined, map: Record<string, stri
 
 const DEFAULT_MATCH_EXPLANATION =
   "Relevant connection based on your current context.";
-
-const ITALIAN_MATCH_HINTS = [
-  "interessi",
-  "valori",
-  "obiettivi",
-  "affin",
-  "compatibil",
-  "condivis",
-  "vicin",
-  "luogo",
-  "esperien",
-  "profilo",
-  "amicizia",
-  "amore",
-  "lavoro",
-  "contesto",
-  "energia",
-];
-
-const resolveMatchExplanation = (value?: string | null) => {
-  if (!value) return null;
-  const normalized = value.trim().toLowerCase();
-  if (ITALIAN_MATCH_HINTS.some((hint) => normalized.includes(hint))) {
-    return DEFAULT_MATCH_EXPLANATION;
-  }
-  return value;
-};
+const resolveMatchExplanation = (value?: string | null) =>
+  resolveMatchCopy(value, DEFAULT_MATCH_EXPLANATION);
 
 const updateReactionCounts = (
   reactions: PostResponse["reactions"],
@@ -244,9 +219,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             if (!active) return;
             setMatch(response);
           })
-          .catch((error) => {
+          .catch(() => {
             if (!active) return;
-            setMatchError(resolveErrorMessage(error, "Match unavailable."));
+            setMatchError("Match unavailable with the current settings.");
           })
           .finally(() => {
             if (!active) return;
@@ -430,12 +405,6 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       items.push({
         label: "Distance",
         value: `${parsedBreakdown.distanceKm.toFixed(1)} km`,
-      });
-    }
-    if (typeof parsedBreakdown.loveReciprocal === "boolean") {
-      items.push({
-        label: "Love reciprocity",
-        value: parsedBreakdown.loveReciprocal ? "Mutual" : "Not reciprocal",
       });
     }
     if (

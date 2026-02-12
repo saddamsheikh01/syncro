@@ -49,7 +49,6 @@ export type MatchBreakdown = {
   completeness?: number;
   availableDimensions?: number;
   totalDimensions?: number;
-  loveReciprocal?: boolean;
 };
 
 export type RecommendationType = "PLACE" | "EXPERIENCE";

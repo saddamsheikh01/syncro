@@ -18,8 +18,6 @@ import com.syncro.backend.domain.matchmaking.repository.UserMatchScoreRepository
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
 import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
-import com.syncro.backend.domain.profile.entity.Gender;
-import com.syncro.backend.domain.profile.entity.Orientation;
 import com.syncro.backend.domain.profile.entity.UserPreference;
 import com.syncro.backend.domain.profile.entity.UserPosition;
 import com.syncro.backend.domain.profile.entity.UserProfile;
@@ -56,7 +54,7 @@ public class UserMatchService {
 
     private static final int MIN_CANDIDATES = 20;
     private static final int STALE_DAYS = 7;
-    private static final int MATCH_ALGORITHM_VERSION = 2;
+    private static final int MATCH_ALGORITHM_VERSION = 3;
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     private final UserRepository userRepository;
@@ -285,21 +283,10 @@ public class UserMatchService {
             return;
         }
 
-        DomainScores rawDomains = domainScoreCalculator.calculate(dimensions);
-        boolean loveReciprocal = isLoveReciprocal(userAId, userBId);
-        DomainScores domains = loveReciprocal
-            ? rawDomains
-            : new DomainScores(
-                null,
-                rawDomains.friendship(),
-                rawDomains.work(),
-                rawDomains.projects(),
-                rawDomains.hobby(),
-                rawDomains.growth()
-            );
+        DomainScores domains = domainScoreCalculator.calculate(dimensions);
 
         int scoreTotal = domainScoreCalculator.calculateTotalScore(domains, options.activeDomainWeights());
-        Map<String, Object> breakdown = buildBreakdown(dimensions, domains, options, loveReciprocal);
+        Map<String, Object> breakdown = buildBreakdown(dimensions, domains, options);
         String explanation = explanationGenerator.generateSingle(dimensions, domains);
 
         UserMatchScore match = userMatchScoreRepository
@@ -323,8 +310,7 @@ public class UserMatchService {
     private Map<String, Object> buildBreakdown(
         DimensionScores dimensions,
         DomainScores domains,
-        MatchOptions options,
-        boolean loveReciprocal
+        MatchOptions options
     ) {
         Map<String, Object> breakdown = new HashMap<>();
 
@@ -371,7 +357,6 @@ public class UserMatchService {
         }
         breakdown.put("activeDomains", activeDomains);
         breakdown.put("domainWeights", domainWeights);
-        breakdown.put("loveReciprocal", loveReciprocal);
         breakdown.put("algorithmVersion", MATCH_ALGORITHM_VERSION);
 
         return breakdown;
@@ -700,7 +685,6 @@ public class UserMatchService {
             return false;
         }
 
-        UserProfile currentProfile = userProfileRepository.findByUserId(currentUserId).orElse(null);
         UserProfile candidateProfile = userProfileRepository.findByUserId(candidateUserId).orElse(null);
 
         if (!passesAgeFilter(candidateProfile, options.ageMin(), options.ageMax())) {
@@ -714,10 +698,6 @@ public class UserMatchService {
         }
         if (!passesDistanceFilter(currentUserId, candidateUserId, options)) {
             return false;
-        }
-
-        if (options.selectedDomain() == MatchDomain.LOVE) {
-            return isLoveReciprocal(currentProfile, candidateProfile);
         }
 
         return true;
@@ -828,49 +808,6 @@ public class UserMatchService {
 
     private int calculateAge(LocalDate birthDate) {
         return Period.between(birthDate, LocalDate.now()).getYears();
-    }
-
-    private boolean isLoveReciprocal(UUID userAId, UUID userBId) {
-        UserProfile profileA = userProfileRepository.findByUserId(userAId).orElse(null);
-        UserProfile profileB = userProfileRepository.findByUserId(userBId).orElse(null);
-        return isLoveReciprocal(profileA, profileB);
-    }
-
-    private boolean isLoveReciprocal(UserProfile profileA, UserProfile profileB) {
-        if (profileA == null || profileB == null) {
-            return false;
-        }
-        return isLoveInterestCompatible(profileA, profileB) && isLoveInterestCompatible(profileB, profileA);
-    }
-
-    private boolean isLoveInterestCompatible(UserProfile source, UserProfile target) {
-        Orientation orientation = source.getOrientation();
-        Gender sourceGender = source.getGender();
-        Gender targetGender = target.getGender();
-
-        if (orientation == null || targetGender == null) {
-            return false;
-        }
-
-        return switch (orientation) {
-            case BI, OTHER -> true;
-            case ASEXUAL -> false;
-            case HETERO -> isHeteroCompatible(sourceGender, targetGender);
-            case GAY -> sourceGender != null && sourceGender == targetGender;
-        };
-    }
-
-    private boolean isHeteroCompatible(Gender sourceGender, Gender targetGender) {
-        if (sourceGender == null || targetGender == null) {
-            return false;
-        }
-        if (sourceGender == Gender.MALE) {
-            return targetGender == Gender.FEMALE;
-        }
-        if (sourceGender == Gender.FEMALE) {
-            return targetGender == Gender.MALE;
-        }
-        return false;
     }
 
     @SuppressWarnings("unchecked")

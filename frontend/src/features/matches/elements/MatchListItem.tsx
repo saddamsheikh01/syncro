@@ -9,6 +9,7 @@ import { NavIcon } from "@/components/ui/NavIcon";
 import type { UserMatchResponse } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
+import { resolveMatchCopy } from "@/lib/matchCopy";
 
 export interface MatchListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick" | "onSelect"> {
@@ -73,35 +74,8 @@ const DIMENSION_LABELS: Record<string, string> = {
   astro: "astrology",
 };
 
-const ITALIAN_EXPLANATION_HINTS = [
-  "interessi",
-  "valori",
-  "obiettivi",
-  "affin",
-  "compatibil",
-  "condivis",
-  "vicin",
-  "luogo",
-  "esperien",
-  "profilo",
-  "amicizia",
-  "amore",
-  "lavoro",
-  "contesto",
-  "energia",
-];
-
-const looksItalian = (value?: string | null) => {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return ITALIAN_EXPLANATION_HINTS.some((hint) =>
-    normalized.includes(hint)
-  );
-};
-
 const resolveMatchExplanation = (value?: string | null) => {
-  if (!value) return "Affinity calculated from the profile";
-  return looksItalian(value) ? "Affinity calculated from the profile" : value;
+  return resolveMatchCopy(value, "Affinity calculated from the profile");
 };
 
 const buildMatchSummary = (match: UserMatchResponse): string => {

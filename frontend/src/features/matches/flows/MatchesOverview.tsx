@@ -9,7 +9,7 @@ import { Loader } from "@/components/elements/Loader";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
-import { getDomainFilterItems } from "@/lib/matchDomains";
+import { getDomainFilterItems, getMatchDomainMeta } from "@/lib/matchDomains";
 import type { DomainFilter } from "@/lib/matchDomains";
 import { searchUsers } from "@/services/users";
 import type { UserMatchResponse } from "@/types/matches";
@@ -191,6 +191,13 @@ export const MatchesOverview = () => {
   ]);
 
   const isInitialLoading = isLoadingCurrent && displayedItems.length === 0;
+  const matchScoreLabel = useMemo(
+    () =>
+      selectedDomain === "ALL"
+        ? "Overall"
+        : getMatchDomainMeta(selectedDomain).label,
+    [selectedDomain]
+  );
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12">
@@ -307,6 +314,7 @@ export const MatchesOverview = () => {
                 href={`/profile/${match.userId}`}
                 showDomainTag={viewMode !== "ALL_USERS"}
                 showScore={viewMode !== "ALL_USERS"}
+                scoreLabel={matchScoreLabel}
                 descriptionOverride={
                   viewMode === "ALL_USERS" ? NO_MATCH_CARD_DESCRIPTION : undefined
                 }
