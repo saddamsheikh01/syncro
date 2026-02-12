@@ -76,3 +76,7 @@ export type UsernameAvailabilityResponse = {
 export type DeleteCurrentUserRequest = {
   confirmationPhrase: string;
 };
+
+export type UserAdminAccessResponse = {
+  superAdmin: boolean;
+};

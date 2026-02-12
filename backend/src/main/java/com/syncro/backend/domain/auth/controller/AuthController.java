@@ -8,6 +8,7 @@ import com.syncro.backend.domain.auth.dto.PasswordResetRequestResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.RegisterRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
+import com.syncro.backend.domain.auth.dto.UserAdminAccessResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.service.AuthService;
 import com.syncro.backend.security.UserPrincipal;
@@ -88,5 +89,14 @@ public class AuthController {
     @SecurityRequirement(name = "bearer-jwt")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(authService.getMe(principal));
+    }
+
+    @GetMapping("/admin-access")
+    @Operation(summary = "Check if current user has SUPER_ADMIN admin access")
+    @SecurityRequirement(name = "bearer-jwt")
+    public ResponseEntity<UserAdminAccessResponse> adminAccess(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(authService.getAdminAccess(principal));
     }
 }

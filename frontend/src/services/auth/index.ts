@@ -8,6 +8,7 @@ import type {
   RefreshTokenRequest,
   RegisterRequest,
   TokenResponse,
+  UserAdminAccessResponse,
   UserResponse,
 } from "../../types/auth";
 
@@ -50,5 +51,12 @@ export const confirmPasswordReset = async (
 
 export const getMe = async (): Promise<UserResponse> => {
   const { data } = await apiClient.get<UserResponse>("/auth/me");
+  return data;
+};
+
+export const getAdminAccess = async (): Promise<UserAdminAccessResponse> => {
+  const { data } = await apiClient.get<UserAdminAccessResponse>(
+    "/auth/admin-access"
+  );
   return data;
 };

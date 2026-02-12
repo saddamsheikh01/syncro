@@ -12,13 +12,17 @@ import com.syncro.backend.domain.auth.dto.PasswordResetRequestResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.RegisterRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
+import com.syncro.backend.domain.auth.dto.UserAdminAccessResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
+import com.syncro.backend.domain.auth.entity.AdminRole;
+import com.syncro.backend.domain.auth.entity.AdminStatus;
 import com.syncro.backend.domain.auth.entity.AuthProvider;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.entity.UserAuthProvider;
 import com.syncro.backend.domain.auth.entity.UserPasswordResetToken;
 import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
+import com.syncro.backend.domain.auth.repository.AdminUserRepository;
 import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserPasswordResetTokenRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
@@ -58,6 +62,7 @@ public class AuthService {
         "Se l'email e registrata, riceverai istruzioni per reimpostare la password";
 
     private final UserRepository userRepository;
+    private final AdminUserRepository adminUserRepository;
     private final UserAuthProviderRepository providerRepository;
     private final UserPasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -69,6 +74,7 @@ public class AuthService {
 
     public AuthService(
         UserRepository userRepository,
+        AdminUserRepository adminUserRepository,
         UserAuthProviderRepository providerRepository,
         UserPasswordResetTokenRepository passwordResetTokenRepository,
         PasswordEncoder passwordEncoder,
@@ -78,6 +84,7 @@ public class AuthService {
         AnalyticsService analyticsService
     ) {
         this.userRepository = userRepository;
+        this.adminUserRepository = adminUserRepository;
         this.providerRepository = providerRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -252,6 +259,27 @@ public class AuthService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         ensureUserActive(user);
         return authMapper.toUserResponse(user);
+    }
+
+    public UserAdminAccessResponse getAdminAccess(UserPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        UUID userId = principal.userId();
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        ensureUserActive(user);
+
+        String email = user.getEmail();
+        if (email == null || email.isBlank()) {
+            return new UserAdminAccessResponse(false);
+        }
+
+        boolean isSuperAdmin = adminUserRepository.findByEmail(normalizeEmail(email))
+            .map(admin -> admin.getRole() == AdminRole.SUPER_ADMIN && admin.getStatus() == AdminStatus.ACTIVE)
+            .orElse(false);
+
+        return new UserAdminAccessResponse(isSuperAdmin);
     }
 
     private AuthResponse buildAuthResponse(User user) {

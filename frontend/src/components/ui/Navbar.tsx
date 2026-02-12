@@ -10,6 +10,7 @@ import { ZyraSearchBar } from "@/features/zyra/search/ZyraSearchBar";
 import { useAuth, useUser } from "@/hooks";
 import { cx } from "@/lib/classNames";
 import { getMediaByOwner } from "@/services/media";
+import { getAdminAccess } from "@/services/auth";
 import {
   PROFILE_AVATAR_UPDATED_EVENT,
   type ProfileAvatarUpdatedDetail,
@@ -109,6 +110,52 @@ const HeaderProfile = () => {
   );
 };
 
+const SuperAdminRedirect = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [checkedEmail, setCheckedEmail] = useState<string | null>(null);
+  const normalizedEmail = user?.email?.trim().toLowerCase() ?? null;
+
+  useEffect(() => {
+    if (!isAuthenticated || !normalizedEmail) {
+      return;
+    }
+
+    let active = true;
+    getAdminAccess()
+      .then((response) => {
+        if (!active) return;
+        setIsSuperAdmin(response.superAdmin);
+        setCheckedEmail(normalizedEmail);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsSuperAdmin(false);
+        setCheckedEmail(normalizedEmail);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, normalizedEmail]);
+
+  const canShow =
+    isAuthenticated &&
+    Boolean(normalizedEmail) &&
+    checkedEmail === normalizedEmail &&
+    isSuperAdmin;
+
+  if (!canShow) return null;
+
+  return (
+    <Link
+      href="/admin/login"
+      className="rounded-full border border-border/70 bg-surface px-3 py-2 text-xs font-semibold text-foreground transition hover:border-accent/40 hover:bg-accent-soft"
+    >
+      Admin
+    </Link>
+  );
+};
+
 export interface NavbarProps extends HTMLAttributes<HTMLElement> {
   position?: "fixed" | "absolute";
 }
@@ -135,6 +182,7 @@ export const Navbar = ({
         </div>
 
         <div className="flex items-center gap-3 pr-2">
+          <SuperAdminRedirect />
           <NotificationBell />
           <HeaderProfile />
         </div>

@@ -71,15 +71,24 @@ stop_process() {
   fi
 
   echo "Arresto $name (PID $pid)..."
+  if command -v pkill >/dev/null 2>&1; then
+    pkill -TERM -P "$pid" 2>/dev/null || true
+  fi
   kill -TERM "$pid" 2>/dev/null || true
   sleep 1
 
   if kill -0 "$pid" 2>/dev/null; then
+    if command -v pkill >/dev/null 2>&1; then
+      pkill -KILL -P "$pid" 2>/dev/null || true
+    fi
     kill -KILL "$pid" 2>/dev/null || true
   fi
 }
 
 cleanup() {
+  trap - INT TERM EXIT
+  set +e
+
   if [[ "$CLEANED_UP" -eq 1 ]]; then
     return
   fi
@@ -220,12 +229,12 @@ start_backend() {
   (
     cd "$BACKEND_DIR"
     if [[ "${ENABLE_JDWP:-false}" == "true" ]]; then
-      ./mvnw spring-boot:run \
+      exec ./mvnw spring-boot:run \
         -Dspring-boot.run.profiles=dev \
         -Dspring-boot.run.jvmArguments="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" \
         -DskipTests
     else
-      ./mvnw spring-boot:run \
+      exec ./mvnw spring-boot:run \
         -Dspring-boot.run.profiles=dev \
         -DskipTests
     fi
@@ -239,7 +248,7 @@ start_frontend() {
   echo "Avvio frontend..."
   (
     cd "$FRONTEND_DIR"
-    npm run dev
+    exec npm run dev
   ) &
   FRONTEND_PID=$!
   FRONTEND_STARTED=true
