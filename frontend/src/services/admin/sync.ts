@@ -4,6 +4,9 @@ import type {
   GoogleMapsSyncResponse,
   GoogleMapsSyncStatusResponse,
   GoogleMapsTextSearchSyncRequest,
+  ViatorSyncRequest,
+  ViatorSyncResponse,
+  ViatorSyncStatusResponse,
 } from "../../types/admin";
 
 export const getGoogleMapsSyncStatus = async (): Promise<GoogleMapsSyncStatusResponse> => {
@@ -38,6 +41,23 @@ export const syncGoogleMapsPlace = async (
 ): Promise<GoogleMapsSyncResponse> => {
   const { data } = await apiClient.post<GoogleMapsSyncResponse>(
     `/admin/sync/google-maps/place/${encodeURIComponent(googlePlaceId)}`
+  );
+  return data;
+};
+
+export const getViatorSyncStatus = async (): Promise<ViatorSyncStatusResponse> => {
+  const { data } = await apiClient.post<ViatorSyncStatusResponse>(
+    "/admin/sync/viator/status"
+  );
+  return data;
+};
+
+export const syncViatorProducts = async (
+  payload: ViatorSyncRequest = {}
+): Promise<ViatorSyncResponse> => {
+  const { data } = await apiClient.post<ViatorSyncResponse>(
+    "/admin/sync/viator/products",
+    payload
   );
   return data;
 };

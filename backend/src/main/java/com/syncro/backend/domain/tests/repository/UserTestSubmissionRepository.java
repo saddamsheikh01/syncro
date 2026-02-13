@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.tests.repository;
 
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,4 +36,14 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
         where s.user.id = :userId
         """)
     List<UUID> findDistinctTestDefinitionIdsByUserId(@Param("userId") UUID userId);
+
+    @Query("""
+        select s.user.id as userId, count(distinct s.testDefinition.id) as count
+        from UserTestSubmission s
+        where s.user.id in :userIds
+        group by s.user.id
+        """)
+    List<UserIdCountProjection> countDistinctTestDefinitionIdsByUserIds(
+        @Param("userIds") Collection<UUID> userIds
+    );
 }

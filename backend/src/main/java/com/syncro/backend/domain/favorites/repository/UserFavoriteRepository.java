@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.favorites.repository;
 
 import com.syncro.backend.domain.favorites.entity.UserFavorite;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface UserFavoriteRepository extends JpaRepository<UserFavorite, UUID> {
+
+    @Query("select distinct uf.userId from UserFavorite uf where uf.userId in :userIds")
+    java.util.List<UUID> findDistinctUserIdsByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 
     Page<UserFavorite> findByUserId(UUID userId, Pageable pageable);
 

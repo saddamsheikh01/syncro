@@ -1,6 +1,8 @@
 package com.syncro.backend.domain.social.repository;
 
 import com.syncro.backend.domain.social.entity.Post;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +11,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
+
+    @Query("select distinct p.userId from Post p where p.userId in :userIds")
+    List<UUID> findDistinctUserIdsByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 
     @Query(
         value = """

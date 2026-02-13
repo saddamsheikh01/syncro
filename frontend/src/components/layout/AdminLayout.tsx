@@ -71,6 +71,11 @@ const NAV_ITEMS = [
     label: "Sync Maps",
     description: "Google Maps sync",
   },
+  {
+    href: "/admin/sync/viator",
+    label: "Sync Viator",
+    description: "Viator experiences sync",
+  },
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {

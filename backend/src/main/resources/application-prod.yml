@@ -33,6 +33,13 @@ app:
   media:
     storage-dir: ${MEDIA_STORAGE_PATH}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:8080}/media}
+  viator:
+    api-key: ${VIATOR_API_KEY:}
+    base-url: ${VIATOR_BASE_URL:https://api.viator.com/partner}
+    accept-version: ${VIATOR_ACCEPT_VERSION:application/json;version=2.0}
+    default-language: ${VIATOR_ACCEPT_LANGUAGE:en-US}
+    sync:
+      enabled: ${VIATOR_SYNC_ENABLED:false}
   zyra:
     provider: ${ZYRA_PROVIDER:OPENAI}
     base-url: ${ZYRA_BASE_URL:https://api.openai.com/v1}

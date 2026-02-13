@@ -9,6 +9,23 @@ app:
     api-key: ${GOOGLE_MAPS_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api
     timeout-seconds: 30
+  viator:
+    api-key: ${VIATOR_API_KEY:}
+    base-url: ${VIATOR_BASE_URL:https://api.sandbox.viator.com/partner}
+    accept-version: ${VIATOR_ACCEPT_VERSION:application/json;version=2.0}
+    default-language: ${VIATOR_ACCEPT_LANGUAGE:en-US}
+    timeout-seconds: ${VIATOR_TIMEOUT_SECONDS:30}
+    max-retries: ${VIATOR_MAX_RETRIES:3}
+    retry-backoff-millis: ${VIATOR_RETRY_BACKOFF_MILLIS:1000}
+    campaign-value: ${VIATOR_CAMPAIGN_VALUE:}
+    target-lander: ${VIATOR_TARGET_LANDER:}
+    sync:
+      enabled: ${VIATOR_SYNC_ENABLED:false}
+      cron: ${VIATOR_SYNC_CRON:0 */30 * * * *}
+      zone: ${VIATOR_SYNC_ZONE:UTC}
+      default-count: ${VIATOR_SYNC_DEFAULT_COUNT:100}
+      default-max-pages: ${VIATOR_SYNC_DEFAULT_MAX_PAGES:5}
+      initial-lookback-hours: ${VIATOR_SYNC_INITIAL_LOOKBACK_HOURS:24}
   zyra:
     profile-recap-cache-ttl-minutes: ${ZYRA_PROFILE_RECAP_TTL_MINUTES:720}
     place-recap-cache-ttl-minutes: ${ZYRA_PLACE_RECAP_TTL_MINUTES:720}

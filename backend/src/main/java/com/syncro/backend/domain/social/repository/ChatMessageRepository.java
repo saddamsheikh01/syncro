@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.social.repository;
 
 import com.syncro.backend.domain.social.entity.ChatMessage;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
+
+    @Query("select distinct m.userId from ChatMessage m where m.userId in :userIds")
+    List<UUID> findDistinctUserIdsByUserIdIn(@Param("userIds") Collection<UUID> userIds);
 
     Page<ChatMessage> findByConversationIdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
 

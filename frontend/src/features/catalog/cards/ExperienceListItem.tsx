@@ -55,10 +55,15 @@ export const ExperienceListItem = ({
   onPress,
   ...props
 }: ExperienceListItemProps) => {
+  const isViator = provider?.toUpperCase() === "VIATOR";
+
   const card = (
     <div
       className={cx(
-        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:shadow-md hover:border-border-strong",
+        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border bg-card shadow-sm transition-all duration-300 hover:shadow-md",
+        isViator
+          ? "border-[#00a3c8]/35 bg-[radial-gradient(140%_100%_at_100%_0%,rgba(0,163,200,0.14)_0%,rgba(255,255,255,0)_62%)] hover:border-[#00a3c8]/65"
+          : "border-border/70 hover:border-border-strong",
         className
       )}
       {...props}
@@ -90,6 +95,15 @@ export const ExperienceListItem = ({
           </div>
         )}
 
+        {isViator && (
+          <div className="absolute right-3 top-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#00a3c8] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+              Viator
+            </span>
+          </div>
+        )}
+
         {/* Price badge overlay */}
         {priceLabel && (
           <div className="absolute bottom-3 right-3">
@@ -109,6 +123,11 @@ export const ExperienceListItem = ({
 
       {/* Content */}
       <div className="flex flex-1 flex-col gap-2 p-4">
+        {isViator && (
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0085a6]">
+            Viator Experience
+          </p>
+        )}
         <div className="space-y-1">
           <h4 className="line-clamp-2 text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
             {title}
@@ -147,7 +166,14 @@ export const ExperienceListItem = ({
             </span>
           )}
           {provider && (
-            <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-subtle">
+            <span
+              className={cx(
+                "ml-auto text-[10px] font-medium uppercase tracking-wide",
+                isViator
+                  ? "rounded-full bg-[#00a3c8]/12 px-2 py-0.5 text-[#007c9a]"
+                  : "text-subtle"
+              )}
+            >
               {provider}
             </span>
           )}

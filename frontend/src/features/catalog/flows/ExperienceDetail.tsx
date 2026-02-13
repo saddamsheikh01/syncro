@@ -108,6 +108,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
 
   const affiliationLink = experienceDetail.affiliationLinks?.[0];
   const bookingUrl = experienceDetail.bookingUrl ?? affiliationLink?.url;
+  const isViatorExperience = experienceDetail.provider?.toUpperCase() === "VIATOR";
 
   const formatDuration = (minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
@@ -232,7 +233,13 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
 
           {/* Provider badge */}
           {experienceDetail.provider && (
-            <span className="inline-block rounded-full bg-surface-muted px-2 py-0.5 text-xs text-subtle">
+            <span
+              className={`inline-block rounded-full px-2 py-0.5 text-xs ${
+                isViatorExperience
+                  ? "bg-[#00a3c8]/12 text-[#007c9a]"
+                  : "bg-surface-muted text-subtle"
+              }`}
+            >
               by {experienceDetail.provider}
             </span>
           )}
@@ -255,8 +262,12 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         {/* Pulsanti azione */}
         <div className="flex flex-wrap gap-3 pt-2">
           {bookingUrl && (
-            <Button onClick={() => window.open(bookingUrl, "_blank")}>
-              Book now
+            <Button
+              onClick={() =>
+                window.open(bookingUrl, "_blank", "noopener,noreferrer")
+              }
+            >
+              {isViatorExperience ? "Book on Viator" : "Book now"}
             </Button>
           )}
           <Button
