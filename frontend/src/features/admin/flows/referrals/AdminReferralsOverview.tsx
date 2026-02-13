@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
+import { Badge } from "@/components/elements/Badge";
+import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
@@ -23,6 +25,9 @@ export const AdminReferralsOverview = () => {
   const [codesResponse, setCodesResponse] =
     useState<PageResponse<AdminReferralCodeResponse> | null>(null);
 
+  const [query, setQuery] = useState("");
+  const [queryFilter, setQueryFilter] = useState<string | null>(null);
+
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [usageLoading, setUsageLoading] = useState(false);
@@ -37,14 +42,18 @@ export const AdminReferralsOverview = () => {
     setError(null);
 
     try {
-      const response = await getReferralCodes({ page, size: 20 });
+      const response = await getReferralCodes({
+        page,
+        size: 20,
+        q: queryFilter ?? undefined,
+      });
       setCodesResponse(response);
     } catch (requestError) {
       setError(requestError as ApiError);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, queryFilter]);
 
   const loadDetail = useCallback(async (code: string) => {
     setDetailLoading(true);
@@ -65,7 +74,11 @@ export const AdminReferralsOverview = () => {
     setError(null);
 
     try {
-      const response = await getReferralUsages(code, { page: pageNumber, size: 50 });
+      const response = await getReferralUsages(code, {
+        page: pageNumber,
+        size: 50,
+        includeProgress: true,
+      });
       setUsageResponse(response);
     } catch (requestError) {
       setError(requestError as ApiError);
@@ -113,12 +126,53 @@ export const AdminReferralsOverview = () => {
               setUsagePage(0);
             }}
           >
-            Apri dettaglio
+            Open details
           </Button>
         ),
       })),
     [codesResponse]
   );
+
+  const renderYesNo = (value: boolean | null | undefined) => {
+    if (value === null || value === undefined) {
+      return (
+        <Badge tone="neutral" size="sm">
+          N/A
+        </Badge>
+      );
+    }
+
+    return value ? (
+      <Badge tone="success-light" size="sm">
+        Yes
+      </Badge>
+    ) : (
+      <Badge tone="neutral" size="sm">
+        No
+      </Badge>
+    );
+  };
+
+  const resolvePrimaryActivityLabel = (activity: string | null | undefined) => {
+    switch (activity) {
+      case "MOMENT":
+        return "Moment";
+      case "INSIGHTS":
+        return "Insights";
+      case "CHAT":
+        return "Chat";
+      case "FAVORITE":
+        return "Favorite";
+      case "PROFILE":
+        return "Profile";
+      case "ONBOARDING":
+        return "Onboarding";
+      case "NONE":
+        return "None";
+      default:
+        return activity ?? "-";
+    }
+  };
 
   const usageRows = useMemo(
     () =>
@@ -126,8 +180,18 @@ export const AdminReferralsOverview = () => {
         id: `${usage.invitedUserId ?? usage.createdAt}-${index}`,
         invited: usage.invitedEmail ?? usage.invitedUsername ?? usage.invitedUserId ?? "-",
         createdAt: formatDateTime(usage.createdAt),
+        profileCompleted: renderYesNo(usage.profileCompleted),
+        insightsCompletedCount:
+          usage.insightsCompletedCount === null || usage.insightsCompletedCount === undefined
+            ? "-"
+            : formatNumber(usage.insightsCompletedCount),
+        hasMoment: renderYesNo(usage.hasMoment),
+        primaryActivity: (
+          <Badge tone={usage.primaryActivity && usage.primaryActivity !== "NONE" ? "accent" : "neutral"} size="sm">
+            {resolvePrimaryActivityLabel(usage.primaryActivity)}
+          </Badge>
+        ),
         ip: usage.ip ?? "-",
-        userAgent: usage.userAgent ?? "-",
       })),
     [usageResponse]
   );
@@ -140,9 +204,53 @@ export const AdminReferralsOverview = () => {
       />
 
       <Card className="p-5">
-        <p className="text-sm text-subtle">
-          Total referral codes: {formatNumber(codesResponse?.totalElements ?? 0)}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-subtle">
+            Total referral codes: {formatNumber(codesResponse?.totalElements ?? 0)}
+          </p>
+          {queryFilter ? (
+            <Badge tone="accent" size="sm">
+              Filter: {queryFilter}
+            </Badge>
+          ) : null}
+        </div>
+      </Card>
+
+      <Card className="space-y-4 p-5">
+        <form
+          className="grid gap-3 lg:grid-cols-[1fr,auto,auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSelectedCode(null);
+            setUsagePage(0);
+            setPage(0);
+            const trimmed = query.trim();
+            setQueryFilter(trimmed.length ? trimmed : null);
+          }}
+        >
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by code, email, or username"
+          />
+          <Button type="submit" size="sm">
+            Apply
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setQuery("");
+              setSelectedCode(null);
+              setUsagePage(0);
+              setPage(0);
+              setQueryFilter(null);
+            }}
+          >
+            Reset
+          </Button>
+        </form>
       </Card>
 
       {selectedCode ? (
@@ -173,6 +281,43 @@ export const AdminReferralsOverview = () => {
             </div>
           ) : null}
 
+          {detail ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Invited</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {formatNumber(detail.invitedCount)}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Onboarding</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {formatNumber(detail.onboardingCompletedCount)}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Profile</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {formatNumber(detail.profileCompletedCount)}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Insights</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {formatNumber(detail.insightsCompletedCount)}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  Moment / activity
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {formatNumber(detail.momentOrActivityCount)}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-foreground">Code usage</h3>
@@ -185,8 +330,11 @@ export const AdminReferralsOverview = () => {
               columns={[
                 { key: "invited", label: "Invited user" },
                 { key: "createdAt", label: "Used at" },
+                { key: "profileCompleted", label: "Profile" },
+                { key: "insightsCompletedCount", label: "Insights" },
+                { key: "hasMoment", label: "Moment" },
+                { key: "primaryActivity", label: "Activity" },
                 { key: "ip", label: "IP" },
-                { key: "userAgent", label: "User Agent" },
               ]}
               rows={usageRows}
               emptyLabel="No usage found"

@@ -33,10 +33,11 @@ public class AdminReferralsController {
     @Operation(summary = "Lista referral")
     public ResponseEntity<Page<AdminReferralCodeResponse>> getReferralCodes(
         @AuthenticationPrincipal AdminPrincipal principal,
+        @RequestParam(required = false) String q,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(referralService.getReferralCodes(principal, page, size));
+        return ResponseEntity.ok(referralService.getReferralCodes(principal, q, page, size));
     }
 
     @GetMapping("/{code}")
@@ -53,9 +54,12 @@ public class AdminReferralsController {
     public ResponseEntity<Page<AdminReferralUsageResponse>> getReferralUsages(
         @AuthenticationPrincipal AdminPrincipal principal,
         @PathVariable String code,
+        @RequestParam(defaultValue = "false") boolean includeProgress,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "50") int size
     ) {
-        return ResponseEntity.ok(referralService.getReferralUsages(principal, code, page, size));
+        return ResponseEntity.ok(
+            referralService.getReferralUsages(principal, code, includeProgress, page, size)
+        );
     }
 }

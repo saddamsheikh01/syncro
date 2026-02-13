@@ -9,6 +9,11 @@ public record AdminReferralDetailResponse(
     String username,
     String code,
     int usesCount,
-    Instant createdAt
+    Instant createdAt,
+    int invitedCount,
+    int onboardingCompletedCount,
+    int profileCompletedCount,
+    int insightsCompletedCount,
+    int momentOrActivityCount
 ) {
 }

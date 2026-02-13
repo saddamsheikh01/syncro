@@ -8,6 +8,7 @@ import type {
 import type { PageResponse } from "../../types/shared";
 
 export type AdminReferralsParams = {
+  q?: string;
   page?: number;
   size?: number;
 };
@@ -33,7 +34,7 @@ export const getReferralDetail = async (
 
 export const getReferralUsages = async (
   code: string,
-  params: AdminReferralsParams = {}
+  params: AdminReferralsParams & { includeProgress?: boolean } = {}
 ): Promise<PageResponse<AdminReferralUsageResponse>> => {
   const { data } = await apiClient.get<PageResponse<AdminReferralUsageResponse>>(
     `/admin/referrals/${encodeURIComponent(code)}/usages`,

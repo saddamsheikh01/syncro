@@ -9,6 +9,11 @@ public record AdminReferralUsageResponse(
     String invitedUsername,
     Instant createdAt,
     String ip,
-    String userAgent
+    String userAgent,
+    Boolean onboardingCompleted,
+    Boolean profileCompleted,
+    Long insightsCompletedCount,
+    Boolean hasMoment,
+    String primaryActivity
 ) {
 }

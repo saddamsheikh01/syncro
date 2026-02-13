@@ -87,6 +87,11 @@ export type AdminReferralDetailResponse = {
   code: string;
   usesCount: number;
   createdAt: IsoDateTime;
+  invitedCount: number;
+  onboardingCompletedCount: number;
+  profileCompletedCount: number;
+  insightsCompletedCount: number;
+  momentOrActivityCount: number;
 };
 
 export type AdminReferralUsageResponse = {
@@ -96,6 +101,11 @@ export type AdminReferralUsageResponse = {
   createdAt: IsoDateTime;
   ip: string | null;
   userAgent: string | null;
+  onboardingCompleted: boolean | null;
+  profileCompleted: boolean | null;
+  insightsCompletedCount: number | null;
+  hasMoment: boolean | null;
+  primaryActivity: string | null;
 };
 
 export type AdminCreateNotificationRequest = {
@@ -145,6 +155,32 @@ export type GoogleMapsSyncResponse = {
   created: number;
   updated: number;
   errors: number;
+  errorMessages: string[];
+  message: string;
+};
+
+export type ViatorSyncStatusResponse = {
+  configured: boolean;
+  message: string;
+};
+
+export type ViatorSyncRequest = {
+  count?: number | null;
+  maxPages?: number | null;
+  modifiedSince?: IsoDateTime | null;
+  resetCursor?: boolean | null;
+  language?: string | null;
+};
+
+export type ViatorSyncResponse = {
+  pagesProcessed: number;
+  productsSeen: number;
+  created: number;
+  updated: number;
+  deactivated: number;
+  errors: number;
+  nextCursor: string | null;
+  effectiveModifiedSince: IsoDateTime | null;
   errorMessages: string[];
   message: string;
 };
