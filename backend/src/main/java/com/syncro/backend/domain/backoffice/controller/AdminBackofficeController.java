@@ -12,6 +12,7 @@ import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingReques
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
 import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
+import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.security.AdminPrincipal;
@@ -74,6 +75,15 @@ public class AdminBackofficeController {
         @PathVariable UUID userId
     ) {
         return ResponseEntity.ok(adminBackofficeService.getUser(principal, userId));
+    }
+
+    @GetMapping("/users/{userId}/profile")
+    @Operation(summary = "Profilo utente app (campi compilati)")
+    public ResponseEntity<UserProfileResponse> getUserProfile(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        return ResponseEntity.ok(adminBackofficeService.getUserProfile(principal, userId));
     }
 
     @GetMapping("/users/{userId}/tests/count")

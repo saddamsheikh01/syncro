@@ -6,16 +6,26 @@ import { Card } from "@/components/elements/Card";
 import { Badge } from "@/components/elements/Badge";
 import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
+import { Modal } from "@/components/ui/Modal";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
-import { getReferralCodes, getReferralDetail, getReferralUsages } from "@/services/admin";
+import {
+  getReferralCodes,
+  getReferralDetail,
+  getReferralUsages,
+  getUser,
+  getUserProfile,
+  getUserTestsCount,
+} from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type {
   AdminReferralCodeResponse,
   AdminReferralDetailResponse,
   AdminReferralUsageResponse,
 } from "@/types/admin";
+import type { UserResponse } from "@/types/auth";
+import type { UserProfileResponse } from "@/types/profile";
 import type { PageResponse } from "@/types/shared";
 
 export const AdminReferralsOverview = () => {
@@ -36,6 +46,14 @@ export const AdminReferralsOverview = () => {
   const [usagePage, setUsagePage] = useState(0);
   const [usageResponse, setUsageResponse] =
     useState<PageResponse<AdminReferralUsageResponse> | null>(null);
+
+  const [selectedInvitedUserId, setSelectedInvitedUserId] = useState<string | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userDetail, setUserDetail] = useState<UserResponse | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(null);
+  const [userTestsCount, setUserTestsCount] = useState<number | null>(null);
+  const [userModalError, setUserModalError] = useState<ApiError | null>(null);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -84,6 +102,41 @@ export const AdminReferralsOverview = () => {
       setError(requestError as ApiError);
     } finally {
       setUsageLoading(false);
+    }
+  }, []);
+
+  const openUserModal = useCallback(async (userId: string) => {
+    setSelectedInvitedUserId(userId);
+    setUserModalOpen(true);
+    setUserLoading(true);
+    setUserModalError(null);
+    setUserDetail(null);
+    setUserProfile(null);
+    setUserTestsCount(null);
+
+    try {
+      const [detailResponse, testsResponse] = await Promise.all([
+        getUser(userId),
+        getUserTestsCount(userId),
+      ]);
+
+      let profileResponse: UserProfileResponse | null = null;
+      try {
+        profileResponse = await getUserProfile(userId);
+      } catch (profileError) {
+        const maybeApiError = profileError as ApiError;
+        if (maybeApiError?.status !== 404) {
+          throw profileError;
+        }
+      }
+
+      setUserDetail(detailResponse);
+      setUserTestsCount(testsResponse.count ?? null);
+      setUserProfile(profileResponse);
+    } catch (requestError) {
+      setUserModalError(requestError as ApiError);
+    } finally {
+      setUserLoading(false);
     }
   }, []);
 
@@ -178,7 +231,17 @@ export const AdminReferralsOverview = () => {
     () =>
       (usageResponse?.content ?? []).map((usage, index) => ({
         id: `${usage.invitedUserId ?? usage.createdAt}-${index}`,
-        invited: usage.invitedEmail ?? usage.invitedUsername ?? usage.invitedUserId ?? "-",
+        invited: usage.invitedUserId ? (
+          <button
+            type="button"
+            className="text-left font-semibold text-accent hover:underline"
+            onClick={() => void openUserModal(usage.invitedUserId as string)}
+          >
+            {usage.invitedEmail ?? usage.invitedUsername ?? usage.invitedUserId}
+          </button>
+        ) : (
+          usage.invitedEmail ?? usage.invitedUsername ?? usage.invitedUserId ?? "-"
+        ),
         createdAt: formatDateTime(usage.createdAt),
         profileCompleted: renderYesNo(usage.profileCompleted),
         insightsCompletedCount:
@@ -193,7 +256,7 @@ export const AdminReferralsOverview = () => {
         ),
         ip: usage.ip ?? "-",
       })),
-    [usageResponse]
+    [usageResponse, openUserModal]
   );
 
   return (
@@ -330,7 +393,7 @@ export const AdminReferralsOverview = () => {
               columns={[
                 { key: "invited", label: "Invited user" },
                 { key: "createdAt", label: "Used at" },
-                { key: "profileCompleted", label: "Profile" },
+                { key: "profileCompleted", label: "Profile (exists)" },
                 { key: "insightsCompletedCount", label: "Insights" },
                 { key: "hasMoment", label: "Moment" },
                 { key: "primaryActivity", label: "Activity" },
@@ -424,6 +487,132 @@ export const AdminReferralsOverview = () => {
           </div>
         </>
       ) : null}
+
+      <Modal
+        open={userModalOpen}
+        title="User progress details"
+        description={selectedInvitedUserId ? `UserId: ${selectedInvitedUserId}` : undefined}
+        onClose={() => setUserModalOpen(false)}
+        secondaryAction={{
+          label: "Close",
+          variant: "outline",
+          onClick: () => setUserModalOpen(false),
+        }}
+      >
+        {userLoading ? (
+          <div className="flex items-center gap-3">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">Loading user details...</p>
+          </div>
+        ) : userModalError ? (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-danger">Unable to load user</p>
+            <p className="text-sm text-muted">{userModalError.message}</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Email</p>
+                <p className="mt-1 text-sm text-foreground">{userDetail?.email ?? "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Username</p>
+                <p className="mt-1 text-sm text-foreground">{userDetail?.username ?? "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Status</p>
+                <p className="mt-1 text-sm text-foreground">{userDetail?.status ?? "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Language</p>
+                <p className="mt-1 text-sm text-foreground">{userDetail?.language ?? "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  Onboarding completed
+                </p>
+                <div className="mt-1">{renderYesNo(userDetail?.onboardingCompleted ?? null)}</div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  Unique insights tests completed
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {userTestsCount === null ? "-" : formatNumber(userTestsCount)}
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  Profile avatar
+                </p>
+                <div className="mt-1">{renderYesNo(Boolean(userProfile?.avatarUrl))}</div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Profile fields</p>
+              {userProfile ? (
+                <div className="grid gap-2">
+                  {([
+                    ["Full name", userProfile.fullName],
+                    ["Birth date", userProfile.birthDate],
+                    ["City", userProfile.city],
+                    ["Country", userProfile.country],
+                    ["Job title", userProfile.jobTitle],
+                    ["Company", userProfile.companyName],
+                    ["Bio", userProfile.bio],
+                    ["What defines me", userProfile.traitsText],
+                    ["Loves", userProfile.lovesText],
+                    ["Dislikes", userProfile.dislikesText],
+                    ["What I'm looking for", userProfile.goalsText],
+                    ["Values", userProfile.valuesText],
+                    ["Relationship status", userProfile.relationshipStatus],
+                    ["Orientation", userProfile.orientation],
+                    ["Children status", userProfile.childrenStatus],
+                    ["Visibility", userProfile.visibility],
+                  ] as const).map(([label, value]) => {
+                    const filled = !(
+                      value === null ||
+                      value === undefined ||
+                      (typeof value === "string" && value.trim().length === 0)
+                    );
+
+                    return (
+                      <div
+                        key={label}
+                        className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/50 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                            {label}
+                          </p>
+                          <p className="mt-0.5 break-words text-sm text-foreground">
+                            {value ?? "-"}
+                          </p>
+                        </div>
+                        <div className="pt-1">
+                          {filled ? (
+                            <Badge tone="success-light" size="sm">
+                              Filled
+                            </Badge>
+                          ) : (
+                            <Badge tone="neutral" size="sm">
+                              Missing
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">No profile found for this user.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

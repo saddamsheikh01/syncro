@@ -24,10 +24,16 @@ import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
+import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
+import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.profile.entity.UserPreference;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
 import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
 import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.security.AdminPrincipal;
@@ -57,33 +63,42 @@ public class AdminBackofficeService {
     private final UserRepository userRepository;
     private final UserAuthProviderRepository userAuthProviderRepository;
     private final UserPreferenceRepository userPreferenceRepository;
+    private final UserProfileRepository userProfileRepository;
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
     private final AdminAuthMapper adminAuthMapper;
     private final UserPreferenceMapper userPreferenceMapper;
+    private final UserProfileMapper userProfileMapper;
     private final UserTestSubmissionRepository userTestSubmissionRepository;
+    private final MediaObjectRepository mediaObjectRepository;
 
     public AdminBackofficeService(
         UserRepository userRepository,
         UserAuthProviderRepository userAuthProviderRepository,
         UserPreferenceRepository userPreferenceRepository,
+        UserProfileRepository userProfileRepository,
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         AuthMapper authMapper,
         AdminAuthMapper adminAuthMapper,
         UserPreferenceMapper userPreferenceMapper,
-        UserTestSubmissionRepository userTestSubmissionRepository
+        UserProfileMapper userProfileMapper,
+        UserTestSubmissionRepository userTestSubmissionRepository,
+        MediaObjectRepository mediaObjectRepository
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
         this.userPreferenceRepository = userPreferenceRepository;
+        this.userProfileRepository = userProfileRepository;
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.authMapper = authMapper;
         this.adminAuthMapper = adminAuthMapper;
         this.userPreferenceMapper = userPreferenceMapper;
+        this.userProfileMapper = userProfileMapper;
         this.userTestSubmissionRepository = userTestSubmissionRepository;
+        this.mediaObjectRepository = mediaObjectRepository;
     }
 
     @Transactional(readOnly = true)
@@ -111,6 +126,17 @@ public class AdminBackofficeService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         return authMapper.toUserResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(AdminPrincipal principal, UUID userId) {
+        ensureSuperAdmin(principal);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        UserProfile profile = userProfileRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new NotFoundException("Profilo non trovato"));
+        String avatarUrl = resolveAvatarUrl(user.getId());
+        return userProfileMapper.toResponse(profile, avatarUrl);
     }
 
     @Transactional(readOnly = true)
@@ -416,5 +442,15 @@ public class AdminBackofficeService {
         normalized.put("domainWeights", normalizedDomainWeights);
 
         return normalized;
+    }
+
+    private String resolveAvatarUrl(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return mediaObjectRepository
+            .findFirstByOwnerTypeAndOwnerIdOrderByCreatedAtDesc(MediaOwnerType.USER_PROFILE, userId)
+            .map(media -> media.getUrl())
+            .orElse(null);
     }
 }

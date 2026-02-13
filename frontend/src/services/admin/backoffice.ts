@@ -14,6 +14,7 @@ import type {
 } from "../../types/admin";
 import type { UserResponse, UserStatus } from "../../types/auth";
 import type { TestCountResponse } from "../../types/insights";
+import type { UserProfileResponse } from "../../types/profile";
 import type { PageResponse, Uuid } from "../../types/shared";
 
 export type AdminUsersParams = {
@@ -44,6 +45,13 @@ export const getUsers = async (
 
 export const getUser = async (userId: Uuid): Promise<UserResponse> => {
   const { data } = await apiClient.get<UserResponse>(`/admin/users/${userId}`);
+  return data;
+};
+
+export const getUserProfile = async (userId: Uuid): Promise<UserProfileResponse> => {
+  const { data } = await apiClient.get<UserProfileResponse>(
+    `/admin/users/${userId}/profile`
+  );
   return data;
 };
 
