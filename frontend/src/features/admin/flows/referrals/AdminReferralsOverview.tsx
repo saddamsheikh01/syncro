@@ -54,6 +54,10 @@ export const AdminReferralsOverview = () => {
   const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(null);
   const [userTestsCount, setUserTestsCount] = useState<number | null>(null);
   const [userModalError, setUserModalError] = useState<ApiError | null>(null);
+  const [profileFieldsOpen, setProfileFieldsOpen] = useState(false);
+  const [profileFieldsFilter, setProfileFieldsFilter] = useState<
+    "missing" | "filled" | "all"
+  >("missing");
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -113,6 +117,8 @@ export const AdminReferralsOverview = () => {
     setUserDetail(null);
     setUserProfile(null);
     setUserTestsCount(null);
+    setProfileFieldsOpen(false);
+    setProfileFieldsFilter("missing");
 
     try {
       const [detailResponse, testsResponse] = await Promise.all([
@@ -161,6 +167,60 @@ export const AdminReferralsOverview = () => {
 
     void loadUsages(selectedCode, usagePage);
   }, [loadUsages, selectedCode, usagePage]);
+
+  const profileFields = useMemo(() => {
+    if (!userProfile) {
+      return [];
+    }
+
+    const rows = [
+      ["Full name", userProfile.fullName],
+      ["Birth date", userProfile.birthDate],
+      ["City", userProfile.city],
+      ["Country", userProfile.country],
+      ["Job title", userProfile.jobTitle],
+      ["Company", userProfile.companyName],
+      ["Bio", userProfile.bio],
+      ["What defines me", userProfile.traitsText],
+      ["Loves", userProfile.lovesText],
+      ["Dislikes", userProfile.dislikesText],
+      ["What I'm looking for", userProfile.goalsText],
+      ["Values", userProfile.valuesText],
+      ["Relationship status", userProfile.relationshipStatus],
+      ["Orientation", userProfile.orientation],
+      ["Children status", userProfile.childrenStatus],
+      ["Visibility", userProfile.visibility],
+    ] as const;
+
+    return rows.map(([label, value]) => {
+      const filled = !(
+        value === null ||
+        value === undefined ||
+        (typeof value === "string" && value.trim().length === 0)
+      );
+      return { label, value, filled };
+    });
+  }, [userProfile]);
+
+  const profileFieldsStats = useMemo(() => {
+    const total = profileFields.length;
+    const filled = profileFields.filter((field) => field.filled).length;
+    const missing = total - filled;
+    return { total, filled, missing };
+  }, [profileFields]);
+
+  const filteredProfileFields = useMemo(() => {
+    if (!profileFields.length) {
+      return [];
+    }
+    if (profileFieldsFilter === "missing") {
+      return profileFields.filter((field) => !field.filled);
+    }
+    if (profileFieldsFilter === "filled") {
+      return profileFields.filter((field) => field.filled);
+    }
+    return profileFields;
+  }, [profileFields, profileFieldsFilter]);
 
   const codeRows = useMemo(
     () =>
@@ -510,105 +570,139 @@ export const AdminReferralsOverview = () => {
             <p className="text-sm text-muted">{userModalError.message}</p>
           </div>
         ) : (
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Email</p>
-                <p className="mt-1 text-sm text-foreground">{userDetail?.email ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Username</p>
-                <p className="mt-1 text-sm text-foreground">{userDetail?.username ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Status</p>
-                <p className="mt-1 text-sm text-foreground">{userDetail?.status ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Language</p>
-                <p className="mt-1 text-sm text-foreground">{userDetail?.language ?? "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                  Onboarding completed
-                </p>
-                <div className="mt-1">{renderYesNo(userDetail?.onboardingCompleted ?? null)}</div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                  Unique insights tests completed
-                </p>
-                <p className="mt-1 text-sm text-foreground">
-                  {userTestsCount === null ? "-" : formatNumber(userTestsCount)}
-                </p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                  Profile avatar
-                </p>
-                <div className="mt-1">{renderYesNo(Boolean(userProfile?.avatarUrl))}</div>
-              </div>
-            </div>
-
+          <div className="max-h-[72vh] space-y-4 overflow-y-auto pr-2">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Profile fields</p>
-              {userProfile ? (
-                <div className="grid gap-2">
-                  {([
-                    ["Full name", userProfile.fullName],
-                    ["Birth date", userProfile.birthDate],
-                    ["City", userProfile.city],
-                    ["Country", userProfile.country],
-                    ["Job title", userProfile.jobTitle],
-                    ["Company", userProfile.companyName],
-                    ["Bio", userProfile.bio],
-                    ["What defines me", userProfile.traitsText],
-                    ["Loves", userProfile.lovesText],
-                    ["Dislikes", userProfile.dislikesText],
-                    ["What I'm looking for", userProfile.goalsText],
-                    ["Values", userProfile.valuesText],
-                    ["Relationship status", userProfile.relationshipStatus],
-                    ["Orientation", userProfile.orientation],
-                    ["Children status", userProfile.childrenStatus],
-                    ["Visibility", userProfile.visibility],
-                  ] as const).map(([label, value]) => {
-                    const filled = !(
-                      value === null ||
-                      value === undefined ||
-                      (typeof value === "string" && value.trim().length === 0)
-                    );
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {userDetail?.email ?? "Unknown email"}
+                  </p>
+                  <p className="text-xs text-subtle">
+                    {userDetail?.username ? `@${userDetail.username}` : "No username"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Badge tone="neutral" size="sm">
+                    Status: {userDetail?.status ?? "-"}
+                  </Badge>
+                  <Badge tone="neutral" size="sm">
+                    Lang: {userDetail?.language ?? "-"}
+                  </Badge>
+                  <Badge tone={userDetail?.onboardingCompleted ? "success-light" : "neutral"} size="sm">
+                    Onboarding: {userDetail?.onboardingCompleted ? "Yes" : "No"}
+                  </Badge>
+                  <Badge tone={userProfile ? "success-light" : "neutral"} size="sm">
+                    Profile record: {userProfile ? "Yes" : "No"}
+                  </Badge>
+                  <Badge tone={userProfile?.avatarUrl ? "success-light" : "neutral"} size="sm">
+                    Avatar: {userProfile?.avatarUrl ? "Yes" : "No"}
+                  </Badge>
+                  <Badge tone={userTestsCount && userTestsCount > 0 ? "accent" : "neutral"} size="sm">
+                    Insights: {userTestsCount === null ? "-" : formatNumber(userTestsCount)}
+                  </Badge>
+                </div>
+              </div>
 
-                    return (
-                      <div
-                        key={label}
-                        className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/50 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                            {label}
-                          </p>
-                          <p className="mt-0.5 break-words text-sm text-foreground">
-                            {value ?? "-"}
-                          </p>
-                        </div>
-                        <div className="pt-1">
-                          {filled ? (
-                            <Badge tone="success-light" size="sm">
-                              Filled
-                            </Badge>
-                          ) : (
-                            <Badge tone="neutral" size="sm">
-                              Missing
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+              {userProfile ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="accent" size="sm">
+                    Fields filled: {formatNumber(profileFieldsStats.filled)}/{formatNumber(profileFieldsStats.total)}
+                  </Badge>
+                  <Badge tone={profileFieldsStats.missing > 0 ? "warning" : "success-light"} size="sm">
+                    Missing: {formatNumber(profileFieldsStats.missing)}
+                  </Badge>
                 </div>
               ) : (
-                <p className="text-sm text-muted">No profile found for this user.</p>
+                <p className="text-xs text-subtle">
+                  This user does not have a profile record yet.
+                </p>
               )}
+            </div>
+
+            <div className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-foreground">Profile fields</p>
+                  <p className="text-xs text-subtle">
+                    {userProfile ? "Default view shows missing fields only." : "No profile fields available."}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setProfileFieldsOpen((current) => !current)}
+                  disabled={!userProfile}
+                >
+                  {profileFieldsOpen ? "Hide fields" : "Show fields"}
+                </Button>
+              </div>
+
+              {profileFieldsOpen && userProfile ? (
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={profileFieldsFilter === "missing" ? "secondary" : "outline"}
+                      onClick={() => setProfileFieldsFilter("missing")}
+                    >
+                      Missing
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={profileFieldsFilter === "filled" ? "secondary" : "outline"}
+                      onClick={() => setProfileFieldsFilter("filled")}
+                    >
+                      Filled
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={profileFieldsFilter === "all" ? "secondary" : "outline"}
+                      onClick={() => setProfileFieldsFilter("all")}
+                    >
+                      All
+                    </Button>
+                    <p className="text-xs text-subtle">
+                      Showing {formatNumber(filteredProfileFields.length)} field(s)
+                    </p>
+                  </div>
+
+                  <div className="max-h-[40vh] space-y-2 overflow-y-auto pr-1">
+                    {filteredProfileFields.length ? (
+                      filteredProfileFields.map((field) => (
+                        <div
+                          key={field.label}
+                          className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface/80 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                              {field.label}
+                            </p>
+                            <p
+                              className="mt-0.5 truncate text-sm text-foreground"
+                              title={typeof field.value === "string" ? field.value : undefined}
+                            >
+                              {field.value ?? "-"}
+                            </p>
+                          </div>
+                          <div className="shrink-0">
+                            {field.filled ? (
+                              <Badge tone="success-light" size="sm">
+                                Filled
+                              </Badge>
+                            ) : (
+                              <Badge tone="neutral" size="sm">
+                                Missing
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted">No fields to show.</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
