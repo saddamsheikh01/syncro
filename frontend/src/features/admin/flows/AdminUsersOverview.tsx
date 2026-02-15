@@ -11,6 +11,7 @@ import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createUser,
   deleteUser,
@@ -24,30 +25,6 @@ import type { ApiError } from "@/types/api";
 import type { UserResponse, UserStatus } from "@/types/auth";
 import type { PageResponse } from "@/types/shared";
 
-const STATUS_OPTIONS = [
-  { value: "", label: "All statuses" },
-  { value: "ACTIVE", label: "ACTIVE" },
-  { value: "SUSPENDED", label: "SUSPENDED" },
-  { value: "DELETED", label: "DELETED" },
-];
-
-const ONBOARDING_OPTIONS = [
-  { value: "", label: "Onboarding: all" },
-  { value: "true", label: "Completed" },
-  { value: "false", label: "Not completed" },
-];
-
-const EDIT_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "ACTIVE" },
-  { value: "SUSPENDED", label: "SUSPENDED" },
-  { value: "DELETED", label: "DELETED" },
-];
-
-const EDIT_ONBOARDING_OPTIONS = [
-  { value: "true", label: "Completed" },
-  { value: "false", label: "Not completed" },
-];
-
 const toneByStatus = (status: UserStatus) => {
   if (status === "ACTIVE") return "success" as const;
   if (status === "SUSPENDED") return "warning" as const;
@@ -55,6 +32,8 @@ const toneByStatus = (status: UserStatus) => {
 };
 
 export const AdminUsersOverview = () => {
+  const { t } = useT();
+
   const [query, setQuery] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -79,6 +58,42 @@ export const AdminUsersOverview = () => {
   const [newPassword, setNewPassword] = useState("");
   const [userTestsCount, setUserTestsCount] = useState<number | null>(null);
   const [loadingUserTestsCount, setLoadingUserTestsCount] = useState(false);
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "", label: t("All statuses") },
+      { value: "ACTIVE", label: t("ACTIVE") },
+      { value: "SUSPENDED", label: t("SUSPENDED") },
+      { value: "DELETED", label: t("DELETED") },
+    ],
+    [t]
+  );
+
+  const onboardingOptions = useMemo(
+    () => [
+      { value: "", label: t("Onboarding: all") },
+      { value: "true", label: t("Completed") },
+      { value: "false", label: t("Not completed") },
+    ],
+    [t]
+  );
+
+  const editStatusOptions = useMemo(
+    () => [
+      { value: "ACTIVE", label: t("ACTIVE") },
+      { value: "SUSPENDED", label: t("SUSPENDED") },
+      { value: "DELETED", label: t("DELETED") },
+    ],
+    [t]
+  );
+
+  const editOnboardingOptions = useMemo(
+    () => [
+      { value: "true", label: t("Completed") },
+      { value: "false", label: t("Not completed") },
+    ],
+    [t]
+  );
 
   const params = useMemo<AdminUsersParams>(
     () => ({
@@ -161,8 +176,8 @@ export const AdminUsersOverview = () => {
         id: user.id,
         email: user.email ?? "-",
         username: user.username ?? "-",
-        status: <Badge tone={toneByStatus(user.status)}>{user.status}</Badge>,
-        onboarding: user.onboardingCompleted ? "Completed" : "In progress",
+        status: <Badge tone={toneByStatus(user.status)}>{t(user.status)}</Badge>,
+        onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
         createdAt: formatDateTime(user.createdAt),
         actions: (
           <Button
@@ -170,11 +185,11 @@ export const AdminUsersOverview = () => {
             variant="outline"
             onClick={() => setSelectedUserId(user.id)}
           >
-            Manage
+            {t("Manage")}
           </Button>
         ),
       }));
-  }, [response]);
+  }, [response, t]);
 
   const activeInPage = useMemo(
     () => response?.content.filter((user) => user.status === "ACTIVE").length ?? 0,
@@ -256,9 +271,7 @@ export const AdminUsersOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Confirm soft delete for this user?"
-    );
+    const confirmed = window.confirm(t("Confirm soft delete for this user?"));
     if (!confirmed) {
       return;
     }
@@ -280,36 +293,38 @@ export const AdminUsersOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Application users"
-        subtitle="Monitor user accounts, status, and onboarding progress."
+        title={t("Application users")}
+        subtitle={t("Monitor user accounts, status, and onboarding progress.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Create new user</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Create new user")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleCreateUser}>
           <Input
-            label="Email"
+            label={t("Email")}
             type="email"
             value={createEmail}
             onChange={(event) => setCreateEmail(event.target.value)}
             required
           />
           <Input
-            label="Password"
+            label={t("Password")}
             type="password"
             value={createPassword}
             onChange={(event) => setCreatePassword(event.target.value)}
             required
           />
           <Input
-            label="Language"
+            label={t("Language")}
             value={createLanguage}
             onChange={(event) => setCreateLanguage(event.target.value)}
             required
           />
           <div className="flex items-end">
-            <Button type="submit" size="sm" loading={creating} loadingText="Creating">
-              Create user
+            <Button type="submit" size="sm" loading={creating} loadingText={t("Creating")}>
+              {t("Create user")}
             </Button>
           </div>
         </form>
@@ -327,11 +342,11 @@ export const AdminUsersOverview = () => {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by email"
+            placeholder={t("Search by email")}
           />
           <Select
             value={statusFilter}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             onValueChange={(value) => {
               setStatusFilter(value);
               setPage(0);
@@ -339,14 +354,14 @@ export const AdminUsersOverview = () => {
           />
           <Select
             value={onboardingFilter}
-            options={ONBOARDING_OPTIONS}
+            options={onboardingOptions}
             onValueChange={(value) => {
               setOnboardingFilter(value);
               setPage(0);
             }}
           />
           <Button type="submit" size="sm">
-            Apply filters
+            {t("Apply filters")}
           </Button>
         </form>
       </Card>
@@ -355,46 +370,48 @@ export const AdminUsersOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Selected user: {selectedUser.email ?? selectedUser.id}
+              {t("Selected user: {user}", {
+                user: selectedUser.email ?? selectedUser.id,
+              })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedUserId(null)}>
-              Close
+              {t("Close")}
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleUpdateSelectedUser}>
             <Input
-              label="Language"
+              label={t("Language")}
               value={editLanguage}
               onChange={(event) => setEditLanguage(event.target.value)}
               required
             />
             <Select
-              label="Status"
+              label={t("Status")}
               value={editStatus}
-              options={EDIT_STATUS_OPTIONS}
+              options={editStatusOptions}
               onValueChange={(value) => setEditStatus(value as UserStatus)}
             />
             <Select
-              label="Onboarding"
+              label={t("Onboarding")}
               value={editOnboarding}
-              options={EDIT_ONBOARDING_OPTIONS}
+              options={editOnboardingOptions}
               onValueChange={setEditOnboarding}
             />
             <div className="flex items-end">
-              <Button type="submit" size="sm" loading={updating} loadingText="Saving">
-                Save changes
+              <Button type="submit" size="sm" loading={updating} loadingText={t("Saving")}>
+                {t("Save changes")}
               </Button>
             </div>
           </form>
 
           <div className="grid gap-3 lg:grid-cols-[1fr,auto,auto]">
             <Input
-              label="New password"
+              label={t("New password")}
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="Minimum 8 characters"
+              placeholder={t("Minimum 8 characters")}
             />
             <div className="flex items-end">
               <Button
@@ -402,10 +419,10 @@ export const AdminUsersOverview = () => {
                 variant="outline"
                 onClick={handleResetPassword}
                 loading={resettingPassword}
-                loadingText="Resetting"
+                loadingText={t("Resetting")}
                 disabled={!newPassword.trim()}
               >
-                Reset password
+                {t("Reset password")}
               </Button>
             </div>
             <div className="flex items-end">
@@ -414,19 +431,19 @@ export const AdminUsersOverview = () => {
                 variant="danger"
                 onClick={handleDeleteUser}
                 loading={deleting}
-                loadingText="Deleting"
+                loadingText={t("Deleting")}
               >
-                Soft delete user
+                {t("Soft delete user")}
               </Button>
             </div>
           </div>
 
           <Card className="p-4">
             <p className="text-sm text-muted">
-              Tests completed:{" "}
+              {t("Tests completed")}:{" "}
               <span className="font-semibold text-foreground">
                 {loadingUserTestsCount
-                  ? "Loading..."
+                  ? t("Loading...")
                   : formatNumber(userTestsCount ?? 0)}
               </span>
             </p>
@@ -436,38 +453,38 @@ export const AdminUsersOverview = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Total users"
+          label={t("Total users")}
           value={formatNumber(response?.totalElements ?? 0)}
           trend="neutral"
-          trendLabel="Filtered dataset"
+          trendLabel={t("Filtered dataset")}
         />
         <AdminStatCard
-          label="ACTIVE (page)"
+          label={t("ACTIVE (page)")}
           value={formatNumber(activeInPage)}
           trend="neutral"
-          trendLabel="Current page count"
+          trendLabel={t("Current page count")}
         />
         <AdminStatCard
-          label="Onboarding completed (page)"
+          label={t("Onboarding completed (page)")}
           value={formatNumber(completedInPage)}
           trend="neutral"
-          trendLabel="Current page count"
+          trendLabel={t("Current page count")}
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading users...</p>
+          <p className="text-sm text-muted">{t("Loading users...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load users</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load users")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadUsers()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -476,20 +493,23 @@ export const AdminUsersOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "email", label: "Email" },
-              { key: "username", label: "Username" },
-              { key: "status", label: "Status" },
-              { key: "onboarding", label: "Onboarding" },
-              { key: "createdAt", label: "Created at" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "email", label: t("Email") },
+              { key: "username", label: t("Username") },
+              { key: "status", label: t("Status") },
+              { key: "onboarding", label: t("Onboarding") },
+              { key: "createdAt", label: t("Created at") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
             rows={rows}
-            emptyLabel="No users found with the current filters"
+            emptyLabel={t("No users found with the current filters")}
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
+              {t("Page {page} of {total}", {
+                page: (response?.number ?? 0) + 1,
+                total: Math.max(response?.totalPages ?? 1, 1),
+              })}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -498,7 +518,7 @@ export const AdminUsersOverview = () => {
                 onClick={() => setPage((current) => Math.max(current - 1, 0))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -506,7 +526,7 @@ export const AdminUsersOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>

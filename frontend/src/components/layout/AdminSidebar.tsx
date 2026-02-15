@@ -6,6 +6,7 @@ import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { Logo } from "@/components/elements/Logo";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export type AdminNavItem = {
   href: string;
@@ -34,6 +35,7 @@ export const AdminSidebar = ({
   ...props
 }: AdminSidebarProps) => {
   const isDesktop = variant === "desktop";
+  const { t } = useT();
 
   return (
     <aside
@@ -56,8 +58,10 @@ export const AdminSidebar = ({
             <Logo width={28} className="h-auto w-7" priority />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Syncro Admin</p>
-            <p className="text-xs text-subtle">Back office workspace</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("Syncro Admin")}
+            </p>
+            <p className="text-xs text-subtle">{t("Back office workspace")}</p>
           </div>
         </div>
 
@@ -67,7 +71,7 @@ export const AdminSidebar = ({
               ? "flex-1 space-y-2 overflow-y-auto pr-1"
               : "grid gap-2 sm:grid-cols-2"
           )}
-          aria-label="Back office navigation"
+          aria-label={t("Back office navigation")}
         >
           {items.map((item) => {
             const active = isActiveLink(pathname, item.href);
@@ -83,8 +87,10 @@ export const AdminSidebar = ({
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <span className="text-sm font-semibold">{item.label}</span>
-                <span className="text-xs text-subtle">{item.description}</span>
+                <span className="text-sm font-semibold">{t(item.label)}</span>
+                <span className="text-xs text-subtle">
+                  {t(item.description)}
+                </span>
               </Link>
             );
           })}
@@ -93,11 +99,11 @@ export const AdminSidebar = ({
         {isDesktop && adminEmail && onLogout ? (
           <div className="mt-auto space-y-3 rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/60 p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-              Session
+              {t("Session")}
             </p>
             <p className="text-sm font-semibold text-foreground">{adminEmail}</p>
             <Button size="sm" variant="outline" fullWidth onClick={onLogout}>
-              Log out
+              {t("Log out")}
             </Button>
           </div>
         ) : null}

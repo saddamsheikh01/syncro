@@ -6,7 +6,7 @@ import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
-import { useChat } from "@/hooks";
+import { useChat, useT } from "@/hooks";
 import { useAuthStore } from "@/stores/auth/useAuthStore";
 import { ChatHeader } from "../sections/ChatHeader";
 import { MessageList } from "../sections/MessageList";
@@ -22,10 +22,11 @@ interface ChatDetailProps {
 
 const getOtherParticipant = (
   conversation: ChatConversationResponse | null,
-  currentUserId: string | null
+  currentUserId: string | null,
+  t: (key: string) => string
 ) => {
   if (!conversation || !currentUserId) {
-    return { userId: null, name: "User", avatarUrl: undefined };
+    return { userId: null, name: t("User"), avatarUrl: undefined };
   }
 
   const other = conversation.participants.find(
@@ -34,13 +35,14 @@ const getOtherParticipant = (
 
   return {
     userId: other?.userId ?? null,
-    name: other?.fullName ?? "User",
+    name: other?.fullName ?? t("User"),
     avatarUrl: other?.avatarUrl ?? undefined,
   };
 };
 
 export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   const router = useRouter();
+  const { t } = useT();
   const {
     conversations,
     messagesByConversation,
@@ -56,7 +58,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
 
   const conversation = conversations.find((c) => c.id === conversationId) ?? null;
   const messages = messagesByConversation[conversationId] ?? [];
-  const otherParticipant = getOtherParticipant(conversation, userId);
+  const otherParticipant = getOtherParticipant(conversation, userId, t);
 
   useEffect(() => {
     const loadData = async () => {
@@ -105,7 +107,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
       <div className="flex h-full flex-col">
         <div className="border-b border-border/70 bg-card px-4 py-3">
           <ChatHeader
-            name="Loading..."
+            name={t("Loading...")}
             showBack
             onBack={handleBack}
           />
@@ -113,7 +115,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         <div className="flex flex-1 items-center justify-center">
           <div className="flex items-center gap-3">
             <Loader size="md" />
-            <p className="text-sm text-muted">Loading conversation...</p>
+            <p className="text-sm text-muted">{t("Loading conversation...")}</p>
           </div>
         </div>
       </div>
@@ -134,11 +136,11 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
           <ErrorState
-            title="Unable to load messages"
+            title={t("Unable to load messages")}
             description={error.message}
           />
           <Button variant="secondary" onClick={handleRetry}>
-            Retry
+            {t("Retry")}
           </Button>
         </div>
       </div>
@@ -168,7 +170,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
         <ChatComposer
           onSend={handleSend}
           loading={sendingMessage}
-          placeholder={`Write to ${otherParticipant.name}...`}
+          placeholder={t("Write to {name}...", { name: otherParticipant.name })}
           className="border-0 bg-transparent p-0 shadow-none"
         />
       </div>

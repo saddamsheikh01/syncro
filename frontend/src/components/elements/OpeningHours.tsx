@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface OpeningHoursData {
@@ -21,6 +22,7 @@ export interface OpeningHoursProps {
 
 export const OpeningHours = ({ data, className }: OpeningHoursProps) => {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useT();
 
   const hasWeekdayText = data.weekdayText && data.weekdayText.length > 0;
 
@@ -46,7 +48,9 @@ export const OpeningHours = ({ data, className }: OpeningHoursProps) => {
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span className="text-sm font-medium text-foreground">Orari</span>
+          <span className="text-sm font-medium text-foreground">
+            {t("Opening hours")}
+          </span>
           {data.openNow !== undefined && (
             <span
               className={cx(
@@ -56,7 +60,7 @@ export const OpeningHours = ({ data, className }: OpeningHoursProps) => {
                   : "bg-danger/10 text-danger"
               )}
             >
-              {data.openNow ? "Aperto" : "Chiuso"}
+              {data.openNow ? t("Open now") : t("Closed now")}
             </span>
           )}
         </div>

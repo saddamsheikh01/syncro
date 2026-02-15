@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, MouseEvent } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface AnswerOptionRowProps
@@ -24,6 +25,8 @@ export const AnswerOptionRow = ({
   onToggleState,
   ...props
 }: AnswerOptionRowProps) => {
+  const { t } = useT();
+
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onToggleState?.(!selected);
@@ -66,7 +69,7 @@ export const AnswerOptionRow = ({
         ) : null}
       </span>
       {selected ? (
-        <span className="text-xs font-semibold text-accent">Selezionata</span>
+        <span className="text-xs font-semibold text-accent">{t("Selected")}</span>
       ) : null}
     </button>
   );

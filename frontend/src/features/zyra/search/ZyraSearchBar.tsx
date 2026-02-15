@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { useSearchStore, searchActions } from "@/stores/search/useSearchStore";
 import { storeZyraSeedMessage } from "@/lib/zyraSeed";
+import { useT } from "@/hooks";
 import { ZyraSearchResults } from "./ZyraSearchResults";
 
 export interface ZyraSearchBarProps {
@@ -15,6 +16,7 @@ export interface ZyraSearchBarProps {
 
 export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   const router = useRouter();
+  const { t } = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -140,14 +142,14 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Find what works for you, now"
+              placeholder={t("Find what works for you, now")}
               className="w-full bg-transparent text-sm font-semibold text-foreground placeholder:text-subtle focus:outline-none"
-              aria-label="Search content"
+              aria-label={t("Search content")}
               aria-expanded={showDropdown}
               aria-haspopup="listbox"
             />
             <span className="text-[11px] text-subtle">
-              People · Places · Experiences · Events · Based on who you are
+              {t("People / Places / Experiences / Events / Based on who you are")}
             </span>
           </div>
 

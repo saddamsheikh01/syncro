@@ -2,6 +2,7 @@
 
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export type ToastTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
@@ -27,29 +28,33 @@ export const Toast = ({
   tone = "neutral",
   onClose,
   ...props
-}: ToastProps) => (
-  <div
-    className={cx(
-      "flex items-start justify-between gap-4 rounded-[var(--radius-md)] border p-4 shadow-md",
-      TONE_CLASSES[tone],
-      className
-    )}
-    role="status"
-    {...props}
-  >
-    <div className="space-y-1">
-      <p className="text-sm font-semibold">{title}</p>
-      {message ? <p className="text-xs text-subtle">{message}</p> : null}
+}: ToastProps) => {
+  const { t } = useT();
+
+  return (
+    <div
+      className={cx(
+        "flex items-start justify-between gap-4 rounded-[var(--radius-md)] border p-4 shadow-md",
+        TONE_CLASSES[tone],
+        className
+      )}
+      role="status"
+      {...props}
+    >
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">{title}</p>
+        {message ? <p className="text-xs text-subtle">{message}</p> : null}
+      </div>
+      {onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs font-semibold text-subtle hover:text-foreground"
+          aria-label={t("Close")}
+        >
+          x
+        </button>
+      ) : null}
     </div>
-    {onClose ? (
-      <button
-        type="button"
-        onClick={onClose}
-        className="text-xs font-semibold text-subtle hover:text-foreground"
-        aria-label="Close"
-      >
-        x
-      </button>
-    ) : null}
-  </div>
-);
+  );
+};

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { Input } from "@/components/elements/Input";
-import { useAuth } from "@/hooks";
+import { useAuth, useT } from "@/hooks";
 import { changeCurrentUserPassword } from "@/services/users";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
 
@@ -22,6 +22,7 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
 export const ProfilePasswordChange = () => {
   const router = useRouter();
   const { actions: authActions } = useAuth();
+  const { t } = useT();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -64,63 +65,64 @@ export const ProfilePasswordChange = () => {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Account security
+          {t("Account security")}
         </p>
         <h1 className="text-2xl font-semibold text-foreground">
-          Change password
+          {t("Change password")}
         </h1>
         <p className="text-sm text-muted">
-          For security reasons, you will be signed out after saving the new
-          password.
+          {t(
+            "For security reasons, you will be signed out after saving the new password."
+          )}
         </p>
       </div>
 
       <Card className="p-6">
         <form className="space-y-4" onSubmit={handleSubmit}>
           <Input
-            label="Current password"
+            label={t("Current password")}
             type="password"
             autoComplete="current-password"
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
-            placeholder="Enter current password"
+            placeholder={t("Enter current password")}
             required
           />
 
           <Input
-            label="New password"
+            label={t("New password")}
             type="password"
             autoComplete="new-password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            placeholder="At least 8 characters"
+            placeholder={t("At least 8 characters")}
             required
           />
 
           <Input
-            label="Confirm new password"
+            label={t("Confirm new password")}
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="Repeat new password"
+            placeholder={t("Repeat new password")}
             required
           />
 
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {error ? <p className="text-sm text-danger">{t(error)}</p> : null}
           {successMessage ? (
-            <p className="text-sm text-success">{successMessage}</p>
+            <p className="text-sm text-success">{t(successMessage)}</p>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" size="sm" loading={saving} loadingText="Saving">
-              Save new password
+            <Button type="submit" size="sm" loading={saving} loadingText={t("Saving")}>
+              {t("Save new password")}
             </Button>
             <Link
               href="/profile"
               className="text-sm font-medium text-accent hover:underline"
             >
-              Back to profile
+              {t("Back to profile")}
             </Link>
           </div>
         </form>

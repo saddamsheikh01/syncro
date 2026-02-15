@@ -10,6 +10,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createAdminPlace,
   createPlaceAffiliation,
@@ -32,16 +33,16 @@ import type {
 } from "@/types/catalog";
 import type { PageResponse } from "@/types/shared";
 
-const SOURCE_OPTIONS = [
-  { value: "", label: "All sources" },
-  { value: "MANUAL", label: "MANUAL" },
-  { value: "API", label: "API" },
-  { value: "GOOGLE", label: "GOOGLE" },
-  { value: "GETYOURGUIDE", label: "GETYOURGUIDE" },
-  { value: "VIATOR", label: "VIATOR" },
-  { value: "MUSEMENT", label: "MUSEMENT" },
-  { value: "CIVITATIS", label: "CIVITATIS" },
-  { value: "TIQETS", label: "TIQETS" },
+const SOURCE_OPTIONS: Array<{ value: "" | CatalogSource; labelKey: string }> = [
+  { value: "", labelKey: "All sources" },
+  { value: "MANUAL", labelKey: "Manual" },
+  { value: "API", labelKey: "API" },
+  { value: "GOOGLE", labelKey: "Google" },
+  { value: "GETYOURGUIDE", labelKey: "GetYourGuide" },
+  { value: "VIATOR", labelKey: "Viator" },
+  { value: "MUSEMENT", labelKey: "Musement" },
+  { value: "CIVITATIS", labelKey: "Civitatis" },
+  { value: "TIQETS", labelKey: "Tiqets" },
 ];
 
 const parseOptionalNumber = (value: string): number | null => {
@@ -62,6 +63,8 @@ const mapSourceToOption = (source: CatalogSource) =>
   SOURCE_OPTIONS.find((option) => option.value === source)?.value ?? "MANUAL";
 
 export const AdminPlacesOverview = () => {
+  const { t } = useT();
+
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -91,20 +94,44 @@ export const AdminPlacesOverview = () => {
   const [affiliationProvider, setAffiliationProvider] = useState("");
   const [creatingAffiliation, setCreatingAffiliation] = useState(false);
 
+  const sourceOptions = useMemo(
+    () =>
+      SOURCE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
+
+  const sourceFormOptions = useMemo(
+    () =>
+      SOURCE_OPTIONS.filter((option) => option.value !== "").map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
+
+  const resolveSourceLabel = useCallback(
+    (value: CatalogSource) =>
+      t(SOURCE_OPTIONS.find((option) => option.value === value)?.labelKey ?? value),
+    [t]
+  );
+
   const categoryOptions = useMemo(
     () => [
-      { value: "", label: "All categories" },
+      { value: "", label: t("All categories") },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
-    [categories]
+    [categories, t]
   );
 
   const formCategoryOptions = useMemo(
     () => [
-      { value: "", label: "No category" },
+      { value: "", label: t("No category") },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
-    [categories]
+    [categories, t]
   );
 
   const applyPlaceToForm = useCallback((place: PlaceDetailResponse) => {
@@ -193,7 +220,7 @@ export const AdminPlacesOverview = () => {
         id: place.id,
         name: place.name,
         category: place.category?.name ?? "-",
-        source: place.source,
+        source: resolveSourceLabel(place.source),
         coordinates:
           place.latitude != null && place.longitude != null
             ? `${place.latitude}, ${place.longitude}`
@@ -205,14 +232,14 @@ export const AdminPlacesOverview = () => {
               variant="outline"
               onClick={() => setSelectedPlaceId(place.id)}
             >
-              Gestisci
+              {t("Manage")}
             </Button>
             <Button
               size="sm"
               variant="danger"
               onClick={() =>
                 void (async () => {
-                  const confirmed = window.confirm("Confirm place deletion?");
+                  const confirmed = window.confirm(t("Confirm place deletion?"));
                   if (!confirmed) {
                     return;
                   }
@@ -231,12 +258,12 @@ export const AdminPlacesOverview = () => {
                 })()
               }
             >
-              Delete
+              {t("Delete")}
             </Button>
           </div>
         ),
       })),
-    [loadPlaces, resetForm, response, selectedPlaceId]
+    [loadPlaces, resetForm, resolveSourceLabel, response, selectedPlaceId, t]
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -299,13 +326,13 @@ export const AdminPlacesOverview = () => {
       return;
     }
 
-    const nextUrl = window.prompt("Affiliation URL", affiliation.url);
+    const nextUrl = window.prompt(t("Affiliation URL"), affiliation.url);
     if (!nextUrl || !nextUrl.trim()) {
       return;
     }
 
     const nextProvider = window.prompt(
-      "Provider (optional)",
+      t("Provider (optional)"),
       affiliation.provider ?? ""
     );
 
@@ -327,7 +354,7 @@ export const AdminPlacesOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confirm affiliation deletion?");
+    const confirmed = window.confirm(t("Confirm affiliation deletion?"));
     if (!confirmed) {
       return;
     }
@@ -345,12 +372,14 @@ export const AdminPlacesOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Places"
-        subtitle="Manage catalog places with affiliation links."
+        title={t("Places")}
+        subtitle={t("Manage catalog places with affiliation links.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">List filters</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("List filters")}
+        </h2>
         <form
           className="grid gap-3 lg:grid-cols-[1fr,260px,220px,auto]"
           onSubmit={(event) => {
@@ -362,7 +391,7 @@ export const AdminPlacesOverview = () => {
           <Input
             value={queryDraft}
             onChange={(event) => setQueryDraft(event.target.value)}
-            placeholder="Search by name or text"
+            placeholder={t("Search by name or text")}
           />
           <Select
             value={categoryFilter}
@@ -374,7 +403,7 @@ export const AdminPlacesOverview = () => {
           />
           <Select
             value={sourceFilter}
-            options={SOURCE_OPTIONS}
+            options={sourceOptions}
             onValueChange={(value) => {
               setSourceFilter(value);
               setPage(0);
@@ -382,7 +411,7 @@ export const AdminPlacesOverview = () => {
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm">
-              Apply
+              {t("Apply")}
             </Button>
             <Button
               type="button"
@@ -396,7 +425,7 @@ export const AdminPlacesOverview = () => {
                 setPage(0);
               }}
             >
-              Reset
+              {t("Reset")}
             </Button>
           </div>
         </form>
@@ -404,34 +433,52 @@ export const AdminPlacesOverview = () => {
 
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {selectedPlaceId ? "Edit place" : "Create place"}
+          {selectedPlaceId ? t("Edit place") : t("Create place")}
         </h2>
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleSubmit}>
-          <Input label="Name" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input
+            label={t("Name")}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
           <Select
-            label="Source"
+            label={t("Source")}
             value={source}
-            options={SOURCE_OPTIONS.filter((option) => option.value !== "")}
+            options={sourceFormOptions}
             onValueChange={setSource}
           />
           <Select
-            label="Category"
+            label={t("Category")}
             value={categoryId}
             options={formCategoryOptions}
             onValueChange={setCategoryId}
           />
-          <Input label="Latitude" value={lat} onChange={(event) => setLat(event.target.value)} />
-          <Input label="Longitude" value={lng} onChange={(event) => setLng(event.target.value)} />
+          <Input
+            label={t("Latitude")}
+            value={lat}
+            onChange={(event) => setLat(event.target.value)}
+          />
+          <Input
+            label={t("Longitude")}
+            value={lng}
+            onChange={(event) => setLng(event.target.value)}
+          />
           <div className="lg:col-span-2">
             <Textarea
-              label="Description"
+              label={t("Description")}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Saving">
-              {selectedPlaceId ? "Save changes" : "Create place"}
+            <Button
+              type="submit"
+              size="sm"
+              loading={saving}
+              loadingText={t("Saving")}
+            >
+              {selectedPlaceId ? t("Save changes") : t("Create place")}
             </Button>
             {selectedPlaceId ? (
               <Button
@@ -443,7 +490,7 @@ export const AdminPlacesOverview = () => {
                   resetForm();
                 }}
               >
-                Cancel edit
+                {t("Cancel edit")}
               </Button>
             ) : null}
           </div>
@@ -454,60 +501,63 @@ export const AdminPlacesOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Selected place: {selectedPlaceDetail.name}
+              {t("Selected place: {name}", { name: selectedPlaceDetail.name })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedPlaceId(null)}>
-              Close details
+              {t("Close details")}
             </Button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">ID:</span> {selectedPlaceDetail.id}
+              <span className="font-semibold text-foreground">{t("ID")}:</span>{" "}
+              {selectedPlaceDetail.id}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Created at:</span>{" "}
+              <span className="font-semibold text-foreground">{t("Created at")}:</span>{" "}
               {formatDateTime(selectedPlaceDetail.createdAt)}
             </p>
             <p className="text-sm text-muted md:col-span-2">
-              <span className="font-semibold text-foreground">Address:</span>{" "}
+              <span className="font-semibold text-foreground">{t("Address")}:</span>{" "}
               {selectedPlaceDetail.address ?? "-"}
             </p>
           </div>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-foreground">Affiliations</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {t("Affiliations")}
+            </h3>
             <form className="grid gap-3 lg:grid-cols-[1fr,240px,auto]" onSubmit={handleCreateAffiliation}>
               <Input
-                label="URL"
+                label={t("URL")}
                 value={affiliationUrl}
                 onChange={(event) => setAffiliationUrl(event.target.value)}
                 required
               />
               <Input
-                label="Provider"
+                label={t("Provider")}
                 value={affiliationProvider}
                 onChange={(event) => setAffiliationProvider(event.target.value)}
-                placeholder="Optional"
+                placeholder={t("Optional")}
               />
               <div className="flex items-end">
                 <Button
                   type="submit"
                   size="sm"
                   loading={creatingAffiliation}
-                  loadingText="Creating"
+                  loadingText={t("Creating")}
                 >
-                  Add link
+                  {t("Add link")}
                 </Button>
               </div>
             </form>
 
             <AdminTable
               columns={[
-                { key: "url", label: "URL" },
-                { key: "provider", label: "Provider" },
-                { key: "createdAt", label: "Created at" },
-                { key: "actions", label: "Actions", align: "right" },
+                { key: "url", label: t("URL") },
+                { key: "provider", label: t("Provider") },
+                { key: "createdAt", label: t("Created at") },
+                { key: "actions", label: t("Actions"), align: "right" },
               ]}
               rows={affiliations.map((affiliation) => ({
                 id: affiliation.id,
@@ -521,19 +571,19 @@ export const AdminPlacesOverview = () => {
                       variant="outline"
                       onClick={() => void handleUpdateAffiliation(affiliation)}
                     >
-                      Edit
+                      {t("Edit")}
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={() => void handleDeleteAffiliation(affiliation)}
                     >
-                      Delete
+                      {t("Delete")}
                     </Button>
                   </div>
                 ),
               }))}
-              emptyLabel="No affiliation links"
+              emptyLabel={t("No affiliation links")}
             />
           </Card>
         </Card>
@@ -541,7 +591,9 @@ export const AdminPlacesOverview = () => {
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Total places: {formatNumber(response?.totalElements ?? 0)}
+          {t("Total places: {count}", {
+            count: formatNumber(response?.totalElements ?? 0),
+          })}
         </p>
       </Card>
 
@@ -549,17 +601,17 @@ export const AdminPlacesOverview = () => {
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
           <p className="text-sm text-muted">
-            {detailLoading ? "Loading place details..." : "Loading places..."}
+            {detailLoading ? t("Loading place details...") : t("Loading places...")}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load places</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load places")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadPlaces()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -568,19 +620,22 @@ export const AdminPlacesOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "name", label: "Name" },
-              { key: "category", label: "Category" },
-              { key: "source", label: "Source" },
-              { key: "coordinates", label: "Coordinates" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "name", label: t("Name") },
+              { key: "category", label: t("Category") },
+              { key: "source", label: t("Source") },
+              { key: "coordinates", label: t("Coordinates") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
             rows={rows}
-            emptyLabel="No places"
+            emptyLabel={t("No places")}
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
+              {t("Page {page} of {total}", {
+                page: (response?.number ?? 0) + 1,
+                total: Math.max(response?.totalPages ?? 1, 1),
+              })}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -589,7 +644,7 @@ export const AdminPlacesOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -597,7 +652,7 @@ export const AdminPlacesOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>

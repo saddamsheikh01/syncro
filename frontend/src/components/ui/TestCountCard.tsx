@@ -3,6 +3,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 const ClipboardIcon = () => (
   <svg
@@ -31,17 +32,19 @@ export interface TestCountCardProps
   variant?: TestCountCardVariant;
 }
 
-const resolveDescription = (count: number | null | undefined) => {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const resolveDescription = (t: Translator, count: number | null | undefined) => {
   if (count == null) {
-    return "Preparing your insight progress.";
+    return t("Preparing your insight progress.");
   }
   if (count === 0) {
-    return "Start with your first insight to activate matches.";
+    return t("Start with your first insight to activate matches.");
   }
   if (count < 3) {
-    return "Complete more insights to refine your profile.";
+    return t("Complete more insights to refine your profile.");
   }
-  return "Great job: your profile is more precise.";
+  return t("Great job: your profile is more precise.");
 };
 
 export const TestCountCard = ({
@@ -54,10 +57,11 @@ export const TestCountCard = ({
   className,
   ...props
 }: TestCountCardProps) => {
+  const { t } = useT();
   const displayCount =
     loading && count == null ? "..." : String(count ?? 0);
-  const bodyDescription =
-    description ?? resolveDescription(count);
+  const resolvedTitle = title ? t(title) : t("Insights completed");
+  const bodyDescription = description ? t(description) : resolveDescription(t, count);
 
   return (
     <Card
@@ -72,10 +76,10 @@ export const TestCountCard = ({
       <div className="relative space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-subtle">
-            {title}
+            {resolvedTitle}
           </p>
           <span className="rounded-full bg-qa-tests-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--qa-tests-gradient-start)]">
-            Zyra
+            {t("Zyra")}
           </span>
         </div>
         <div className="flex items-center gap-3">

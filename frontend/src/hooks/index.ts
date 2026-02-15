@@ -13,6 +13,7 @@ export { useZyra } from "./zyra/useZyra";
 export { useAnalytics } from "./analytics/useAnalytics";
 export { useOnboarding } from "./onboarding/useOnboarding";
 export { useI18n } from "./i18n/useI18n";
+export { useT } from "./i18n/useT";
 export { useProfile } from "./profile/useProfile";
 export { useProfileCompletion } from "./profile/useProfileCompletion";
 export { usePreferences } from "./preferences/usePreferences";

@@ -10,7 +10,6 @@ import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { DatePicker } from "@/components/elements/DatePicker";
 import { Input } from "@/components/elements/Input";
-import type { SelectOption } from "@/components/elements/Select";
 import { Select } from "@/components/elements/Select";
 import { Loader } from "@/components/elements/Loader";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
@@ -26,6 +25,7 @@ import {
   useTests,
   useUser,
   useUnsavedChanges,
+  useT,
 } from "@/hooks";
 import {
   getMediaByOwner,
@@ -94,51 +94,53 @@ const PHONE_PATTERN = /^\+?[1-9]\d{7,14}$/;
 
 const normalizePhone = (value: string) => value.trim().replace(/[\s()-]/g, "");
 
-const RELATIONSHIP_OPTIONS: SelectOption[] = [
-  { value: "SINGLE", label: "Single" },
-  { value: "IN_RELATIONSHIP", label: "In a relationship" },
-  { value: "MARRIED", label: "Married" },
-  { value: "SEPARATED", label: "Separated" },
-  { value: "COMPLICATED", label: "It's complicated" },
-  { value: "OTHER", label: "Other" },
+type LabeledOptionKey = { value: string; labelKey: string };
+
+const RELATIONSHIP_OPTIONS: LabeledOptionKey[] = [
+  { value: "SINGLE", labelKey: "Single" },
+  { value: "IN_RELATIONSHIP", labelKey: "In a relationship" },
+  { value: "MARRIED", labelKey: "Married" },
+  { value: "SEPARATED", labelKey: "Separated" },
+  { value: "COMPLICATED", labelKey: "It's complicated" },
+  { value: "OTHER", labelKey: "Other" },
 ];
 
-const CHILDREN_OPTIONS: SelectOption[] = [
-  { value: "NO_CHILDREN", label: "No children" },
-  { value: "HAS_CHILDREN", label: "Has children" },
-  { value: "WANTS_CHILDREN", label: "Wants children" },
-  { value: "DOES_NOT_WANT", label: "Does not want children" },
-  { value: "UNDECIDED", label: "Undecided" },
+const CHILDREN_OPTIONS: LabeledOptionKey[] = [
+  { value: "NO_CHILDREN", labelKey: "No children" },
+  { value: "HAS_CHILDREN", labelKey: "Has children" },
+  { value: "WANTS_CHILDREN", labelKey: "Wants children" },
+  { value: "DOES_NOT_WANT", labelKey: "Does not want children" },
+  { value: "UNDECIDED", labelKey: "Undecided" },
 ];
 
-const ORIENTATION_OPTIONS: SelectOption[] = [
-  { value: "HETERO", label: "Straight" },
-  { value: "GAY", label: "Gay" },
-  { value: "BI", label: "Bisexual" },
-  { value: "ASEXUAL", label: "Asexual" },
-  { value: "OTHER", label: "Other" },
+const ORIENTATION_OPTIONS: LabeledOptionKey[] = [
+  { value: "HETERO", labelKey: "Straight" },
+  { value: "GAY", labelKey: "Gay" },
+  { value: "BI", labelKey: "Bisexual" },
+  { value: "ASEXUAL", labelKey: "Asexual" },
+  { value: "OTHER", labelKey: "Other" },
 ];
 
-const PROFILE_GENDER_OPTIONS: SelectOption[] = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" },
-  { value: "NON_BINARY", label: "Non-binary" },
-  { value: "OTHER", label: "Other" },
-  { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
+const PROFILE_GENDER_OPTIONS: LabeledOptionKey[] = [
+  { value: "MALE", labelKey: "Male" },
+  { value: "FEMALE", labelKey: "Female" },
+  { value: "NON_BINARY", labelKey: "Non-binary" },
+  { value: "OTHER", labelKey: "Other" },
+  { value: "PREFER_NOT_TO_SAY", labelKey: "Prefer not to say" },
 ];
 
-const MATCH_GENDER_OPTIONS: SelectOption[] = [
-  { value: "ANY", label: "Any" },
-  { value: "FEMALE", label: "Women" },
-  { value: "MALE", label: "Men" },
-  { value: "NON_BINARY", label: "Non-binary" },
-  { value: "OTHER", label: "Other" },
+const MATCH_GENDER_OPTIONS: LabeledOptionKey[] = [
+  { value: "ANY", labelKey: "Any" },
+  { value: "FEMALE", labelKey: "Women" },
+  { value: "MALE", labelKey: "Men" },
+  { value: "NON_BINARY", labelKey: "Non-binary" },
+  { value: "OTHER", labelKey: "Other" },
 ];
 
-const GEO_AVAILABILITY_OPTIONS: SelectOption[] = [
-  { value: "MIXED", label: "Mixed (in-person + remote)" },
-  { value: "IN_PERSON", label: "In person only" },
-  { value: "REMOTE", label: "Remote only" },
+const GEO_AVAILABILITY_OPTIONS: LabeledOptionKey[] = [
+  { value: "MIXED", labelKey: "Mixed (in-person + remote)" },
+  { value: "IN_PERSON", labelKey: "In person only" },
+  { value: "REMOTE", labelKey: "Remote only" },
 ];
 
 const DOMAIN_LABELS = {
@@ -170,9 +172,79 @@ export interface ProfileSettingsProps {
 }
 
 export const ProfileSettings = ({
-  title = "Profile",
-  subtitle = "One last step to make your matches more focused.",
+  title,
+  subtitle,
 }: ProfileSettingsProps) => {
+  const { t } = useT();
+
+  const resolvedTitle = title ? t(title) : t("Profile");
+  const resolvedSubtitle = subtitle
+    ? t(subtitle)
+    : t("One last step to make your matches more focused.");
+
+  const profileGenderOptions = useMemo(
+    () =>
+      PROFILE_GENDER_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const orientationOptions = useMemo(
+    () =>
+      ORIENTATION_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const childrenOptions = useMemo(
+    () =>
+      CHILDREN_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const relationshipOptions = useMemo(
+    () =>
+      RELATIONSHIP_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const matchGenderOptions = useMemo(
+    () =>
+      MATCH_GENDER_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const geoAvailabilityOptions = useMemo(
+    () =>
+      GEO_AVAILABILITY_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const domainLabels = useMemo(
+    () =>
+      DOMAIN_KEYS.reduce<Record<MatchDomainKey, string>>((acc, key) => {
+        acc[key] = t(DOMAIN_LABELS[key]);
+        return acc;
+      }, {} as Record<MatchDomainKey, string>),
+    [t],
+  );
+
   const router = useRouter();
   const { status, user, actions: authActions } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
@@ -543,7 +615,7 @@ export const ProfileSettings = ({
   }, [user?.id]);
 
   const displayName =
-    profile?.fullName?.trim() || user?.username || user?.email || "Profile";
+    profile?.fullName?.trim() || user?.username || user?.email || t("Profile");
 
   const interestItems = useMemo(
     () =>
@@ -591,13 +663,21 @@ export const ProfileSettings = ({
     !usernameSaving;
 
   const usernameHint = useMemo(() => {
-    if (!normalizedUsername) return "Choose a unique username.";
-    if (!usernameValid) return `Minimum ${USERNAME_MIN_LENGTH} characters.`;
-    if (usernameChecking) return "Checking availability...";
-    if (usernameAvailable === true) return "Username available.";
-    if (usernameAvailable === false) return "Username not available.";
-    return "Checking availability...";
-  }, [normalizedUsername, usernameValid, usernameChecking, usernameAvailable]);
+    if (!normalizedUsername) return t("Choose a unique username.");
+    if (!usernameValid) {
+      return t("Minimum {count} characters.", { count: USERNAME_MIN_LENGTH });
+    }
+    if (usernameChecking) return t("Checking availability...");
+    if (usernameAvailable === true) return t("Username available.");
+    if (usernameAvailable === false) return t("Username not available.");
+    return t("Checking availability...");
+  }, [
+    normalizedUsername,
+    t,
+    usernameAvailable,
+    usernameChecking,
+    usernameValid,
+  ]);
 
   const normalizedPhone = normalizePhone(phone);
   const currentPhone = normalizePhone(user?.phone ?? "");
@@ -607,10 +687,10 @@ export const ProfileSettings = ({
   const canSavePhone = phoneChanged && phoneValid && !phoneSaving;
 
   const phoneHint = useMemo(() => {
-    if (!normalizedPhone) return "Add your number if you want.";
-    if (!phoneValid) return "Use an international format, e.g. +393331234567.";
-    return "Phone looks good.";
-  }, [normalizedPhone, phoneValid]);
+    if (!normalizedPhone) return t("Add your number if you want.");
+    if (!phoneValid) return t("Use an international format, e.g. +393331234567.");
+    return t("Phone looks good.");
+  }, [normalizedPhone, phoneValid, t]);
 
   const handleSaveProfile = async () => {
     setProfileError(null);
@@ -684,7 +764,7 @@ export const ProfileSettings = ({
       maxAgeValue !== null &&
       minAgeValue > maxAgeValue
     ) {
-      setPreferencesError("L'eta minima non puo superare l'eta massima.");
+      setPreferencesError("Minimum age cannot be greater than maximum age.");
       return;
     }
 
@@ -740,7 +820,9 @@ export const ProfileSettings = ({
     setInterestsError(null);
 
     if (selectedTagIds.length < MIN_INTERESTS) {
-      setInterestsError(`Select at least ${MIN_INTERESTS} interests.`);
+      setInterestsError(
+        t("Select at least {count} interests.", { count: MIN_INTERESTS }),
+      );
       return;
     }
 
@@ -773,7 +855,9 @@ export const ProfileSettings = ({
     }
     if (file.size > MAX_AVATAR_SIZE_BYTES) {
       setAvatarError(
-        `Image is too large. Maximum size is ${MAX_AVATAR_SIZE_MB} MB.`,
+        t("Image is too large. Maximum size is {size} MB.", {
+          size: MAX_AVATAR_SIZE_MB,
+        }),
       );
       event.target.value = "";
       return;
@@ -809,7 +893,9 @@ export const ProfileSettings = ({
       return;
     }
     if (!usernameValid) {
-      setUsernameError(`Minimum ${USERNAME_MIN_LENGTH} characters.`);
+      setUsernameError(
+        t("Minimum {count} characters.", { count: USERNAME_MIN_LENGTH }),
+      );
       return;
     }
     if (usernameAvailable === false) {
@@ -916,7 +1002,9 @@ export const ProfileSettings = ({
   const handleDeleteProfile = async () => {
     if (!canConfirmProfileDeletion) {
       setDeleteProfileError(
-        `Type "${DELETE_PROFILE_CONFIRMATION_PHRASE}" to continue.`,
+        t('Type \"{phrase}\" to continue.', {
+          phrase: DELETE_PROFILE_CONFIRMATION_PHRASE,
+        }),
       );
       return;
     }
@@ -1055,12 +1143,15 @@ export const ProfileSettings = ({
         <Card className="p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-              {title}
+              {resolvedTitle}
             </p>
             <h1 className="text-2xl font-semibold text-foreground">
-              {displayName}, Your Profile Is {profileCompleteness}% Complete.
+              {t("{name}, Your Profile Is {percent}% Complete.", {
+                name: displayName,
+                percent: profileCompleteness,
+              })}
             </h1>
-            <p className="text-sm text-muted">{subtitle}</p>
+            <p className="text-sm text-muted">{resolvedSubtitle}</p>
           </div>
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
             <div
@@ -1070,33 +1161,34 @@ export const ProfileSettings = ({
           </div>
           <div className="mt-4 border-t border-border/70 pt-4">
             <p className="text-sm font-semibold text-foreground">
-              Just one thing left: What are you really looking for?
+              {t("Just one thing left: What are you really looking for?")}
             </p>
             <p className="mt-2 text-sm text-muted">
-              This helps Zyra reduce mismatches and show you only people and
-              places that truly fit you.
+              {t(
+                "This helps Zyra reduce mismatches and show you only people and places that truly fit you."
+              )}
             </p>
           </div>
         </Card>
 
         <Card className="flex flex-col items-center justify-center gap-3 p-5 text-center">
           <Avatar
-            name="Zyra"
+            name={t("Zyra")}
             src={ZYRA_AVATAR_SRC}
             size="xl"
             className="border-2 border-white shadow-sm"
           />
           <p className="text-sm font-semibold text-foreground">
-            &apos;Define what you&apos;re looking for.&apos;
+            &apos;{t("Define what you're looking for.")}&apos;
           </p>
-          <p className="text-xs text-accent">- Zyra</p>
+          <p className="text-xs text-accent">{t("- Zyra")}</p>
         </Card>
       </div>
 
       <section className="space-y-4">
         <SectionHeader
-          title="Zyra recap"
-          subtitle="Review and edit how Zyra describes you."
+          title={t("Zyra recap")}
+          subtitle={t("Review and edit how Zyra describes you.")}
         />
         <ZyraProfileRecap onRecapLoaded={handleProfileRecapLoaded} />
         {profileRecapToShare ? (
@@ -1106,22 +1198,22 @@ export const ProfileSettings = ({
 
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {displayFirstName}&apos;s Public Profile
+          {t("{name}'s Public Profile", { name: displayFirstName })}
         </h2>
         <p className="text-sm text-muted">
-          Share your public profile. Get aligned matches and insights.
+          {t("Share your public profile. Get aligned matches and insights.")}
         </p>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <Input
-            label="Username"
+            label={t("Username")}
             value={username}
             onChange={(event) => {
               setUsernameError(null);
               setUsername(event.target.value.replace(/\s+/g, ""));
             }}
-            placeholder="e.g. marco"
+            placeholder={t("e.g. marco")}
             hint={usernameHint}
-            error={usernameError ?? undefined}
+            error={usernameError ? t(usernameError) : undefined}
           />
           <div className="flex items-end">
             <Button
@@ -1129,16 +1221,16 @@ export const ProfileSettings = ({
               variant="secondary"
               onClick={handleSaveUsername}
               loading={usernameSaving}
-              loadingText="Saving"
+              loadingText={t("Saving")}
               disabled={!canSaveUsername}
             >
-              Save username
+              {t("Save username")}
             </Button>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <Input
-            label="Phone number (optional)"
+            label={t("Phone number (optional)")}
             value={phone}
             onChange={(event) => {
               setPhoneError(null);
@@ -1146,7 +1238,7 @@ export const ProfileSettings = ({
             }}
             placeholder="+393331234567"
             hint={phoneHint}
-            error={phoneError ?? undefined}
+            error={phoneError ? t(phoneError) : undefined}
           />
           <div className="flex items-end">
             <Button
@@ -1154,10 +1246,10 @@ export const ProfileSettings = ({
               variant="secondary"
               onClick={handleSavePhone}
               loading={phoneSaving}
-              loadingText="Saving"
+              loadingText={t("Saving")}
               disabled={!canSavePhone}
             >
-              Save phone
+              {t("Save phone")}
             </Button>
           </div>
         </div>
@@ -1165,10 +1257,10 @@ export const ProfileSettings = ({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/50 px-4 py-3">
           <div>
             <p className="text-sm font-semibold text-foreground">
-              Password
+              {t("Password")}
             </p>
             <p className="text-xs text-muted">
-              Change your password in a dedicated security page.
+              {t("Change your password in a dedicated security page.")}
             </p>
           </div>
           <Button
@@ -1176,15 +1268,15 @@ export const ProfileSettings = ({
             variant="outline"
             onClick={() => router.push("/profile/password")}
           >
-            Change password
+            {t("Change password")}
           </Button>
         </div>
       </Card>
 
       <section id="profile" className="space-y-4">
         <SectionHeader
-          title="Who you are to Syncro"
-          subtitle="Keep your profile fresh and aligned with your goals."
+          title={t("Who you are to Syncro")}
+          subtitle={t("Keep your profile fresh and aligned with your goals.")}
         />
         <Card className="p-6">
           <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
@@ -1196,7 +1288,7 @@ export const ProfileSettings = ({
                   "flex-shrink-0 rounded-full transition-transform hover:scale-105",
                   avatar?.url && "cursor-pointer",
                 )}
-                aria-label="View profile photo"
+                aria-label={t("View profile photo")}
                 disabled={!avatar?.url}
               >
                 <Avatar name={displayName} src={avatar?.url} size="2xl" />
@@ -1213,9 +1305,9 @@ export const ProfileSettings = ({
                 variant="secondary"
                 onClick={handleAvatarSelect}
                 loading={avatarLoading}
-                loadingText="Upload"
+                loadingText={t("Upload")}
               >
-                Update photo
+                {t("Update photo")}
               </Button>
               <input
                 ref={fileInputRef}
@@ -1227,100 +1319,100 @@ export const ProfileSettings = ({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="Full name"
+                label={t("Full name")}
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="E.g. Marco · Mark · M"
+                placeholder={t("E.g. Marco / Mark / M")}
                 required
               />
               <Input
-                label="Lives in"
+                label={t("Lives in")}
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
-                placeholder="City, Country"
+                placeholder={t("City, Country")}
               />
               <Input
-                label="Born in"
+                label={t("Born in")}
                 value={country}
                 onChange={(event) => setCountry(event.target.value)}
-                placeholder="City, Country"
+                placeholder={t("City, Country")}
               />
               <DatePicker
-                label="Date of birth"
+                label={t("Date of birth")}
                 value={birthDate}
                 onValueChange={setBirthDate}
-                placeholder="DD / MM / YYYY"
+                placeholder={t("DD / MM / YYYY")}
                 maxYear={new Date().getFullYear()}
               />
               <Input
-                label="Work"
+                label={t("Work")}
                 value={jobTitle}
                 onChange={(event) => setJobTitle(event.target.value)}
-                placeholder="E.g. Software Developer"
+                placeholder={t("E.g. Software Developer")}
               />
               <Input
-                label="Works at"
+                label={t("Works at")}
                 value={companyName}
                 onChange={(event) => setCompanyName(event.target.value)}
-                placeholder="E.g. Freelance · Startup · Company"
+                placeholder={t("E.g. Freelance / Startup / Company")}
               />
               <Input
-                label="What defines me"
+                label={t("What defines me")}
                 value={traitsText}
                 onChange={(event) => setTraitsText(event.target.value)}
-                placeholder="E.g. Curious, Adventurous, Empathetic"
+                placeholder={t("E.g. Curious, Adventurous, Empathetic")}
               />
               <Input
-                label="Current focus"
+                label={t("Current focus")}
                 value={goalsText}
                 onChange={(event) => setGoalsText(event.target.value)}
-                placeholder="E.g. Work, Personal Growth, Relationships"
+                placeholder={t("E.g. Work, Personal Growth, Relationships")}
               />
               <Input
-                label="Beliefs & worldview"
+                label={t("Beliefs & worldview")}
                 value={valuesText}
                 onChange={(event) => setValuesText(event.target.value)}
-                placeholder="E.g. Spiritual, Atheist, Catholic..."
+                placeholder={t("E.g. Spiritual, Atheist, Catholic...")}
               />
               <Input
-                label="Deal breakers"
+                label={t("Deal breakers")}
                 value={dislikesText}
                 onChange={(event) => setDislikesText(event.target.value)}
-                placeholder="E.g. Lack of communication, Dishonesty..."
+                placeholder={t("E.g. Lack of communication, Dishonesty...")}
               />
               <Input
-                label="What I'm seeking"
+                label={t("What I'm seeking")}
                 value={lovesText}
                 onChange={(event) => setLovesText(event.target.value)}
-                placeholder="E.g. A genuine relationship, meaningful connections"
+                placeholder={t("E.g. A genuine relationship, meaningful connections")}
               />
               <Select
-                label="Gender identity"
+                label={t("Gender identity")}
                 value={profileGender}
                 onValueChange={setProfileGender}
-                options={PROFILE_GENDER_OPTIONS}
-                placeholder="Select gender"
+                options={profileGenderOptions}
+                placeholder={t("Select gender")}
               />
               <Select
-                label="Sexual orientation"
+                label={t("Sexual orientation")}
                 value={orientation}
                 onValueChange={setOrientation}
-                options={ORIENTATION_OPTIONS}
-                placeholder="Select orientation"
+                options={orientationOptions}
+                placeholder={t("Select orientation")}
               />
               <Select
-                label="Children"
+                label={t("Children")}
                 value={childrenStatus}
                 onValueChange={setChildrenStatus}
-                options={CHILDREN_OPTIONS}
-                placeholder="Select children status"
+                options={childrenOptions}
+                placeholder={t("Select children status")}
               />
               <Select
-                label="Relationship status"
+                label={t("Relationship status")}
                 value={relationshipStatus}
                 onValueChange={setRelationshipStatus}
-                options={RELATIONSHIP_OPTIONS}
-                placeholder="Select relationship"
+                options={relationshipOptions}
+                placeholder={t("Select relationship")}
               />
             </div>
           </div>
@@ -1328,10 +1420,10 @@ export const ProfileSettings = ({
             <Button
               size="sm"
               loading={profileSaving || isAuthLoading}
-              loadingText="Saving"
+              loadingText={t("Saving")}
               onClick={handleSaveProfile}
             >
-              Save profile
+              {t("Save profile")}
             </Button>
           </div>
         </Card>
@@ -1339,13 +1431,13 @@ export const ProfileSettings = ({
 
       <section id="match-preferences" className="space-y-4">
         <SectionHeader
-          title="Match contexts & hard filters"
-          subtitle="Hard filters define visibility. Domains define compatibility scoring."
+          title={t("Match contexts & hard filters")}
+          subtitle={t("Hard filters define visibility. Domains define compatibility scoring.")}
         />
         <Card className="space-y-5 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Minimum age"
+              label={t("Minimum age")}
               type="number"
               min={18}
               value={ageMin}
@@ -1353,7 +1445,7 @@ export const ProfileSettings = ({
               placeholder="18"
             />
             <Input
-              label="Maximum age"
+              label={t("Maximum age")}
               type="number"
               min={18}
               value={ageMax}
@@ -1364,7 +1456,7 @@ export const ProfileSettings = ({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Maximum distance (km)"
+              label={t("Maximum distance (km)")}
               type="number"
               min={0}
               value={distanceKm}
@@ -1372,45 +1464,45 @@ export const ProfileSettings = ({
               placeholder="25"
             />
             <Select
-              label="Availability"
+              label={t("Availability")}
               value={geoAvailability}
               onValueChange={setGeoAvailability}
-              options={GEO_AVAILABILITY_OPTIONS}
-              placeholder="Select availability"
+              options={geoAvailabilityOptions}
+              placeholder={t("Select availability")}
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="City filter (optional)"
+              label={t("City filter (optional)")}
               value={locationCityFilter}
               onChange={(event) => setLocationCityFilter(event.target.value)}
-              placeholder="E.g. Milan"
+              placeholder={t("E.g. Milan")}
             />
             <Input
-              label="Country filter (optional)"
+              label={t("Country filter (optional)")}
               value={locationCountryFilter}
               onChange={(event) =>
                 setLocationCountryFilter(event.target.value)
               }
-              placeholder="E.g. Italy"
+              placeholder={t("E.g. Italy")}
             />
           </div>
 
           <Select
-            label="Preferred gender (hard filter)"
+            label={t("Preferred gender (hard filter)")}
             value={matchGender}
             onValueChange={setMatchGender}
-            options={MATCH_GENDER_OPTIONS}
-            placeholder="Select preference"
+            options={matchGenderOptions}
+            placeholder={t("Select preference")}
           />
 
           <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
             <p className="text-sm font-semibold text-foreground">
-              Match domains
+              {t("Match domains")}
             </p>
             <p className="text-xs text-muted">
-              All domains are always active.
+              {t("All domains are always active.")}
             </p>
             <div className="flex flex-wrap gap-2">
               {DOMAIN_KEYS.map((domainKey) => (
@@ -1418,7 +1510,7 @@ export const ProfileSettings = ({
                   key={domainKey}
                   className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-foreground"
                 >
-                  {DOMAIN_LABELS[domainKey]}
+                  {domainLabels[domainKey]}
                 </span>
               ))}
             </div>
@@ -1429,10 +1521,10 @@ export const ProfileSettings = ({
               size="sm"
               variant="secondary"
               loading={preferencesSaving}
-              loadingText="Saving"
+              loadingText={t("Saving")}
               onClick={handleSavePreferences}
             >
-              Save match preferences
+              {t("Save match preferences")}
             </Button>
           </div>
         </Card>
@@ -1440,24 +1532,24 @@ export const ProfileSettings = ({
 
       <section id="interests" className="space-y-4">
         <SectionHeader
-          title="What are you into right now?"
-          subtitle="Select what you're into at the moment."
+          title={t("What are you into right now?")}
+          subtitle={t("Select what you're into at the moment.")}
         />
         {isTagsLoading ? (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading interests...</p>
+            <p className="text-sm text-muted">{t("Loading interests...")}</p>
           </Card>
         ) : (
           <InterestPickerGrid
             items={interestItems}
-            hint={`Select at least ${MIN_INTERESTS} interests.`}
+            hint={t("Select at least {count} interests.", { count: MIN_INTERESTS })}
             onItemToggle={handleInterestToggle}
           />
         )}
         {selectedTags.length ? (
           <Card className="p-5">
-            <SelectedTagsRow title="Selected" items={selectedTags} />
+            <SelectedTagsRow title={t("Selected")} items={selectedTags} />
           </Card>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
@@ -1465,10 +1557,10 @@ export const ProfileSettings = ({
             size="sm"
             variant="secondary"
             loading={interestsSaving}
-            loadingText="Saving"
+            loadingText={t("Saving")}
             onClick={handleSaveInterests}
           >
-            Save interests
+            {t("Save interests")}
           </Button>
         </div>
       </section>
@@ -1476,18 +1568,18 @@ export const ProfileSettings = ({
       <Card className="space-y-3 p-5">
         <div className="space-y-1">
           <h2 className="text-base font-semibold text-foreground">
-            Referral link
+            {t("Referral link")}
           </h2>
           <p className="text-sm text-muted">
-            Invite friends to Syncro with your personal link.
+            {t("Invite friends to Syncro with your personal link.")}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <Input
-            label="Your referral link"
+            label={t("Your referral link")}
             value={referralUrl}
             readOnly
-            placeholder={referralLoading ? "Loading..." : "Not available"}
+            placeholder={referralLoading ? t("Loading...") : t("Not available")}
           />
           <div className="flex items-end">
             <Button
@@ -1496,34 +1588,34 @@ export const ProfileSettings = ({
               onClick={handleCopyReferral}
               disabled={!referralUrl || referralLoading}
             >
-              {referralCopied ? "Copied" : "Copy link"}
+              {referralCopied ? t("Copied") : t("Copy link")}
             </Button>
           </div>
         </div>
         {referralError ? (
-          <p className="text-xs text-danger">{referralError}</p>
+          <p className="text-xs text-danger">{t(referralError)}</p>
         ) : (
           <p className="text-xs text-subtle">
-            Used {referralLink?.usesCount ?? 0} times
+            {t("Used {count} times", { count: referralLink?.usesCount ?? 0 })}
           </p>
         )}
       </Card>
 
       <section className="space-y-4">
         <SectionHeader
-          title="My Moments"
-          subtitle="Moments that matter. Even if they're just for you."
+          title={t("My Moments")}
+          subtitle={t("Moments that matter. Even if they're just for you.")}
         />
 
         {postActionError ? (
           <Card className="flex flex-wrap items-start justify-between gap-3 border-danger/30 bg-danger/10 p-4">
-            <p className="text-sm text-danger">{postActionError}</p>
+            <p className="text-sm text-danger">{t(postActionError)}</p>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setPostActionError(null)}
             >
-              Close
+              {t("Close")}
             </Button>
           </Card>
         ) : null}
@@ -1531,15 +1623,15 @@ export const ProfileSettings = ({
         {recentPostsLoading && recentPosts.length === 0 ? (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading moments...</p>
+            <p className="text-sm text-muted">{t("Loading moments...")}</p>
           </Card>
         ) : recentPostsError ? (
           <Card className="border-danger/30 bg-danger/10 p-4">
-            <p className="text-sm text-danger">{recentPostsError}</p>
+            <p className="text-sm text-danger">{t(recentPostsError)}</p>
           </Card>
         ) : recentPosts.length === 0 ? (
           <Card className="p-5">
-            <p className="text-sm text-muted">No moments available.</p>
+            <p className="text-sm text-muted">{t("No moments available.")}</p>
           </Card>
         ) : (
           <MapPostCard items={postItems} />
@@ -1552,9 +1644,9 @@ export const ProfileSettings = ({
               size="md"
               onClick={handleLoadMorePosts}
               loading={recentPostsLoading}
-              loadingText="Loading"
+              loadingText={t("Loading")}
             >
-              Load more
+              {t("Load more")}
             </Button>
           </div>
         ) : null}
@@ -1563,16 +1655,18 @@ export const ProfileSettings = ({
       {showError ? (
         <Card className="border-danger/30 bg-danger/10 p-4">
           <p className="text-sm text-danger">
-            {mergedError ?? baseError ?? "Unexpected error."}
+            {t(mergedError ?? baseError ?? "Unexpected error.")}
           </p>
         </Card>
       ) : null}
 
       <Card className="space-y-3 border-danger/40 bg-danger/10 p-5">
         <div className="space-y-1">
-          <h2 className="text-base font-semibold text-danger">Danger zone</h2>
+          <h2 className="text-base font-semibold text-danger">
+            {t("Danger zone")}
+          </h2>
           <p className="text-sm text-danger/90">
-            Deleting your profile is permanent and cannot be undone.
+            {t("Deleting your profile is permanent and cannot be undone.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -1581,41 +1675,42 @@ export const ProfileSettings = ({
             variant="danger"
             onClick={handleOpenDeleteProfileModal}
           >
-            Delete profile
+            {t("Delete profile")}
           </Button>
           <p className="text-xs text-danger/80">
-            You will need to type a confirmation phrase.
+            {t("You will need to type a confirmation phrase.")}
           </p>
         </div>
       </Card>
 
       <Modal
         open={deleteProfileModalOpen}
-        title="Delete your profile"
-        description="This action permanently removes your account and data."
+        title={t("Delete your profile")}
+        description={t("This action permanently removes your account and data.")}
         onClose={handleCloseDeleteProfileModal}
         secondaryAction={{
-          label: "Cancel",
+          label: t("Cancel"),
           onClick: handleCloseDeleteProfileModal,
           variant: "secondary",
           disabled: deleteProfileLoading,
         }}
         primaryAction={{
-          label: "Delete permanently",
+          label: t("Delete permanently"),
           onClick: handleDeleteProfile,
           variant: "danger",
           disabled: !canConfirmProfileDeletion,
           loading: deleteProfileLoading,
-          loadingText: "Deleting",
+          loadingText: t("Deleting"),
         }}
       >
         <div className="space-y-3">
           <p className="text-sm text-muted">
-            Type <strong>{DELETE_PROFILE_CONFIRMATION_PHRASE}</strong> to
-            confirm.
+            {t("Type {phrase} to confirm.", {
+              phrase: DELETE_PROFILE_CONFIRMATION_PHRASE,
+            })}
           </p>
           <Input
-            label="Confirmation phrase"
+            label={t("Confirmation phrase")}
             value={deleteProfileConfirmation}
             onChange={(event) => {
               setDeleteProfileError(null);
@@ -1625,7 +1720,7 @@ export const ProfileSettings = ({
             autoComplete="off"
           />
           {deleteProfileError ? (
-            <p className="text-xs text-danger">{deleteProfileError}</p>
+            <p className="text-xs text-danger">{t(deleteProfileError)}</p>
           ) : null}
         </div>
       </Modal>

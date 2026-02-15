@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes, MouseEvent } from "react";
 import { Avatar } from "@/components/elements/Avatar";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { useT } from "@/hooks";
 
 export interface ChatListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
@@ -34,6 +37,7 @@ export const ChatListItem = ({
   profileLabel,
   ...props
 }: ChatListItemProps) => {
+  const { t } = useT();
   const hasUnread = typeof unreadCount === "number" && unreadCount > 0;
   const handleProfileClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -96,7 +100,7 @@ export const ChatListItem = ({
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent" />
               </span>
-              <span>sta scrivendo...</span>
+              <span>{t("Typing...")}</span>
             </span>
           ) : (
             <p
@@ -117,7 +121,9 @@ export const ChatListItem = ({
           <button
             type="button"
             onClick={handleProfileClick}
-            aria-label={profileLabel ?? `Open profile of ${name}`}
+            aria-label={
+              profileLabel ?? t("Open profile of {name}", { name })
+            }
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
           >
             <NavIcon name="user" className="h-4 w-4" />

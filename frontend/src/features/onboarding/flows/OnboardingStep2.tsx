@@ -7,12 +7,13 @@ import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGr
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useOnboarding, useTags } from "@/hooks";
+import { useAuth, useOnboarding, useT, useTags } from "@/hooks";
 
 const MIN_SELECTIONS = 3;
 
 export const OnboardingStep2 = () => {
   const router = useRouter();
+  const { t } = useT();
   const { actions: authActions } = useAuth();
   const { tags, interests, loading, error, actions } = useTags();
   const { actions: onboardingActions } = useOnboarding();
@@ -67,7 +68,7 @@ export const OnboardingStep2 = () => {
     setFormError(null);
 
     if (!hasMinSelection) {
-      setFormError(`Select at least ${MIN_SELECTIONS} interests.`);
+      setFormError(t("Select at least {count} interests.", { count: MIN_SELECTIONS }));
       return;
     }
 
@@ -80,7 +81,7 @@ export const OnboardingStep2 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Error while saving.";
+          : t("Error while saving.");
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -91,21 +92,23 @@ export const OnboardingStep2 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Select your interests"
-          subtitle="Choose the topics that best represent you."
+          title={t("Select your interests")}
+          subtitle={t("Choose the topics that best represent you.")}
           step={2}
           totalSteps={3}
         />
 
         <InterestPickerGrid
           items={interestItems}
-          hint={`Select at least ${MIN_SELECTIONS} interests to continue.`}
+          hint={t("Select at least {count} interests to continue.", {
+            count: MIN_SELECTIONS,
+          })}
           onItemToggle={handleToggle}
         />
 
         {selectedTags.length ? (
           <Card className="p-5">
-            <SelectedTagsRow title="Selected" items={selectedTags} />
+            <SelectedTagsRow title={t("Selected")} items={selectedTags} />
           </Card>
         ) : null}
 
@@ -121,16 +124,16 @@ export const OnboardingStep2 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-1")}
           >
-            Back
+            {t("Back")}
           </Button>
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Saving"
+            loadingText={t("Saving")}
             onClick={handleContinue}
             disabled={!hasMinSelection}
           >
-            Continue
+            {t("Continue")}
           </Button>
         </div>
       </div>

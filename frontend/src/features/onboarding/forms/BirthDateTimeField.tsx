@@ -5,6 +5,7 @@ import type { HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
 import { DatePicker } from "@/components/elements/DatePicker";
 import { TimePicker } from "@/components/elements/TimePicker";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface BirthDateTimeValue {
@@ -46,7 +47,13 @@ export const BirthDateTimeField = ({
   disabled,
   ...props
 }: BirthDateTimeFieldProps) => {
+  const { t } = useT();
   const isControlled = value !== undefined;
+  const resolvedTitle = t(title);
+  const resolvedSubtitle = subtitle ? t(subtitle) : null;
+  const resolvedDateLabel = t(dateLabel);
+  const resolvedTimeLabel = t(timeLabel);
+  const resolvedHint = hint ? t(hint) : null;
   const initialValue = useMemo(
     () => ({ ...EMPTY_VALUE, ...defaultValue, ...value }),
     [defaultValue, value]
@@ -67,12 +74,14 @@ export const BirthDateTimeField = ({
   return (
     <Card className={cx("space-y-4 p-5", className)} {...props}>
       <div className="space-y-1">
-        <h4 className="text-base font-semibold text-foreground">{title}</h4>
-        {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
+        <h4 className="text-base font-semibold text-foreground">{resolvedTitle}</h4>
+        {resolvedSubtitle ? (
+          <p className="text-sm text-muted">{resolvedSubtitle}</p>
+        ) : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <DatePicker
-          label={dateLabel}
+          label={resolvedDateLabel}
           value={currentValue.date}
           required={required}
           disabled={disabled}
@@ -80,7 +89,7 @@ export const BirthDateTimeField = ({
           maxYear={new Date().getFullYear()}
         />
         <TimePicker
-          label={timeLabel}
+          label={resolvedTimeLabel}
           value={currentValue.time}
           disabled={disabled}
           onValueChange={(time) => updateValue({ time })}
@@ -89,7 +98,7 @@ export const BirthDateTimeField = ({
           stepMinutes={15}
         />
       </div>
-      {hint ? <p className="text-xs text-subtle">{hint}</p> : null}
+      {resolvedHint ? <p className="text-xs text-subtle">{resolvedHint}</p> : null}
     </Card>
   );
 };

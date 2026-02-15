@@ -6,8 +6,9 @@ import Link from "next/link";
 import { Card } from "@/components/elements/Card";
 import { Avatar } from "@/components/elements/Avatar";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { ZyraSearchBar } from "@/features/zyra/search/ZyraSearchBar";
-import { useAuth, useUser } from "@/hooks";
+import { useAuth, useT, useUser } from "@/hooks";
 import { cx } from "@/lib/classNames";
 import { getMediaByOwner } from "@/services/media";
 import { getAdminAccess } from "@/services/auth";
@@ -16,17 +17,21 @@ import {
   type ProfileAvatarUpdatedDetail,
 } from "@/lib/mediaEvents";
 
-const NotificationBell = () => (
-  <button
-    type="button"
-    aria-label="Notifiche"
-    className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-surface text-subtle shadow-sm transition hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
-  >
-    <NavIcon name="bell" className="h-4 w-4" />
-  </button>
-);
+const NotificationBell = () => {
+  const { t } = useT();
+  return (
+    <button
+      type="button"
+      aria-label={t("Notifications")}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-surface text-subtle shadow-sm transition hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
+    >
+      <NavIcon name="bell" className="h-4 w-4" />
+    </button>
+  );
+};
 
 const HeaderProfile = () => {
+  const { t } = useT();
   const { user, isAuthenticated, actions: authActions } = useAuth();
   const { profile, actions: userActions } = useUser();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -89,8 +94,8 @@ const HeaderProfile = () => {
     const fullName = profile?.fullName?.trim();
     const username = user?.username?.trim();
     const email = user?.email?.trim();
-    return fullName || username || email || "User";
-  }, [profile?.fullName, user?.username, user?.email]);
+    return fullName || username || email || t("User");
+  }, [profile?.fullName, t, user?.email, user?.username]);
 
   if (!isAuthenticated) return null;
 
@@ -103,7 +108,7 @@ const HeaderProfile = () => {
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
         <p className="truncate text-[11px] text-subtle">
-          Live profile · Syncro is learning from you
+          {t("Live profile / Syncro is learning from you")}
         </p>
       </div>
     </Link>
@@ -183,6 +188,7 @@ export const Navbar = ({
 
         <div className="flex items-center gap-3 pr-2">
           <SuperAdminRedirect />
+          <LanguageSwitch />
           <NotificationBell />
           <HeaderProfile />
         </div>

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createAdminExperience,
   createExperienceAffiliation,
@@ -35,30 +36,30 @@ import type {
 } from "@/types/catalog";
 import type { PageResponse } from "@/types/shared";
 
-const SOURCE_OPTIONS = [
-  { value: "MANUAL", label: "MANUAL" },
-  { value: "API", label: "API" },
-  { value: "GOOGLE", label: "GOOGLE" },
-  { value: "GETYOURGUIDE", label: "GETYOURGUIDE" },
-  { value: "VIATOR", label: "VIATOR" },
-  { value: "MUSEMENT", label: "MUSEMENT" },
-  { value: "CIVITATIS", label: "CIVITATIS" },
-  { value: "TIQETS", label: "TIQETS" },
+const SOURCE_OPTIONS: Array<{ value: CatalogSource; labelKey: string }> = [
+  { value: "MANUAL", labelKey: "Manual" },
+  { value: "API", labelKey: "API" },
+  { value: "GOOGLE", labelKey: "Google" },
+  { value: "GETYOURGUIDE", labelKey: "GetYourGuide" },
+  { value: "VIATOR", labelKey: "Viator" },
+  { value: "MUSEMENT", labelKey: "Musement" },
+  { value: "CIVITATIS", labelKey: "Civitatis" },
+  { value: "TIQETS", labelKey: "Tiqets" },
 ];
 
-const PROVIDER_OPTIONS = [
-  { value: "", label: "No provider" },
-  { value: "GETYOURGUIDE", label: "GETYOURGUIDE" },
-  { value: "VIATOR", label: "VIATOR" },
-  { value: "MUSEMENT", label: "MUSEMENT" },
-  { value: "CIVITATIS", label: "CIVITATIS" },
-  { value: "TIQETS", label: "TIQETS" },
-  { value: "OTHER", label: "OTHER" },
+const PROVIDER_OPTIONS: Array<{ value: "" | ExperienceProvider; labelKey: string }> = [
+  { value: "", labelKey: "No provider" },
+  { value: "GETYOURGUIDE", labelKey: "GetYourGuide" },
+  { value: "VIATOR", labelKey: "Viator" },
+  { value: "MUSEMENT", labelKey: "Musement" },
+  { value: "CIVITATIS", labelKey: "Civitatis" },
+  { value: "TIQETS", labelKey: "Tiqets" },
+  { value: "OTHER", labelKey: "Other" },
 ];
 
-const ACTIVE_OPTIONS = [
-  { value: "true", label: "Active" },
-  { value: "false", label: "Inactive" },
+const ACTIVE_OPTIONS: Array<{ value: "true" | "false"; labelKey: string }> = [
+  { value: "true", labelKey: "Active" },
+  { value: "false", labelKey: "Inactive" },
 ];
 
 const parseOptionalNumber = (value: string): number | null => {
@@ -87,6 +88,8 @@ const mapSourceToOption = (source: CatalogSource) =>
   SOURCE_OPTIONS.find((option) => option.value === source)?.value ?? "MANUAL";
 
 export const AdminExperiencesOverview = () => {
+  const { t } = useT();
+
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -122,20 +125,61 @@ export const AdminExperiencesOverview = () => {
   const [affiliationProvider, setAffiliationProvider] = useState("");
   const [creatingAffiliation, setCreatingAffiliation] = useState(false);
 
+  const sourceOptions = useMemo(
+    () =>
+      SOURCE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
+
+  const providerOptions = useMemo(
+    () =>
+      PROVIDER_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
+
+  const activeOptions = useMemo(
+    () =>
+      ACTIVE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
+
+  const resolveSourceLabel = useCallback(
+    (value: CatalogSource) =>
+      t(SOURCE_OPTIONS.find((option) => option.value === value)?.labelKey ?? value),
+    [t]
+  );
+
+  const resolveProviderLabel = useCallback(
+    (value: ExperienceProvider | null | undefined) => {
+      if (!value) return "-";
+      return t(PROVIDER_OPTIONS.find((option) => option.value === value)?.labelKey ?? value);
+    },
+    [t]
+  );
+
   const categoryOptions = useMemo(
     () => [
-      { value: "", label: "No category" },
+      { value: "", label: t("No category") },
       ...categories.map((category) => ({ value: category.id, label: category.name })),
     ],
-    [categories]
+    [categories, t]
   );
 
   const placeOptions = useMemo(
     () => [
-      { value: "", label: "No place" },
+      { value: "", label: t("No place") },
       ...places.map((place) => ({ value: place.id, label: place.name })),
     ],
-    [places]
+    [places, t]
   );
 
   const resetForm = useCallback(() => {
@@ -241,8 +285,8 @@ export const AdminExperiencesOverview = () => {
         name: experience.name,
         category: experience.category?.name ?? "-",
         place: experience.place?.name ?? "-",
-        source: experience.source,
-        provider: experience.provider ?? "-",
+        source: resolveSourceLabel(experience.source),
+        provider: resolveProviderLabel(experience.provider),
         active: experience.isActive ? "YES" : "NO",
         actions: (
           <div className="flex items-center justify-end gap-2">
@@ -251,14 +295,14 @@ export const AdminExperiencesOverview = () => {
               variant="outline"
               onClick={() => setSelectedExperienceId(experience.id)}
             >
-              Gestisci
+              {t("Manage")}
             </Button>
             <Button
               size="sm"
               variant="danger"
               onClick={() =>
                 void (async () => {
-                  const confirmed = window.confirm("Confirm experience deletion?");
+                  const confirmed = window.confirm(t("Confirm experience deletion?"));
                   if (!confirmed) {
                     return;
                   }
@@ -277,12 +321,12 @@ export const AdminExperiencesOverview = () => {
                 })()
               }
             >
-              Delete
+              {t("Delete")}
             </Button>
           </div>
         ),
       })),
-    [loadExperiences, resetForm, response, selectedExperienceId]
+    [loadExperiences, resetForm, resolveProviderLabel, resolveSourceLabel, response, selectedExperienceId, t]
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -351,13 +395,13 @@ export const AdminExperiencesOverview = () => {
       return;
     }
 
-    const nextUrl = window.prompt("Affiliation URL", affiliation.url);
+    const nextUrl = window.prompt(t("Affiliation URL"), affiliation.url);
     if (!nextUrl || !nextUrl.trim()) {
       return;
     }
 
     const nextProvider = window.prompt(
-      "Provider (optional)",
+      t("Provider (optional)"),
       affiliation.provider ?? ""
     );
 
@@ -379,7 +423,7 @@ export const AdminExperiencesOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confirm affiliation deletion?");
+    const confirmed = window.confirm(t("Confirm affiliation deletion?"));
     if (!confirmed) {
       return;
     }
@@ -397,12 +441,14 @@ export const AdminExperiencesOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Experiences"
-        subtitle="Manage catalog experiences with affiliation links."
+        title={t("Experiences")}
+        subtitle={t("Manage catalog experiences with affiliation links.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">List filters</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("List filters")}
+        </h2>
         <form
           className="grid gap-3 lg:grid-cols-[1fr,auto,auto]"
           onSubmit={(event) => {
@@ -414,10 +460,10 @@ export const AdminExperiencesOverview = () => {
           <Input
             value={queryDraft}
             onChange={(event) => setQueryDraft(event.target.value)}
-            placeholder="Search by title or description"
+            placeholder={t("Search by title or description")}
           />
           <Button type="submit" size="sm">
-            Apply
+            {t("Apply")}
           </Button>
           <Button
             type="button"
@@ -429,71 +475,95 @@ export const AdminExperiencesOverview = () => {
               setPage(0);
             }}
           >
-            Reset
+            {t("Reset")}
           </Button>
         </form>
       </Card>
 
       <Card className="space-y-4 p-5">
         <h2 className="text-base font-semibold text-foreground">
-          {selectedExperienceId ? "Edit experience" : "Create experience"}
+          {selectedExperienceId ? t("Edit experience") : t("Create experience")}
         </h2>
 
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleSubmit}>
-          <Input label="Name" value={name} onChange={(event) => setName(event.target.value)} required />
-          <Select label="Source" value={source} options={SOURCE_OPTIONS} onValueChange={setSource} />
+          <Input
+            label={t("Name")}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
           <Select
-            label="Category"
+            label={t("Source")}
+            value={source}
+            options={sourceOptions}
+            onValueChange={setSource}
+          />
+          <Select
+            label={t("Category")}
             value={categoryId}
             options={categoryOptions}
             onValueChange={setCategoryId}
           />
-          <Select label="Place" value={placeId} options={placeOptions} onValueChange={setPlaceId} />
           <Select
-            label="Provider"
+            label={t("Place")}
+            value={placeId}
+            options={placeOptions}
+            onValueChange={setPlaceId}
+          />
+          <Select
+            label={t("Provider")}
             value={provider}
-            options={PROVIDER_OPTIONS}
+            options={providerOptions}
             onValueChange={setProvider}
           />
           <Select
-            label="Active"
+            label={t("Active")}
             value={isActive}
-            options={ACTIVE_OPTIONS}
+            options={activeOptions}
             onValueChange={setIsActive}
           />
-          <Input label="Price" value={price} onChange={(event) => setPrice(event.target.value)} />
           <Input
-            label="Currency"
+            label={t("Price")}
+            value={price}
+            onChange={(event) => setPrice(event.target.value)}
+          />
+          <Input
+            label={t("Currency")}
             value={priceCurrency}
             onChange={(event) => setPriceCurrency(event.target.value)}
           />
           <Input
-            label="Duration (min)"
+            label={t("Duration (min)")}
             value={durationMinutes}
             onChange={(event) => setDurationMinutes(event.target.value)}
           />
           <Input
-            label="Location name"
+            label={t("Location name")}
             value={locationName}
             onChange={(event) => setLocationName(event.target.value)}
           />
           <div className="lg:col-span-2">
             <Input
-              label="Booking URL"
+              label={t("Booking URL")}
               value={bookingUrl}
               onChange={(event) => setBookingUrl(event.target.value)}
             />
           </div>
           <div className="lg:col-span-2">
             <Textarea
-              label="Description"
+              label={t("Description")}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Saving">
-              {selectedExperienceId ? "Save changes" : "Create experience"}
+            <Button
+              type="submit"
+              size="sm"
+              loading={saving}
+              loadingText={t("Saving")}
+            >
+              {selectedExperienceId ? t("Save changes") : t("Create experience")}
             </Button>
             {selectedExperienceId ? (
               <Button
@@ -505,7 +575,7 @@ export const AdminExperiencesOverview = () => {
                   resetForm();
                 }}
               >
-                Cancel edit
+                {t("Cancel edit")}
               </Button>
             ) : null}
           </div>
@@ -516,56 +586,61 @@ export const AdminExperiencesOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Selected experience: {selectedExperienceDetail.name}
+              {t("Selected experience: {name}", {
+                name: selectedExperienceDetail.name,
+              })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedExperienceId(null)}>
-              Close details
+              {t("Close details")}
             </Button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">ID:</span> {selectedExperienceDetail.id}
+              <span className="font-semibold text-foreground">{t("ID")}:</span>{" "}
+              {selectedExperienceDetail.id}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Updated at:</span>{" "}
+              <span className="font-semibold text-foreground">{t("Updated at")}:</span>{" "}
               {formatDateTime(selectedExperienceDetail.updatedAt)}
             </p>
           </div>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-sm font-semibold text-foreground">Affiliations</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {t("Affiliations")}
+            </h3>
             <form className="grid gap-3 lg:grid-cols-[1fr,240px,auto]" onSubmit={handleCreateAffiliation}>
               <Input
-                label="URL"
+                label={t("URL")}
                 value={affiliationUrl}
                 onChange={(event) => setAffiliationUrl(event.target.value)}
                 required
               />
               <Input
-                label="Provider"
+                label={t("Provider")}
                 value={affiliationProvider}
                 onChange={(event) => setAffiliationProvider(event.target.value)}
-                placeholder="Optional"
+                placeholder={t("Optional")}
               />
               <div className="flex items-end">
                 <Button
                   type="submit"
                   size="sm"
                   loading={creatingAffiliation}
-                  loadingText="Creating"
+                  loadingText={t("Creating")}
                 >
-                  Add link
+                  {t("Add link")}
                 </Button>
               </div>
             </form>
 
             <AdminTable
               columns={[
-                { key: "url", label: "URL" },
-                { key: "provider", label: "Provider" },
-                { key: "createdAt", label: "Created at" },
-                { key: "actions", label: "Actions", align: "right" },
+                { key: "url", label: t("URL") },
+                { key: "provider", label: t("Provider") },
+                { key: "createdAt", label: t("Created at") },
+                { key: "actions", label: t("Actions"), align: "right" },
               ]}
               rows={affiliations.map((affiliation) => ({
                 id: affiliation.id,
@@ -579,19 +654,19 @@ export const AdminExperiencesOverview = () => {
                       variant="outline"
                       onClick={() => void handleUpdateAffiliation(affiliation)}
                     >
-                      Edit
+                      {t("Edit")}
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={() => void handleDeleteAffiliation(affiliation)}
                     >
-                      Delete
+                      {t("Delete")}
                     </Button>
                   </div>
                 ),
               }))}
-              emptyLabel="No affiliation links"
+              emptyLabel={t("No affiliation links")}
             />
           </Card>
         </Card>
@@ -599,7 +674,9 @@ export const AdminExperiencesOverview = () => {
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Total experiences: {formatNumber(response?.totalElements ?? 0)}
+          {t("Total experiences: {count}", {
+            count: formatNumber(response?.totalElements ?? 0),
+          })}
         </p>
       </Card>
 
@@ -608,18 +685,18 @@ export const AdminExperiencesOverview = () => {
           <Loader size="sm" />
           <p className="text-sm text-muted">
             {detailLoading
-              ? "Loading experience details..."
-              : "Loading experiences..."}
+              ? t("Loading experience details...")
+              : t("Loading experiences...")}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load experiences</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load experiences")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadExperiences()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -628,21 +705,27 @@ export const AdminExperiencesOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "name", label: "Name" },
-              { key: "category", label: "Category" },
-              { key: "place", label: "Place" },
-              { key: "source", label: "Source" },
-              { key: "provider", label: "Provider" },
-              { key: "active", label: "Active" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "name", label: t("Name") },
+              { key: "category", label: t("Category") },
+              { key: "place", label: t("Place") },
+              { key: "source", label: t("Source") },
+              { key: "provider", label: t("Provider") },
+              { key: "active", label: t("Active") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
-            rows={rows}
-            emptyLabel="No experiences"
+            rows={rows.map((row) => ({
+              ...row,
+              active: row.active === "YES" ? t("Yes") : t("No"),
+            }))}
+            emptyLabel={t("No experiences")}
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
+              {t("Page {page} of {total}", {
+                page: (response?.number ?? 0) + 1,
+                total: Math.max(response?.totalPages ?? 1, 1),
+              })}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -651,7 +734,7 @@ export const AdminExperiencesOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -659,7 +742,7 @@ export const AdminExperiencesOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>

@@ -16,6 +16,9 @@ import {
 import { authActions } from "../auth/authStore";
 import { createStore } from "../utils/createStore";
 import { readStorage, writeStorage } from "../utils/storage";
+import { normalizeLocale } from "@/i18n/locales";
+import type { SupportedLocale } from "@/i18n/locales";
+import { setLocaleCookie } from "@/i18n/cookies";
 
 export type UserState = {
   profile: UserProfileResponse | null;
@@ -38,20 +41,32 @@ const initialState: UserState = {
 export const userStore = createStore<UserState>(initialState);
 
 const applyUserResponse = (user: UserResponse) => {
-  userStore.setState({ language: user.language });
-  writeStorage(LANGUAGE_STORAGE_KEY, user.language);
+  const normalized = normalizeLocale(user.language);
+  userStore.setState({ language: normalized });
+  writeStorage(LANGUAGE_STORAGE_KEY, normalized);
+  if (normalized) {
+    setLocaleCookie(normalized as SupportedLocale);
+  }
   authActions.setUser(user);
 };
 
 export const userActions = {
   hydrateLanguage: () => {
-    const language = readStorage<string | null>(LANGUAGE_STORAGE_KEY, null);
+    const raw = readStorage<string | null>(LANGUAGE_STORAGE_KEY, null);
+    const language = normalizeLocale(raw);
     userStore.setState({ language });
+    if (language) {
+      setLocaleCookie(language as SupportedLocale);
+    }
   },
 
   setLanguage: (language: string | null) => {
-    userStore.setState({ language });
-    writeStorage(LANGUAGE_STORAGE_KEY, language);
+    const normalized = normalizeLocale(language);
+    userStore.setState({ language: normalized });
+    writeStorage(LANGUAGE_STORAGE_KEY, normalized);
+    if (normalized) {
+      setLocaleCookie(normalized as SupportedLocale);
+    }
   },
 
   fetchCurrentUser: async (): Promise<UserResponse> => {

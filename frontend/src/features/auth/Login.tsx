@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../hooks";
+import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 
@@ -103,6 +103,7 @@ const isLocalhost = (): boolean => {
 export const Login = () => {
   const router = useRouter();
   const { status, error, isAuthenticated, user, actions } = useAuth();
+  const { t } = useT();
   const [email, setEmail] = useState(() =>
     isLocalhost() ? DEV_CREDENTIALS.email : "",
   );
@@ -141,24 +142,24 @@ export const Login = () => {
               <Logo width={130} className="h-auto w-[120px]" priority />
             </div>
             <h1 className="text-3xl font-semibold text-[#2b4c8f]">
-              Welcome Back
+              {t("Welcome Back")}
             </h1>
             <p className="mt-2 text-sm text-muted">
-              Your matches get smarter every time you return.
+              {t("Your matches get smarter every time you return.")}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-muted">
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>Smarter matches, not more swipes</span>
+                <span>{t("Smarter matches, not more swipes")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>Real affinity based on who you are</span>
+                <span>{t("Real affinity based on who you are")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>People, places and experiences aligned with you</span>
+                <span>{t("People, places and experiences aligned with you")}</span>
               </li>
             </ul>
 
@@ -176,7 +177,7 @@ export const Login = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="example@gmail.com"
+                  placeholder={t("example@gmail.com")}
                 />
               </div>
 
@@ -193,13 +194,13 @@ export const Login = () => {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 pr-12 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="enter your password"
+                  placeholder={t("enter your password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("Hide password") : t("Show password")}
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -213,7 +214,9 @@ export const Login = () => {
 
               {isAuthenticated && user ? (
                 <div className="rounded-[12px] border border-border-strong bg-surface px-4 py-2 text-sm text-foreground">
-                  You&apos;re signed in as {user.email ?? "user"}.
+                  {t("You're signed in as {email}.", {
+                    email: user.email ?? t("user"),
+                  })}
                 </div>
               ) : null}
 
@@ -222,21 +225,23 @@ export const Login = () => {
                 disabled={isSubmitting}
                 className="mt-2 flex w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#3f69d0] to-[#3a66d5] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(58,102,213,0.3)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Signing in..." : "Login"}
+                {isSubmitting ? t("Signing in...") : t("Login")}
               </button>
             </form>
 
             <div className="mt-6 text-sm text-muted">
-              Don&apos;t have an account?{" "}
+              {t("Don't have an account?")}{" "}
               <Link className="font-semibold text-foreground" href="/register">
-                Sign up
+                {t("Sign up")}
               </Link>
             </div>
 
-            <p className="mt-4 text-xs text-subtle">Syncro evolves with you.</p>
+            <p className="mt-4 text-xs text-subtle">
+              {t("Syncro evolves with you.")}
+            </p>
           </div>
         </div>
-        <AuthDesktopVisual alt="Syncro login visual" />
+        <AuthDesktopVisual alt={t("Syncro login visual")} />
       </div>
     </div>
   );

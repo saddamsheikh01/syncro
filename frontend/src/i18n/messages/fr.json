@@ -1,0 +1,81 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "saving": "Enregistrement...",
+    "save": "Enregistrer"
+  },
+  "languages": {
+    "en": "English",
+    "it": "Italiano",
+    "es": "Espanol",
+    "fr": "Francais"
+  },
+  "onboarding": {
+    "residence": {
+      "title": "Residence",
+      "description": "Dites-nous ou vous vivez pour des suggestions plus precises.",
+      "cityLabel": "Ville",
+      "cityPlaceholder": "Milan",
+      "countryLabel": "Pays",
+      "countryPlaceholder": "Italie"
+    },
+    "step1": {
+      "header": {
+        "title": "Completez votre profil",
+        "subtitle": "Ajoutez les informations principales pour personnaliser votre experience."
+      },
+      "basic": {
+        "title": "Informations de base",
+        "subtitle": "Cela nous aide a proposer des suggestions plus precises."
+      },
+      "fullName": {
+        "label": "Nom complet",
+        "placeholder": "Prenom et nom",
+        "requiredError": "Saisissez votre nom complet."
+      },
+      "residence": {
+        "requiredError": "Saisissez votre ville et votre pays de residence."
+      },
+      "birthDate": {
+        "label": "Date de naissance",
+        "placeholder": "Selectionnez une date"
+      },
+      "saveError": "Erreur lors de l'enregistrement."
+    },
+    "language": {
+      "title": "Langue",
+      "description": "Choisissez la langue de l'application."
+    },
+    "visibility": {
+      "public": {
+        "label": "Public",
+        "description": "Afficher votre profil complet."
+      },
+      "partial": {
+        "label": "Partiel",
+        "description": "Masquer certains details sensibles."
+      },
+      "private": {
+        "label": "Prive",
+        "description": "Profil visible uniquement dans les matches."
+      }
+    }
+  },
+  "cookieConsent": {
+    "title": "Confidentialite et cookies",
+    "description": "Pour continuer a utiliser Syncro, acceptez notre politique de confidentialite et la gestion des cookies. Vous pouvez aussi choisir si vous souhaitez recevoir notre newsletter.",
+    "primaryAction": {
+      "accept": "Accepter et continuer",
+      "saving": "Enregistrement..."
+    },
+    "box": {
+      "text": "Nous utilisons des cookies essentiels necessaires au fonctionnement de l'app et des cookies d'analytique pour ameliorer votre experience.",
+      "privacyLink": "Lire la Politique de Confidentialite complete"
+    },
+    "newsletter": {
+      "label": "S'abonner a la newsletter",
+      "description": "Recevez des mises a jour, des actualites et du contenu exclusif par email."
+    },
+    "saveError": "Erreur lors de l'enregistrement des preferences:"
+  }
+}

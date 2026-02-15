@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/buttons/Button";
-import { useCatalog, usePosition } from "@/hooks";
+import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import { cx } from "@/lib/classNames";
 
@@ -33,6 +33,7 @@ const resolveCompatibility = (rating?: number | null) => {
 };
 
 export const NearbyHighlight = () => {
+  const { t } = useT();
   const { position, hasPosition } = usePosition();
   const { places, experiences, loading, actions } = useCatalog();
   const fetchedRef = useRef(false);
@@ -75,13 +76,13 @@ export const NearbyHighlight = () => {
     <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs font-semibold text-foreground">
-          Matches update as you move, act, and interact.
+          {t("Matches update as you move, act, and interact.")}
         </p>
         <Link
           href="/map"
           className="text-[10px] font-medium text-accent hover:underline"
         >
-          Open map
+          {t("Open map")}
         </Link>
       </div>
 
@@ -104,18 +105,22 @@ export const NearbyHighlight = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-foreground">
-                  The place most aligned with you today
+                  {t("The place most aligned with you today")}
                 </p>
                 <p className="truncate text-xs text-muted">{place.name}</p>
                 <div className="mt-1 flex items-center gap-2 text-[11px] text-subtle">
-                  <span>Compatibility: {resolveCompatibility(place.googleRating)}%</span>
+                  <span>
+                    {t("Compatibility: {value}%", {
+                      value: resolveCompatibility(place.googleRating),
+                    })}
+                  </span>
                   {placeDistance != null ? <span>{formatDistance(placeDistance)}</span> : null}
                 </div>
               </div>
             </div>
             <Link href={`/places/${place.id}`} className="mt-2 block">
               <Button variant="secondary" size="sm" fullWidth>
-                View place
+                {t("View place")}
               </Button>
             </Link>
           </div>
@@ -139,17 +144,17 @@ export const NearbyHighlight = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-foreground">
-                  Experience happening now
+                  {t("Experience happening now")}
                 </p>
                 <p className="truncate text-xs text-muted">{experience.name}</p>
                 <div className="mt-1 text-[11px] text-subtle">
-                  Show interest
+                  {t("Show interest")}
                 </div>
               </div>
             </div>
             <Link href={`/experiences/${experience.id}`} className="mt-2 block">
               <Button variant="secondary" size="sm" fullWidth>
-                Show interest
+                {t("Show interest")}
               </Button>
             </Link>
           </div>

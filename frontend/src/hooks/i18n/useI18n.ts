@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useUserStore } from "../../stores/user/useUserStore";
 import { userActions } from "../../stores/user/userStore";
 
-const FALLBACK_LANGUAGE = "it";
+const FALLBACK_LANGUAGE = "en";
 
 export const useI18n = () => {
   const state = useUserStore();

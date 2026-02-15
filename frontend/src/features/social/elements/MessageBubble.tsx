@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 export interface MessageBubbleProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "content"> {
@@ -11,7 +12,7 @@ export interface MessageBubbleProps
 
 const formatTime = (isoDate: string): string => {
   const date = new Date(isoDate);
-  return date.toLocaleTimeString("it-IT", {
+  return date.toLocaleTimeString(getRuntimeBcp47(), {
     hour: "2-digit",
     minute: "2-digit",
   });

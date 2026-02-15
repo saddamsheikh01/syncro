@@ -6,7 +6,7 @@ import { OnboardingStepHeader } from "@/features/onboarding/sections/OnboardingS
 import { LocationPermissionGate } from "@/features/onboarding/sections/LocationPermissionGate";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useOnboarding, usePosition, useUser } from "@/hooks";
+import { useAuth, useOnboarding, usePosition, useUser, useT } from "@/hooks";
 
 export const OnboardingStep4 = () => {
   const router = useRouter();
@@ -15,6 +15,7 @@ export const OnboardingStep4 = () => {
     usePosition();
   const { actions: userActions } = useUser();
   const { actions: onboardingActions } = useOnboarding();
+  const { t } = useT();
   const [localError, setLocalError] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -30,7 +31,7 @@ export const OnboardingStep4 = () => {
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocalError(
-        "Geolocation is not available on this device."
+        t("Geolocation is not available on this device.")
       );
       actions.setPermission("denied");
       return;
@@ -50,7 +51,7 @@ export const OnboardingStep4 = () => {
           const message =
             saveError && typeof saveError === "object" && "message" in saveError
               ? String((saveError as { message?: string }).message)
-              : "Error while saving location.";
+              : t("Error while saving location.");
           setLocalError(message);
         } finally {
           setIsRequesting(false);
@@ -58,7 +59,7 @@ export const OnboardingStep4 = () => {
       },
       () => {
         actions.setPermission("denied");
-        setLocalError("Location permission denied.");
+        setLocalError(t("Location permission denied."));
         setIsRequesting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -67,12 +68,12 @@ export const OnboardingStep4 = () => {
 
   const handleSecondaryAction = () => {
     actions.setPermission("denied");
-    setLocalError("Location is required to continue.");
+    setLocalError(t("Location is required to continue."));
   };
 
   const handleComplete = async () => {
     if (!hasPosition) {
-      setLocalError("Location is required to continue.");
+      setLocalError(t("Location is required to continue."));
       return;
     }
 
@@ -89,7 +90,7 @@ export const OnboardingStep4 = () => {
         typeof submitError === "object" &&
         "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Error while completing onboarding.";
+          : t("Error while completing onboarding.");
       setLocalError(message);
     } finally {
       setIsCompleting(false);
@@ -100,8 +101,10 @@ export const OnboardingStep4 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Share your location"
-          subtitle="Precise location is required for nearby suggestions and matches."
+          title={t("Share your location")}
+          subtitle={t(
+            "Precise location is required for nearby suggestions and matches."
+          )}
           step={4}
           totalSteps={4}
         />
@@ -110,21 +113,21 @@ export const OnboardingStep4 = () => {
           <Card className="space-y-4 p-5">
             <div className="space-y-1">
               <h3 className="text-base font-semibold text-foreground">
-                Location detected
+                {t("Location detected")}
               </h3>
               <p className="text-sm text-muted">
-                You can update your location at any time.
+                {t("You can update your location at any time.")}
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3">
-                <p className="text-xs text-subtle">Latitude</p>
+                <p className="text-xs text-subtle">{t("Latitude")}</p>
                 <p className="text-sm font-semibold text-foreground">
                   {position?.latitude?.toFixed(5) ?? "-"}
                 </p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3">
-                <p className="text-xs text-subtle">Longitude</p>
+                <p className="text-xs text-subtle">{t("Longitude")}</p>
                 <p className="text-sm font-semibold text-foreground">
                   {position?.longitude?.toFixed(5) ?? "-"}
                 </p>
@@ -135,19 +138,19 @@ export const OnboardingStep4 = () => {
               variant="secondary"
               onClick={requestPosition}
               loading={isRequesting}
-              loadingText="Updating"
+              loadingText={t("Updating")}
             >
-              Update location
+              {t("Update location")}
             </Button>
           </Card>
         ) : (
           <LocationPermissionGate
-            primaryActionLabel="Allow location"
-            secondaryActionLabel="Not now"
+            primaryActionLabel={t("Allow location")}
+            secondaryActionLabel={t("Not now")}
             primaryActionProps={{
               onClick: requestPosition,
               loading: isRequesting,
-              loadingText: "Requesting",
+              loadingText: t("Requesting"),
             }}
             secondaryActionProps={{
               onClick: handleSecondaryAction,
@@ -158,7 +161,7 @@ export const OnboardingStep4 = () => {
         {(localError || error || permission === "denied") && !hasPosition ? (
           <Card className="border-danger/30 bg-danger/10 p-4">
             <p className="text-sm text-danger">
-              {localError ?? error?.message ?? "Location is required."}
+              {localError ?? error?.message ?? t("Location is required.")}
             </p>
           </Card>
         ) : null}
@@ -169,16 +172,16 @@ export const OnboardingStep4 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-3")}
           >
-            Back
+            {t("Back")}
           </Button>
           <Button
             size="md"
             loading={isCompleting || loading}
-            loadingText="Completing"
+            loadingText={t("Completing")}
             onClick={handleComplete}
             disabled={!hasPosition}
           >
-            Complete onboarding
+            {t("Complete onboarding")}
           </Button>
         </div>
       </div>

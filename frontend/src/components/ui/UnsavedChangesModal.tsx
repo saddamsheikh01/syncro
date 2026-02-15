@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "./Modal";
+import { useT } from "@/hooks";
 
 export interface UnsavedChangesModalProps {
   /** Visibilita del modale */
@@ -26,19 +27,25 @@ export const UnsavedChangesModal = ({
   title = "Unsaved changes",
   description = "You have unsaved changes. If you leave now, your changes will be lost.",
 }: UnsavedChangesModalProps) => {
+  const { t } = useT();
+  const resolvedTitle = title ? t(title) : t("Unsaved changes");
+  const resolvedDescription = description
+    ? t(description)
+    : t("You have unsaved changes. If you leave now, your changes will be lost.");
+
   return (
     <Modal
       open={open}
-      title={title}
-      description={description}
+      title={resolvedTitle}
+      description={resolvedDescription}
       onClose={onCancel}
       secondaryAction={{
-        label: "Stay on this page",
+        label: t("Stay on this page"),
         onClick: onCancel,
         variant: "secondary",
       }}
       primaryAction={{
-        label: "Leave without saving",
+        label: t("Leave without saving"),
         onClick: onConfirm,
         variant: "danger",
       }}

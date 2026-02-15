@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Badge } from "@/components/elements/Badge";
 import { Card } from "@/components/elements/Card";
 import { DistanceBadge } from "@/features/catalog/elements/DistanceBadge";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export type FavoriteType = "PLACE" | "EXPERIENCE";
 
@@ -35,6 +38,8 @@ export const FavoriteItemCard = ({
   onPress,
   ...props
 }: FavoriteItemCardProps) => {
+  const { t } = useT();
+  const resolvedTypeLabel = getTypeLabel(typeLabel);
   const card = (
     <Card className={cx("space-y-3 p-4", className)} {...props}>
       <div className="overflow-hidden rounded-[var(--radius-md)]">
@@ -50,8 +55,8 @@ export const FavoriteItemCard = ({
               <p className="text-xs text-subtle">{subtitle}</p>
             ) : null}
           </div>
-          {getTypeLabel(typeLabel) ? (
-            <Badge tone="accent">{getTypeLabel(typeLabel)}</Badge>
+          {resolvedTypeLabel ? (
+            <Badge tone="accent">{t(resolvedTypeLabel)}</Badge>
           ) : null}
         </div>
         {typeof distanceKm === "number" ? (

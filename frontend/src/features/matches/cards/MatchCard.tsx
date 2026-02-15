@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 import {
   resolveMatchDomainScores,
@@ -9,10 +12,6 @@ import type { UserMatchResponse } from "@/types/matches";
 
 const DEFAULT_MATCH_DESCRIPTION =
   "Relevant connection based on your current context.";
-
-const resolveDescription = (value?: string | null) => {
-  return resolveMatchCopy(value, DEFAULT_MATCH_DESCRIPTION);
-};
 
 export interface MatchCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
@@ -29,7 +28,7 @@ export interface MatchCardProps
 const resolveName = (match: UserMatchResponse) =>
   match.user?.fullName?.trim() ||
   match.user?.username?.trim() ||
-  `User ${match.userId.slice(0, 6)}`;
+  match.userId.slice(0, 6);
 
 const resolveLocation = (match: UserMatchResponse) =>
   [match.user?.city, match.user?.country].filter(Boolean).join(", ");
@@ -54,15 +53,23 @@ export const MatchCard = ({
   className,
   ...props
 }: MatchCardProps) => {
+  const { t } = useT();
+
   const name = resolveName(match);
   const location = resolveLocation(match);
   const domainScores = showDomainTag
     ? resolveMatchDomainScores(match.breakdown)
     : [];
   const score = Math.round(match.scoreTotal ?? 0);
-  const description = descriptionOverride ?? resolveDescription(match.explanation);
+  const description =
+    descriptionOverride ??
+    resolveMatchCopy(match.explanation, t(DEFAULT_MATCH_DESCRIPTION));
   const imageUrl = match.user?.avatarUrl ?? null;
-  const initials = getInitials(name);
+  const displayName =
+    match.user?.fullName?.trim() ||
+    match.user?.username?.trim() ||
+    t("User {id}", { id: name.toUpperCase() });
+  const initials = getInitials(displayName);
 
   const card = (
     <div
@@ -76,7 +83,7 @@ export const MatchCard = ({
         {imageUrl ? (
           <img
             src={imageUrl}
-            alt={name}
+            alt={displayName}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
@@ -86,17 +93,19 @@ export const MatchCard = ({
         )}
         {showScore ? (
           <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm whitespace-nowrap">
-            {scoreLabel} {score}%
+            {t(scoreLabel)} {score}%
           </div>
         ) : (
           <div className="absolute right-3 top-3 rounded-full border border-border/70 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-subtle shadow-sm">
-            No match
+            {t("No match")}
           </div>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+          <p className="truncate text-sm font-semibold text-foreground">
+            {displayName}
+          </p>
           {location ? <span className="text-xs text-subtle">{location}</span> : null}
         </div>
         {domainScores.length > 0 ? (
@@ -104,7 +113,10 @@ export const MatchCard = ({
             {domainScores.map((domain, index) => (
               <span
                 key={domain.domain}
-                title={`${domain.label}: ${Math.round(domain.score)}%`}
+                title={t("{label}: {score}%", {
+                  label: t(domain.label),
+                  score: Math.round(domain.score),
+                })}
                 className={cx(
                   "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
                   index === 0
@@ -119,7 +131,7 @@ export const MatchCard = ({
         ) : null}
         <p className="line-clamp-2 text-xs text-muted">{description}</p>
         <div className="mt-auto flex items-center justify-between text-[11px] text-subtle">
-          <span>View Profile</span>
+          <span>{t("View Profile")}</span>
           <span className="text-accent">→</span>
         </div>
       </div>

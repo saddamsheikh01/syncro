@@ -14,12 +14,10 @@ import type { DomainFilter } from "@/lib/matchDomains";
 import { searchUsers } from "@/services/users";
 import type { UserMatchResponse } from "@/types/matches";
 import type { UserSummaryResponse } from "@/types/profile";
-import { useAnalytics, useAuth, useMatches } from "@/hooks";
+import { useAnalytics, useAuth, useMatches, useT } from "@/hooks";
 
 const PAGE_SIZE = 20;
 const DOMAIN_FILTER_ITEMS = getDomainFilterItems();
-const NO_MATCH_CARD_DESCRIPTION =
-  "Public profile available. No computed match yet.";
 const EMPTY_PAGE = {
   page: 0,
   size: 0,
@@ -40,6 +38,7 @@ const sortMatchesByScore = (matches: UserMatchResponse[]) =>
 
 export const MatchesOverview = () => {
   const { user } = useAuth();
+  const { t } = useT();
   const {
     userMatches,
     userMatchesPage,
@@ -90,13 +89,13 @@ export const MatchesOverview = () => {
         });
       } catch (fetchError) {
         setAllUsersError(
-          resolveErrorMessage(fetchError, "Unable to load all users.")
+          resolveErrorMessage(fetchError, t("Unable to load all users."))
         );
       } finally {
         setLoadingAllUsers(false);
       }
     },
-    [resolveErrorMessage, user?.id]
+    [resolveErrorMessage, t, user?.id]
   );
 
   useEffect(() => {
@@ -194,23 +193,24 @@ export const MatchesOverview = () => {
   const matchScoreLabel = useMemo(
     () =>
       selectedDomain === "ALL"
-        ? "Overall"
-        : getMatchDomainMeta(selectedDomain).label,
-    [selectedDomain]
+        ? t("Overall")
+        : t(getMatchDomainMeta(selectedDomain).label),
+    [selectedDomain, t]
   );
+  const noMatchCardDescription = t("Public profile available. No computed match yet.");
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12">
       <SectionHeader
-        title="People & Connections"
-        subtitle="Connections relevant to your current moment."
-        actionLabel="View Connections"
+        title={t("People & Connections")}
+        subtitle={t("Connections relevant to your current moment.")}
+        actionLabel={t("View Connections")}
         actionHref="/matches"
       />
 
       <div className="mt-4 flex flex-wrap gap-2">
         <MatchTypeChip
-          label="✨ Match mode"
+          label={t("✨ Match mode")}
           selected={viewMode === "MATCHES"}
           onToggleState={(nextSelected) => {
             if (!nextSelected) return;
@@ -218,7 +218,7 @@ export const MatchesOverview = () => {
           }}
         />
         <MatchTypeChip
-          label="🌐 All users (no filters)"
+          label={t("🌐 All users (no filters)")}
           selected={viewMode === "ALL_USERS"}
           onToggleState={(nextSelected) => {
             if (!nextSelected) return;
@@ -233,7 +233,7 @@ export const MatchesOverview = () => {
           {DOMAIN_FILTER_ITEMS.map((domain) => (
             <MatchTypeChip
               key={domain.id}
-              label={domain.label}
+              label={t(domain.label)}
               selected={selectedDomain === domain.id}
               onToggleState={(nextSelected) => {
                 if (!nextSelected) return;
@@ -245,8 +245,9 @@ export const MatchesOverview = () => {
       ) : (
         <Card className="mt-3 border-border/70 bg-surface-muted/40 p-3">
           <p className="text-sm text-muted">
-            Filters disabled. You are viewing all public profiles, including users
-            without a computed match score.
+            {t(
+              "Filters disabled. You are viewing all public profiles, including users without a computed match score."
+            )}
           </p>
         </Card>
       )}
@@ -255,7 +256,7 @@ export const MatchesOverview = () => {
         {isInitialLoading && (
           <Card className="flex items-center gap-3 p-5">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading matches...</p>
+            <p className="text-sm text-muted">{t("Loading matches...")}</p>
           </Card>
         )}
 
@@ -264,8 +265,8 @@ export const MatchesOverview = () => {
             <ErrorState
               title={
                 viewMode === "ALL_USERS"
-                  ? "Unable to load users"
-                  : "Unable to load matches"
+                  ? t("Unable to load users")
+                  : t("Unable to load matches")
               }
               description={currentErrorMessage ?? undefined}
             />
@@ -285,7 +286,7 @@ export const MatchesOverview = () => {
               }
               disabled={isLoadingCurrent}
             >
-              Try again
+              {t("Try again")}
             </Button>
           </div>
         )}
@@ -294,13 +295,13 @@ export const MatchesOverview = () => {
           <EmptyState
             title={
               viewMode === "ALL_USERS"
-                ? "No public users found"
-                : "No matches available"
+                ? t("No public users found")
+                : t("No matches available")
             }
             description={
               viewMode === "ALL_USERS"
-                ? "No public profiles are available right now."
-                : "Complete your passions or tests to generate new suggestions."
+                ? t("No public profiles are available right now.")
+                : t("Complete your passions or tests to generate new suggestions.")
             }
           />
         )}
@@ -316,7 +317,7 @@ export const MatchesOverview = () => {
                 showScore={viewMode !== "ALL_USERS"}
                 scoreLabel={matchScoreLabel}
                 descriptionOverride={
-                  viewMode === "ALL_USERS" ? NO_MATCH_CARD_DESCRIPTION : undefined
+                  viewMode === "ALL_USERS" ? noMatchCardDescription : undefined
                 }
                 onOpen={() => {
                   void analyticsActions.trackEvent({
@@ -336,7 +337,7 @@ export const MatchesOverview = () => {
         {hasMoreCurrent && !isLoadingCurrent && displayedItems.length > 0 ? (
           <div className="mt-6 flex justify-center">
             <Button variant="secondary" onClick={handleLoadMore}>
-              Load more
+              {t("Load more")}
             </Button>
           </div>
         ) : null}

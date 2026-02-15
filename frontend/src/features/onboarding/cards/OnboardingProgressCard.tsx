@@ -4,10 +4,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useProfileCompletion } from "@/hooks";
+import { useProfileCompletion, useT } from "@/hooks";
 import type { CategoryScore } from "@/lib/profileCompletion";
 
 interface Suggestion {
+  id: string;
   label: string;
   detail: string;
   href: string;
@@ -15,17 +16,18 @@ interface Suggestion {
 
 const SUGGESTION_MAP: Record<
   string,
-  { label: string; href: string }
+  { labelKey: string; href: string }
 > = {
-  tests: { label: "Complete Insights", href: "/insights" },
-  profile: { label: "Fill Out Profile", href: "/settings#profile" },
-  interests: { label: "Select Interests", href: "/settings#interests" },
-  avatar: { label: "Add a Photo", href: "/settings#profile" },
-  preferences: { label: "Set Preferences", href: "/onboarding/step-3" },
-  location: { label: "Enable Location", href: "/settings" },
+  tests: { labelKey: "Complete Insights", href: "/insights" },
+  profile: { labelKey: "Fill Out Profile", href: "/settings#profile" },
+  interests: { labelKey: "Select Interests", href: "/settings#interests" },
+  avatar: { labelKey: "Add a Photo", href: "/settings#profile" },
+  preferences: { labelKey: "Set Preferences", href: "/onboarding/step-3" },
+  location: { labelKey: "Enable Location", href: "/settings" },
 };
 
 const buildSuggestions = (
+  t: (key: string, values?: Record<string, string | number>) => string,
   categories: Record<string, CategoryScore>,
 ): Suggestion[] => {
   const items: Suggestion[] = [];
@@ -37,7 +39,8 @@ const buildSuggestions = (
     const potential = Math.round(score.weight - score.points);
     if (potential <= 0) continue;
     items.push({
-      label: meta.label,
+      id: key,
+      label: t(meta.labelKey),
       detail: `+${potential}%`,
       href: meta.href,
     });
@@ -53,13 +56,14 @@ const buildSuggestions = (
 };
 
 export const OnboardingProgressCard = () => {
+  const { t } = useT();
   const { percentage, categories } = useProfileCompletion();
 
   const isComplete = percentage >= 100;
 
   const suggestions = useMemo(
-    () => buildSuggestions(categories),
-    [categories],
+    () => buildSuggestions(t, categories),
+    [categories, t],
   );
 
   if (isComplete) {
@@ -81,14 +85,14 @@ export const OnboardingProgressCard = () => {
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">
-              Profile completed
+              {t("Profile completed")}
             </p>
             <p className="text-xs text-muted">
-              All required information has been filled in.
+              {t("All required information has been filled in.")}
             </p>
           </div>
           <Link href="/insights">
-            <Button size="sm">Profile Insights</Button>
+            <Button size="sm">{t("Profile Insights")}</Button>
           </Link>
         </div>
       </Card>
@@ -100,14 +104,14 @@ export const OnboardingProgressCard = () => {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-2xl font-semibold text-foreground">
-            Profile {percentage}% Complete
+            {t("Profile {percentage}% Complete", { percentage })}
           </p>
           <p className="mt-1 text-sm text-muted">
-            Complete your profile to get more accurate matches.
+            {t("Complete your profile to get more accurate matches.")}
           </p>
         </div>
         <Link href="/insights">
-          <Button size="sm">Profile Insights</Button>
+          <Button size="sm">{t("Profile Insights")}</Button>
         </Link>
       </div>
 
@@ -121,12 +125,12 @@ export const OnboardingProgressCard = () => {
       {suggestions.length > 0 ? (
         <div className="mt-4 border-t border-border/70 pt-4">
           <p className="text-sm font-semibold text-foreground">
-            You can improve it with:
+            {t("You can improve it with:")}
           </p>
           <div className="mt-3 space-y-2">
             {suggestions.map((item) => (
               <Link
-                key={item.label}
+                key={item.id}
                 href={item.href}
                 className="group flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-surface-muted"
               >

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/buttons/Button";
 import { Logo } from "@/components/elements/Logo";
 import { Switch } from "@/components/elements/Switch";
+import { useT } from "@/hooks";
 
 export interface TutorialModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ export const TutorialModal = ({
   onClose,
   onComplete,
 }: TutorialModalProps) => {
+  const { t } = useT();
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const handleDismiss = useCallback(() => {
@@ -72,7 +74,7 @@ export const TutorialModal = ({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px] sm:p-6"
       role="dialog"
       aria-modal="true"
-      aria-label="Onboarding"
+      aria-label={t("Onboarding")}
       onClick={handleDismiss}
     >
       <div
@@ -83,7 +85,7 @@ export const TutorialModal = ({
           type="button"
           onClick={handleDismiss}
           className="absolute right-4 top-4 z-20 rounded-full bg-white/80 p-2 text-[#4d5f86] transition hover:bg-white hover:text-[#1f3f7a]"
-          aria-label="Close onboarding"
+          aria-label={t("Close onboarding")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -108,32 +110,33 @@ export const TutorialModal = ({
             />
 
             <h2 className="mt-5 text-3xl font-bold leading-tight text-[#2f5394] sm:text-[46px]">
-              I&apos;ll Help You Focus On
+              {t("I'll Help You Focus On")}
               <br />
-              What Really Fits You.
+              {t("What Really Fits You.")}
             </h2>
             <p className="mt-4 max-w-md text-[17px] leading-snug text-[#66748f]">
-              Syncro Works Best When It Understands Who You Are.
+              {t("Syncro Works Best When It Understands Who You Are.")}
               <br />
-              Help It Read The Right Signals.
+              {t("Help It Read The Right Signals.")}
             </p>
 
             <ol className="mt-8 space-y-4">
               {[
                 {
-                  title: "Complete Your Profile",
-                  body: "So We Can Filter Out The Noise And Focus On What Matters To You.",
+                  titleKey: "Complete Your Profile",
+                  bodyKey:
+                    "So We Can Filter Out The Noise And Focus On What Matters To You.",
                 },
                 {
-                  title: "Define Your Affinities",
-                  body: "Your Values, Intentions And Lifestyle Shape Every Match.",
+                  titleKey: "Define Your Affinities",
+                  bodyKey: "Your Values, Intentions And Lifestyle Shape Every Match.",
                 },
                 {
-                  title: "Avoid Mismatches",
-                  body: "People, Places And Experiences That Don't Really Fit You.",
+                  titleKey: "Avoid Mismatches",
+                  bodyKey: "People, Places And Experiences That Don't Really Fit You.",
                 },
               ].map((item, index, array) => (
-                <li key={item.title} className="relative flex gap-4">
+                <li key={item.titleKey} className="relative flex gap-4">
                   <div className="relative flex w-8 shrink-0 justify-center">
                     <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-[#4d84d8] text-sm font-semibold text-white">
                       {index + 1}
@@ -144,10 +147,10 @@ export const TutorialModal = ({
                   </div>
                   <div>
                     <p className="text-2xl font-semibold leading-tight text-[#2f5394]">
-                      {item.title}
+                      {t(item.titleKey)}
                     </p>
                     <p className="mt-1 max-w-md text-[15px] leading-snug text-[#6f7d95]">
-                      {item.body}
+                      {t(item.bodyKey)}
                     </p>
                   </div>
                 </li>
@@ -159,23 +162,23 @@ export const TutorialModal = ({
                 onClick={handleGotIt}
                 className="h-12 w-full rounded-[12px] bg-gradient-to-r from-[#325da8] to-[#4fa3df] text-base font-semibold text-white shadow-[0_16px_30px_rgba(56,112,191,0.32)] hover:brightness-95"
               >
-                Got It
+                {t("Got It")}
               </Button>
               <button
                 type="button"
                 onClick={handleSkipAlways}
                 className="w-full text-center text-sm font-medium text-[#5f6f8d] transition hover:text-[#2f5394]"
               >
-                Skip
+                {t("Skip")}
               </button>
               <p className="text-center text-xs text-[#9aa5b8]">
-                Takes Less Than 2 Minutes
+                {t("Takes Less Than 2 Minutes")}
               </p>
 
               <Switch
                 checked={dontShowAgain}
                 onChange={(event) => setDontShowAgain(event.target.checked)}
-                label="Don't Show Again"
+                label={t("Don't Show Again")}
                 className="border-[#dbe4f4] bg-[#f7f9fe]"
               />
             </div>
@@ -184,7 +187,7 @@ export const TutorialModal = ({
           <div className="relative hidden min-h-[680px] lg:block">
             <Image
               src="/AI/onboarding.png"
-              alt="Zyra onboarding guide"
+              alt={t("Zyra onboarding guide")}
               fill
               priority
               className="object-cover object-center"
@@ -193,13 +196,13 @@ export const TutorialModal = ({
 
             <div className="absolute bottom-8 left-6 right-6 rounded-[20px] border border-white/60 bg-white/92 p-5 shadow-[0_20px_40px_rgba(23,45,84,0.2)]">
               <p className="text-[32px] font-semibold leading-tight text-[#0f4c87]">
-                Follow My Lead.
+                {t("Follow My Lead.")}
               </p>
               <p className="mt-2 text-[24px] font-semibold leading-tight text-[#0d1e33]">
-                I&apos;ll help you skip mismatches and get better connections.
+                {t("I'll help you skip mismatches and get better connections.")}
               </p>
               <p className="mt-3 text-[32px] font-bold leading-none text-[#1a4f93]">
-                - Zyra
+                {t("- Zyra")}
               </p>
             </div>
           </div>

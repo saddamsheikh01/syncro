@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes } from "react";
 import { Avatar } from "@/components/elements/Avatar";
@@ -6,6 +8,7 @@ import { DistanceBadge } from "@/features/catalog/elements/DistanceBadge";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export type SearchResultType = "USER" | "PLACE";
 
@@ -40,6 +43,8 @@ export const SearchResultItem = ({
   onPress,
   ...props
 }: SearchResultItemProps) => {
+  const { t } = useT();
+  const typeLabel = getTypeLabel(type);
   const card = (
     <Card
       className={cx(
@@ -57,7 +62,7 @@ export const SearchResultItem = ({
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{title}</p>
           <Badge tone="neutral" size="sm">
-            {getTypeLabel(type)}
+            {t(typeLabel)}
           </Badge>
         </div>
         {subtitle ? <p className="text-xs text-subtle">{subtitle}</p> : null}

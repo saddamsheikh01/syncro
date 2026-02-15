@@ -7,6 +7,7 @@ import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
 import { Logo } from "@/components/elements/Logo";
 import { Input } from "@/components/elements/Input";
 import { Button } from "@/components/buttons/Button";
+import { useT } from "@/hooks";
 
 const DEV_ADMIN_CREDENTIALS = {
   email: "riccardoc19@gmail.com",
@@ -20,6 +21,7 @@ const isLocalhost = (): boolean => {
 };
 
 export const AdminLogin = () => {
+  const { t } = useT();
   const router = useRouter();
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
   const [email, setEmail] = useState(() =>
@@ -54,29 +56,29 @@ export const AdminLogin = () => {
             <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Admin login
+            {t("Admin login")}
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Sign in to the Syncro back office.
+            {t("Sign in to the Syncro back office.")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <Input
             id="admin-login-email"
-            label="Email"
+            label={t("Email")}
             name="email"
             type="email"
             autoComplete="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="admin@email.com"
+            placeholder={t("admin@email.com")}
           />
 
           <Input
             id="admin-login-password"
-            label="Password"
+            label={t("Password")}
             name="password"
             type="password"
             autoComplete="current-password"
@@ -88,13 +90,13 @@ export const AdminLogin = () => {
 
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-              {error.message}
+              {t(error.message)}
             </div>
           ) : null}
 
           {isAuthenticated && admin ? (
             <div className="rounded-[var(--radius-md)] border border-border-strong bg-surface px-4 py-3 text-sm text-foreground">
-              You are authenticated as {admin.email}.
+              {t("You are authenticated as {email}.", { email: admin.email })}
             </div>
           ) : null}
 
@@ -103,16 +105,16 @@ export const AdminLogin = () => {
             size="lg"
             fullWidth
             loading={isSubmitting}
-            loadingText="Signing in"
+            loadingText={t("Signing in")}
           >
-            Sign in
+            {t("Sign in")}
           </Button>
         </form>
 
         <div className="mt-8 text-sm text-muted">
-          Need to create an admin?{" "}
+          {t("Need to create an admin?")}{" "}
           <Link className="font-semibold text-foreground" href="/admin/register">
-            Admin registration
+            {t("Admin registration")}
           </Link>
         </div>
       </div>

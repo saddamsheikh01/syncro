@@ -4,6 +4,7 @@ import { Select } from "@/components/elements/Select";
 import type { SelectOption } from "@/components/elements/Select";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface LanguageSelectorProps {
   className?: string;
@@ -15,31 +16,42 @@ export interface LanguageSelectorProps {
   onValueChange?: (value: string) => void;
 }
 
-const DEFAULT_OPTIONS: SelectOption[] = [
-  { value: "it", label: "Italian" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Spanish" },
-];
-
 export const LanguageSelector = ({
   className,
-  title = "Language",
-  description = "Choose your preferred app language.",
+  title,
+  description,
   value,
   defaultValue = "en",
-  options = DEFAULT_OPTIONS,
+  options,
   onValueChange,
-}: LanguageSelectorProps) => (
-  <Card className={cx("space-y-3 p-5", className)}>
-    <div className="space-y-1">
-      <h4 className="text-base font-semibold text-foreground">{title}</h4>
-      <p className="text-sm text-muted">{description}</p>
-    </div>
-    <Select
-      options={options}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange}
-    />
-  </Card>
-);
+}: LanguageSelectorProps) => {
+  const { t } = useT();
+
+  const resolvedTitle = title ?? t("onboarding.language.title");
+  const resolvedDescription = description ?? t("onboarding.language.description");
+
+  const resolvedOptions: SelectOption[] =
+    options ?? [
+      { value: "en", label: t("languages.en") },
+      { value: "it", label: t("languages.it") },
+      { value: "es", label: t("languages.es") },
+      { value: "fr", label: t("languages.fr") },
+    ];
+
+  return (
+    <Card className={cx("space-y-3 p-5", className)}>
+      <div className="space-y-1">
+        <h4 className="text-base font-semibold text-foreground">
+          {resolvedTitle}
+        </h4>
+        <p className="text-sm text-muted">{resolvedDescription}</p>
+      </div>
+      <Select
+        options={resolvedOptions}
+        value={value}
+        defaultValue={defaultValue}
+        onValueChange={onValueChange}
+      />
+    </Card>
+  );
+};

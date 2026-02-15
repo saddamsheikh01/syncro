@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useT } from "@/hooks";
 import { useGoogleMapsScript } from "@/hooks/useGoogleMapsScript";
 import { cx } from "@/lib/classNames";
 
@@ -27,7 +28,7 @@ export interface PlacesAutocompleteProps {
 }
 
 export const PlacesAutocomplete = ({
-  placeholder = "Search for a place...",
+  placeholder,
   onPlaceSelect,
   onClear,
   className,
@@ -37,10 +38,12 @@ export const PlacesAutocomplete = ({
   componentRestrictions,
   locationBias,
 }: PlacesAutocompleteProps) => {
+  const { t } = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const { isLoaded, error } = useGoogleMapsScript();
   const [inputValue, setInputValue] = useState(defaultValue);
+  const effectivePlaceholder = placeholder ?? t("Search for a place...");
 
   const initAutocomplete = useCallback(() => {
     if (!inputRef.current || !window.google?.maps?.places) return;
@@ -118,7 +121,7 @@ export const PlacesAutocomplete = ({
       <div className={cx("relative", className)}>
         <input
           type="text"
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           disabled
           className="w-full rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-2.5 text-sm text-muted placeholder-subtle outline-none"
         />
@@ -147,7 +150,7 @@ export const PlacesAutocomplete = ({
         <input
           ref={inputRef}
           type="text"
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           disabled={disabled || !isLoaded}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
@@ -162,7 +165,7 @@ export const PlacesAutocomplete = ({
             type="button"
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface-muted hover:text-foreground"
-            aria-label="Clear"
+            aria-label={t("Clear")}
           >
             <svg
               width="14"
@@ -181,7 +184,7 @@ export const PlacesAutocomplete = ({
       </div>
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)] bg-surface/80">
-          <span className="text-xs text-muted">Loading...</span>
+          <span className="text-xs text-muted">{t("Loading...")}</span>
         </div>
       )}
     </div>

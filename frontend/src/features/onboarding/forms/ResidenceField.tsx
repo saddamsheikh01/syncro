@@ -3,6 +3,7 @@
 import { Input } from "@/components/elements/Input";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface ResidenceFieldProps {
   className?: string;
@@ -16,31 +17,41 @@ export interface ResidenceFieldProps {
 
 export const ResidenceField = ({
   className,
-  title = "Residence",
-  description = "Tell us where you live for more accurate suggestions.",
+  title,
+  description,
   cityValue,
   countryValue,
   onCityChange,
   onCountryChange,
-}: ResidenceFieldProps) => (
-  <Card className={cx("space-y-4 p-5", className)}>
-    <div className="space-y-1">
-      <h4 className="text-base font-semibold text-foreground">{title}</h4>
-      <p className="text-sm text-muted">{description}</p>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Input
-        label="City"
-        value={cityValue}
-        placeholder="Milan"
-        onChange={(event) => onCityChange?.(event.target.value)}
-      />
-      <Input
-        label="Country"
-        value={countryValue}
-        placeholder="Italy"
-        onChange={(event) => onCountryChange?.(event.target.value)}
-      />
-    </div>
-  </Card>
-);
+}: ResidenceFieldProps) => {
+  const { t } = useT();
+
+  const resolvedTitle = title ?? t("onboarding.residence.title");
+  const resolvedDescription =
+    description ?? t("onboarding.residence.description");
+
+  return (
+    <Card className={cx("space-y-4 p-5", className)}>
+      <div className="space-y-1">
+        <h4 className="text-base font-semibold text-foreground">
+          {resolvedTitle}
+        </h4>
+        <p className="text-sm text-muted">{resolvedDescription}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Input
+          label={t("onboarding.residence.cityLabel")}
+          value={cityValue}
+          placeholder={t("onboarding.residence.cityPlaceholder")}
+          onChange={(event) => onCityChange?.(event.target.value)}
+        />
+        <Input
+          label={t("onboarding.residence.countryLabel")}
+          value={countryValue}
+          placeholder={t("onboarding.residence.countryPlaceholder")}
+          onChange={(event) => onCountryChange?.(event.target.value)}
+        />
+      </div>
+    </Card>
+  );
+};

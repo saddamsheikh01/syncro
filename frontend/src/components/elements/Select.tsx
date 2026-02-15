@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface SelectOption {
   value: string;
@@ -32,7 +33,7 @@ export const Select = ({
   label,
   hint,
   error,
-  placeholder = "Select",
+  placeholder,
   options,
   value,
   defaultValue,
@@ -43,6 +44,7 @@ export const Select = ({
   id,
   ...props
 }: SelectProps) => {
+  const { t } = useT();
   const autoId = useId();
   const selectId = useMemo(() => id ?? autoId, [id, autoId]);
   const isControlled = value !== undefined;
@@ -50,6 +52,7 @@ export const Select = ({
   const selectedValue = isControlled ? value : internalValue;
   const selectedOption = options.find((option) => option.value === selectedValue);
   const isPlaceholder = !selectedOption;
+  const resolvedPlaceholder = placeholder ?? t("Select");
 
   const dropdownItems = options.map((option) => ({
     id: option.value,
@@ -74,12 +77,12 @@ export const Select = ({
         </label>
       ) : null}
       <Dropdown
-        label={selectedOption?.label ?? placeholder}
+        label={selectedOption?.label ?? resolvedPlaceholder}
         items={dropdownItems}
         onSelect={handleSelect}
         disabled={disabled}
         buttonId={selectId}
-        buttonAriaLabel={label ?? placeholder}
+        buttonAriaLabel={label ?? resolvedPlaceholder}
         buttonClassName={cx(
           "w-full justify-between",
           isPlaceholder && "text-subtle",

@@ -10,6 +10,7 @@ import { PlacesAutocomplete } from "@/components/elements/PlacesAutocomplete";
 import type { PlaceResult } from "@/components/elements/PlacesAutocomplete";
 import { MapFilterChip } from "@/features/map/lists/MapFilterChip";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface MapFilterPanelProps
@@ -38,9 +39,9 @@ export interface MapFilterPanelProps
 
 export const MapFilterPanel = ({
   className,
-  title = "Map filters",
-  subtitle = "Refine results near you.",
-  searchPlaceholder = "Search for a place or neighborhood",
+  title,
+  subtitle,
+  searchPlaceholder,
   categoryOptions = [],
   distanceOptions = [],
   defaultCategory,
@@ -54,64 +55,80 @@ export const MapFilterPanel = ({
   onPlaceSelect,
   onAutocompleteClear,
   userPosition,
-  actionLabel = "Apply filters",
+  actionLabel,
   onActionClick,
   showAction = true,
   ...props
-}: MapFilterPanelProps) => (
-  <Card className={cx("space-y-4 p-5", className)} {...props}>
-    <div className="space-y-1">
-      <h4 className="text-base font-semibold text-foreground">{title}</h4>
-      {subtitle ? <p className="text-sm text-muted">{subtitle}</p> : null}
-    </div>
-    {useAutocomplete ? (
+}: MapFilterPanelProps) => {
+  const { t } = useT();
+
+  const resolvedTitle = title ?? t("Map filters");
+  const resolvedSubtitle = subtitle ?? t("Refine results near you.");
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("Search for a place or neighborhood");
+  const resolvedActionLabel = actionLabel ?? t("Apply filters");
+
+  return (
+    <Card className={cx("space-y-4 p-5", className)} {...props}>
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-muted">Search</label>
-        <PlacesAutocomplete
-          placeholder={searchPlaceholder}
-          onPlaceSelect={onPlaceSelect}
-          onClear={onAutocompleteClear}
-          locationBias={
-            userPosition
-              ? {
-                  lat: userPosition.latitude,
-                  lng: userPosition.longitude,
-                  radius: 50000,
-                }
-              : undefined
-          }
+        <h4 className="text-base font-semibold text-foreground">
+          {resolvedTitle}
+        </h4>
+        {resolvedSubtitle ? (
+          <p className="text-sm text-muted">{resolvedSubtitle}</p>
+        ) : null}
+      </div>
+      {useAutocomplete ? (
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-muted">
+            {t("Search")}
+          </label>
+          <PlacesAutocomplete
+            placeholder={resolvedSearchPlaceholder}
+            onPlaceSelect={onPlaceSelect}
+            onClear={onAutocompleteClear}
+            locationBias={
+              userPosition
+                ? {
+                    lat: userPosition.latitude,
+                    lng: userPosition.longitude,
+                    radius: 50000,
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : (
+        <Input
+          label={t("Search")}
+          placeholder={resolvedSearchPlaceholder}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+        />
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Select
+          label={t("Category")}
+          options={categoryOptions}
+          defaultValue={defaultCategory}
+          placeholder={t("All")}
+          onValueChange={(val) => onCategoryChange?.(val || null)}
+        />
+        <Select
+          label={t("Distance")}
+          options={distanceOptions}
+          defaultValue={defaultDistance}
+          placeholder={t("Any")}
+          onValueChange={(val) => onDistanceChange?.(val || null)}
         />
       </div>
-    ) : (
-      <Input
-        label="Search"
-        placeholder={searchPlaceholder}
-        onChange={(e) => onSearchChange?.(e.target.value)}
-      />
-    )}
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Select
-        label="Category"
-        options={categoryOptions}
-        defaultValue={defaultCategory}
-        placeholder="All"
-        onValueChange={(val) => onCategoryChange?.(val || null)}
-      />
-      <Select
-        label="Distance"
-        options={distanceOptions}
-        defaultValue={defaultDistance}
-        placeholder="Any"
-        onValueChange={(val) => onDistanceChange?.(val || null)}
-      />
-    </div>
-    {filters.length ? (
-      <MapFilterChip items={filters} onItemToggle={onFilterToggle} />
-    ) : null}
-    {showAction ? (
-      <Button size="sm" variant="secondary" onClick={onActionClick}>
-        {actionLabel}
-      </Button>
-    ) : null}
-  </Card>
-);
+      {filters.length ? (
+        <MapFilterChip items={filters} onItemToggle={onFilterToggle} />
+      ) : null}
+      {showAction ? (
+        <Button size="sm" variant="secondary" onClick={onActionClick}>
+          {resolvedActionLabel}
+        </Button>
+      ) : null}
+    </Card>
+  );
+};

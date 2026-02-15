@@ -8,17 +8,18 @@ import { cx } from "@/lib/classNames";
 import { submitEarlyAccessFeedback } from "@/services/feedback";
 import type { ApiError } from "@/types/api";
 import type { EarlyAccessFeedbackChoice } from "@/types/feedback";
+import { useT } from "@/hooks";
 
 type FeedbackChoice = {
   value: EarlyAccessFeedbackChoice;
-  label: string;
+  labelKey: string;
 };
 
 const CHOICES: FeedbackChoice[] = [
-  { value: "MORE_RELEVANT_MATCHES", label: "More relevant matches" },
-  { value: "MORE_PROFILES", label: "More profiles" },
-  { value: "CLEARER_EXPLANATIONS", label: "Clearer explanations" },
-  { value: "SOMETHING_ELSE", label: "Something else" },
+  { value: "MORE_RELEVANT_MATCHES", labelKey: "More relevant matches" },
+  { value: "MORE_PROFILES", labelKey: "More profiles" },
+  { value: "CLEARER_EXPLANATIONS", labelKey: "Clearer explanations" },
+  { value: "SOMETHING_ELSE", labelKey: "Something else" },
 ];
 
 const MIN_DELAY_MS = 60_000;
@@ -40,6 +41,7 @@ const randomDelayMs = () =>
   MIN_DELAY_MS + Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1));
 
 export const EarlyAccessFeedbackModal = () => {
+  const { t } = useT();
   const { status, user } = useAuth();
   const { actions: analyticsActions } = useAnalytics();
   const [open, setOpen] = useState(false);
@@ -177,7 +179,7 @@ export const EarlyAccessFeedbackModal = () => {
         markAsSent();
         return;
       }
-      setSubmitError("Unable to send feedback right now.");
+      setSubmitError(t("Unable to send feedback right now."));
     } finally {
       setSubmitting(false);
     }
@@ -187,25 +189,25 @@ export const EarlyAccessFeedbackModal = () => {
     <Modal
       open={open}
       onClose={closeWithoutSubmit}
-      title={submitted ? "Thank you." : "Early access"}
+      title={submitted ? t("Thank you.") : t("Early access")}
       description={undefined}
     >
       {submitted ? null : (
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            Syncro is at a very early stage.
+            {t("Syncro is at a very early stage.")}
             <br />
-            It&apos;s essential, incomplete, and in some parts still rough.
+            {t("It's essential, incomplete, and in some parts still rough.")}
             <br />
-            We&apos;re testing it this way to understand what really matters.
+            {t("We're testing it this way to understand what really matters.")}
             <br />
-            If you join now and help us improve it with your feedback,
+            {t("If you join now and help us improve it with your feedback,")}
             <br />
-            you&apos;ll get access to advanced features as they are released.
+            {t("you'll get access to advanced features as they are released.")}
           </p>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-foreground">
-              What would improve the experience the most right now?
+              {t("What would improve the experience the most right now?")}
             </p>
             <div className="grid gap-2">
               {CHOICES.map((choice) => {
@@ -225,7 +227,7 @@ export const EarlyAccessFeedbackModal = () => {
                         : "border-border/70 bg-surface text-foreground hover:border-border-strong"
                     )}
                   >
-                    {choice.label}
+                    {t(choice.labelKey)}
                   </button>
                 );
               })}
@@ -239,7 +241,7 @@ export const EarlyAccessFeedbackModal = () => {
                 onChange={(event) => setOtherText(event.target.value.slice(0, TEXT_MAX))}
                 maxLength={TEXT_MAX}
                 rows={3}
-                placeholder="Tell us what would help most..."
+                placeholder={t("Tell us what would help most...")}
                 className="w-full rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent/40"
               />
               <p className="text-right text-[11px] text-subtle">
@@ -256,9 +258,9 @@ export const EarlyAccessFeedbackModal = () => {
               onClick={handleSubmit}
               disabled={!canSubmit}
               loading={submitting}
-              loadingText="Sending..."
+              loadingText={t("Sending...")}
             >
-              Send feedback · 30 seconds
+              {t("Send feedback · 30 seconds")}
             </Button>
           </div>
         </div>

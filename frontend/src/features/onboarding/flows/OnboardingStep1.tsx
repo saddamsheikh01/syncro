@@ -11,42 +11,44 @@ import { LanguageSelector } from "@/features/onboarding/forms/LanguageSelector";
 import { VisibilitySelector } from "@/features/profile/forms/VisibilitySelector";
 import { Button } from "@/components/buttons/Button";
 import { useAuth, useOnboarding, useUser } from "@/hooks";
+import { useT } from "@/hooks";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
-
-const VISIBILITY_OPTIONS: Array<{
-  value: ProfileVisibility;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "PUBLIC",
-    label: "Public",
-    description: "Show your full profile.",
-  },
-  {
-    value: "PARTIAL",
-    label: "Partial",
-    description: "Hide some sensitive details.",
-  },
-  {
-    value: "PRIVATE",
-    label: "Private",
-    description: "Profile visible only in matches.",
-  },
-];
 
 export const OnboardingStep1 = () => {
   const router = useRouter();
   const { actions: authActions } = useAuth();
   const { profile, language, loading, error, actions } = useUser();
   const { actions: onboardingActions } = useOnboarding();
+  const { t } = useT();
+
+  const VISIBILITY_OPTIONS: Array<{
+    value: ProfileVisibility;
+    label: string;
+    description: string;
+  }> = [
+    {
+      value: "PUBLIC",
+      label: t("onboarding.visibility.public.label"),
+      description: t("onboarding.visibility.public.description"),
+    },
+    {
+      value: "PARTIAL",
+      label: t("onboarding.visibility.partial.label"),
+      description: t("onboarding.visibility.partial.description"),
+    },
+    {
+      value: "PRIVATE",
+      label: t("onboarding.visibility.private.label"),
+      description: t("onboarding.visibility.private.description"),
+    },
+  ];
 
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
-  const [selectedLanguage, setSelectedLanguage] = useState("it");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,12 +90,12 @@ export const OnboardingStep1 = () => {
     const trimmedCountry = country.trim();
 
     if (!trimmedName) {
-      setFormError("Enter your full name.");
+      setFormError(t("onboarding.step1.fullName.requiredError"));
       return;
     }
 
     if (!trimmedCity || !trimmedCountry) {
-      setFormError("Enter your city and country of residence.");
+      setFormError(t("onboarding.step1.residence.requiredError"));
       return;
     }
 
@@ -119,7 +121,7 @@ export const OnboardingStep1 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Error while saving.";
+          : t("onboarding.step1.saveError");
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -130,8 +132,8 @@ export const OnboardingStep1 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Complete your profile"
-          subtitle="Add the main details to personalize your experience."
+          title={t("onboarding.step1.header.title")}
+          subtitle={t("onboarding.step1.header.subtitle")}
           step={1}
           totalSteps={1}
         />
@@ -139,24 +141,24 @@ export const OnboardingStep1 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Basic information
+              {t("onboarding.step1.basic.title")}
             </h3>
             <p className="text-sm text-muted">
-              This helps us deliver more accurate suggestions.
+              {t("onboarding.step1.basic.subtitle")}
             </p>
           </div>
           <Input
-            label="Full name"
+            label={t("onboarding.step1.fullName.label")}
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
-            placeholder="First and last name"
+            placeholder={t("onboarding.step1.fullName.placeholder")}
             required
           />
           <DatePicker
-            label="Date of birth"
+            label={t("onboarding.step1.birthDate.label")}
             value={birthDate}
             onValueChange={setBirthDate}
-            placeholder="Select a date"
+            placeholder={t("onboarding.step1.birthDate.placeholder")}
             maxYear={new Date().getFullYear()}
           />
         </Card>
@@ -170,7 +172,10 @@ export const OnboardingStep1 = () => {
 
         <LanguageSelector
           value={selectedLanguage}
-          onValueChange={setSelectedLanguage}
+          onValueChange={(next) => {
+            setSelectedLanguage(next);
+            actions.setLanguage(next);
+          }}
         />
 
         <VisibilitySelector
@@ -192,10 +197,10 @@ export const OnboardingStep1 = () => {
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Saving"
+            loadingText={t("common.saving")}
             onClick={handleContinue}
           >
-            Continue
+            {t("common.continue")}
           </Button>
         </div>
       </div>

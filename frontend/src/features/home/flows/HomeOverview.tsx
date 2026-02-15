@@ -30,6 +30,7 @@ import {
   useTutorial,
   useTests,
   useChat,
+  useT,
 } from "@/hooks";
 import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 
@@ -40,6 +41,7 @@ const HOME_MATCH_DOMAIN_FILTER_ITEMS = getDomainFilterItems();
 
 export const HomeOverview = () => {
   const router = useRouter();
+  const { t } = useT();
   const { status, user, actions: authActions } = useAuth();
   const { actions: userActions } = useUser();
   const {
@@ -306,11 +308,11 @@ export const HomeOverview = () => {
           title: localized.title,
           description: localized.description,
           href: `/insights/${test.id}`,
-          actionLabel: "View Insights",
+          actionLabel: t("View Insights"),
           completed: test.completed,
         };
       }),
-    [tests]
+    [tests, t]
   );
 
   const conversationItems = useMemo(() => {
@@ -325,10 +327,10 @@ export const HomeOverview = () => {
       const otherParticipant = conversation.participants?.find(
         (participant) => participant.userId !== user?.id
       );
-      const name = otherParticipant?.fullName || "User";
+      const name = otherParticipant?.fullName || t("User");
       const avatarUrl = otherParticipant?.avatarUrl ?? undefined;
       const message =
-        conversation.lastMessage?.content ?? "No messages yet.";
+        conversation.lastMessage?.content ?? t("No messages yet.");
       const match = otherParticipant?.userId
         ? matchMap.get(otherParticipant.userId)
         : undefined;
@@ -344,7 +346,7 @@ export const HomeOverview = () => {
         unreadCount,
       };
     });
-  }, [conversations, user?.id, userMatches]);
+  }, [conversations, t, user?.id, userMatches]);
 
   const isPlacesLoading = hasPosition
     ? catalogLoading && places.length === 0
@@ -356,9 +358,9 @@ export const HomeOverview = () => {
 
       <section className="space-y-4">
         <SectionHeader
-          title="People & Connections"
-          subtitle="Connections relevant to your current moment."
-          actionLabel="View Connections"
+          title={t("People & Connections")}
+          subtitle={t("Connections relevant to your current moment.")}
+          actionLabel={t("View Connections")}
           actionHref="/matches"
         />
 
@@ -379,17 +381,19 @@ export const HomeOverview = () => {
         {loadingUserMatches && userMatches.length === 0 ? (
           <Card className="flex items-center gap-3 p-4">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading matches...</p>
+            <p className="text-sm text-muted">{t("Loading matches...")}</p>
           </Card>
         ) : matchesError ? (
           <ErrorState
-            title="Unable to load matches"
+            title={t("Unable to load matches")}
             description={matchesError.message}
           />
         ) : userMatches.length === 0 ? (
           <EmptyState
-            title="No matches available"
-            description="Complete onboarding, interests, and insights to generate matches."
+            title={t("No matches available")}
+            description={t(
+              "Complete onboarding, interests, and insights to generate matches."
+            )}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -407,27 +411,34 @@ export const HomeOverview = () => {
 
       <section className="space-y-4">
         <SectionHeader
-          title="Places & Experiences"
-          subtitle="Places that make sense for you right now."
-          actionLabel="Explore More"
+          title={t("Places & Experiences")}
+          subtitle={t("Places that make sense for you right now.")}
+          actionLabel={t("Explore More")}
           actionHref="/places"
         />
 
         <div className="flex flex-wrap items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs text-muted">
-          <span className="font-semibold text-foreground">Fine-Tune</span>
-          <span>Nearby</span>
-          <span className="text-subtle">Anywhere</span>
-          <span>Distance</span>
-          <span className="text-subtle">10 Km</span>
+          <span className="font-semibold text-foreground">{t("Fine-Tune")}</span>
+          <span>{t("Nearby")}</span>
+          <span className="text-subtle">{t("Anywhere")}</span>
+          <span>{t("Distance")}</span>
+          <span className="text-subtle">{t("10 Km")}</span>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {["Experiences", "Events", "Stays", "Restaurants", "Places", "Services"].map((label) => (
+          {[
+            "Experiences",
+            "Events",
+            "Stays",
+            "Restaurants",
+            "Places",
+            "Services",
+          ].map((label) => (
             <span
               key={label}
               className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
             >
-              {label}
+              {t(label)}
             </span>
           ))}
         </div>
@@ -435,17 +446,17 @@ export const HomeOverview = () => {
         {isPlacesLoading ? (
           <Card className="flex items-center gap-3 p-4">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading places...</p>
+            <p className="text-sm text-muted">{t("Loading places...")}</p>
           </Card>
         ) : catalogError ? (
           <ErrorState
-            title="Unable to load places"
+            title={t("Unable to load places")}
             description={catalogError.message}
           />
         ) : placeCards.length === 0 ? (
           <EmptyState
-            title="No places available"
-            description="Save your location or explore the catalog."
+            title={t("No places available")}
+            description={t("Save your location or explore the catalog.")}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -460,15 +471,17 @@ export const HomeOverview = () => {
       </section>
 
       <AffiliationsRow
-        actionLabel="View all"
+        actionLabel={t("View all")}
         actionHref="/places#affiliations"
       />
 
       <section className="space-y-4">
         <SectionHeader
-          title="Moments"
-          subtitle="Relevant people and places, aligned with your current moment."
-          actionLabel="Go To Moments"
+          title={t("Moments")}
+          subtitle={t(
+            "Relevant people and places, aligned with your current moment."
+          )}
+          actionLabel={t("Go To Moments")}
           actionHref="/moments"
         />
 
@@ -485,14 +498,14 @@ export const HomeOverview = () => {
           <Card className="space-y-3 p-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-foreground">
-                People & Connections
+                {t("People & Connections")}
               </p>
               <div className="flex gap-2">
                 <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
-                  Fine-Tune
+                  {t("Fine-Tune")}
                 </span>
                 <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
-                  Contexts
+                  {t("Contexts")}
                 </span>
               </div>
             </div>
@@ -501,23 +514,27 @@ export const HomeOverview = () => {
                 <div key={match.matchId} className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/50 p-3">
                   <div className="flex items-center gap-2">
                     <Avatar
-                      name={match.user?.fullName ?? "User"}
+                      name={match.user?.fullName ?? t("User")}
                       src={match.user?.avatarUrl ?? undefined}
                       size="sm"
                     />
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold text-foreground">
-                        {match.user?.fullName ?? "User"}
+                        {match.user?.fullName ?? t("User")}
                       </p>
                       <p className="truncate text-[11px] text-muted">
-                        {match.user?.city ?? "Location"}
+                        {match.user?.city ?? t("Location")}
                       </p>
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">
-                    <span>{Math.round(match.scoreTotal ?? 0)}% Match</span>
+                    <span>
+                      {t("{score}% Match", {
+                        score: Math.round(match.scoreTotal ?? 0),
+                      })}
+                    </span>
                     <Link href={`/profile/${match.userId}`} className="text-accent">
-                      Connect
+                      {t("Connect")}
                     </Link>
                   </div>
                 </div>
@@ -528,14 +545,14 @@ export const HomeOverview = () => {
           <Card className="space-y-3 p-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-foreground">
-                Places & Experiences
+                {t("Places & Experiences")}
               </p>
               <div className="flex gap-2">
                 <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
-                  Fine-Tune
+                  {t("Fine-Tune")}
                 </span>
                 <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground">
-                  Contexts
+                  {t("Contexts")}
                 </span>
               </div>
             </div>
@@ -547,9 +564,9 @@ export const HomeOverview = () => {
                     {place.subtitle ?? place.address}
                   </p>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-subtle">
-                    <span>{place.category ?? "Places"}</span>
+                    <span>{place.category ?? t("Places")}</span>
                     <Link href={place.href ?? "/places"} className="text-accent">
-                      Connect
+                      {t("Connect")}
                     </Link>
                   </div>
                 </div>
@@ -564,7 +581,7 @@ export const HomeOverview = () => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-foreground">
-                Conversations
+                {t("Conversations")}
               </h3>
               {conversationItems.length > 0 ? (
                 <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f14b4b] px-1 text-[10px] font-semibold text-white">
@@ -573,7 +590,7 @@ export const HomeOverview = () => {
               ) : null}
             </div>
             <p className="text-sm text-muted">
-              Keep the conversation going with people you’re aligned with.
+              {t("Keep the conversation going with people you're aligned with.")}
             </p>
           </div>
 
@@ -595,7 +612,7 @@ export const HomeOverview = () => {
               </div>
             ) : conversationItems.length === 0 ? (
               <p className="text-sm text-muted">
-                No conversations available.
+                {t("No conversations available.")}
               </p>
             ) : (
               conversationItems.map((conversation) => (
@@ -657,7 +674,7 @@ export const HomeOverview = () => {
               href="/chat"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] px-6 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_var(--accent-glow)] transition hover:brightness-95"
             >
-              Open Conversations
+              {t("Open Conversations")}
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
                 <svg
                   className="h-3.5 w-3.5"
@@ -680,9 +697,9 @@ export const HomeOverview = () => {
 
       <section className="space-y-4">
         <SectionHeader
-          title="Insights"
-          subtitle="Insights that help improve accuracy and alignment."
-          actionLabel="Explore Insights"
+          title={t("Insights")}
+          subtitle={t("Insights that help improve accuracy and alignment.")}
+          actionLabel={t("Explore Insights")}
           actionHref="/insights"
         />
 
@@ -690,24 +707,24 @@ export const HomeOverview = () => {
           {testsLoading && tests.length === 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted">
               <Loader size="sm" />
-              Loading insights...
+              {t("Loading insights...")}
             </div>
           ) : testsError ? (
             <ErrorState
-              title="Unable to load insights"
+              title={t("Unable to load insights")}
               description={testsError.message}
             />
           ) : tests.length === 0 ? (
             <EmptyState
-              title="No insights available"
-              description="Check back later for new insights."
+              title={t("No insights available")}
+              description={t("Check back later for new insights.")}
             />
           ) : (
             <>
               <MapTestListItem items={testItems} />
               <div className="flex justify-center">
                 <Link href="/insights">
-                  <Button size="sm">Explore Insights</Button>
+                  <Button size="sm">{t("Explore Insights")}</Button>
                 </Link>
               </div>
             </>

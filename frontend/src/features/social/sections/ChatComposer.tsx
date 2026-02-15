@@ -2,6 +2,7 @@
 
 import { useState, useRef, type HTMLAttributes, type FormEvent } from "react";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 const SendIcon = () => (
   <svg
@@ -38,15 +39,17 @@ export interface ChatComposerProps
 
 export const ChatComposer = ({
   className,
-  placeholder = "Write a message...",
+  placeholder,
   helper,
   loading = false,
   disabled = false,
   onSend,
   ...props
 }: ChatComposerProps) => {
+  const { t } = useT();
   const [content, setContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const resolvedPlaceholder = placeholder ?? t("Write a message...");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -84,7 +87,7 @@ export const ChatComposer = ({
     >
       <textarea
         ref={textareaRef}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         value={content}
         onChange={handleInput}
         disabled={loading || disabled}
@@ -107,7 +110,7 @@ export const ChatComposer = ({
             ? "bg-accent text-white shadow-md hover:scale-105 hover:shadow-lg active:scale-95"
             : "bg-surface-muted text-subtle"
         )}
-        aria-label="Send message"
+        aria-label={t("Send message")}
       >
         {loading ? (
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />

@@ -6,10 +6,12 @@ import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { useT } from "@/hooks";
 import type { UserMatchResponse } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
 import { resolveMatchCopy } from "@/lib/matchCopy";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 export interface MatchListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick" | "onSelect"> {
@@ -20,17 +22,15 @@ export interface MatchListItemProps
   profileLabel?: string;
 }
 
-const formatName = (userId: string) => {
-  const suffix = userId.slice(0, 6);
-  return `User ${suffix}`;
-};
+type Translator = (key: string, values?: Record<string, string | number>) => string;
 
-const getDisplayName = (match: UserMatchResponse) => {
+const getDisplayName = (match: UserMatchResponse, t: Translator) => {
   const fullName = match.user?.fullName?.trim();
   if (fullName) return fullName;
   const username = match.user?.username?.trim();
   if (username) return username;
-  return formatName(match.userId);
+  const suffix = match.userId.slice(0, 6);
+  return t("User {suffix}", { suffix });
 };
 
 const formatLocation = (match: UserMatchResponse) => {
@@ -40,19 +40,19 @@ const formatLocation = (match: UserMatchResponse) => {
   return parts.length ? parts.join(", ") : null;
 };
 
-const formatUpdatedAt = (isoDate: string) => {
+const formatUpdatedAt = (t: Translator, isoDate: string) => {
   const date = new Date(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
   if (diffMinutes < 60) {
-    return `${diffMinutes} min ago`;
+    return t("{count} min ago", { count: diffMinutes });
   }
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h ago`;
+    return t("{count} h ago", { count: diffHours });
   }
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(getRuntimeBcp47(), {
     month: "short",
     day: "numeric",
   });
@@ -66,19 +66,19 @@ const LocationIcon = () => (
 );
 
 const DIMENSION_LABELS: Record<string, string> = {
-  interests: "interests",
-  lifestyle: "lifestyle",
-  values: "values",
-  objectives: "goals",
-  psy: "personality",
-  astro: "astrology",
+  interests: "Interests",
+  lifestyle: "Lifestyle",
+  values: "Values",
+  objectives: "Goals",
+  psy: "Personality",
+  astro: "Astrology",
 };
 
-const resolveMatchExplanation = (value?: string | null) => {
-  return resolveMatchCopy(value, "Affinity calculated from the profile");
+const resolveMatchExplanation = (t: Translator, value?: string | null) => {
+  return t(resolveMatchCopy(value, "Affinity calculated from the profile"));
 };
 
-const buildMatchSummary = (match: UserMatchResponse): string => {
+const buildMatchSummary = (match: UserMatchResponse, t: Translator): string => {
   const breakdown = match.breakdown as Record<string, unknown> | null;
   const parts: string[] = [];
 
@@ -89,10 +89,15 @@ const buildMatchSummary = (match: UserMatchResponse): string => {
   if (sharedCount > 0) {
     const sharedList = Array.isArray(sharedTags) ? sharedTags.slice(0, 3).join(", ") : "";
     if (sharedList) {
-      const suffix = sharedCount > 3 ? "..." : "";
-      parts.push(`${sharedCount} shared interests: ${sharedList}${suffix}`);
+      const listPreview = sharedCount > 3 ? `${sharedList}, ...` : sharedList;
+      parts.push(
+        t("{count} shared interests: {list}", {
+          count: sharedCount,
+          list: listPreview,
+        })
+      );
     } else {
-      parts.push(`${sharedCount} shared interests`);
+      parts.push(t("{count} shared interests", { count: sharedCount }));
     }
   }
 
@@ -104,15 +109,22 @@ const buildMatchSummary = (match: UserMatchResponse): string => {
       .map(([key]) => DIMENSION_LABELS[key] || key);
 
     if (analyzedDimensions.length > 0) {
-      const dimText = analyzedDimensions.length === 1
-        ? `analysis: ${analyzedDimensions[0]}`
-        : `analysis: ${analyzedDimensions.slice(0, 2).join(", ")}${analyzedDimensions.length > 2 ? ` +${analyzedDimensions.length - 2}` : ""}`;
-      parts.push(dimText);
+      const localizedDimensions = analyzedDimensions.map((label) => t(label));
+      if (localizedDimensions.length === 1) {
+        parts.push(
+          t("Analysis: {dimension}", { dimension: localizedDimensions[0] })
+        );
+      } else {
+        const preview = localizedDimensions.slice(0, 2).join(", ");
+        const suffix =
+          localizedDimensions.length > 2 ? ` +${localizedDimensions.length - 2}` : "";
+        parts.push(t("Analysis: {dimensions}", { dimensions: `${preview}${suffix}` }));
+      }
     }
   }
 
   if (parts.length === 0) {
-    return resolveMatchExplanation(match.explanation);
+    return resolveMatchExplanation(t, match.explanation);
   }
 
   return parts.join(" · ");
@@ -127,10 +139,11 @@ export const MatchListItem = ({
   profileLabel,
   ...props
 }: MatchListItemProps) => {
-  const name = getDisplayName(match);
+  const { t } = useT();
+  const name = getDisplayName(match, t);
   const score = match.scoreTotal ?? 0;
-  const matchSummary = buildMatchSummary(match);
-  const updatedLabel = formatUpdatedAt(match.updatedAt);
+  const matchSummary = buildMatchSummary(match, t);
+  const updatedLabel = formatUpdatedAt(t, match.updatedAt);
   const breakdown = match.breakdown as Record<string, unknown> | null;
   const rawSharedTags = breakdown?.sharedTags;
   const sharedTagsArray: string[] = Array.isArray(rawSharedTags)
@@ -233,7 +246,7 @@ export const MatchListItem = ({
               <button
                 type="button"
                 onClick={handleProfileClick}
-                aria-label={profileLabel ?? `Open profile of ${name}`}
+                aria-label={profileLabel ?? t("Open profile of {name}", { name })}
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
               >
                 <NavIcon name="user" className="h-4 w-4" />

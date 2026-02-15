@@ -8,33 +8,22 @@ import { Input } from "@/components/elements/Input";
 import { Select } from "@/components/elements/Select";
 import { Switch } from "@/components/elements/Switch";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useOnboarding, usePreferences } from "@/hooks";
+import { useAuth, useOnboarding, usePreferences, useT } from "@/hooks";
 import type { JsonObject, JsonValue } from "@/types/shared";
 
-const GENDER_OPTIONS = [
-  { value: "ANY", label: "Any" },
-  { value: "FEMALE", label: "Female" },
-  { value: "MALE", label: "Male" },
-  { value: "NON_BINARY", label: "Non-binary" },
-  { value: "OTHER", label: "Other" },
-];
+const GENDER_VALUES = ["ANY", "FEMALE", "MALE", "NON_BINARY", "OTHER"] as const;
+const GEO_AVAILABILITY_VALUES = ["MIXED", "IN_PERSON", "REMOTE"] as const;
 
-const GEO_AVAILABILITY_OPTIONS = [
-  { value: "MIXED", label: "Mixed (in-person + remote)" },
-  { value: "IN_PERSON", label: "In person only" },
-  { value: "REMOTE", label: "Remote only" },
-];
+const DOMAIN_KEYS = [
+  "love",
+  "friendship",
+  "work",
+  "projects",
+  "hobby",
+  "growth",
+] as const;
 
-const DOMAIN_LABELS = {
-  love: "Love",
-  friendship: "Friendship",
-  work: "Work",
-  projects: "Projects",
-  hobby: "Hobby & Experiences",
-  growth: "Growth & Mentorship",
-} as const;
-
-type MatchDomainKey = keyof typeof DOMAIN_LABELS;
+type MatchDomainKey = (typeof DOMAIN_KEYS)[number];
 type DomainFlags = Record<MatchDomainKey, boolean>;
 
 const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
@@ -45,8 +34,6 @@ const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
   hobby: true,
   growth: true,
 };
-
-const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
 
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -69,6 +56,7 @@ export const OnboardingStep3 = () => {
   const { actions: authActions } = useAuth();
   const { preferences, loading, error, actions } = usePreferences();
   const { actions: onboardingActions } = useOnboarding();
+  const { t } = useT();
   const initializedRef = useRef(false);
 
   const [ageMin, setAgeMin] = useState("");
@@ -122,12 +110,12 @@ export const OnboardingStep3 = () => {
     const feedRadiusValue = toNumber(feedRadiusKm);
 
     if (minAgeValue !== null && maxAgeValue !== null && minAgeValue > maxAgeValue) {
-      setFormError("Minimum age cannot be greater than maximum age.");
+      setFormError(t("Minimum age cannot be greater than maximum age."));
       return;
     }
 
     if ((distanceValue ?? 0) < 0 || (feedRadiusValue ?? 0) < 0) {
-      setFormError("Enter positive values for distances.");
+      setFormError(t("Enter positive values for distances."));
       return;
     }
 
@@ -164,10 +152,53 @@ export const OnboardingStep3 = () => {
       const message =
         submitError && typeof submitError === "object" && "message" in submitError
           ? String((submitError as { message?: string }).message)
-          : "Error while saving.";
+          : t("Error while saving.");
       setFormError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const genderOptions = GENDER_VALUES.map((value) => ({
+    value,
+    label: t(
+      value === "ANY"
+        ? "Any"
+        : value === "FEMALE"
+          ? "Female"
+          : value === "MALE"
+            ? "Male"
+            : value === "NON_BINARY"
+              ? "Non-binary"
+              : "Other"
+    ),
+  }));
+
+  const geoAvailabilityOptions = GEO_AVAILABILITY_VALUES.map((value) => ({
+    value,
+    label: t(
+      value === "MIXED"
+        ? "Mixed (in-person + remote)"
+        : value === "IN_PERSON"
+          ? "In person only"
+          : "Remote only"
+    ),
+  }));
+
+  const domainLabel = (domainKey: MatchDomainKey): string => {
+    switch (domainKey) {
+      case "love":
+        return t("Love");
+      case "friendship":
+        return t("Friendship");
+      case "work":
+        return t("Work");
+      case "projects":
+        return t("Projects");
+      case "hobby":
+        return t("Hobby & Experiences");
+      case "growth":
+        return t("Growth & Mentorship");
     }
   };
 
@@ -175,8 +206,8 @@ export const OnboardingStep3 = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <OnboardingStepHeader
-          title="Set your preferences"
-          subtitle="Configure preferences for personalized matches and feed."
+          title={t("Set your preferences")}
+          subtitle={t("Configure preferences for personalized matches and feed.")}
           step={3}
           totalSteps={3}
         />
@@ -184,15 +215,15 @@ export const OnboardingStep3 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Matchmaking preferences
+              {t("Matchmaking preferences")}
             </h3>
             <p className="text-sm text-muted">
-              Define the main filters for your matches.
+              {t("Define the main filters for your matches.")}
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Minimum age"
+              label={t("Minimum age")}
               type="number"
               min={18}
               value={ageMin}
@@ -200,7 +231,7 @@ export const OnboardingStep3 = () => {
               placeholder="18"
             />
             <Input
-              label="Maximum age"
+              label={t("Maximum age")}
               type="number"
               min={18}
               value={ageMax}
@@ -209,7 +240,7 @@ export const OnboardingStep3 = () => {
             />
           </div>
           <Input
-            label="Maximum distance (km)"
+            label={t("Maximum distance (km)")}
             type="number"
             min={1}
             value={distanceKm}
@@ -217,39 +248,39 @@ export const OnboardingStep3 = () => {
             placeholder="25"
           />
           <Select
-            label="Gender"
-            options={GENDER_OPTIONS}
+            label={t("Gender")}
+            options={genderOptions}
             value={gender}
             onValueChange={setGender}
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="City filter (optional)"
+              label={t("City filter (optional)")}
               value={locationCityFilter}
               onChange={(event) => setLocationCityFilter(event.target.value)}
-              placeholder="E.g. Milan"
+              placeholder={t("E.g. Milan")}
             />
             <Input
-              label="Country filter (optional)"
+              label={t("Country filter (optional)")}
               value={locationCountryFilter}
               onChange={(event) =>
                 setLocationCountryFilter(event.target.value)
               }
-              placeholder="E.g. Italy"
+              placeholder={t("E.g. Italy")}
             />
           </div>
           <Select
-            label="Availability"
-            options={GEO_AVAILABILITY_OPTIONS}
+            label={t("Availability")}
+            options={geoAvailabilityOptions}
             value={geoAvailability}
             onValueChange={setGeoAvailability}
           />
           <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
             <p className="text-sm font-semibold text-foreground">
-              Match domains
+              {t("Match domains")}
             </p>
             <p className="text-xs text-muted">
-              All domains are always active.
+              {t("All domains are always active.")}
             </p>
             <div className="flex flex-wrap gap-2">
               {DOMAIN_KEYS.map((domainKey) => (
@@ -257,7 +288,7 @@ export const OnboardingStep3 = () => {
                   key={domainKey}
                   className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-foreground"
                 >
-                  {DOMAIN_LABELS[domainKey]}
+                  {domainLabel(domainKey)}
                 </span>
               ))}
             </div>
@@ -267,14 +298,14 @@ export const OnboardingStep3 = () => {
         <Card className="space-y-4 p-5">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-foreground">
-              Feed preferences
+              {t("Feed preferences")}
             </h3>
             <p className="text-sm text-muted">
-              Control how posts near you are shown.
+              {t("Control how posts near you are shown.")}
             </p>
           </div>
           <Input
-            label="Feed radius (km)"
+            label={t("Feed radius (km)")}
             type="number"
             min={1}
             value={feedRadiusKm}
@@ -282,14 +313,14 @@ export const OnboardingStep3 = () => {
             placeholder="10"
           />
           <Switch
-            label="Show only nearby content"
-            description="Hide posts outside the selected radius."
+            label={t("Show only nearby content")}
+            description={t("Hide posts outside the selected radius.")}
             checked={feedOnlyNearby}
             onChange={(event) => setFeedOnlyNearby(event.target.checked)}
           />
           <Switch
-            label="Auto-translate content"
-            description="Automatically translate content."
+            label={t("Auto-translate content")}
+            description={t("Automatically translate content.")}
             checked={feedAutoTranslate}
             onChange={(event) => setFeedAutoTranslate(event.target.checked)}
           />
@@ -307,15 +338,15 @@ export const OnboardingStep3 = () => {
             variant="secondary"
             onClick={() => router.push("/onboarding/step-2")}
           >
-            Back
+            {t("Back")}
           </Button>
           <Button
             size="md"
             loading={isSubmitting || loading}
-            loadingText="Saving"
+            loadingText={t("Saving")}
             onClick={handleContinue}
           >
-            Continue
+            {t("Continue")}
           </Button>
         </div>
       </div>

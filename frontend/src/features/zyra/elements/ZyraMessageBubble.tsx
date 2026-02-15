@@ -1,8 +1,11 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cx } from "@/lib/classNames";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import { useT } from "@/hooks";
 
 export type ZyraMessageRole = "zyra" | "user";
 
@@ -22,6 +25,7 @@ export const ZyraMessageBubble = ({
   statusLabel,
   ...props
 }: ZyraMessageBubbleProps) => {
+  const { t } = useT();
   const isUser = sender === "user";
 
   return (
@@ -44,7 +48,7 @@ export const ZyraMessageBubble = ({
         {!isUser ? (
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zyra-text">
             <ZyraMark size="xs" glow={false} />
-            <span>Zyra</span>
+            <span>{t("Zyra")}</span>
           </div>
         ) : null}
         <div className="space-y-2 text-sm leading-relaxed">

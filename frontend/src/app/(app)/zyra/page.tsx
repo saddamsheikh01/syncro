@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import { getServerTranslator } from "@/i18n/server";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ZyraChatFlow } from "@/features/zyra/flows/ZyraChatFlow";
 import { ZyraSuggestionsFlow } from "@/features/zyra/flows/ZyraSuggestionsFlow";
 
-export const metadata: Metadata = {
-  title: "Zyra | Syncro",
-  description: "Smart chat and personalized suggestions.",
+export const generateMetadata = async (): Promise<Metadata> => {
+  const { t } = await getServerTranslator();
+
+  return {
+    title: t("Zyra | Syncro"),
+    description: t("Smart chat and personalized suggestions."),
+  };
 };
 
 export default function ZyraPage() {

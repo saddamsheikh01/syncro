@@ -11,6 +11,7 @@ import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { getViatorSyncStatus, syncViatorProducts } from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type { ViatorSyncResponse, ViatorSyncStatusResponse } from "@/types/admin";
+import { useT } from "@/hooks";
 
 const parseOptionalInteger = (value: string): number | null => {
   const trimmed = value.trim();
@@ -53,6 +54,7 @@ const toDateTimeLocal = (value: string | null): string => {
 };
 
 export const AdminViatorSyncOverview = () => {
+  const { t } = useT();
   const [status, setStatus] = useState<ViatorSyncStatusResponse | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -110,54 +112,62 @@ export const AdminViatorSyncOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Viator Sync"
-        subtitle="Sync experiences from Viator Partner API."
+        title={t("Viator Sync")}
+        subtitle={t("Sync experiences from Viator Partner API.")}
       />
 
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-foreground">Integration status</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {t("Integration status")}
+          </h2>
           <Button size="sm" variant="outline" onClick={() => void loadStatus()}>
-            Refresh status
+            {t("Refresh status")}
           </Button>
         </div>
 
         {statusLoading ? (
           <div className="flex items-center gap-3">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Checking Viator configuration...</p>
+            <p className="text-sm text-muted">
+              {t("Checking Viator configuration...")}
+            </p>
           </div>
         ) : (
           <p className="text-sm text-muted">
-            <span className="font-semibold text-foreground">Configured:</span>{" "}
-            {status?.configured ? "YES" : "NO"}
+            <span className="font-semibold text-foreground">
+              {t("Configured:")}
+            </span>{" "}
+            {status?.configured ? t("YES") : t("NO")}
             {" · "}
-            {status?.message ?? "N/A"}
+            {status?.message ?? t("N/A")}
           </p>
         )}
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Products sync</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Products sync")}
+        </h2>
 
         <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleSyncProducts}>
           <Input
-            label="Count per page"
+            label={t("Count per page")}
             value={count}
             onChange={(event) => setCount(event.target.value)}
           />
           <Input
-            label="Max pages"
+            label={t("Max pages")}
             value={maxPages}
             onChange={(event) => setMaxPages(event.target.value)}
           />
           <Input
-            label="Language (Accept-Language)"
+            label={t("Language (Accept-Language)")}
             value={language}
             onChange={(event) => setLanguage(event.target.value)}
           />
           <Input
-            label="Modified since (optional)"
+            label={t("Modified since (optional)")}
             type="datetime-local"
             value={modifiedSince}
             onChange={(event) => setModifiedSince(event.target.value)}
@@ -165,7 +175,7 @@ export const AdminViatorSyncOverview = () => {
 
           <div className="flex items-end lg:col-span-1">
             <Checkbox
-              label="Reset saved cursor before sync"
+              label={t("Reset saved cursor before sync")}
               checked={resetCursor}
               onChange={(event) => setResetCursor(event.target.checked)}
             />
@@ -176,9 +186,9 @@ export const AdminViatorSyncOverview = () => {
               type="submit"
               size="sm"
               loading={running}
-              loadingText="Syncing"
+              loadingText={t("Syncing")}
             >
-              Start products sync
+              {t("Start products sync")}
             </Button>
           </div>
         </form>
@@ -186,50 +196,68 @@ export const AdminViatorSyncOverview = () => {
 
       {error ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Sync error</p>
+          <p className="text-sm font-semibold text-danger">{t("Sync error")}</p>
           <p className="text-sm text-muted">{error.message}</p>
         </Card>
       ) : null}
 
       {lastResult ? (
         <Card className="space-y-3 p-5">
-          <h2 className="text-base font-semibold text-foreground">Latest result</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {t("Latest result")}
+          </h2>
           <p className="text-sm text-muted">{lastResult.message}</p>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Pages:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Pages:")}
+              </span>{" "}
               {formatNumber(lastResult.pagesProcessed)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Products seen:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Products seen:")}
+              </span>{" "}
               {formatNumber(lastResult.productsSeen)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Created:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Created:")}
+              </span>{" "}
               {formatNumber(lastResult.created)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Updated:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Updated:")}
+              </span>{" "}
               {formatNumber(lastResult.updated)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Deactivated:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Deactivated:")}
+              </span>{" "}
               {formatNumber(lastResult.deactivated)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Errors:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Errors:")}
+              </span>{" "}
               {formatNumber(lastResult.errors)}
             </p>
             <p className="text-sm text-muted md:col-span-2 xl:col-span-2">
-              <span className="font-semibold text-foreground">Next cursor:</span>{" "}
-              {lastResult.nextCursor ?? "-"}
+              <span className="font-semibold text-foreground">
+                {t("Next cursor:")}
+              </span>{" "}
+              {lastResult.nextCursor ?? t("-")}
             </p>
           </div>
 
           {lastResult.errorMessages.length ? (
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Error messages</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("Error messages")}
+              </p>
               <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
                 {lastResult.errorMessages.map((message, index) => (
                   <li key={`${message}-${index}`}>{message}</li>

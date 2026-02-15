@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { useT } from "@/hooks";
 
 interface LocationRequestModalProps {
   open: boolean;
@@ -24,17 +25,20 @@ export const LocationRequestModal = ({
   onActivate,
   loading,
 }: LocationRequestModalProps) => {
+  const { t } = useT();
   return (
     <Modal
       open={open}
-      title="Enable location"
-      description="Location improves your Syncro experience. You can always change it in settings."
+      title={t("Enable location")}
+      description={t(
+        "Location improves your Syncro experience. You can always change it in settings."
+      )}
       primaryAction={{
-        label: loading ? "Enabling..." : "Enable location",
+        label: loading ? t("Enabling...") : t("Enable location"),
         onClick: onActivate,
       }}
       secondaryAction={{
-        label: "Not now",
+        label: t("Not now"),
         onClick: onClose,
         variant: "ghost",
       }}
@@ -42,13 +46,13 @@ export const LocationRequestModal = ({
     >
       <div className="space-y-3">
         <p className="text-sm font-medium text-foreground">
-          With location enabled you can:
+          {t("With location enabled you can:")}
         </p>
         <ul className="space-y-2">
           {BENEFITS.map((benefit, index) => (
             <li key={index} className="flex items-start gap-2 text-sm text-muted">
               <NavIcon name="map-pin" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-              <span>{benefit}</span>
+              <span>{t(benefit)}</span>
             </li>
           ))}
         </ul>

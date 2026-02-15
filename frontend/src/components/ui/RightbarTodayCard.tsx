@@ -1,6 +1,8 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { useEffect, useMemo, useRef } from "react";
-import { useCatalog, useMatches } from "@/hooks";
+import { useCatalog, useMatches, useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const TodayDot = ({ className }: { className?: string }) => (
@@ -16,6 +18,7 @@ export const RightbarTodayCard = ({
   className,
   ...props
 }: RightbarTodayCardProps) => {
+  const { t } = useT();
   const { userMatches, actions: matchesActions } = useMatches();
   const { places, actions: catalogActions } = useCatalog();
   const fetchedRef = useRef(false);
@@ -30,24 +33,28 @@ export const RightbarTodayCard = ({
   const items = useMemo(
     () => [
       {
-        label: `${Math.max(userMatches.length, 1)} compatible people nearby`,
+        label: t("{count} compatible people nearby", {
+          count: Math.max(userMatches.length, 1),
+        }),
         tone: "bg-rose-400/70",
       },
       {
-        label: `${Math.max(places.length, 1)} aligned places`,
+        label: t("{count} aligned places", { count: Math.max(places.length, 1) }),
         tone: "bg-blue-400/70",
       },
       {
-        label: "1 live experience right now",
+        label: t("1 live experience right now"),
         tone: "bg-amber-400/70",
       },
     ],
-    [places.length, userMatches.length]
+    [places.length, t, userMatches.length]
   );
 
   return (
     <div className={cx("space-y-2", className)} {...props}>
-      <p className="text-xs font-semibold text-foreground">Today For You</p>
+      <p className="text-xs font-semibold text-foreground">
+        {t("Today For You")}
+      </p>
       <div className="space-y-1.5 text-xs text-muted">
         {items.map((item) => (
           <div key={item.label} className="flex items-start gap-2">

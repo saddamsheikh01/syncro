@@ -3,6 +3,7 @@
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 const MapIcon = () => (
   <svg
@@ -47,76 +48,95 @@ const BENEFITS = [
 
 export const MapPermissionScreen = ({
   className,
-  title = "Enable location",
-  description =
-    "Share your location to discover nearby places and improve suggestions.",
-  primaryActionLabel = "Enable location",
-  secondaryActionLabel = "Continue without",
+  title,
+  description,
+  primaryActionLabel,
+  secondaryActionLabel,
   helper,
   onPrimaryAction,
   onSecondaryAction,
   ...props
-}: MapPermissionScreenProps) => (
-  <div
-    className={cx(
-      "group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--qa-map-border)] bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-[0_8px_30px_var(--qa-map-glow)]",
-      className
-    )}
-    style={{
-      background: "linear-gradient(135deg, var(--qa-map-bg) 0%, transparent 60%)",
-    }}
-    {...props}
-  >
-    {/* Decorative glow */}
-    <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[var(--qa-map-gradient-start)]/20 blur-3xl transition-transform duration-500 group-hover:scale-150" />
+}: MapPermissionScreenProps) => {
+  const { t } = useT();
 
-    <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start">
-      {/* Icon */}
-      <div
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white shadow-md"
-        style={{
-          background: "linear-gradient(135deg, var(--qa-map-gradient-start), var(--qa-map-gradient-end))",
-        }}
-      >
-        <MapIcon />
-      </div>
+  const resolvedTitle = title ? t(title) : t("Enable location");
+  const resolvedDescription = description
+    ? t(description)
+    : t("Share your location to discover nearby places and improve suggestions.");
+  const resolvedPrimaryActionLabel = primaryActionLabel
+    ? t(primaryActionLabel)
+    : t("Enable location");
+  const resolvedSecondaryActionLabel = secondaryActionLabel
+    ? t(secondaryActionLabel)
+    : t("Continue without");
 
-      {/* Content */}
-      <div className="flex-1 space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          {description && <p className="text-sm text-muted">{description}</p>}
+  return (
+    <div
+      className={cx(
+        "group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--qa-map-border)] bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-[0_8px_30px_var(--qa-map-glow)]",
+        className
+      )}
+      style={{
+        background: "linear-gradient(135deg, var(--qa-map-bg) 0%, transparent 60%)",
+      }}
+      {...props}
+    >
+      {/* Decorative glow */}
+      <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[var(--qa-map-gradient-start)]/20 blur-3xl transition-transform duration-500 group-hover:scale-150" />
+
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start">
+        {/* Icon */}
+        <div
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-white shadow-md"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--qa-map-gradient-start), var(--qa-map-gradient-end))",
+          }}
+        >
+          <MapIcon />
         </div>
 
-        {/* Benefits */}
-        <div className="flex flex-wrap gap-2">
-          {BENEFITS.map((benefit, i) => (
-            <span
-              key={i}
-              className="flex items-center gap-1.5 rounded-full bg-[var(--qa-map-bg)] px-2.5 py-1 text-xs font-medium text-[var(--qa-map-gradient-end)]"
+        {/* Content */}
+        <div className="flex-1 space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-foreground">
+              {resolvedTitle}
+            </h3>
+            {resolvedDescription ? (
+              <p className="text-sm text-muted">{resolvedDescription}</p>
+            ) : null}
+          </div>
+
+          {/* Benefits */}
+          <div className="flex flex-wrap gap-2">
+            {BENEFITS.map((benefit, i) => (
+              <span
+                key={i}
+                className="flex items-center gap-1.5 rounded-full bg-[var(--qa-map-bg)] px-2.5 py-1 text-xs font-medium text-[var(--qa-map-gradient-end)]"
+              >
+                <LocationPinIcon />
+                {t(benefit)}
+              </span>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button
+              size="sm"
+              onClick={onPrimaryAction}
+              className="bg-gradient-to-r from-[var(--qa-map-gradient-start)] to-[var(--qa-map-gradient-end)] text-white shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-[var(--qa-map-glow)]"
             >
-              <LocationPinIcon />
-              {benefit}
-            </span>
-          ))}
-        </div>
+              {resolvedPrimaryActionLabel}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onSecondaryAction}>
+              {resolvedSecondaryActionLabel}
+            </Button>
+          </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <Button
-            size="sm"
-            onClick={onPrimaryAction}
-            className="bg-gradient-to-r from-[var(--qa-map-gradient-start)] to-[var(--qa-map-gradient-end)] text-white shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-[var(--qa-map-glow)]"
-          >
-            {primaryActionLabel}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onSecondaryAction}>
-            {secondaryActionLabel}
-          </Button>
+          {helper ? <p className="text-xs text-subtle">{t(helper)}</p> : null}
         </div>
-
-        {helper && <p className="text-xs text-subtle">{helper}</p>}
       </div>
     </div>
-  </div>
-);
+  );
+};

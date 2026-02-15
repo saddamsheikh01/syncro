@@ -1,5 +1,9 @@
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
+
 export const formatNumber = (value: number): string =>
-  new Intl.NumberFormat("it-IT").format(Number.isFinite(value) ? value : 0);
+  new Intl.NumberFormat(getRuntimeBcp47()).format(
+    Number.isFinite(value) ? value : 0
+  );
 
 export const formatPercent = (value: number): string => {
   if (!Number.isFinite(value)) {
@@ -13,7 +17,7 @@ export const formatDate = (isoDate: string): string => {
   if (Number.isNaN(date.getTime())) {
     return "-";
   }
-  return date.toLocaleDateString("it-IT", {
+  return date.toLocaleDateString(getRuntimeBcp47(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -25,7 +29,7 @@ export const formatDateTime = (isoDateTime: string): string => {
   if (Number.isNaN(date.getTime())) {
     return "-";
   }
-  return date.toLocaleString("it-IT", {
+  return date.toLocaleString(getRuntimeBcp47(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

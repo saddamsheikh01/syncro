@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, MouseEvent } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface TranslationToggleProps
@@ -16,19 +17,22 @@ export interface TranslationToggleProps
 export const TranslationToggle = ({
   className,
   active,
-  label = "Traduzione",
+  label = "Translation",
   activeLabel = "Enabled",
-  inactiveLabel = "Originale",
+  inactiveLabel = "Original",
   disabled,
   onClick,
   onToggleState,
   ...props
 }: TranslationToggleProps) => {
+  const { t } = useT();
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onToggleState?.(!active);
     onClick?.(event);
   };
+  const resolvedLabel = t(label);
+  const resolvedStatusLabel = t(active ? activeLabel : inactiveLabel);
 
   return (
     <button
@@ -58,9 +62,11 @@ export const TranslationToggle = ({
         />
       </span>
       <span className="space-y-0.5">
-        <span className="block text-[11px] font-semibold text-subtle">{label}</span>
+        <span className="block text-[11px] font-semibold text-subtle">
+          {resolvedLabel}
+        </span>
         <span className="block text-xs font-semibold text-foreground">
-          {active ? activeLabel : inactiveLabel}
+          {resolvedStatusLabel}
         </span>
       </span>
     </button>

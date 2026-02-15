@@ -2,9 +2,12 @@ import type { KpiPoint } from "@/types/analytics";
 
 export type TrendDirection = "up" | "down" | "neutral";
 
+export type TrendLabelValues = Record<string, string | number>;
+
 export type TrendData = {
   direction: TrendDirection;
-  label: string;
+  labelKey: string;
+  labelValues?: TrendLabelValues;
 };
 
 export const sumSeries = (series: KpiPoint[] | undefined): number => {
@@ -36,7 +39,7 @@ export const buildTrend = (series: KpiPoint[] | undefined): TrendData => {
   if (!series?.length || series.length < 2) {
     return {
       direction: "neutral",
-      label: "Previous period not available",
+      labelKey: "Previous period not available",
     };
   }
 
@@ -51,20 +54,22 @@ export const buildTrend = (series: KpiPoint[] | undefined): TrendData => {
   if (Math.abs(delta) < 0.1) {
     return {
       direction: "neutral",
-      label: "Stable vs previous period",
+      labelKey: "Stable vs previous period",
     };
   }
 
   if (delta > 0) {
     return {
       direction: "up",
-      label: `+${delta.toFixed(1)}% vs previous period`,
+      labelKey: "{delta}% vs previous period",
+      labelValues: { delta: `+${delta.toFixed(1)}` },
     };
   }
 
   return {
     direction: "down",
-    label: `${delta.toFixed(1)}% vs previous period`,
+    labelKey: "{delta}% vs previous period",
+    labelValues: { delta: delta.toFixed(1) },
   };
 };
 

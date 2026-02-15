@@ -182,12 +182,12 @@ const bindTransportListeners = () => {
   listenersBound = true;
 
   window.addEventListener("online", () => {
-    void flushQueueInternal();
+    void flushQueueInternal().catch(() => undefined);
   });
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      void flushQueueInternal();
+      void flushQueueInternal().catch(() => undefined);
     }
   });
 };
@@ -196,11 +196,18 @@ export const analyticsActions = {
   bootstrap: () => {
     bindTransportListeners();
     setQueueSize(readQueue().length);
-    void flushQueueInternal();
+    void flushQueueInternal().catch(() => undefined);
   },
 
   trackEvent: async (payload: AnalyticsTrackInput): Promise<void> => {
-    const event = buildEvent(payload);
+    let event: AnalyticsBatchEventRequest;
+    try {
+      event = buildEvent(payload);
+    } catch (error) {
+      // Analytics must never break the UI (and should not cause unhandled rejections).
+      console.warn("[analytics] Unable to build event payload", error);
+      return;
+    }
     const queueSize = enqueueEvent(event);
     analyticsStore.setState({
       lastEvent: event,

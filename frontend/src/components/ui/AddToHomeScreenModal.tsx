@@ -6,6 +6,7 @@ import { cx } from "@/lib/classNames";
 import { Button } from "@/components/buttons/Button";
 import { Switch } from "@/components/elements/Switch";
 import { useAddToHomeScreen } from "@/hooks/pwa/useAddToHomeScreen";
+import { useT } from "@/hooks";
 
 const ShareIcon = () => (
   <svg
@@ -76,6 +77,7 @@ const Illustration = ({ phone, label }: IllustrationProps) => (
 );
 
 export const AddToHomeScreenModal = () => {
+  const { t } = useT();
   const { shouldShow, deviceType, dismiss, dismissPermanently } =
     useAddToHomeScreen();
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -147,7 +149,7 @@ export const AddToHomeScreenModal = () => {
           type="button"
           onClick={dismiss}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-surface-muted hover:text-foreground"
-          aria-label="Close"
+          aria-label={t("Close")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -167,7 +169,7 @@ export const AddToHomeScreenModal = () => {
         <div className="flex justify-center">
           <Image
             src="/new_logosvg.svg"
-            alt="Syncro"
+            alt={t("Syncro")}
             width={160}
             height={40}
             className="h-auto w-[140px]"
@@ -180,33 +182,32 @@ export const AddToHomeScreenModal = () => {
           id="a2hs-title"
           className="mt-5 text-center text-xl font-bold leading-tight text-[#2f5394] sm:text-2xl"
         >
-          Stay Connected, Even When You&apos;re Away.
+          {t("Stay Connected, Even When You're Away.")}
         </h2>
 
         {/* Description */}
         <p className="mt-3 text-center text-sm leading-relaxed text-muted">
-          Syncro Works Best When It Can Reach You At The Right Moment.
+          {t("Syncro works best when it can reach you at the right moment.")}
           <br />
-          Add It To Your Home Screen And Use It Like An App — No Installation
-          Needed.
+          {t("Add it to your home screen and use it like an app. No installation needed.")}
         </p>
 
         <p className="mt-4 text-center text-sm font-semibold text-foreground">
-          Only Useful Notifications.
+          {t("Only useful notifications.")}
         </p>
         <p className="mt-1 text-center text-sm text-muted">
-          No Spam. No Noise.
+          {t("No spam. No noise.")}
         </p>
 
         <p className="mt-4 text-center text-sm font-semibold text-foreground">
-          Takes Less Than 30 Seconds.
+          {t("Takes less than 30 seconds.")}
         </p>
 
         {/* Divider with label */}
         <div className="mt-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
           <span className="text-xs font-semibold text-muted">
-            It&apos;s Easy:
+            {t("It's easy:")}
           </span>
           <div className="h-px flex-1 bg-border" />
         </div>
@@ -217,11 +218,11 @@ export const AddToHomeScreenModal = () => {
             <>
               <Illustration
                 phone={<ShareIcon />}
-                label="Tap The Share Icon"
+                label={t("Tap the Share icon")}
               />
               <Illustration
                 phone={<PlusSquareIcon />}
-                label="Select Add To Home Screen"
+                label={t("Select Add to Home Screen")}
               />
               <Illustration
                 phone={
@@ -233,18 +234,18 @@ export const AddToHomeScreenModal = () => {
                     className="h-auto w-[36px]"
                   />
                 }
-                label="Open Syncro From Home"
+                label={t("Open Syncro from Home")}
               />
             </>
           ) : (
             <>
               <Illustration
                 phone={<MenuDotsIcon />}
-                label="Tap The Browser Menu ( ⋮ )"
+                label={t("Tap the browser menu ( ... )")}
               />
               <Illustration
                 phone={<PlusSquareIcon />}
-                label="Select Add To Home Screen"
+                label={t("Select Add to Home Screen")}
               />
               <Illustration
                 phone={
@@ -256,14 +257,14 @@ export const AddToHomeScreenModal = () => {
                     className="h-auto w-[36px]"
                   />
                 }
-                label="Open Syncro From Home"
+                label={t("Open Syncro from Home")}
               />
             </>
           )}
         </div>
 
         <p className="mt-3 text-center text-xs text-muted">
-          Done In Less Than 30 Sec
+          {t("Done in less than 30 sec")}
         </p>
 
         {/* Actions */}
@@ -274,17 +275,16 @@ export const AddToHomeScreenModal = () => {
             onClick={handlePrimary}
             className="h-12 rounded-[var(--radius-md)] bg-gradient-to-r from-[#325da8] to-[#4fa3df] text-base font-semibold text-white shadow-[0_12px_24px_rgba(56,112,191,0.28)]"
           >
-            Add Syncro To Home
+            {t("Add Syncro to Home")}
           </Button>
           <Button variant="secondary" fullWidth onClick={dismiss}>
-            May Be Later
+            {t("Maybe later")}
           </Button>
         </div>
 
         {/* Zyra quote */}
         <p className="mt-4 text-center text-xs leading-relaxed text-muted">
-          I&apos;ll Only Notify You When Something Is Truly Worth Your
-          Attention.
+          {t("I'll only notify you when something is truly worth your attention.")}
         </p>
         <p className="mt-1 text-center text-xs font-semibold text-accent">
           --- Zyra
@@ -293,7 +293,7 @@ export const AddToHomeScreenModal = () => {
         {/* Don't show again */}
         <div className="mt-4">
           <Switch
-            label="Don't Show Again"
+            label={t("Don't show again")}
             checked={dontShowAgain}
             onChange={(event) => setDontShowAgain(event.target.checked)}
           />

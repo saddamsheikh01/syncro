@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { HTMLAttributes } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const ShortcutItem = ({ href, label }: { href: string; label: string }) => (
@@ -18,13 +21,22 @@ export interface RightbarShortcutsCardProps
 export const RightbarShortcutsCard = ({
   className,
   ...props
-}: RightbarShortcutsCardProps) => (
-  <div className={cx("space-y-2", className)} {...props}>
-    <p className="text-xs font-semibold text-foreground">Smart Shortcuts</p>
-    <div className="space-y-1.5">
-      <ShortcutItem href="/matches" label="Find people aligned with you" />
-      <ShortcutItem href="/places" label="Explore compatible places" />
-      <ShortcutItem href="/profile" label="Improve my profile" />
+}: RightbarShortcutsCardProps) => {
+  const { t } = useT();
+
+  return (
+    <div className={cx("space-y-2", className)} {...props}>
+      <p className="text-xs font-semibold text-foreground">
+        {t("Smart Shortcuts")}
+      </p>
+      <div className="space-y-1.5">
+        <ShortcutItem href="/matches" label={t("Find people aligned with you")} />
+        <ShortcutItem
+          href="/places"
+          label={t("Explore compatible places")}
+        />
+        <ShortcutItem href="/profile" label={t("Improve my profile")} />
+      </div>
     </div>
-  </div>
-);
+  );
+};

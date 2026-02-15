@@ -1,6 +1,7 @@
 "use client";
 
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface PriceLevelProps {
   level: number;
@@ -10,11 +11,11 @@ export interface PriceLevelProps {
 }
 
 const PRICE_LABELS: Record<number, string> = {
-  0: "Gratis",
-  1: "Economico",
-  2: "Moderato",
-  3: "Costoso",
-  4: "Molto costoso",
+  0: "Free",
+  1: "Budget",
+  2: "Moderate",
+  3: "Expensive",
+  4: "Very expensive",
 };
 
 export const PriceLevel = ({
@@ -23,8 +24,9 @@ export const PriceLevel = ({
   showLabel = false,
   className,
 }: PriceLevelProps) => {
+  const { t } = useT();
   const validLevel = Math.max(0, Math.min(4, level));
-  const label = PRICE_LABELS[validLevel];
+  const label = t(PRICE_LABELS[validLevel]);
 
   const symbolSize = size === "sm" ? "text-xs" : "text-sm";
 

@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 import { Avatar } from "@/components/elements/Avatar";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import { useT } from "@/hooks";
 
 export interface ZyraSearchResultsProps {
   places: PlaceSummaryResponse[];
@@ -27,6 +28,7 @@ export const ZyraSearchResults = ({
   onResultClick,
   onAskZyra,
 }: ZyraSearchResultsProps) => {
+  const { t } = useT();
   const hasResults = places.length > 0 || users.length > 0 || posts.length > 0;
   const showNoResults = !loading && query.length >= 2 && !hasResults;
 
@@ -46,13 +48,13 @@ export const ZyraSearchResults = ({
           <ZyraMark size="xs" glow={false} />
           <div className="space-y-0.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zyra-text">
-              Zyra AI
+              {t("Zyra AI")}
             </p>
-            <p className="text-[11px] text-subtle">Profile-guided search</p>
+            <p className="text-[11px] text-subtle">{t("Profile-guided search")}</p>
           </div>
         </div>
         <span className="rounded-full border border-border/70 bg-surface-muted px-2 py-1 text-[10px] font-semibold text-zyra-text">
-          AI
+          {t("AI")}
         </span>
       </div>
 
@@ -60,7 +62,7 @@ export const ZyraSearchResults = ({
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8 text-subtle">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-zyra-text border-t-transparent" />
-            <span className="text-sm">Zyra is searching...</span>
+            <span className="text-sm">{t("Zyra is searching...")}</span>
           </div>
         )}
 
@@ -70,7 +72,7 @@ export const ZyraSearchResults = ({
               <NavIcon name="search" className="h-5 w-5 text-subtle" />
             </div>
             <p className="text-sm text-subtle">
-              No results for &ldquo;{query}&rdquo;
+              {t("No results for \"{query}\"", { query })}
             </p>
 
             {onAskZyra && (
@@ -78,7 +80,7 @@ export const ZyraSearchResults = ({
                 <div className="flex items-center gap-2">
                   <ZyraMark size="xs" glow={false} />
                   <p className="text-xs text-foreground">
-                    Zyra might be able to help you
+                    {t("Zyra might be able to help you")}
                   </p>
                 </div>
                 <button
@@ -86,7 +88,7 @@ export const ZyraSearchResults = ({
                   onClick={onAskZyra}
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-zyra-start via-zyra-mid to-zyra-end px-5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
                 >
-                  Ask Zyra
+                  {t("Ask Zyra")}
                 </button>
               </div>
             )}
@@ -103,7 +105,7 @@ export const ZyraSearchResults = ({
                     className="h-3.5 w-3.5 text-zyra-text"
                   />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Places
+                    {t("Places")}
                   </span>
                 </div>
                 <div className="space-y-0.5">
@@ -146,13 +148,14 @@ export const ZyraSearchResults = ({
                 <div className="flex items-center gap-2 px-3 py-2">
                   <NavIcon name="users" className="h-3.5 w-3.5 text-zyra-text" />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Users
+                    {t("Users")}
                   </span>
                 </div>
                 <div className="space-y-0.5">
                   {users.map((user) => {
                     const displayName =
-                      user.fullName ?? (user.username ? `@${user.username}` : "User");
+                      user.fullName ??
+                      (user.username ? `@${user.username}` : t("User"));
                     const usernameLabel =
                       user.fullName && user.username ? `@${user.username}` : null;
                     const locationLabel = [user.city, user.country]
@@ -201,7 +204,7 @@ export const ZyraSearchResults = ({
                 <div className="flex items-center gap-2 px-3 py-2">
                   <NavIcon name="chat" className="h-3.5 w-3.5 text-zyra-text" />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
-                    Posts
+                    {t("Posts")}
                   </span>
                 </div>
                 <div className="space-y-0.5">
@@ -218,7 +221,9 @@ export const ZyraSearchResults = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">
-                          {`User ${post.userId?.toString()?.slice(0, 8)}`}
+                          {t("User {id}", {
+                            id: post.userId?.toString()?.slice(0, 8) ?? "-",
+                          })}
                         </p>
                         <p className="truncate text-xs text-subtle">
                           {post.content.slice(0, 120)}
@@ -242,7 +247,8 @@ export const ZyraSearchResults = ({
           <div className="flex items-center justify-center gap-2 text-[10px] text-subtle">
             <ZyraMark size="xs" glow={false} />
             <span>
-              Powered by <span className="font-semibold text-zyra-text">Zyra AI</span>
+              {t("Powered by")}{" "}
+              <span className="font-semibold text-zyra-text">{t("Zyra AI")}</span>
             </span>
           </div>
         </div>

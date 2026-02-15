@@ -18,6 +18,8 @@ import type {
   PostResponse,
 } from "@/types/social";
 import { cx } from "@/lib/classNames";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
+import { useT } from "@/hooks";
 
 const LIKE_ICON = (
   <svg
@@ -64,12 +66,12 @@ const FAVORITE_ICON = (
   </svg>
 );
 
-const REACTION_OPTIONS: { type: PostReactionType; emoji: string; label: string }[] = [
-  { type: "LIKE", emoji: "👍", label: "Like" },
-  { type: "LOVE", emoji: "❤️", label: "Love" },
-  { type: "LAUGH", emoji: "😂", label: "Funny" },
-  { type: "WOW", emoji: "😮", label: "Wow" },
-  { type: "SUPPORT", emoji: "🙌", label: "Support" },
+const REACTION_OPTIONS: { type: PostReactionType; emoji: string; labelKey: string }[] = [
+  { type: "LIKE", emoji: "👍", labelKey: "Like" },
+  { type: "LOVE", emoji: "❤️", labelKey: "Love" },
+  { type: "LAUGH", emoji: "😂", labelKey: "Funny" },
+  { type: "WOW", emoji: "😮", labelKey: "Wow" },
+  { type: "SUPPORT", emoji: "🙌", labelKey: "Support" },
 ];
 
 const SCOPE_LABELS: Record<string, string> = {
@@ -96,6 +98,16 @@ const formatFileSize = (bytes: number) => {
   if (kb < 1024) return `${kb.toFixed(1)} KB`;
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
+};
+
+const formatDateLabel = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(getRuntimeBcp47(), {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const mapMediaToItems = (media: MediaResponse[]): PostMediaItem[] =>
@@ -140,13 +152,7 @@ export interface PostCardProps
 
 const formatPostDate = (isoDate?: string | null) => {
   if (!isoDate) return "";
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDateLabel(isoDate);
 };
 
 const formatCoordinate = (value: number | null | undefined) => {
@@ -156,19 +162,22 @@ const formatCoordinate = (value: number | null | undefined) => {
 
 const buildLocationLabel = (
   latitude: number | null | undefined,
-  longitude: number | null | undefined
+  longitude: number | null | undefined,
+  t: (key: string, values?: Record<string, string | number>) => string
 ) => {
   const lat = formatCoordinate(latitude);
   const lng = formatCoordinate(longitude);
   if (!lat && !lng) return "";
-  if (lat && lng) return `Location: ${lat}, ${lng}`;
-  return `Location: ${lat || lng}`;
+  if (lat && lng) {
+    return t("Location: {lat}, {lng}", { lat, lng });
+  }
+  return t("Location: {value}", { value: lat || lng });
 };
 
 export const PostCard = ({
   className,
   post,
-  authorName = "Syncro user",
+  authorName,
   authorSubtitle,
   locationLabel,
   avatarUrl,
@@ -185,6 +194,9 @@ export const PostCard = ({
   onDeletePost,
   ...props
 }: PostCardProps) => {
+  const { t } = useT();
+
+  const resolvedAuthorName = authorName ?? t("Syncro user");
   const [fetchedMediaItems, setFetchedMediaItems] = useState<PostMediaItem[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -229,7 +241,7 @@ export const PostCard = ({
       })
       .catch(() => {
         if (!active) return;
-        setMediaError("Error while loading media.");
+        setMediaError(t("Error while loading media."));
       })
       .finally(() => {
         if (!active) return;
@@ -246,7 +258,7 @@ export const PostCard = ({
   const resolvedLocationLabel =
     typeof locationLabel === "string" && locationLabel.trim().length > 0
       ? locationLabel
-      : buildLocationLabel(post.latitude, post.longitude);
+      : buildLocationLabel(post.latitude, post.longitude, t);
   const displayedContent = post.content;
   const reactionTotal = useMemo(() => {
     if (!post.reactions) return 0;
@@ -270,7 +282,7 @@ export const PostCard = ({
     () => [
       {
         id: "reaction",
-        label: post.myReaction ? "Reaction" : "React",
+        label: post.myReaction ? t("Reaction") : t("React"),
         count: reactionTotal,
         active: Boolean(post.myReaction),
         icon: reactionEmoji ? (
@@ -282,7 +294,7 @@ export const PostCard = ({
       },
       {
         id: "comment",
-        label: "Comment",
+        label: t("Comment"),
         count: commentCount,
         active: showComments,
         icon: COMMENT_ICON,
@@ -290,7 +302,7 @@ export const PostCard = ({
       },
       {
         id: "favorite",
-        label: post.favoritedByMe ? "Saved" : "Save",
+        label: post.favoritedByMe ? t("Saved") : t("Save"),
         active: post.favoritedByMe,
         icon: FAVORITE_ICON,
         variant: "default" as const,
@@ -303,6 +315,7 @@ export const PostCard = ({
       reactionEmoji,
       commentCount,
       showComments,
+      t,
     ]
   );
 
@@ -346,7 +359,7 @@ export const PostCard = ({
     if (!onEditPost) return;
     const trimmed = editContent.trim();
     if (!trimmed) {
-      setManageError("Write something before saving.");
+      setManageError(t("Write something before saving."));
       return;
     }
     setEditLoading(true);
@@ -364,8 +377,11 @@ export const PostCard = ({
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error
-          ? String((error as { message?: string }).message ?? "Unable to update post.")
-          : "Unable to update post.";
+          ? String(
+              (error as { message?: string }).message ??
+                t("Unable to update post.")
+            )
+          : t("Unable to update post.");
       setManageError(message);
     } finally {
       setEditLoading(false);
@@ -374,7 +390,7 @@ export const PostCard = ({
 
   const handleDeletePost = async () => {
     if (!onDeletePost || deleteLoading) return;
-    if (!window.confirm("Delete this post permanently?")) return;
+    if (!window.confirm(t("Delete this post permanently?"))) return;
     setDeleteLoading(true);
     setManageError(null);
     try {
@@ -382,8 +398,11 @@ export const PostCard = ({
     } catch (error) {
       const message =
         error && typeof error === "object" && "message" in error
-          ? String((error as { message?: string }).message ?? "Unable to delete post.")
-          : "Unable to delete post.";
+          ? String(
+              (error as { message?: string }).message ??
+                t("Unable to delete post.")
+            )
+          : t("Unable to delete post.");
       setManageError(message);
     } finally {
       setDeleteLoading(false);
@@ -414,11 +433,18 @@ export const PostCard = ({
 
     for (const file of incoming) {
       if (!ALLOWED_TYPES.some((t) => file.type.startsWith(t))) {
-        errors.push(`${file.name}: unsupported format.`);
+        errors.push(
+          t("{file}: unsupported format.", { file: file.name })
+        );
         continue;
       }
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        errors.push(`${file.name}: exceeds ${MAX_FILE_SIZE_MB} MB.`);
+        errors.push(
+          t("{file}: exceeds {max} MB.", {
+            file: file.name,
+            max: MAX_FILE_SIZE_MB,
+          })
+        );
         continue;
       }
       accepted.push(file);
@@ -426,7 +452,12 @@ export const PostCard = ({
 
     const remaining = MAX_MEDIA_FILES - totalEditMedia;
     if (accepted.length > remaining) {
-      errors.push(`Max ${MAX_MEDIA_FILES} files allowed. Only ${remaining} more can be added.`);
+      errors.push(
+        t("Max {max} files allowed. Only {remaining} more can be added.", {
+          max: MAX_MEDIA_FILES,
+          remaining,
+        })
+      );
       accepted.splice(remaining);
     }
 
@@ -447,7 +478,7 @@ export const PostCard = ({
   return (
     <Card className={cx("space-y-4 p-5", className)} {...props}>
       <PostHeader
-        name={authorName}
+        name={resolvedAuthorName}
         subtitle={authorSubtitle}
         timeLabel={createdDate || undefined}
         avatarUrl={avatarUrl ?? undefined}
@@ -464,7 +495,7 @@ export const PostCard = ({
               className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:border-border-strong"
               disabled={editLoading || deleteLoading}
             >
-              {editing ? "Cancel edit" : "Edit post"}
+              {editing ? t("Cancel edit") : t("Edit post")}
             </button>
           ) : null}
           {onDeletePost ? (
@@ -474,7 +505,7 @@ export const PostCard = ({
               className="inline-flex items-center rounded-full border border-danger/30 bg-danger/10 px-3 py-1 text-xs font-semibold text-danger hover:bg-danger/15"
               disabled={editLoading || deleteLoading}
             >
-              {deleteLoading ? "Deleting..." : "Delete post"}
+              {deleteLoading ? t("Deleting...") : t("Delete post")}
             </button>
           ) : null}
         </div>
@@ -493,7 +524,9 @@ export const PostCard = ({
             {/* Existing media thumbnails */}
             {Array.isArray(post.media) && post.media.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-subtle">Current media</p>
+                <p className="text-xs font-semibold text-subtle">
+                  {t("Current media")}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {post.media.map((m) => {
                     const markedForDelete = editMediaToDelete.includes(m.id);
@@ -507,7 +540,7 @@ export const PostCard = ({
                         >
                           {m.mediaType === "VIDEO" ? (
                             <div className="flex h-full w-full items-center justify-center bg-surface-muted text-[10px] text-subtle">
-                              Video
+                              {t("Video")}
                             </div>
                           ) : (
                             <img
@@ -522,7 +555,7 @@ export const PostCard = ({
                             type="button"
                             onClick={() => handleUndoMediaDelete(m.id)}
                             className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-sm"
-                            title="Undo remove"
+                            title={t("Undo remove")}
                           >
                             +
                           </button>
@@ -531,7 +564,7 @@ export const PostCard = ({
                             type="button"
                             onClick={() => handleMarkMediaForDelete(m.id)}
                             className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white shadow-sm"
-                            title="Remove media"
+                            title={t("Remove media")}
                           >
                             &times;
                           </button>
@@ -546,7 +579,9 @@ export const PostCard = ({
             {/* New files list */}
             {editNewFiles.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-subtle">New files</p>
+                <p className="text-xs font-semibold text-subtle">
+                  {t("New files")}
+                </p>
                 <div className="space-y-1">
                   {editNewFiles.map((file, index) => (
                     <div
@@ -562,7 +597,7 @@ export const PostCard = ({
                         onClick={() => handleRemoveNewFile(index)}
                         className="ml-2 text-xs font-semibold text-danger hover:text-danger/80"
                       >
-                        Remove
+                        {t("Remove")}
                       </button>
                     </div>
                   ))}
@@ -582,7 +617,7 @@ export const PostCard = ({
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <path d="m21 15-5-5L5 21" />
                   </svg>
-                  Add media
+                  {t("Add media")}
                 </label>
                 <input
                   id={editFileInputId}
@@ -602,7 +637,7 @@ export const PostCard = ({
                 className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground hover:border-border-strong"
                 disabled={editLoading}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -610,7 +645,7 @@ export const PostCard = ({
                 className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={editLoading}
               >
-                {editLoading ? "Saving..." : "Save"}
+                {editLoading ? t("Saving...") : t("Save")}
               </button>
             </div>
           </div>
@@ -630,7 +665,7 @@ export const PostCard = ({
         <div className="flex flex-wrap gap-2">
           {scopeLabel ? (
             <Badge tone="accent" size="sm">
-              {scopeLabel}
+              {t(scopeLabel)}
             </Badge>
           ) : null}
           {moodLabel ? (
@@ -640,7 +675,7 @@ export const PostCard = ({
           ) : null}
           {timeframeLabel ? (
             <Badge tone="neutral" size="sm">
-              {timeframeLabel}
+              {t(timeframeLabel)}
             </Badge>
           ) : null}
         </div>
@@ -648,13 +683,13 @@ export const PostCard = ({
 
       {post.taggedUsers?.length ? (
         <div className="flex flex-wrap items-center gap-2 text-xs text-subtle">
-          <span className="font-semibold text-foreground">With:</span>
+          <span className="font-semibold text-foreground">{t("With:")}</span>
           {post.taggedUsers.map((user) => (
             <span
               key={user.userId}
               className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface px-2 py-1 text-[11px] text-foreground"
             >
-              {user.fullName ?? user.username ?? "User"}
+              {user.fullName ?? user.username ?? t("User")}
             </span>
           ))}
         </div>
@@ -663,7 +698,7 @@ export const PostCard = ({
       {showMedia && mediaLoading ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted px-4 py-4">
           <Loader size="sm" />
-          <span className="text-sm text-muted">Loading media...</span>
+          <span className="text-sm text-muted">{t("Loading media...")}</span>
         </div>
       ) : null}
 
@@ -698,7 +733,7 @@ export const PostCard = ({
                 )}
               >
                 <span className="text-sm">{reaction.emoji}</span>
-                <span>{reaction.label}</span>
+                <span>{t(reaction.labelKey)}</span>
               </button>
             );
           })}
@@ -711,7 +746,7 @@ export const PostCard = ({
               }}
               className="ml-auto text-[11px] font-semibold text-subtle hover:text-foreground"
             >
-              Remove reaction
+              {t("Remove reaction")}
             </button>
           ) : null}
         </div>

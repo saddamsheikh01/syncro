@@ -17,7 +17,7 @@ import type { PlaceResult } from "@/components/elements/PlacesAutocomplete";
 import type { FilterChipItem } from "@/features/map/lists/MapFilterChip";
 import type { PlaceSummaryResponse } from "@/types/catalog";
 import type { RecommendationResponse } from "@/types/matches";
-import { useAnalytics, useCatalog, usePosition, useMatches } from "@/hooks";
+import { useAnalytics, useCatalog, useMatches, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 
 // Import dinamico per GoogleMapContainer (evita SSR issues)
@@ -52,6 +52,7 @@ const LEGEND_ITEMS: LegendItemData[] = [
 ];
 
 export const MapOverview = () => {
+  const { t } = useT();
   const {
     places,
     categories,
@@ -328,11 +329,11 @@ export const MapOverview = () => {
   const filterChips: FilterChipItem[] = useMemo(() => {
     const chips: FilterChipItem[] = [];
     if (hasPosition) {
-      chips.push({ id: "nearby", label: "Near me", selected: !forYouMode });
+      chips.push({ id: "nearby", label: t("Near me"), selected: !forYouMode });
     }
-    chips.push({ id: "forYou", label: "For you", selected: forYouMode });
+    chips.push({ id: "forYou", label: t("For you"), selected: forYouMode });
     return chips;
-  }, [hasPosition, forYouMode]);
+  }, [hasPosition, forYouMode, t]);
 
   // Gestione toggle filtri chip
   const handleFilterToggle = useCallback((id: string, nextSelected: boolean) => {
@@ -424,11 +425,11 @@ export const MapOverview = () => {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-12">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Explore
+            {t("Explore")}
           </p>
-          <h1 className="text-3xl font-semibold text-foreground">Map</h1>
+          <h1 className="text-3xl font-semibold text-foreground">{t("Map")}</h1>
           <p className="text-sm text-muted">
-            Discover interesting places around you.
+            {t("Discover interesting places around you.")}
           </p>
         </header>
         {isRequestingPosition ? (
@@ -436,20 +437,22 @@ export const MapOverview = () => {
             <Loader size="sm" />
             <div className="space-y-1">
               <p className="font-medium text-foreground">
-                Searching for location...
+                {t("Searching for location...")}
               </p>
               <p className="text-sm text-muted">
-                Accept the permission in the browser prompt.
+                {t("Accept the permission in the browser prompt.")}
               </p>
             </div>
           </Card>
         ) : (
           <MapPermissionScreen
-            title="Enable location"
-            description="To show nearby places, we need access to your location."
-            primaryActionLabel="Enable location"
-            secondaryActionLabel="Continue without location"
-            helper="You can change this choice anytime in settings."
+            title={t("Enable location")}
+            description={t(
+              "To show nearby places, we need access to your location."
+            )}
+            primaryActionLabel={t("Enable location")}
+            secondaryActionLabel={t("Continue without location")}
+            helper={t("You can change this choice anytime in settings.")}
             onPrimaryAction={handleRequestPermission}
             onSecondaryAction={handleSkipPermission}
           />
@@ -464,30 +467,31 @@ export const MapOverview = () => {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-12">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Explore
+            {t("Explore")}
           </p>
-          <h1 className="text-3xl font-semibold text-foreground">Map</h1>
+          <h1 className="text-3xl font-semibold text-foreground">{t("Map")}</h1>
         </header>
         <Card className="space-y-4 p-6">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-foreground">
-              Location unavailable
+              {t("Location unavailable")}
             </h3>
             <p className="text-sm text-muted">
-              You denied location access. To see nearby places, enable location
-              in your browser settings.
+              {t(
+                "You denied location access. To see nearby places, enable location in your browser settings."
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button size="sm" onClick={handleSkipPermission}>
-              Continue without location
+              {t("Continue without location")}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => positionActions.setPermission("unknown")}
             >
-              Try again
+              {t("Try again")}
             </Button>
           </div>
         </Card>
@@ -499,6 +503,10 @@ export const MapOverview = () => {
     ? loadingRecommendations && displayPlaces.length === 0
     : loading && places.length === 0 && !positionLoading;
   const currentError = forYouMode ? matchesError : error;
+  const legendItems = LEGEND_ITEMS.map((item) => ({
+    ...item,
+    label: t(item.label),
+  }));
 
   return (
     <div className="flex h-full flex-col">
@@ -507,16 +515,16 @@ export const MapOverview = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-              Explore
+              {t("Explore")}
             </p>
-            <h1 className="text-2xl font-semibold text-foreground">Map</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t("Map")}</h1>
           </div>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => setShowFilters(!showFilters)}
           >
-            {showFilters ? "Hide filters" : "Filters"}
+            {showFilters ? t("Hide filters") : t("Filters")}
           </Button>
         </div>
       </header>
@@ -550,7 +558,7 @@ export const MapOverview = () => {
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/80">
               <div className="flex items-center gap-3">
                 <Loader size="sm" />
-                <p className="text-sm text-muted">Loading places...</p>
+                <p className="text-sm text-muted">{t("Loading places...")}</p>
               </div>
             </div>
           )}
@@ -560,8 +568,8 @@ export const MapOverview = () => {
               <ErrorState
                 title={
                   forYouMode
-                    ? "Unable to load suggestions"
-                    : "Unable to load places"
+                    ? t("Unable to load suggestions")
+                    : t("Unable to load places")
                 }
                 description={currentError.message}
               />
@@ -573,12 +581,15 @@ export const MapOverview = () => {
               <EmptyState
                 title={
                   forYouMode
-                    ? "No suggestions available"
-                    : "No places found"
+                    ? t("No suggestions available")
+                    : t("No places found")
                 }
-                description={forYouMode
-                  ? "Complete your profile and tests to receive personalized suggestions."
-                  : "Try adjusting the filters or expanding the search radius."
+                description={
+                  forYouMode
+                    ? t(
+                        "Complete your profile and tests to receive personalized suggestions."
+                      )
+                    : t("Try adjusting the filters or expanding the search radius.")
                 }
               />
             </div>
@@ -594,7 +605,7 @@ export const MapOverview = () => {
 
           {/* Legenda */}
           <div className="absolute bottom-4 left-4 z-10">
-            <MapLegend items={LEGEND_ITEMS} title="" />
+            <MapLegend items={legendItems} title="" />
           </div>
 
           {/* Pulsante torna alla mia posizione */}
@@ -602,10 +613,10 @@ export const MapOverview = () => {
             <div className="absolute bottom-4 right-4 z-10">
               <button
                 type="button"
-                onClick={() => setRecenterTrigger((t) => t + 1)}
+                onClick={() => setRecenterTrigger((prev) => prev + 1)}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface shadow-md transition hover:bg-surface-muted"
-                aria-label="Recenter to my location"
-                title="Recenter to my location"
+                aria-label={t("Recenter to my location")}
+                title={t("Recenter to my location")}
               >
                 <svg
                   width="20"
@@ -630,7 +641,9 @@ export const MapOverview = () => {
             <div className="absolute right-4 top-4 z-10">
               <Card className="px-3 py-2">
                 <p className="text-xs font-medium text-muted">
-                  {displayPlaces.length} {forYouMode ? "recommended" : "places"}
+                  {forYouMode
+                    ? t("{count} recommended", { count: displayPlaces.length })
+                    : t("{count} places", { count: displayPlaces.length })}
                 </p>
               </Card>
             </div>
@@ -647,14 +660,14 @@ export const MapOverview = () => {
               distanceKm={selectedPlaceDistance}
               ratingLabel={
                 selectedPlaceScore !== null
-                  ? `${Math.round(selectedPlaceScore)}% match`
+                  ? t("{score}% Match", { score: Math.round(selectedPlaceScore) })
                   : undefined
               }
               googleRating={selectedPlace.googleRating ?? undefined}
               googleReviewCount={selectedPlace.googleReviewCount ?? undefined}
               imageUrl={selectedPlace.imageUrl ?? undefined}
-              primaryActionLabel="Details"
-              secondaryActionLabel="Directions"
+              primaryActionLabel={t("Details")}
+              secondaryActionLabel={t("Directions")}
               onPrimaryAction={() => {
                 window.location.href = `/places/${selectedPlace.id}`;
               }}

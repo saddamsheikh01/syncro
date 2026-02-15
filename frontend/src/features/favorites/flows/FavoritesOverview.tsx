@@ -8,7 +8,7 @@ import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
-import { useFavorites, usePosition } from "@/hooks";
+import { useFavorites, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import { getPostMedia } from "@/services/media";
 import type { MediaResponse } from "@/types/media";
@@ -17,17 +17,18 @@ import type { ExperienceListItemProps } from "@/features/catalog/cards/Experienc
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
 import type { FavoriteResponse } from "@/types/favorites";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 const PAGE_SIZE = 10;
 
-const SCOPE_LABELS: Record<string, string> = {
+const SCOPE_LABEL_KEYS: Record<string, string> = {
   AMICIZIA: "Friendship",
   ESPERIENZE: "Experiences",
   LAVORO: "Work",
   BENESSERE: "Wellness",
 };
 
-const TIMEFRAME_LABELS: Record<string, string> = {
+const TIMEFRAME_LABEL_KEYS: Record<string, string> = {
   ORA: "Now",
   OGGI: "Today",
 };
@@ -36,7 +37,7 @@ const formatDate = (isoDate?: string | null) => {
   if (!isoDate) return "";
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(getRuntimeBcp47(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -57,7 +58,7 @@ const formatPrice = (
 ): string | undefined => {
   if (price == null) return undefined;
   const curr = currency ?? "EUR";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(getRuntimeBcp47(), {
     style: "currency",
     currency: curr,
   }).format(price);
@@ -76,6 +77,7 @@ const FavoritePostCard = ({
   onOpen,
   onRemove,
 }: FavoritePostCardProps) => {
+  const { t } = useT();
   const post = favorite.post;
   const postId = post?.id;
   const [media, setMedia] = useState<MediaResponse | null>(null);
@@ -103,10 +105,19 @@ const FavoritePostCard = ({
     };
   }, [postId]);
 
-  const scopeLabel = post?.scope ? SCOPE_LABELS[post.scope] ?? post.scope : null;
-  const moodLabel = post?.mood ? post.mood.toLowerCase().replace(/_/g, " ") : null;
+  const scopeLabel = post?.scope
+    ? t(SCOPE_LABEL_KEYS[post.scope] ?? post.scope)
+    : null;
+  const moodLabel = post?.mood
+    ? t(
+        post.mood
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/^\w/, (char) => char.toUpperCase())
+      )
+    : null;
   const timeframeLabel = post?.timeframe
-    ? TIMEFRAME_LABELS[post.timeframe] ?? post.timeframe
+    ? t(TIMEFRAME_LABEL_KEYS[post.timeframe] ?? post.timeframe)
     : null;
   const createdAt = formatDate(post?.createdAt ?? null);
 
@@ -125,19 +136,19 @@ const FavoritePostCard = ({
           ) : (
             <img
               src={media.url}
-              alt="Post media"
+              alt={t("Post media")}
               className="h-full w-full object-cover"
             />
           )
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-xs text-subtle">
             {mediaLoading ? <Loader size="sm" /> : null}
-            <span>{mediaLoading ? "Loading media" : "No media"}</span>
+            <span>{mediaLoading ? t("Loading media") : t("No media")}</span>
           </div>
         )}
         {media?.mediaType === "VIDEO" ? (
           <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-1 text-[10px] font-semibold text-white">
-            Video
+            {t("Video")}
           </span>
         ) : null}
       </div>
@@ -145,26 +156,28 @@ const FavoritePostCard = ({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Saved post</p>
+            <p className="text-sm font-semibold text-foreground">
+              {t("Saved post")}
+            </p>
             {createdAt ? <p className="text-xs text-subtle">{createdAt}</p> : null}
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={onOpen} disabled={!postId}>
-              Open
+              {t("Open")}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onRemove(favorite)}
               loading={removing}
-              loadingText="Removing..."
+              loadingText={t("Removing...")}
             >
-              Remove
+              {t("Remove")}
             </Button>
           </div>
         </div>
         <p className="text-sm text-foreground">
-          {post?.content ?? "Content not available."}
+          {post?.content ?? t("Content not available.")}
         </p>
         {(scopeLabel || moodLabel || timeframeLabel) && (
           <div className="flex flex-wrap gap-2">
@@ -218,6 +231,7 @@ const resolveDistance = (
 
 export const FavoritesOverview = () => {
   const router = useRouter();
+  const { t } = useT();
   const { items, pageInfo, loading, error, hasMore, actions } = useFavorites();
   const {
     position,
@@ -269,7 +283,7 @@ export const FavoritesOverview = () => {
 
         const place = favorite.place;
         const cardProps: PlaceListItemProps = {
-          title: place?.name ?? "Place",
+          title: place?.name ?? t("Place"),
           subtitle: place?.description ?? undefined,
           address: place?.address ?? undefined,
           category: place?.category?.name ?? undefined,
@@ -282,7 +296,13 @@ export const FavoritesOverview = () => {
         };
         return { favorite, cardProps };
       }),
-    [canComputeDistance, placeFavorites, position?.latitude, position?.longitude]
+    [
+      canComputeDistance,
+      placeFavorites,
+      position?.latitude,
+      position?.longitude,
+      t,
+    ]
   );
 
   const mappedExperiences = useMemo(
@@ -290,7 +310,7 @@ export const FavoritesOverview = () => {
       experienceFavorites.map((favorite) => {
         const experience = favorite.experience;
         const cardProps: ExperienceListItemProps = {
-          title: experience?.name ?? "Experience",
+          title: experience?.name ?? t("Experience"),
           subtitle:
             experience?.locationName ?? experience?.place?.name ?? undefined,
           category: experience?.category?.name ?? undefined,
@@ -313,7 +333,7 @@ export const FavoritesOverview = () => {
         };
         return { favorite, cardProps };
       }),
-    [experienceFavorites]
+    [experienceFavorites, t]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -363,34 +383,34 @@ export const FavoritesOverview = () => {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Favorites
+          {t("Favorites")}
         </p>
         <h1 className="text-3xl font-semibold text-foreground">
-          Your saved items
+          {t("Your saved items")}
         </h1>
         <p className="text-sm text-muted">
-          Quickly find places and social items you&apos;ve saved.
+          {t("Quickly find places and social items you've saved.")}
         </p>
       </header>
 
       <Card className="space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] bg-surface-muted px-3 py-2 text-xs text-muted">
           <span className="font-semibold text-foreground">
-            {items.length} items
+            {t("{count} items", { count: items.length })}
           </span>
           {pageInfo.totalElements > 0 ? (
             <span className="text-subtle">
-              (total {pageInfo.totalElements})
+              {t("(total {count})", { count: pageInfo.totalElements })}
             </span>
           ) : null}
           {placeFavorites.length > 0 ? (
             canComputeDistance ? (
               <span className="rounded-full bg-card px-3 py-1 text-[11px] font-semibold text-subtle">
-                Distances based on your saved location
+                {t("Distances based on your saved location")}
               </span>
             ) : (
               <span className="rounded-full bg-card px-3 py-1 text-[11px] font-semibold text-subtle">
-                Save your location to calculate distances
+                {t("Save your location to calculate distances")}
               </span>
             )
           ) : null}
@@ -400,27 +420,27 @@ export const FavoritesOverview = () => {
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading your favorites...</p>
+          <p className="text-sm text-muted">{t("Loading your favorites...")}</p>
         </Card>
       )}
 
       {error && !isInitialLoading && (
         <div className="space-y-3">
           <ErrorState
-            title="Unable to load favorites"
+            title={t("Unable to load favorites")}
             description={error.message}
           />
           <Button variant="secondary" onClick={handleRetry} disabled={loading}>
-            Retry
+            {t("Retry")}
           </Button>
         </div>
       )}
 
       {!isInitialLoading && !error && items.length === 0 && (
         <EmptyState
-          title="No favorites yet"
-          description="Save places and posts you want to quickly find."
-          actionLabel="Browse places"
+          title={t("No favorites yet")}
+          description={t("Save places and posts you want to quickly find.")}
+          actionLabel={t("Browse places")}
           actionHref="/places"
         />
       )}
@@ -430,9 +450,11 @@ export const FavoritesOverview = () => {
           {placeFavorites.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Places</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {t("Places")}
+                </h2>
                 <span className="text-xs text-subtle">
-                  {placeFavorites.length} saved
+                  {t("{count} saved", { count: placeFavorites.length })}
                 </span>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -445,9 +467,9 @@ export const FavoritesOverview = () => {
                         variant="ghost"
                         onClick={() => handleRemove(favorite)}
                         loading={removingId === favorite.id}
-                        loadingText="Removing..."
+                        loadingText={t("Removing...")}
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     </div>
                   </div>
@@ -460,10 +482,10 @@ export const FavoritesOverview = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground">
-                  Experiences
+                  {t("Experiences")}
                 </h2>
                 <span className="text-xs text-subtle">
-                  {experienceFavorites.length} saved
+                  {t("{count} saved", { count: experienceFavorites.length })}
                 </span>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -476,9 +498,9 @@ export const FavoritesOverview = () => {
                         variant="ghost"
                         onClick={() => handleRemove(favorite)}
                         loading={removingId === favorite.id}
-                        loadingText="Removing..."
+                        loadingText={t("Removing...")}
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     </div>
                   </div>
@@ -490,9 +512,11 @@ export const FavoritesOverview = () => {
           {postFavorites.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Posts</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {t("Posts")}
+                </h2>
                 <span className="text-xs text-subtle">
-                  {postFavorites.length} saved
+                  {t("{count} saved", { count: postFavorites.length })}
                 </span>
               </div>
               <div className="space-y-4">
@@ -519,9 +543,9 @@ export const FavoritesOverview = () => {
                 variant="secondary"
                 onClick={handleLoadMore}
                 loading={loading}
-                loadingText="Loading"
+                loadingText={t("Loading")}
               >
-                Carica altri
+                {t("Load more")}
               </Button>
             </div>
           )}
@@ -530,7 +554,10 @@ export const FavoritesOverview = () => {
 
       {pageInfo.totalElements > 0 && (
         <p className="text-center text-xs text-subtle">
-          {items.length} of {pageInfo.totalElements} items
+          {t("{current} of {total} items", {
+            current: items.length,
+            total: pageInfo.totalElements,
+          })}
         </p>
       )}
     </div>

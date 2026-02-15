@@ -3,24 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
-
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const pad = (value: number) => value.toString().padStart(2, "0");
 
@@ -58,7 +42,7 @@ export const DatePicker = ({
   label,
   hint,
   error,
-  placeholder = "Select a date",
+  placeholder,
   value,
   defaultValue,
   onValueChange,
@@ -70,6 +54,7 @@ export const DatePicker = ({
   id,
   ...props
 }: DatePickerProps) => {
+  const { t, locale } = useT();
   const generatedId = useId();
   const autoId = id ?? generatedId;
   const isControlled = value !== undefined;
@@ -79,6 +64,21 @@ export const DatePicker = ({
   const now = new Date();
   const baseYear = minYear ?? now.getFullYear() - 100;
   const limitYear = maxYear ?? now.getFullYear();
+  const resolvedPlaceholder = placeholder ?? t("Select a date");
+  const monthLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(locale, { month: "long" });
+    return Array.from({ length: 12 }, (_, index) =>
+      formatter.format(new Date(2020, index, 1))
+    );
+  }, [locale]);
+  const weekDayLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
+    // 2020-06-01 e' lunedi': teniamo lunedi' come primo giorno, coerente col calendario.
+    const base = new Date(Date.UTC(2020, 5, 1));
+    return Array.from({ length: 7 }, (_, index) =>
+      formatter.format(new Date(base.getTime() + index * 24 * 60 * 60 * 1000))
+    );
+  }, [locale]);
   const initialYear = selectedParts?.year ?? now.getFullYear();
   const initialMonth = selectedParts?.month ?? now.getMonth();
   const [viewYear, setViewYear] = useState(initialYear);
@@ -163,7 +163,7 @@ export const DatePicker = ({
     toIsoDate(now.getFullYear(), now.getMonth(), now.getDate())
   );
 
-  const monthItems = MONTHS.map((month, index) => ({
+  const monthItems = monthLabels.map((month, index) => ({
     id: String(index),
     label: month,
   }));
@@ -196,8 +196,21 @@ export const DatePicker = ({
           !displayValue && "text-subtle"
         )}
       >
-        <span>{displayValue || placeholder}</span>
-        <span className="text-subtle">v</span>
+        <span>{displayValue || resolvedPlaceholder}</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          className="h-4 w-4 text-subtle"
+          fill="none"
+        >
+          <path
+            d="M6 8l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
       {open ? (
         <div className="relative">
@@ -212,11 +225,11 @@ export const DatePicker = ({
                 )}
                 disabled={!canPrev}
               >
-                Prev
+                {t("Previous")}
               </button>
               <div className="flex items-center gap-2">
                 <Dropdown
-                  label={MONTHS[viewMonth]}
+                  label={monthLabels[viewMonth]}
                   items={monthItems}
                   onSelect={(id) => setViewMonth(Number(id))}
                   buttonClassName="px-2 py-1 text-xs font-semibold"
@@ -239,11 +252,11 @@ export const DatePicker = ({
                 )}
                 disabled={!canNext}
               >
-                Next
+                {t("Next")}
               </button>
             </div>
             <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-subtle">
-              {WEEK_DAYS.map((day) => (
+              {weekDayLabels.map((day) => (
                 <span key={day} className="py-1 font-semibold">
                   {day}
                 </span>

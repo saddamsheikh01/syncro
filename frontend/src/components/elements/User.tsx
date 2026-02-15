@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useAuth, useUser } from "@/hooks";
+import { useAuth, useT, useUser } from "@/hooks";
 import { Avatar } from "@/components/elements/Avatar";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { getMediaByOwner } from "@/services/media";
@@ -15,6 +15,7 @@ import type { MediaResponse } from "@/types/media";
 export const User = () => {
   const { user, isAuthenticated, actions: authActions } = useAuth();
   const { profile, actions: userActions } = useUser();
+  const { t } = useT();
 
   const [avatar, setAvatar] = useState<MediaResponse | null>(null);
   const [avatarReloadTick, setAvatarReloadTick] = useState(0);
@@ -80,7 +81,7 @@ export const User = () => {
   const username = user?.username?.trim() ?? "";
   const fullName = profile?.fullName?.trim() ?? "";
   const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
-  const displayName = fullName || username || email || "User";
+  const displayName = fullName || username || email || t("User");
   const showUsername = Boolean(username) && username !== displayName;
   const showEmail = Boolean(email) && email !== displayName && !location;
 

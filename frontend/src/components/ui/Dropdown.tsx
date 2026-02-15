@@ -79,7 +79,20 @@ export const Dropdown = ({
         )}
       >
         {label}
-        <span className="text-subtle">v</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          className="h-4 w-4 text-subtle"
+          fill="none"
+        >
+          <path
+            d="M6 8l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
       {open ? (
         <div

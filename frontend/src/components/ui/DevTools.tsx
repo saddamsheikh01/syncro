@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { cx } from "@/lib/classNames";
-import { useTutorial, useUi } from "@/hooks";
+import { useT, useTutorial, useUi } from "@/hooks";
 
 const STORAGE_KEY_A2HS = "syncro_a2hs_dismissed";
 const OPEN_EARLY_ACCESS_FEEDBACK_EVENT = "syncro:open-early-access-feedback";
@@ -37,6 +37,7 @@ export interface DevToolsProps {
 
 export const DevTools = ({ collapsed = false }: DevToolsProps) => {
   const isDev = useIsLocalhost();
+  const { t } = useT();
   const { actions: tutorialActions } = useTutorial();
   const { actions: uiActions } = useUi();
 
@@ -56,13 +57,13 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
     // Rimuove il dismiss e ricarica per mostrare la modale
     // Nota: questo puo triggerare anche l'onboarding intro se non completato
     localStorage.removeItem(STORAGE_KEY_A2HS);
-    alert("A2HS localStorage cleared. Reload the page to see the modal.");
+    alert(t("A2HS localStorage cleared. Reload the page to see the modal."));
   };
 
   const handleTestNotification = () => {
     uiActions.pushToast({
-      title: "Test notification",
-      message: "This is a sample notification.",
+      title: t("Test notification"),
+      message: t("This is a sample notification."),
       tone: "info",
       durationMs: 4500,
     });
@@ -83,8 +84,8 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
         <button
           type="button"
           className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] text-amber-500 transition-colors hover:bg-amber-500/10"
-          aria-label="Dev Tools"
-          title="Dev Tools"
+          aria-label={t("Dev Tools")}
+          title={t("Dev Tools")}
         >
           <CodeIcon />
         </button>
@@ -95,7 +96,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
               <CodeIcon />
             </span>
             <span className="text-xs font-semibold text-amber-500">
-              Dev Tools
+              {t("Dev Tools")}
             </span>
           </div>
           <div className="space-y-2">
@@ -118,7 +119,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <path d="M12 17h.01" />
               </svg>
-              Open onboarding intro
+              {t("Open onboarding intro")}
             </button>
             <button
               type="button"
@@ -138,7 +139,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              Reset onboarding intro
+              {t("Reset onboarding intro")}
             </button>
             <button
               type="button"
@@ -159,7 +160,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <polyline points="16 6 12 2 8 6" />
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
-              Reset Add to Home
+              {t("Reset Add to Home")}
             </button>
             <button
               type="button"
@@ -180,7 +181,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M12 3v18" />
                 <circle cx="12" cy="12" r="9" />
               </svg>
-              Open early access feedback
+              {t("Open early access feedback")}
             </button>
             <button
               type="button"
@@ -200,7 +201,7 @@ export const DevTools = ({ collapsed = false }: DevToolsProps) => {
                 <path d="M12 5a4 4 0 0 0-4 4v3.5L6.5 15h11L16 12.5V9a4 4 0 0 0-4-4z" />
                 <path d="M10 19a2 2 0 0 0 4 0" />
               </svg>
-              Test notification
+              {t("Test notification")}
             </button>
           </div>
         </>

@@ -7,22 +7,27 @@ import { Loader } from "@/components/elements/Loader";
 import { getComments, createComment, deleteComment } from "@/services/social";
 import type { CommentResponse } from "@/types/social";
 import { cx } from "@/lib/classNames";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
+import { useT } from "@/hooks";
 
 const MAX_COMMENT_LENGTH = 100;
 
-const formatCommentDate = (isoDate: string) => {
+const formatCommentDate = (
+  isoDate: string,
+  t: (key: string, values?: Record<string, string | number>) => string
+) => {
   const date = new Date(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.round(diffMs / (1000 * 60));
 
-  if (diffMinutes < 1) return "now";
-  if (diffMinutes < 60) return `${diffMinutes} min`;
+  if (diffMinutes < 1) return t("now");
+  if (diffMinutes < 60) return t("{minutes} min", { minutes: diffMinutes });
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) return `${diffHours}h`;
   const diffDays = Math.round(diffHours / 24);
   if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit" });
+  return date.toLocaleDateString(getRuntimeBcp47(), { day: "2-digit", month: "2-digit" });
 };
 
 export interface PostCommentSectionProps {
@@ -36,6 +41,7 @@ export const PostCommentSection = ({
   currentUserId,
   onCommentCountChange,
 }: PostCommentSectionProps) => {
+  const { t } = useT();
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +64,7 @@ export const PostCommentSection = ({
       setHasMore(pageNum < response.totalPages - 1);
       setPage(pageNum);
     } catch {
-      setError("Error loading comments.");
+      setError(t("Error loading comments."));
     } finally {
       setLoading(false);
     }
@@ -81,7 +87,7 @@ export const PostCommentSection = ({
       setNewComment("");
       onCommentCountChange?.(comments.length + 1);
     } catch {
-      setError("Error sending the comment.");
+      setError(t("Error sending the comment."));
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +99,7 @@ export const PostCommentSection = ({
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       onCommentCountChange?.(Math.max(0, comments.length - 1));
     } catch {
-      setError("Error deleting the comment.");
+      setError(t("Error deleting the comment."));
     }
   };
 
@@ -115,7 +121,7 @@ export const PostCommentSection = ({
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
+            placeholder={t("Write a comment...")}
             maxLength={MAX_COMMENT_LENGTH + 10}
             disabled={submitting}
             className="flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm text-foreground placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
@@ -132,7 +138,7 @@ export const PostCommentSection = ({
             disabled={!newComment.trim() || isOverLimit || submitting}
             loading={submitting}
           >
-            Send
+            {t("Send")}
           </Button>
         </div>
         <div className="flex justify-end">
@@ -142,7 +148,7 @@ export const PostCommentSection = ({
               isOverLimit ? "text-danger" : remainingChars <= 20 ? "text-warning" : "text-subtle"
             )}
           >
-            {remainingChars} characters
+            {t("{count} characters", { count: remainingChars })}
           </span>
         </div>
       </div>
@@ -156,28 +162,28 @@ export const PostCommentSection = ({
       {loading && comments.length === 0 ? (
         <div className="flex items-center gap-2 py-2">
           <Loader size="sm" />
-          <span className="text-sm text-muted">Loading comments...</span>
+          <span className="text-sm text-muted">{t("Loading comments...")}</span>
         </div>
       ) : comments.length === 0 ? (
         <p className="py-2 text-center text-xs text-subtle">
-          No comments yet. Be the first to comment!
+          {t("No comments yet. Be the first to comment!")}
         </p>
       ) : (
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-2">
               <Avatar
-                name={comment.userFullName ?? comment.username ?? "User"}
+                name={comment.userFullName ?? comment.username ?? t("User")}
                 src={comment.userAvatarUrl ?? undefined}
                 size="sm"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">
-                    {comment.userFullName ?? comment.username ?? "User"}
+                    {comment.userFullName ?? comment.username ?? t("User")}
                   </span>
                   <span className="text-[11px] text-subtle">
-                    {formatCommentDate(comment.createdAt)}
+                    {formatCommentDate(comment.createdAt, t)}
                   </span>
                 </div>
                 <p className="text-sm text-foreground">{comment.content}</p>
@@ -187,7 +193,7 @@ export const PostCommentSection = ({
                     onClick={() => handleDelete(comment.id)}
                     className="mt-1 text-[11px] text-subtle hover:text-danger"
                   >
-                    Delete
+                    {t("Delete")}
                   </button>
                 )}
               </div>
@@ -201,7 +207,7 @@ export const PostCommentSection = ({
               disabled={loading}
               className="w-full py-2 text-center text-xs font-semibold text-accent hover:underline disabled:opacity-60"
             >
-              {loading ? "Loading..." : "Show more comments"}
+              {loading ? t("Loading...") : t("Show more comments")}
             </button>
           )}
         </div>

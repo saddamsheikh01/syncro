@@ -4,6 +4,7 @@ import { Input } from "@/components/elements/Input";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 const SearchIcon = () => (
   <svg
@@ -27,19 +28,26 @@ export interface GlobalSearchBarProps {
 
 export const GlobalSearchBar = ({
   className,
-  placeholder = "Search places, experiences, or people",
-  actionLabel = "Filtri",
-}: GlobalSearchBarProps) => (
-  <Card className={cx("flex flex-wrap items-center gap-3 p-4", className)}>
-    <div className="min-w-[220px] flex-1">
-      <Input
-        className="h-10"
-        placeholder={placeholder}
-        leftSlot={<SearchIcon />}
-      />
-    </div>
-    <Button size="sm" variant="secondary">
-      {actionLabel}
-    </Button>
-  </Card>
-);
+  placeholder,
+  actionLabel,
+}: GlobalSearchBarProps) => {
+  const { t } = useT();
+  const resolvedPlaceholderKey =
+    placeholder ?? "Search places, experiences, or people";
+  const resolvedActionLabelKey = actionLabel ?? "Filters";
+
+  return (
+    <Card className={cx("flex flex-wrap items-center gap-3 p-4", className)}>
+      <div className="min-w-[220px] flex-1">
+        <Input
+          className="h-10"
+          placeholder={t(resolvedPlaceholderKey)}
+          leftSlot={<SearchIcon />}
+        />
+      </div>
+      <Button size="sm" variant="secondary">
+        {t(resolvedActionLabelKey)}
+      </Button>
+    </Card>
+  );
+};

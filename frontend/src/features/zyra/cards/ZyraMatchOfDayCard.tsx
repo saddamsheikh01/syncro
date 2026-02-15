@@ -10,14 +10,18 @@ import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import type { MatchBreakdown, DimensionScores } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
+import { useT } from "@/hooks";
 
-const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
-  interests: { label: "Interests", emoji: "💫" },
-  lifestyle: { label: "Lifestyle", emoji: "🏃" },
-  values: { label: "Values", emoji: "💎" },
-  objectives: { label: "Goals", emoji: "🎯" },
-  psy: { label: "Personality", emoji: "🧠" },
-  astro: { label: "Astrology", emoji: "✨" },
+const DIMENSION_CONFIG: Record<
+  keyof DimensionScores,
+  { labelKey: string; emoji: string }
+> = {
+  interests: { labelKey: "Interests", emoji: "💫" },
+  lifestyle: { labelKey: "Lifestyle", emoji: "🏃" },
+  values: { labelKey: "Values", emoji: "💎" },
+  objectives: { labelKey: "Goals", emoji: "🎯" },
+  psy: { labelKey: "Personality", emoji: "🧠" },
+  astro: { labelKey: "Astrology", emoji: "✨" },
 };
 
 const getProgressColor = (value: number): string => {
@@ -50,17 +54,25 @@ export const ZyraMatchOfDayCard = ({
   matchScore,
   breakdown,
   sharedTags = [],
-  actionLabel = "Open",
+  actionLabel,
   actionHref,
   profileHref,
   ...props
 }: ZyraMatchOfDayCardProps) => {
+  const { t } = useT();
+  const resolvedActionLabel = actionLabel ? t(actionLabel) : t("Open");
+
   const dimensions = breakdown?.dimensions;
   // Normalizza i valori negativi a 0
   const availableDims = dimensions
     ? (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
         .filter((key) => dimensions[key] !== null && dimensions[key] !== undefined)
-        .map((key) => ({ key, value: Math.max(0, dimensions[key] as number), ...DIMENSION_CONFIG[key] }))
+        .map((key) => ({
+          key,
+          value: Math.max(0, dimensions[key] as number),
+          emoji: DIMENSION_CONFIG[key].emoji,
+          label: t(DIMENSION_CONFIG[key].labelKey),
+        }))
     : [];
 
   return (
@@ -78,7 +90,7 @@ export const ZyraMatchOfDayCard = ({
           <ZyraMark size="xs" glow={false} />
         </div>
         <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-zyra-text">
-          Match of the day
+          {t("Match of the day")}
         </span>
       </div>
 
@@ -167,7 +179,7 @@ export const ZyraMatchOfDayCard = ({
       {availableDims.length > 0 && (
         <div className="space-y-2.5 rounded-lg border border-zyra-border/40 bg-white/40 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-zyra-text/70">
-            Analisi compatibilita
+            {t("Compatibility analysis")}
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {availableDims.map(({ key, label, emoji, value }) => (
@@ -198,7 +210,7 @@ export const ZyraMatchOfDayCard = ({
             size="md"
             className="bg-gradient-to-r from-zyra-start to-zyra-end text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-zyra-start/30"
           >
-            {actionLabel}
+            {resolvedActionLabel}
           </Button>
         </Link>
       ) : (
@@ -206,7 +218,7 @@ export const ZyraMatchOfDayCard = ({
           size="md"
           className="bg-gradient-to-r from-zyra-start to-zyra-end text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-zyra-start/30"
         >
-          {actionLabel}
+          {resolvedActionLabel}
         </Button>
       )}
     </div>

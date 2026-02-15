@@ -6,6 +6,7 @@ import { Switch } from "@/components/elements/Switch";
 import { useUserStore } from "@/stores/user/useUserStore";
 import { userActions } from "@/stores/user/userStore";
 import { readStorage, writeStorage } from "@/stores/utils/storage";
+import { useT } from "@/hooks";
 
 const COOKIE_CONSENT_KEY = "syncro.cookie.consent";
 
@@ -25,6 +26,7 @@ export const CookieConsentDrawer = ({
   const [newsletterChecked, setNewsletterChecked] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { t } = useT();
   const preferences = useUserStore((state) => state.preferences);
 
   useEffect(() => {
@@ -100,11 +102,13 @@ export const CookieConsentDrawer = ({
   return (
     <Drawer
       open={open}
-      title="Privacy and cookies"
-      description="To continue using Syncro, accept our privacy policy and cookie management. You can also choose whether to receive our newsletter."
+      title={t("cookieConsent.title")}
+      description={t("cookieConsent.description")}
       onClose={handleClose}
       primaryAction={{
-        label: loading ? "Saving..." : "Accept and continue",
+        label: loading
+          ? t("cookieConsent.primaryAction.saving")
+          : t("cookieConsent.primaryAction.accept"),
         onClick: handleAccept,
         variant: "primary",
       }}
@@ -112,8 +116,7 @@ export const CookieConsentDrawer = ({
       <div className="space-y-4">
         <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted p-4">
           <p className="text-sm text-foreground">
-            We use essential cookies required for the app to work and analytics
-            cookies to improve your experience.
+            {t("cookieConsent.box.text")}
           </p>
           <a
             href="/privacy"
@@ -121,13 +124,13 @@ export const CookieConsentDrawer = ({
             rel="noopener noreferrer"
             className="mt-2 inline-block text-sm font-medium text-accent hover:underline"
           >
-            Read the full Privacy Policy
+            {t("cookieConsent.box.privacyLink")}
           </a>
         </div>
 
         <Switch
-          label="Subscribe to the newsletter"
-          description="Receive updates, news, and exclusive content by email."
+          label={t("cookieConsent.newsletter.label")}
+          description={t("cookieConsent.newsletter.description")}
           checked={newsletterChecked}
           onChange={(e) => setNewsletterChecked(e.target.checked)}
         />

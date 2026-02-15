@@ -1,5 +1,8 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { EmptyState } from "@/components/elements/EmptyState";
+import { useT } from "@/hooks";
 
 const ChatIcon = () => (
   <svg
@@ -25,18 +28,22 @@ export interface ConversationEmptyStateProps
 }
 
 export const ConversationEmptyState = ({
-  title = "No conversations",
-  description = "Start a chat to see messages here.",
-  actionLabel = "Find people",
+  title,
+  description,
+  actionLabel,
   actionHref = "/",
   ...props
-}: ConversationEmptyStateProps) => (
-  <EmptyState
-    title={title}
-    description={description}
-    actionLabel={actionLabel}
-    actionHref={actionHref}
-    icon={<ChatIcon />}
-    {...props}
-  />
-);
+}: ConversationEmptyStateProps) => {
+  const { t } = useT();
+
+  return (
+    <EmptyState
+      title={title ?? t("No conversations")}
+      description={description ?? t("Start a chat to see messages here.")}
+      actionLabel={actionLabel ?? t("Find people")}
+      actionHref={actionHref}
+      icon={<ChatIcon />}
+      {...props}
+    />
+  );
+};

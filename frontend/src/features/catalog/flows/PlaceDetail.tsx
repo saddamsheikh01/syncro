@@ -14,7 +14,7 @@ import { OpeningHours } from "@/components/elements/OpeningHours";
 import { PhotoGallery } from "@/components/elements/PhotoGallery";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
 import { ZyraPlaceRecap } from "@/features/zyra/cards/ZyraPlaceRecap";
-import { useCatalog, useFavorites, usePosition } from "@/hooks";
+import { useCatalog, useFavorites, usePosition, useT } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 import { calculateDistanceKm, formatDistanceKm } from "@/lib/geo";
 
@@ -30,6 +30,7 @@ const formatGoogleType = (value: string) =>
 
 export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
   const router = useRouter();
+  const { t } = useT();
   const { placeDetail, loading, error, actions } = useCatalog();
   const { items: favorites, actions: favoritesActions } = useFavorites();
   const { position, hasPosition } = usePosition();
@@ -124,7 +125,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       }
       setCopyFeedback(message);
     } catch {
-      setCopyFeedback("Unable to copy");
+      setCopyFeedback(t("Unable to copy"));
     } finally {
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current);
@@ -180,9 +181,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Invalid place"
-          description="The requested place does not exist or is unavailable."
-          actionLabel="Back to places"
+          title={t("Invalid place")}
+          description={t(
+            "The requested place does not exist or is unavailable."
+          )}
+          actionLabel={t("Back to places")}
           actionHref="/places"
         />
       </div>
@@ -196,7 +199,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading place...</p>
+          <p className="text-sm text-muted">{t("Loading place...")}</p>
         </Card>
       </div>
     );
@@ -206,9 +209,9 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Unable to load place"
+          title={t("Unable to load place")}
           description={error.message}
-          actionLabel="Back to places"
+          actionLabel={t("Back to places")}
           actionHref="/places"
         />
       </div>
@@ -233,7 +236,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
         onClick={() => router.back()}
         className="self-start text-sm text-muted hover:text-foreground"
       >
-        &larr; Back
+        &larr; {t("Back")}
       </button>
 
       <Card className="space-y-4 p-5">
@@ -261,7 +264,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 )}
                 {openNow !== undefined && (
                   <Badge tone={openNow ? "success" : "danger"} size="sm">
-                    {openNow ? "Open now" : "Closed now"}
+                    {openNow ? t("Open now") : t("Closed now")}
                   </Badge>
                 )}
                 {googleTypeLabel && (
@@ -352,7 +355,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                   <line x1="2" y1="12" x2="22" y2="12" />
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                Website
+                {t("Website")}
               </a>
             )}
           </div>
@@ -360,7 +363,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
 
         {affiliationLink && (
           <AffiliationLinkBox
-            title="Book this place"
+            title={t("Book this place")}
             href={affiliationLink.url}
             provider={affiliationLink.provider ?? undefined}
           />
@@ -371,7 +374,7 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
             <Button
               onClick={() => handleOpenExternal(googleMapsUrl)}
             >
-              Open in Google Maps
+              {t("Open in Google Maps")}
             </Button>
           )}
           {googleDirectionsUrl && (
@@ -379,16 +382,16 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               variant="secondary"
               onClick={() => handleOpenExternal(googleDirectionsUrl)}
             >
-              Directions
+              {t("Directions")}
             </Button>
           )}
           <Button
             variant={isFavorite ? "outline" : "secondary"}
             onClick={handleToggleFavorite}
             loading={savingFavorite}
-            loadingText={isFavorite ? "Removing..." : "Saving..."}
+            loadingText={isFavorite ? t("Removing...") : t("Saving...")}
           >
-            {isFavorite ? "Remove from favorites" : "Save to favorites"}
+            {isFavorite ? t("Remove from favorites") : t("Save to favorites")}
           </Button>
           <Button
             variant="ghost"
@@ -401,17 +404,19 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
               }
             }}
           >
-            Share
+            {t("Share")}
           </Button>
         </div>
       </Card>
 
       {showPositionCard && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Location</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            {t("Location")}
+          </h3>
           {distanceKm !== null && hasCoordinates && (
             <p className="text-sm font-medium text-accent">
-              About {formatDistanceKm(distanceKm)} away
+              {t("About {distance} away", { distance: formatDistanceKm(distanceKm) })}
             </p>
           )}
           {hasAddress && (
@@ -419,8 +424,10 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
           )}
           {hasCoordinates && (
             <p className="text-sm text-muted">
-              Coordinates: {placeDetail.latitude?.toFixed(6)},{" "}
-              {placeDetail.longitude?.toFixed(6)}
+              {t("Coordinates: {lat}, {lng}", {
+                lat: placeDetail.latitude?.toFixed(6) ?? "",
+                lng: placeDetail.longitude?.toFixed(6) ?? "",
+              })}
             </p>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
@@ -429,10 +436,10 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  handleCopy(placeDetail.address ?? "", "Address copied")
+                  handleCopy(placeDetail.address ?? "", t("Address copied"))
                 }
               >
-                Copy address
+                {t("Copy address")}
               </Button>
             )}
             {hasCoordinates && (
@@ -442,11 +449,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
                 onClick={() =>
                   handleCopy(
                     `${placeDetail.latitude?.toFixed(6)}, ${placeDetail.longitude?.toFixed(6)}`,
-                    "Coordinates copied"
+                    t("Coordinates copied")
                   )
                 }
               >
-                Copy coordinates
+                {t("Copy coordinates")}
               </Button>
             )}
           </div>

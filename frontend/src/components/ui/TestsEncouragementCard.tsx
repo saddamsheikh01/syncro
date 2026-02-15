@@ -4,27 +4,30 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { TestCountCard } from "@/components/ui/TestCountCard";
-import { useTests } from "@/hooks";
+import { useT, useTests } from "@/hooks";
 
-const resolveCtaLabel = (count: number | null | undefined) => {
-  if (count == null || count === 0) return "Start now";
-  if (count < 3) return "Complete another";
-  return "Update your profile";
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const resolveCtaLabel = (t: Translator, count: number | null | undefined) => {
+  if (count == null || count === 0) return t("Start now");
+  if (count < 3) return t("Complete another");
+  return t("Update your profile");
 };
 
-const resolveDescription = (count: number | null | undefined) => {
-  if (count == null) return "Calculating your completed insights.";
+const resolveDescription = (t: Translator, count: number | null | undefined) => {
+  if (count == null) return t("Calculating your completed insights.");
   if (count === 0) {
-    return "Unlock your Zyra profile by completing your first insight.";
+    return t("Unlock your Zyra profile by completing your first insight.");
   }
   if (count < 3) {
-    return "Each insight improves your match accuracy.";
+    return t("Each insight improves your match accuracy.");
   }
-  return "Keep going: Zyra is refining your profile.";
+  return t("Keep going: Zyra is refining your profile.");
 };
 
 export const TestsEncouragementCard = () => {
   const router = useRouter();
+  const { t } = useT();
   const { completedCount, countLoading, actions } = useTests();
   const fetchedRef = useRef(false);
 
@@ -36,10 +39,10 @@ export const TestsEncouragementCard = () => {
 
   return (
     <TestCountCard
-      title="Your insights"
+      title={t("Your insights")}
       count={completedCount}
       loading={countLoading}
-      description={resolveDescription(completedCount)}
+      description={resolveDescription(t, completedCount)}
       action={
         <Button
           size="sm"
@@ -47,7 +50,7 @@ export const TestsEncouragementCard = () => {
           fullWidth
           onClick={() => router.push("/insights")}
         >
-          {resolveCtaLabel(completedCount)}
+          {resolveCtaLabel(t, completedCount)}
         </Button>
       }
       variant="compact"

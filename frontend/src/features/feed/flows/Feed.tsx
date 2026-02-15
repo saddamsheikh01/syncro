@@ -13,7 +13,7 @@ import { Select } from "@/components/elements/Select";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import type { PostComposerPayload } from "@/features/social/sections/PostComposerModal";
 import { PostComposerModal } from "@/features/social/sections/PostComposerModal";
-import { useAuth, useFeed, usePosition, useUser } from "@/hooks";
+import { useAuth, useFeed, usePosition, useT, useUser } from "@/hooks";
 import { uploadPostMedia } from "@/services/media";
 import { createPost, deletePost as deletePostRequest } from "@/services/social";
 import { getUserSummary } from "@/services/users";
@@ -30,9 +30,14 @@ const readNumber = (value: JsonValue | undefined) =>
 const readBoolean = (value: JsonValue | undefined) =>
   typeof value === "boolean" ? value : undefined;
 
-const formatAuthorName = (userId: string) => {
-  if (!userId) return "Syncro user";
-  return `User ${userId.slice(0, 6).toUpperCase()}`;
+type Translator = (
+  key: string,
+  params?: Record<string, string | number>
+) => string;
+
+const formatAuthorName = (t: Translator, userId: string) => {
+  if (!userId) return t("Syncro user");
+  return t("User {id}", { id: userId.slice(0, 6).toUpperCase() });
 };
 
 const formatCoordinate = (value: number | null | undefined) => {
@@ -40,27 +45,27 @@ const formatCoordinate = (value: number | null | undefined) => {
   return value.toFixed(4);
 };
 
-const SCOPE_OPTIONS = [
-  { label: "All", value: "" },
-  { label: "Friendship", value: "AMICIZIA" },
-  { label: "Experiences", value: "ESPERIENZE" },
-  { label: "Work", value: "LAVORO" },
-  { label: "Wellness", value: "BENESSERE" },
+const SCOPE_OPTION_KEYS = [
+  { labelKey: "All", value: "" },
+  { labelKey: "Friendship", value: "AMICIZIA" },
+  { labelKey: "Experiences", value: "ESPERIENZE" },
+  { labelKey: "Work", value: "LAVORO" },
+  { labelKey: "Wellness", value: "BENESSERE" },
 ];
 
-const TIMEFRAME_OPTIONS = [
-  { label: "All", value: "" },
-  { label: "Now", value: "ORA" },
-  { label: "Today", value: "OGGI" },
+const TIMEFRAME_OPTION_KEYS = [
+  { labelKey: "All", value: "" },
+  { labelKey: "Now", value: "ORA" },
+  { labelKey: "Today", value: "OGGI" },
 ];
 
-const GENDER_OPTIONS = [
-  { label: "All", value: "" },
-  { label: "Female", value: "FEMALE" },
-  { label: "Male", value: "MALE" },
-  { label: "Non-binary", value: "NON_BINARY" },
-  { label: "Other", value: "OTHER" },
-  { label: "Prefer not to say", value: "PREFER_NOT_TO_SAY" },
+const GENDER_OPTION_KEYS = [
+  { labelKey: "All", value: "" },
+  { labelKey: "Female", value: "FEMALE" },
+  { labelKey: "Male", value: "MALE" },
+  { labelKey: "Non-binary", value: "NON_BINARY" },
+  { labelKey: "Other", value: "OTHER" },
+  { labelKey: "Prefer not to say", value: "PREFER_NOT_TO_SAY" },
 ];
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
@@ -71,26 +76,26 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const resolveUploadErrorReason = (error: unknown) => {
-  if (!error || typeof error !== "object") return "Upload failed";
+const resolveUploadErrorReason = (t: Translator, error: unknown) => {
+  if (!error || typeof error !== "object") return t("Upload failed");
   const candidate = error as {
     code?: string;
     status?: number;
     message?: string;
   };
   if (candidate.status === 413) {
-    return "File exceeds the upload size limit.";
+    return t("File exceeds the upload size limit.");
   }
   if (candidate.code === "TIMEOUT") {
-    return "Upload timeout. Try again with a stable connection.";
+    return t("Upload timeout. Try again with a stable connection.");
   }
   if (candidate.code === "NETWORK_ERROR") {
-    return "Network error during upload.";
+    return t("Network error during upload.");
   }
   if (candidate.message) {
     return candidate.message;
   }
-  return "Upload failed";
+  return t("Upload failed");
 };
 
 const sleep = (ms: number) =>
@@ -125,23 +130,27 @@ type UploadFailure = {
 };
 
 const formatUploadFailureError = (
+  t: Translator,
   failures: Array<{ name: string; reason: string }>
 ) => {
   if (failures.length === 0) {
-    return "Unable to publish the post because media upload failed.";
+    return t("Unable to publish the post because media upload failed.");
   }
   const listed = failures
     .slice(0, 3)
     .map((failure) => `${failure.name}: ${failure.reason}`);
   const suffix =
-    failures.length > 3 ? ` (+${failures.length - 3} more)` : "";
-  return `Unable to publish the post because media upload failed. ${listed.join(
-    " | "
-  )}${suffix}`;
+    failures.length > 3
+      ? ` ${t("(+{count} more)", { count: failures.length - 3 })}`
+      : "";
+  return t("Unable to publish the post because media upload failed. {details}", {
+    details: `${listed.join(" | ")}${suffix}`,
+  });
 };
 
 export const Feed = () => {
   const router = useRouter();
+  const { t } = useT();
   const { status, user, actions: authActions } = useAuth();
   const { preferences, profile, language, actions: userActions } = useUser();
   const {
@@ -293,13 +302,13 @@ export const Feed = () => {
       } catch (error) {
         const message = resolveErrorMessage(
           error,
-          "Error while updating the post."
+          t("Error while updating the post.")
         );
         setPostActionError(message);
         throw new Error(message);
       }
     },
-    [feedActions]
+    [feedActions, t]
   );
 
   const handleDeletePost = useCallback(
@@ -310,18 +319,18 @@ export const Feed = () => {
       } catch (error) {
         const message = resolveErrorMessage(
           error,
-          "Error while deleting the post."
+          t("Error while deleting the post.")
         );
         setPostActionError(message);
         throw new Error(message);
       }
     },
-    [feedActions]
+    [feedActions, t]
   );
 
   const postItems = useMemo(() => {
     const profileName = profile?.fullName?.trim();
-    const selfName = profileName || user?.email || "You";
+    const selfName = profileName || user?.email || t("You");
 
     return items.map((post) => ({
       post,
@@ -336,7 +345,7 @@ export const Feed = () => {
           ? selfName
           : authorSummaries[post.userId]?.fullName ??
             authorSummaries[post.userId]?.username ??
-            formatAuthorName(post.userId),
+            formatAuthorName(t, post.userId),
       authorSubtitle:
         authorSummaries[post.userId]?.city ??
         authorSummaries[post.userId]?.country ??
@@ -358,6 +367,7 @@ export const Feed = () => {
     feedActions.toggleFavorite,
     items,
     profile?.fullName,
+    t,
     user?.email,
     user?.id,
     authorSummaries,
@@ -447,7 +457,7 @@ export const Feed = () => {
           } catch (mediaError) {
             failures.push({
               name: file.name,
-              reason: resolveUploadErrorReason(mediaError),
+              reason: resolveUploadErrorReason(t, mediaError),
             });
             break;
           }
@@ -461,14 +471,17 @@ export const Feed = () => {
             rollbackError = error;
           }
 
-          const uploadErrorMessage = formatUploadFailureError(failures);
+          const uploadErrorMessage = formatUploadFailureError(t, failures);
           if (rollbackError) {
             const rollbackReason = resolveErrorMessage(
               rollbackError,
-              "rollback failed"
+              t("Rollback failed")
             );
             throw new Error(
-              `${uploadErrorMessage}. The post text may still exist because automatic rollback failed (${rollbackReason}).`
+              t(
+                "{uploadError} The post text may still exist because automatic rollback failed ({reason}).",
+                { uploadError: uploadErrorMessage, reason: rollbackReason }
+              )
             );
           }
 
@@ -482,7 +495,7 @@ export const Feed = () => {
         .catch(() => undefined);
     } catch (submitError) {
       setComposerError(
-        resolveErrorMessage(submitError, "Error while publishing.")
+        resolveErrorMessage(submitError, t("Error while publishing."))
       );
     } finally {
       setComposerLoading(false);
@@ -504,23 +517,50 @@ export const Feed = () => {
         )}`
       : undefined;
 
+  const scopeOptions = useMemo(
+    () =>
+      SCOPE_OPTION_KEYS.map((option) => ({
+        label: t(option.labelKey),
+        value: option.value,
+      })),
+    [t]
+  );
+
+  const timeframeOptions = useMemo(
+    () =>
+      TIMEFRAME_OPTION_KEYS.map((option) => ({
+        label: t(option.labelKey),
+        value: option.value,
+      })),
+    [t]
+  );
+
+  const genderOptions = useMemo(
+    () =>
+      GENDER_OPTION_KEYS.map((option) => ({
+        label: t(option.labelKey),
+        value: option.value,
+      })),
+    [t]
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-              Feed
+              {t("Feed")}
             </p>
             <h1 className="text-3xl font-semibold text-foreground">
-              Posts near you
+              {t("Posts near you")}
             </h1>
             <p className="text-sm text-muted">
-              Discover localized and personalized content.
+              {t("Discover localized and personalized content.")}
             </p>
           </div>
           <Button size="sm" onClick={handleOpenComposer}>
-            Create post
+            {t("Create post")}
           </Button>
         </div>
       </header>
@@ -529,7 +569,7 @@ export const Feed = () => {
         <Card className="flex flex-wrap items-start justify-between gap-3 border-danger/30 bg-danger/10 p-4">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Unable to complete post action
+              {t("Unable to complete post action")}
             </p>
             <p className="text-xs text-muted">{postActionError}</p>
           </div>
@@ -538,7 +578,7 @@ export const Feed = () => {
             variant="ghost"
             onClick={() => setPostActionError(null)}
           >
-            Close
+            {t("Close")}
           </Button>
         </Card>
       ) : null}
@@ -547,48 +587,48 @@ export const Feed = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Feed filters
+              {t("Feed filters")}
             </p>
             <p className="text-xs text-subtle">
-              Customize what you want to see in the feed.
+              {t("Customize what you want to see in the feed.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={handleResetFilters}>
-              Reset
+              {t("Reset")}
             </Button>
             <Button size="sm" onClick={handleApplyFilters}>
-              Apply
+              {t("Apply")}
             </Button>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Select
-            label="Scope"
-            options={SCOPE_OPTIONS}
+            label={t("Scope")}
+            options={scopeOptions}
             value={scopeFilter}
             onValueChange={(value) =>
               setScopeFilter(value as "" | PostScope)
             }
           />
           <Select
-            label="Timeframe"
-            options={TIMEFRAME_OPTIONS}
+            label={t("Timeframe")}
+            options={timeframeOptions}
             value={timeframeFilter}
             onValueChange={(value) =>
               setTimeframeFilter(value as "" | PostTimeframe)
             }
           />
           <Input
-            label="City"
+            label={t("City")}
             value={cityFilter}
             onChange={(event) => setCityFilter(event.target.value)}
-            placeholder="Milan"
+            placeholder={t("Milan")}
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Minimum age"
+              label={t("Minimum age")}
               type="number"
               min={18}
               value={ageMinFilter}
@@ -596,7 +636,7 @@ export const Feed = () => {
               placeholder="18"
             />
             <Input
-              label="Maximum age"
+              label={t("Maximum age")}
               type="number"
               min={18}
               value={ageMaxFilter}
@@ -605,13 +645,13 @@ export const Feed = () => {
             />
           </div>
           <Select
-            label="Gender"
-            options={GENDER_OPTIONS}
+            label={t("Gender")}
+            options={genderOptions}
             value={genderFilter}
             onValueChange={setGenderFilter}
           />
           <Input
-            label="Minimum compatibility"
+            label={t("Minimum compatibility")}
             type="number"
             min={0}
             max={100}
@@ -624,18 +664,20 @@ export const Feed = () => {
 
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <Badge tone="accent" size="sm">
-          {onlyNearby ? "Nearby only" : "All posts"}
+          {onlyNearby ? t("Nearby only") : t("All posts")}
         </Badge>
         <Badge tone="neutral" size="sm">
-          Radius {radiusKm ? `${radiusKm} km` : "any"}
+          {t("Radius {value}", {
+            value: radiusKm ? `${radiusKm} km` : t("any"),
+          })}
         </Badge>
         <Badge tone={hasPosition ? "success" : "warning"} size="sm">
-          {hasPosition ? "Location enabled" : "Location unavailable"}
+          {hasPosition ? t("Location enabled") : t("Location unavailable")}
         </Badge>
         {positionLoading ? (
           <span className="ml-auto inline-flex items-center gap-2 text-xs text-subtle">
             <Loader size="sm" />
-            Updating location
+            {t("Updating location")}
           </span>
         ) : null}
       </Card>
@@ -643,21 +685,21 @@ export const Feed = () => {
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading feed...</p>
+          <p className="text-sm text-muted">{t("Loading feed...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <ErrorState
-          title="Unable to load the feed"
+          title={t("Unable to load the feed")}
           description={error.message}
         />
       ) : null}
 
       {!isInitialLoading && !error && items.length === 0 ? (
         <EmptyState
-          title="No posts available"
-          description="Come back later to see new content."
+          title={t("No posts available")}
+          description={t("Come back later to see new content.")}
         />
       ) : null}
 
@@ -670,9 +712,9 @@ export const Feed = () => {
             size="md"
             onClick={handleLoadMore}
             loading={loading}
-            loadingText="Loading"
+            loadingText={t("Loading")}
           >
-            Load more
+            {t("Load more")}
           </Button>
         </div>
       ) : null}

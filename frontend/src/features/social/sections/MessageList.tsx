@@ -7,6 +7,7 @@ import { Loader } from "@/components/elements/Loader";
 import { Skeleton } from "@/components/elements/Skeleton";
 import { cx } from "@/lib/classNames";
 import { MapMessageBubble } from "../lists/MapMessageBubble";
+import { useT } from "@/hooks";
 
 export interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   messages: ChatMessageResponse[];
@@ -37,11 +38,14 @@ export const MessageList = ({
   messages,
   currentUserId,
   loading = false,
-  emptyMessage = "No messages yet. Start the conversation!",
+  emptyMessage,
   ...props
 }: MessageListProps) => {
+  const { t } = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLength = useRef(messages.length);
+  const resolvedEmptyMessage =
+    emptyMessage ?? t("No messages yet. Start the conversation!");
 
   useEffect(() => {
     if (containerRef.current && messages.length > prevMessagesLength.current) {
@@ -73,7 +77,9 @@ export const MessageList = ({
         )}
         {...props}
       >
-        <p className="text-center text-sm text-muted">{emptyMessage}</p>
+        <p className="text-center text-sm text-muted">
+          {resolvedEmptyMessage}
+        </p>
       </div>
     );
   }

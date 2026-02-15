@@ -1,21 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/elements/Card";
+import { useT } from "@/hooks";
 
-const buildShareText = (testTitle: string, recap: string) => {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const buildShareText = (
+  t: Translator,
+  testTitle: string,
+  recap: string
+) => {
   const plain = recap
     .replace(/[#*_~`>[\]()!|-]/g, "")
     .replace(/\n{2,}/g, "\n")
     .trim();
 
   return [
-    `I just completed the "${testTitle}" insight on Syncro.`,
+    t('I just completed the "{testTitle}" insight on Syncro.', { testTitle }),
     "",
-    `Here's what Zyra told me:`,
+    t("Here's what Zyra told me:"),
     `"${plain}"`,
     "",
-    "Discover yours on Syncro",
+    t("Discover yours on Syncro"),
   ].join("\n");
 };
 
@@ -103,9 +110,13 @@ export const ShareInsightCard = ({
   testTitle,
   recap,
 }: ShareInsightCardProps) => {
+  const { t } = useT();
   const [copied, setCopied] = useState(false);
 
-  const shareText = buildShareText(testTitle, recap);
+  const shareText = useMemo(
+    () => buildShareText(t, testTitle, recap),
+    [t, testTitle, recap]
+  );
 
   const handleCopy = useCallback(async () => {
     try {
@@ -148,45 +159,45 @@ export const ShareInsightCard = ({
       <div className="relative space-y-5">
         <div className="space-y-1 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-subtle">
-            Share your results
+            {t("Share your results")}
           </p>
           <h3 className="text-base font-semibold text-foreground">
-            Let others discover what makes you, you.
+            {t("Let others discover what makes you, you.")}
           </h3>
           <p className="text-sm text-muted">
-            Share your Zyra recap and inspire someone to take the insight too.
+            {t("Share your Zyra recap and inspire someone to take the insight too.")}
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-5">
           <SocialButton
             icon={<FacebookIcon />}
-            label="Facebook"
+            label={t("Facebook")}
             color="#1877F2"
             onClick={handleFacebook}
           />
           <SocialButton
             icon={<InstagramIcon />}
-            label="Instagram"
+            label={t("Instagram")}
             color="#E4405F"
             onClick={handleInstagram}
           />
           <SocialButton
             icon={<WhatsAppIcon />}
-            label="WhatsApp"
+            label={t("WhatsApp")}
             color="#25D366"
             onClick={handleWhatsApp}
           />
           <SocialButton
             icon={copied ? <CheckIcon /> : <CopyIcon />}
-            label={copied ? "Copied!" : "Copy"}
+            label={copied ? t("Copied!") : t("Copy")}
             color="var(--accent)"
             onClick={handleCopy}
           />
         </div>
 
         <p className="text-center text-[11px] text-subtle">
-          Only the recap summary is shared — never your answers.
+          {t("Only the recap summary is shared - never your answers.")}
         </p>
       </div>
     </Card>

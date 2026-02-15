@@ -1,4 +1,7 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface SubmissionProgressProps
@@ -17,8 +20,11 @@ export const SubmissionProgress = ({
   helper,
   ...props
 }: SubmissionProgressProps) => {
+  const { t } = useT();
   const rawProgress = total > 0 ? (current / total) * 100 : 0;
   const progress = Math.min(Math.max(rawProgress, 0), 100);
+  const resolvedLabel = label ? t(label) : t("Completion");
+  const resolvedHelper = helper ? t(helper) : null;
 
   return (
     <div
@@ -29,7 +35,7 @@ export const SubmissionProgress = ({
       {...props}
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <span className="text-sm font-semibold text-foreground">{resolvedLabel}</span>
         <span className="text-xs font-semibold text-subtle">
           {current}/{total}
         </span>
@@ -40,7 +46,7 @@ export const SubmissionProgress = ({
           style={{ width: `${progress}%` }}
         />
       </div>
-      {helper ? <p className="text-xs text-subtle">{helper}</p> : null}
+      {resolvedHelper ? <p className="text-xs text-subtle">{resolvedHelper}</p> : null}
     </div>
   );
 };

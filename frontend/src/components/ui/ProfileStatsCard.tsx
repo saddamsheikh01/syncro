@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useMatches, useTags, useTests } from "@/hooks";
+import { useMatches, useTags, useTests, useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const SparkIcon = () => (
@@ -41,6 +41,7 @@ const StatItem = ({ icon, value, label, color }: StatItemProps) => (
 );
 
 export const ProfileStatsCard = () => {
+  const { t } = useT();
   const { userMatches, actions: matchActions } = useMatches();
   const { interests, actions: tagsActions } = useTags();
   const { completedCount, countLoading, actions: testsActions } = useTests();
@@ -63,26 +64,26 @@ export const ProfileStatsCard = () => {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-foreground">Your profile</p>
+      <p className="text-xs font-semibold text-foreground">{t("Your profile")}</p>
       <div className="flex items-center justify-around rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/50 p-3">
         <StatItem
           icon={<SparkIcon />}
           value={matchCount}
-          label="Match"
+          label={t("Match")}
           color="bg-qa-match-bg text-[var(--qa-match-gradient-start)]"
         />
         <div className="h-10 w-px bg-border/70" />
         <StatItem
           icon={<HeartIcon />}
           value={interestCount}
-          label="Interests"
+          label={t("Interests")}
           color="bg-qa-experiences-bg text-[var(--qa-experiences-gradient-start)]"
         />
         <div className="h-10 w-px bg-border/70" />
         <StatItem
           icon={<ClipboardIcon />}
           value={testCount}
-          label="Insights"
+          label={t("Insights")}
           color="bg-qa-tests-bg text-[var(--qa-tests-gradient-start)]"
         />
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
@@ -9,7 +9,7 @@ import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { AdminTopbar } from "@/components/layout/AdminTopbar";
-import { useAdminAuth } from "@/hooks";
+import { useAdminAuth, useT } from "@/hooks";
 
 export interface AdminLayoutProps {
   children: ReactNode;
@@ -82,6 +82,16 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const { status, admin, tokens, actions } = useAdminAuth();
+  const { t } = useT();
+  const navItems = useMemo(
+    () =>
+      NAV_ITEMS.map((item) => ({
+        ...item,
+        label: t(item.label),
+        description: t(item.description),
+      })),
+    [t]
+  );
 
   useEffect(() => {
     if (status === "idle") {
@@ -111,7 +121,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading admin area...</p>
+          <p className="text-sm text-muted">{t("Loading admin area...")}</p>
         </Card>
       </div>
     );
@@ -121,9 +131,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <Card className="w-full max-w-lg space-y-4 p-6">
-          <h1 className="text-xl font-semibold text-foreground">Access denied</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            {t("Access denied")}
+          </h1>
           <p className="text-sm text-muted">
-            This area is available only to users with the SUPER_ADMIN role.
+            {t("This area is available only to users with the SUPER_ADMIN role.")}
           </p>
           <div>
             <Button
@@ -132,7 +144,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 void actions.logout();
               }}
             >
-              Log out
+              {t("Log out")}
             </Button>
           </div>
         </Card>
@@ -144,7 +156,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     <div className="min-h-screen bg-background">
       <div className="hidden lg:block">
         <AdminSidebar
-          items={NAV_ITEMS}
+          items={navItems}
           pathname={pathname}
           adminEmail={admin.email}
           onLogout={() => void actions.logout()}
@@ -162,7 +174,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
 
           <div className="mt-4 lg:hidden">
-            <AdminSidebar items={NAV_ITEMS} pathname={pathname} variant="mobile" />
+            <AdminSidebar items={navItems} pathname={pathname} variant="mobile" />
           </div>
 
           <main className="mt-6">{children}</main>

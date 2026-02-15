@@ -9,8 +9,9 @@ import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
-import { useCatalog, useFavorites } from "@/hooks";
+import { useCatalog, useFavorites, useT } from "@/hooks";
 import { isUuid } from "@/lib/validators";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 export interface ExperienceDetailProps {
   experienceId: string;
@@ -18,6 +19,7 @@ export interface ExperienceDetailProps {
 
 export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   const router = useRouter();
+  const { t } = useT();
   const { experienceDetail, loading, error, actions } = useCatalog();
   const { items: favorites, actions: favoritesActions } = useFavorites();
   const bootstrappedRef = useRef(false);
@@ -67,9 +69,11 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Invalid experience"
-          description="The requested experience does not exist or is unavailable."
-          actionLabel="Back to experiences"
+          title={t("Invalid experience")}
+          description={t(
+            "The requested experience does not exist or is unavailable."
+          )}
+          actionLabel={t("Back to experiences")}
           actionHref="/experiences"
         />
       </div>
@@ -83,7 +87,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading experience...</p>
+          <p className="text-sm text-muted">{t("Loading experience...")}</p>
         </Card>
       </div>
     );
@@ -93,9 +97,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Unable to load experience"
+          title={t("Unable to load experience")}
           description={error.message}
-          actionLabel="Back to experiences"
+          actionLabel={t("Back to experiences")}
           actionHref="/experiences"
         />
       </div>
@@ -112,10 +116,12 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
 
   const formatDuration = (minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
-    if (minutes < 60) return `${minutes} minutes`;
+    if (minutes < 60) return t("{count} minutes", { count: minutes });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours} hours and ${mins} minutes` : `${hours} hours`;
+    return mins > 0
+      ? t("{hours} hours and {minutes} minutes", { hours, minutes: mins })
+      : t("{count} hours", { count: hours });
   };
 
   const formatPrice = (
@@ -124,7 +130,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   ): string | undefined => {
     if (price == null) return undefined;
     const curr = currency ?? "EUR";
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(getRuntimeBcp47(), {
       style: "currency",
       currency: curr,
     }).format(price);
@@ -142,7 +148,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         onClick={() => router.back()}
         className="self-start text-sm text-muted hover:text-foreground"
       >
-        &larr; Back
+        &larr; {t("Back")}
       </button>
 
       <Card className="space-y-4 p-5">
@@ -203,7 +209,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               </span>
               {experienceDetail.reviewCount != null && experienceDetail.reviewCount > 0 && (
                 <span className="text-sm text-muted">
-                  ({experienceDetail.reviewCount} reviews)
+                  {t("({count} reviews)", {
+                    count: experienceDetail.reviewCount,
+                  })}
                 </span>
               )}
             </div>
@@ -221,12 +229,14 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 <span className="text-lg font-semibold text-foreground">
                   {formatPrice(experienceDetail.price, experienceDetail.priceCurrency)}
                 </span>
-                <span className="text-xs text-muted">per person</span>
+                <span className="text-xs text-muted">{t("per person")}</span>
               </div>
             )}
             {experienceDetail.durationMinutes && (
               <span className="text-sm text-muted">
-                Duration: {formatDuration(experienceDetail.durationMinutes)}
+                {t("Duration: {value}", {
+                  value: formatDuration(experienceDetail.durationMinutes) ?? "",
+                })}
               </span>
             )}
           </div>
@@ -240,7 +250,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                   : "bg-surface-muted text-subtle"
               }`}
             >
-              by {experienceDetail.provider}
+              {t("by {provider}", { provider: experienceDetail.provider })}
             </span>
           )}
         </div>
@@ -267,16 +277,16 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 window.open(bookingUrl, "_blank", "noopener,noreferrer")
               }
             >
-              {isViatorExperience ? "Book on Viator" : "Book now"}
+              {isViatorExperience ? t("Book on Viator") : t("Book now")}
             </Button>
           )}
           <Button
             variant={isFavorite ? "outline" : "secondary"}
             onClick={handleToggleFavorite}
             loading={savingFavorite}
-            loadingText={isFavorite ? "Removing..." : "Saving..."}
+            loadingText={isFavorite ? t("Removing...") : t("Saving...")}
           >
-            {isFavorite ? "Remove from favorites" : "Save to favorites"}
+            {isFavorite ? t("Remove from favorites") : t("Save to favorites")}
           </Button>
           <Button
             variant="ghost"
@@ -289,7 +299,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
               }
             }}
           >
-            Share
+            {t("Share")}
           </Button>
         </div>
       </Card>
@@ -297,7 +307,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Highlights */}
       {experienceDetail.highlights && experienceDetail.highlights.length > 0 && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Highlights</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            {t("Highlights")}
+          </h3>
           <ul className="space-y-2">
             {experienceDetail.highlights.map((item, idx) => (
               <li key={idx} className="flex items-start gap-2 text-sm text-muted">
@@ -315,7 +327,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         <Card className="space-y-4 p-5">
           {experienceDetail.inclusions && experienceDetail.inclusions.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-base font-semibold text-foreground">What&apos;s included</h3>
+              <h3 className="text-base font-semibold text-foreground">
+                {t("What's included")}
+              </h3>
               <ul className="space-y-1">
                 {experienceDetail.inclusions.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-muted">
@@ -329,7 +343,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           {experienceDetail.exclusions && experienceDetail.exclusions.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-base font-semibold text-foreground">
-                What&apos;s not included
+                {t("What's not included")}
               </h3>
               <ul className="space-y-1">
                 {experienceDetail.exclusions.map((item, idx) => (
@@ -351,31 +365,47 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
         experienceDetail.minParticipants ||
         experienceDetail.maxParticipants) && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Information</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            {t("Information")}
+          </h3>
           <div className="space-y-2 text-sm text-muted">
             {experienceDetail.languages && experienceDetail.languages.length > 0 && (
               <p>
-                <span className="font-medium text-foreground">Languages:</span>{" "}
+                <span className="font-medium text-foreground">
+                  {t("Languages:")}
+                </span>{" "}
                 {experienceDetail.languages.join(", ")}
               </p>
             )}
             {experienceDetail.meetingPoint && (
               <p>
-                <span className="font-medium text-foreground">Meeting point:</span>{" "}
+                <span className="font-medium text-foreground">
+                  {t("Meeting point:")}
+                </span>{" "}
                 {experienceDetail.meetingPoint}
               </p>
             )}
             {(experienceDetail.minParticipants || experienceDetail.maxParticipants) && (
               <p>
-                <span className="font-medium text-foreground">Participants:</span>{" "}
-                {experienceDetail.minParticipants && `min ${experienceDetail.minParticipants}`}
-                {experienceDetail.minParticipants && experienceDetail.maxParticipants && " - "}
-                {experienceDetail.maxParticipants && `max ${experienceDetail.maxParticipants}`}
+                <span className="font-medium text-foreground">
+                  {t("Participants:")}
+                </span>{" "}
+                {experienceDetail.minParticipants
+                  ? t("min {count}", { count: experienceDetail.minParticipants })
+                  : null}
+                {experienceDetail.minParticipants && experienceDetail.maxParticipants
+                  ? t(" - ")
+                  : null}
+                {experienceDetail.maxParticipants
+                  ? t("max {count}", { count: experienceDetail.maxParticipants })
+                  : null}
               </p>
             )}
             {experienceDetail.cancellationPolicy && (
               <p>
-                <span className="font-medium text-foreground">Cancellation:</span>{" "}
+                <span className="font-medium text-foreground">
+                  {t("Cancellation:")}
+                </span>{" "}
                 {experienceDetail.cancellationPolicy}
               </p>
             )}
@@ -386,7 +416,9 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Luogo / Mappa */}
       {(experienceDetail.place || (experienceDetail.latitude && experienceDetail.longitude)) && (
         <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">Location</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            {t("Location")}
+          </h3>
           {experienceDetail.place && (
             <p className="text-sm text-muted">{experienceDetail.place.name}</p>
           )}
@@ -401,7 +433,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 )
               }
             >
-              Open in Google Maps
+              {t("Open in Google Maps")}
             </Button>
           ) : experienceDetail.place?.latitude && experienceDetail.place?.longitude ? (
             <Button
@@ -414,7 +446,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
                 )
               }
             >
-              Open in Google Maps
+              {t("Open in Google Maps")}
             </Button>
           ) : null}
         </Card>
@@ -423,7 +455,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       {/* Affiliazione link (se diverso da bookingUrl) */}
       {affiliationLink && affiliationLink.url !== experienceDetail.bookingUrl && (
         <AffiliationLinkBox
-          title="Book this experience"
+          title={t("Book this experience")}
           href={affiliationLink.url}
           provider={affiliationLink.provider ?? undefined}
         />

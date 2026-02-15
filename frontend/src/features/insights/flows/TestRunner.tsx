@@ -12,10 +12,11 @@ import { QuestionCard } from "@/features/insights/cards/QuestionCard";
 import { MapAnswerOptionCard } from "@/features/insights/lists/MapAnswerOptionCard";
 import { SubmissionProgress } from "@/features/insights/elements/SubmissionProgress";
 import { ShareInsightCard } from "@/features/insights/cards/ShareInsightCard";
+import { InsightsDbLanguageDisclaimer } from "@/features/insights/elements/InsightsDbLanguageDisclaimer";
 import { ZyraTestRecap } from "@/features/zyra/cards/ZyraTestRecap";
 import type { TestQuestionResponse } from "@/types/insights";
 import type { ApiError } from "@/types/api";
-import { useAnalytics, useTests } from "@/hooks";
+import { useAnalytics, useTests, useT } from "@/hooks";
 import { isUuid } from "@/lib/validators";
 import { getTestEmoji } from "@/lib/testEmoji";
 
@@ -30,6 +31,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const router = useRouter();
   const { activeTest, loading, error, actions } = useTests();
   const { actions: analyticsActions } = useAnalytics();
+  const { t } = useT();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -137,7 +139,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         const maxSelections = resolveMaxSelections(currentQuestion);
         if (existing.length >= maxSelections) {
           setSubmitError(
-            `You can select up to ${maxSelections} options.`
+            t("You can select up to {count} options.", { count: maxSelections })
           );
           return prev;
         }
@@ -166,7 +168,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
   const handleNext = () => {
     if (!canAdvance) {
-      setSubmitError("Select an answer to continue.");
+      setSubmitError(t("Select an answer to continue."));
       return;
     }
     setSubmitError(null);
@@ -180,7 +182,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
 
   const handleSubmit = async () => {
     if (!allAnswered) {
-      setSubmitError("Complete the required questions before submitting.");
+      setSubmitError(t("Complete the required questions before submitting."));
       return;
     }
     void analyticsActions.trackEvent({
@@ -219,7 +221,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         error && typeof error === "object" && "message" in error
           ? (error as ApiError).message
           : null;
-      setSubmitError(message ?? "Error submitting the insight.");
+      setSubmitError(message ? t(message) : t("Error submitting the insight."));
     } finally {
       setSubmitting(false);
     }
@@ -245,7 +247,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         error && typeof error === "object" && "message" in error
           ? (error as ApiError).message
           : null;
-      setSubmitError(message ?? "Error resetting the insight.");
+      setSubmitError(message ? t(message) : t("Error resetting the insight."));
     } finally {
       setResetting(false);
     }
@@ -255,9 +257,9 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Invalid insight"
-          description="The requested insight doesn't exist or is unavailable."
-          actionLabel="Back to insights"
+          title={t("Invalid insight")}
+          description={t("The requested insight doesn't exist or is unavailable.")}
+          actionLabel={t("Back to insights")}
           actionHref="/insights"
         />
       </div>
@@ -269,7 +271,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading insight...</p>
+          <p className="text-sm text-muted">{t("Loading insight...")}</p>
         </Card>
       </div>
     );
@@ -279,7 +281,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Unable to load the insight"
+          title={t("Unable to load the insight")}
           description={error.message}
         />
       </div>
@@ -294,9 +296,9 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <EmptyState
-          title="Insight unavailable"
-          description="There are no questions for this insight."
-          actionLabel="Back to insights"
+          title={t("Insight unavailable")}
+          description={t("There are no questions for this insight.")}
+          actionLabel={t("Back to insights")}
           actionHref="/insights"
         />
       </div>
@@ -307,9 +309,9 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <EmptyState
-          title="Insight temporarily unavailable"
-          description="This insight is not available yet. Please come back later."
-          actionLabel="Back to insights"
+          title={t("Insight temporarily unavailable")}
+          description={t("This insight is not available yet. Please come back later.")}
+          actionLabel={t("Back to insights")}
           actionHref="/insights"
         />
       </div>
@@ -321,22 +323,23 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <Card className="space-y-4 p-6">
           <h1 className="text-2xl font-semibold text-foreground">
-            Insight already completed
+            {t("Insight already completed")}
           </h1>
           <p className="text-sm text-muted">
-            You have already completed this insight. You can continue with the
-            other available insights.
+            {t(
+              "You have already completed this insight. You can continue with the other available insights."
+            )}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={handleRetake}
               loading={resetting}
-              loadingText="Reset"
+              loadingText={t("Reset")}
             >
-              Retake insight
+              {t("Retake insight")}
             </Button>
             <Button variant="secondary" onClick={() => router.push("/insights")}>
-              Back to insights
+              {t("Back to insights")}
             </Button>
             <Button
               onClick={() => {
@@ -347,11 +350,11 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 router.push("/profile");
               }}
             >
-              Go to profile
+              {t("Go to profile")}
             </Button>
           </div>
           {submitError ? (
-            <p className="text-sm text-danger">{submitError}</p>
+            <p className="text-sm text-danger">{t(submitError)}</p>
           ) : null}
         </Card>
       </div>
@@ -363,12 +366,14 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
         <header className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Insight completed
+            {t("Insight completed")}
           </p>
           <h1 className="text-2xl font-semibold text-foreground">
-            {activeTest?.title ?? "Insight"}
+            {activeTest?.title ?? t("Insight")}
           </h1>
         </header>
+
+        <InsightsDbLanguageDisclaimer />
 
         {submissionId ? (
           <ZyraTestRecap
@@ -378,7 +383,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         ) : (
           <Card className="space-y-4 p-6">
             <p className="text-sm text-muted">
-              Your Zyra profile has been updated with your new answers.
+              {t("Your Zyra profile has been updated with your new answers.")}
             </p>
           </Card>
         )}
@@ -398,7 +403,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
               router.push("/insights");
             }}
           >
-            Back to insights
+            {t("Back to insights")}
           </Button>
           <Button
             onClick={() => {
@@ -409,7 +414,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
               router.push("/profile");
             }}
           >
-            Go to profile
+            {t("Go to profile")}
           </Button>
         </div>
       </div>
@@ -426,11 +431,12 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     activeTest.testType === "INTERESTS" &&
     currentQuestion.questionType === "MULTI";
   const maxSelections = resolveMaxSelections(currentQuestion);
-  const selectionHelper = currentQuestion.questionType === "MULTI"
-    ? isInterestTest
-      ? "Select all the interests that represent you."
-      : `You can select up to ${maxSelections} options.`
-    : undefined;
+  const selectionHelper =
+    currentQuestion.questionType === "MULTI"
+      ? isInterestTest
+        ? t("Select all the interests that represent you.")
+        : t("You can select up to {count} options.", { count: maxSelections })
+      : undefined;
 
   const testEmoji = getTestEmoji(activeTest.testType, activeTest.title);
 
@@ -438,7 +444,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Insight
+          {t("Insight")}
         </p>
         <h1 className="text-2xl font-semibold text-foreground">
           {testEmoji ? `${testEmoji} ${activeTest.title}` : activeTest.title}
@@ -448,14 +454,16 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
         ) : null}
       </header>
 
+      <InsightsDbLanguageDisclaimer />
+
       <SubmissionProgress
-        label="Progress"
+        label={t("Progress")}
         current={hasOptionalQuestions ? answeredCount : answeredRequiredCount}
         total={hasOptionalQuestions ? questions.length : requiredCount}
         helper={
           hasOptionalQuestions
-            ? "Complete the questions you know; only required ones are mandatory."
-            : "Complete all required questions to submit the insight."
+            ? t("Complete the questions you know; only required ones are mandatory.")
+            : t("Complete all required questions to submit the insight.")
         }
       />
 
@@ -464,7 +472,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="accent" size="sm">
-                Question {currentIndex + 1}/{questions.length}
+                {t("Question {current}/{total}", {
+                  current: currentIndex + 1,
+                  total: questions.length,
+                })}
               </Badge>
               {selectionHelper ? (
                 <span className="text-xs text-subtle">{selectionHelper}</span>
@@ -496,7 +507,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
       )}
 
       {submitError ? (
-        <p className="text-sm text-danger">{submitError}</p>
+        <p className="text-sm text-danger">{t(submitError)}</p>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -505,7 +516,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
           onClick={handleBack}
           disabled={currentIndex === 0}
         >
-          Back
+          {t("Back")}
         </Button>
         <div className="flex flex-wrap gap-3">
           <Button
@@ -521,20 +532,20 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
               router.push("/insights");
             }}
           >
-            Exit
+            {t("Exit")}
           </Button>
           {isLastQuestion ? (
             <Button
               onClick={handleSubmit}
               loading={submitting}
-              loadingText="Submitting"
+              loadingText={t("Submitting")}
               disabled={!allAnswered}
             >
-              Submit insight
+              {t("Submit insight")}
             </Button>
           ) : (
             <Button onClick={handleNext} disabled={!canAdvance}>
-              Next
+              {t("Next")}
             </Button>
           )}
         </div>

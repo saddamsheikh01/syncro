@@ -8,6 +8,7 @@ import { formatInterestLabel } from "@/lib/interestEmoji";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface ProfileSummaryCardProps extends HTMLAttributes<HTMLDivElement> {
   name: string;
@@ -36,6 +37,7 @@ export const ProfileSummaryCard = ({
   showIdentity = true,
   ...props
 }: ProfileSummaryCardProps) => {
+  const { t } = useT();
   const jobLabel = [jobTitle, companyName].filter(Boolean).join(" · ");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const normalizedName = name.trim().toLowerCase();
@@ -63,7 +65,7 @@ export const ProfileSummaryCard = ({
                 "flex-shrink-0 rounded-full transition-transform hover:scale-105",
                 avatarUrl && "cursor-pointer"
               )}
-              aria-label="View profile photo"
+              aria-label={t("View profile photo")}
               disabled={!avatarUrl}
             >
               <Avatar name={name} src={avatarUrl} size="2xl" />

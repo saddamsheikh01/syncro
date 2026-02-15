@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, MouseEvent } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface PostMediaThumbnailProps
@@ -24,6 +25,7 @@ export const PostMediaThumbnail = ({
   onClick,
   ...props
 }: PostMediaThumbnailProps) => {
+  const { t } = useT();
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onClick?.(event);
@@ -46,13 +48,13 @@ export const PostMediaThumbnail = ({
       {src ? (
         <img
           src={src}
-          alt={label ?? "Media"}
+          alt={label ?? t("Media")}
           className="h-full w-full object-cover"
           loading="lazy"
         />
       ) : (
         <span className="flex h-full w-full items-center justify-center text-xs text-subtle">
-          {label ?? (isVideo ? "Video" : "Media")}
+          {label ?? (isVideo ? t("Video") : t("Media"))}
         </span>
       )}
       {isVideo && duration ? (

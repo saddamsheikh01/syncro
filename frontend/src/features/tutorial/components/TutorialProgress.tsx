@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface TutorialProgressProps {
@@ -13,6 +14,8 @@ export const TutorialProgress = ({
   totalSteps,
   onStepClick,
 }: TutorialProgressProps) => {
+  const { t } = useT();
+
   return (
     <div className="flex items-center justify-center gap-2">
       {Array.from({ length: totalSteps }).map((_, index) => {
@@ -25,7 +28,7 @@ export const TutorialProgress = ({
             type="button"
             onClick={() => onStepClick?.(index)}
             disabled={!onStepClick}
-            aria-label={`Vai allo step ${index + 1}`}
+            aria-label={t("Go to step {index}", { index: index + 1 })}
             aria-current={isActive ? "step" : undefined}
             className={cx(
               "h-2 rounded-full transition-all duration-300",

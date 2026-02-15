@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export type ButtonVariant =
@@ -55,7 +56,9 @@ export const Button = ({
   children,
   ...props
 }: ButtonProps) => {
+  const { t } = useT();
   const isDisabled = disabled || loading;
+  const resolvedLoadingText = loadingText ? t(loadingText) : t("Loading");
 
   return (
     <button
@@ -77,7 +80,7 @@ export const Button = ({
             className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
             aria-hidden="true"
           />
-          <span>{loadingText ?? "Loading"}</span>
+          <span>{resolvedLoadingText}</span>
         </span>
       ) : (
         <>

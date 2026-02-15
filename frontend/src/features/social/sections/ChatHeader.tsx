@@ -4,6 +4,7 @@ import { Button } from "@/components/buttons/Button";
 import { MatchScoreBadge } from "@/features/matches/elements/MatchScoreBadge";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface ChatHeaderProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -36,28 +37,33 @@ export const ChatHeader = ({
   onProfileClick,
   profileLabel,
   ...props
-}: ChatHeaderProps) => (
-  <div
-    className={cx("flex items-center justify-between gap-3", className)}
-    {...props}
-  >
-    <div className="flex min-w-0 items-center gap-3">
-      {showBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Go back"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-muted"
-        >
-          <NavIcon name="chevron-left" className="h-5 w-5" />
-        </button>
-      ) : null}
+}: ChatHeaderProps) => {
+  const { t } = useT();
+
+  return (
+    <div
+      className={cx("flex items-center justify-between gap-3", className)}
+      {...props}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        {showBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t("Go back")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-muted"
+          >
+            <NavIcon name="chevron-left" className="h-5 w-5" />
+          </button>
+        ) : null}
 
       {onProfileClick ? (
         <button
           type="button"
           onClick={onProfileClick}
-          aria-label={profileLabel ?? `Open profile of ${name}`}
+          aria-label={
+            profileLabel ?? t("Open profile of {name}", { name })
+          }
           className="flex min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded-[var(--radius-lg)]"
         >
           <div className="relative shrink-0">
@@ -79,10 +85,10 @@ export const ChatHeader = ({
                     <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
                     <span className="h-1 w-1 animate-bounce rounded-full bg-accent" />
                   </span>
-                  <span>sta scrivendo</span>
+                  <span>{t("Typing...")}</span>
                 </span>
               ) : isOnline ? (
-                <span className="text-xs text-success">Online</span>
+                <span className="text-xs text-success">{t("Online")}</span>
               ) : lastSeen ? (
                 <span className="text-xs text-subtle">{lastSeen}</span>
               ) : subtitle ? (
@@ -112,10 +118,10 @@ export const ChatHeader = ({
                     <span className="h-1 w-1 animate-bounce rounded-full bg-accent [animation-delay:-0.15s]" />
                     <span className="h-1 w-1 animate-bounce rounded-full bg-accent" />
                   </span>
-                  <span>sta scrivendo</span>
+                  <span>{t("Typing...")}</span>
                 </span>
               ) : isOnline ? (
-                <span className="text-xs text-success">Online</span>
+                <span className="text-xs text-success">{t("Online")}</span>
               ) : lastSeen ? (
                 <span className="text-xs text-subtle">{lastSeen}</span>
               ) : subtitle ? (
@@ -135,7 +141,7 @@ export const ChatHeader = ({
         <button
           type="button"
           onClick={onInfoClick}
-          aria-label="Conversation info"
+          aria-label={t("Conversation info")}
           className="flex h-9 w-9 items-center justify-center rounded-full text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
         >
           <NavIcon name="info" className="h-5 w-5" />
@@ -143,4 +149,5 @@ export const ChatHeader = ({
       ) : null}
     </div>
   </div>
-);
+  );
+};

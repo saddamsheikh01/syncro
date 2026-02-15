@@ -1,7 +1,10 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
 import type { ButtonProps } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const LocationIcon = () => (
@@ -41,25 +44,40 @@ export const LocationPermissionGate = ({
   secondaryActionProps,
   helper = "You can change this anytime.",
   ...props
-}: LocationPermissionGateProps) => (
-  <Card className={cx("space-y-5 p-6", className)} {...props}>
-    <div className="flex items-start gap-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-surface-muted text-foreground">
-        <LocationIcon />
+}: LocationPermissionGateProps) => {
+  const { t } = useT();
+  const resolvedTitle = title ? t(title) : t("Enable location");
+  const resolvedDescription = description ? t(description) : null;
+  const resolvedPrimaryLabel = primaryActionLabel ? t(primaryActionLabel) : null;
+  const resolvedSecondaryLabel = secondaryActionLabel ? t(secondaryActionLabel) : null;
+  const resolvedHelper = helper ? t(helper) : null;
+
+  return (
+    <Card className={cx("space-y-5 p-6", className)} {...props}>
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-surface-muted text-foreground">
+          <LocationIcon />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-foreground">{resolvedTitle}</h3>
+          {resolvedDescription ? (
+            <p className="text-sm text-muted">{resolvedDescription}</p>
+          ) : null}
+        </div>
       </div>
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        {description ? <p className="text-sm text-muted">{description}</p> : null}
+      <div className="flex flex-wrap items-center gap-3">
+        {resolvedPrimaryLabel ? (
+          <Button size="sm" {...primaryActionProps}>
+            {resolvedPrimaryLabel}
+          </Button>
+        ) : null}
+        {resolvedSecondaryLabel ? (
+          <Button size="sm" variant="ghost" {...secondaryActionProps}>
+            {resolvedSecondaryLabel}
+          </Button>
+        ) : null}
       </div>
-    </div>
-    <div className="flex flex-wrap items-center gap-3">
-      <Button size="sm" {...primaryActionProps}>
-        {primaryActionLabel}
-      </Button>
-      <Button size="sm" variant="ghost" {...secondaryActionProps}>
-        {secondaryActionLabel}
-      </Button>
-    </div>
-    {helper ? <p className="text-xs text-subtle">{helper}</p> : null}
-  </Card>
-);
+      {resolvedHelper ? <p className="text-xs text-subtle">{resolvedHelper}</p> : null}
+    </Card>
+  );
+};

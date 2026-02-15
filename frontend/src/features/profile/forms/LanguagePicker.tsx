@@ -4,6 +4,7 @@ import { Select } from "@/components/elements/Select";
 import type { SelectOption } from "@/components/elements/Select";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface LanguagePickerProps {
   className?: string;
@@ -15,31 +16,42 @@ export interface LanguagePickerProps {
   onValueChange?: (value: string) => void;
 }
 
-const DEFAULT_OPTIONS: SelectOption[] = [
-  { value: "it", label: "Italiano" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Espanol" },
-];
-
 export const LanguagePicker = ({
   className,
-  label = "Language",
-  description = "Select the interface language.",
+  label,
+  description,
   value,
-  defaultValue = "it",
-  options = DEFAULT_OPTIONS,
+  defaultValue = "en",
+  options,
   onValueChange,
-}: LanguagePickerProps) => (
-  <Card className={cx("space-y-3 p-5", className)}>
-    <div className="space-y-1">
-      <h4 className="text-base font-semibold text-foreground">{label}</h4>
-      <p className="text-sm text-muted">{description}</p>
-    </div>
-    <Select
-      options={options}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange}
-    />
-  </Card>
-);
+}: LanguagePickerProps) => {
+  const { t } = useT();
+
+  const resolvedLabel = label ?? t("onboarding.language.title");
+  const resolvedDescription = description ?? t("onboarding.language.description");
+
+  const resolvedOptions: SelectOption[] =
+    options ?? [
+      { value: "en", label: t("languages.en") },
+      { value: "it", label: t("languages.it") },
+      { value: "es", label: t("languages.es") },
+      { value: "fr", label: t("languages.fr") },
+    ];
+
+  return (
+    <Card className={cx("space-y-3 p-5", className)}>
+      <div className="space-y-1">
+        <h4 className="text-base font-semibold text-foreground">
+          {resolvedLabel}
+        </h4>
+        <p className="text-sm text-muted">{resolvedDescription}</p>
+      </div>
+      <Select
+        options={resolvedOptions}
+        value={value}
+        defaultValue={defaultValue}
+        onValueChange={onValueChange}
+      />
+    </Card>
+  );
+};

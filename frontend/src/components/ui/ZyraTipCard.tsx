@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useZyra } from "@/hooks";
+import { useAuth, useT, useZyra } from "@/hooks";
 import { cx } from "@/lib/classNames";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { storeZyraSeedMessage } from "@/lib/zyraSeed";
 
-const QUICK_REPLIES = [
+const QUICK_REPLY_KEYS = [
   "Sounds good, let's go!",
   "Yes, tell me more",
   "Not now, thanks",
@@ -21,6 +21,7 @@ const DEFAULT_MAIN_PROMPT =
 
 export const ZyraTipCard = () => {
   const router = useRouter();
+  const { t } = useT();
   const { user } = useAuth();
   const { loadingSuggestions, actions } = useZyra();
   const [replyValue, setReplyValue] = useState("");
@@ -32,7 +33,8 @@ export const ZyraTipCard = () => {
     actions.fetchSuggestions({ size: 2 }).catch(() => undefined);
   }, [actions]);
 
-  const greetingName = user?.username || user?.email?.split("@")[0] || "there";
+  const greetingName =
+    user?.username || user?.email?.split("@")[0] || t("there");
 
   const handleSend = (message: string) => {
     const trimmed = message.trim();
@@ -42,6 +44,8 @@ export const ZyraTipCard = () => {
     router.push("/chat");
   };
 
+  const greetingPrompt = t(DEFAULT_MAIN_PROMPT);
+
   return (
     <div
       className={cx(
@@ -50,40 +54,45 @@ export const ZyraTipCard = () => {
       )}
     >
       <div className="flex items-start gap-3">
-        <Avatar name="Zyra" src={ZYRA_AVATAR_SRC} size="lg" />
+        <Avatar name={t("Zyra")} src={ZYRA_AVATAR_SRC} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold text-foreground">Zyra</p>
+          <p className="text-base font-semibold text-foreground">{t("Zyra")}</p>
           <p className="text-xs text-muted">
-            Your Personal AI On Syncro.
+            {t("Your Personal AI On Syncro.")}
           </p>
           <p className="text-xs text-muted">
-            She Guides You, Advises You,
+            {t("She Guides You, Advises You,")}
             <br />
-            And Explains Your Matches.
+            {t("And Explains Your Matches.")}
           </p>
         </div>
       </div>
 
       <div className="mt-4 space-y-2 rounded-[var(--radius-lg)] bg-[#eef2f9] px-3 py-3 text-xs text-muted">
         <p className="text-xs font-semibold text-foreground">
-          {loadingSuggestions ? "Thinking..." : `Hi ${greetingName}! ${DEFAULT_MAIN_PROMPT}`}
+          {loadingSuggestions
+            ? t("Thinking...")
+            : t("Hi {name}! {prompt}", {
+                name: greetingName,
+                prompt: greetingPrompt,
+              })}
         </p>
         <div className="flex flex-wrap gap-2">
-          {QUICK_REPLIES.map((label) => (
+          {QUICK_REPLY_KEYS.map((labelKey) => (
             <button
-              key={label}
+              key={labelKey}
               type="button"
-              onClick={() => handleSend(label)}
+              onClick={() => handleSend(t(labelKey))}
               className="rounded-full bg-[#e1e8f4] px-3 py-1 text-[10px] font-medium text-muted transition hover:text-foreground"
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2 rounded-full border border-border/60 bg-white px-3 py-2">
           <input
             type="text"
-            placeholder="Type your reply..."
+            placeholder={t("Type your reply...")}
             value={replyValue}
             onChange={(event) => setReplyValue(event.target.value)}
             onKeyDown={(event) => {
@@ -93,14 +102,14 @@ export const ZyraTipCard = () => {
               }
             }}
             className="flex-1 bg-transparent text-[11px] text-muted outline-none placeholder:text-subtle"
-            aria-label="Type your reply"
+            aria-label={t("Type your reply")}
           />
           <button
             type="button"
             onClick={() => handleSend(replyValue)}
             disabled={!replyValue.trim()}
             className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Send reply"
+            aria-label={t("Send reply")}
           >
             <svg
               className="h-3 w-3"
@@ -121,11 +130,11 @@ export const ZyraTipCard = () => {
 
       <Link href="/chat" className="mt-4 block">
         <Button size="sm" fullWidth>
-          Continue The Chat With Zyra
+          {t("Continue The Chat With Zyra")}
         </Button>
       </Link>
       <p className="mt-2 text-center text-[10px] text-subtle">
-        The More You Interact, The Better Your Matches Become.
+        {t("The More You Interact, The Better Your Matches Become.")}
       </p>
     </div>
   );

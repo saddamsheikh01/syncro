@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   getReferralCodes,
   getReferralDetail,
@@ -29,6 +30,7 @@ import type { UserProfileResponse } from "@/types/profile";
 import type { PageResponse } from "@/types/shared";
 
 export const AdminReferralsOverview = () => {
+  const { t } = useT();
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -198,9 +200,9 @@ export const AdminReferralsOverview = () => {
         value === undefined ||
         (typeof value === "string" && value.trim().length === 0)
       );
-      return { label, value, filled };
+      return { label: t(label), value, filled };
     });
-  }, [userProfile]);
+  }, [t, userProfile]);
 
   const profileFieldsStats = useMemo(() => {
     const total = profileFields.length;
@@ -239,29 +241,29 @@ export const AdminReferralsOverview = () => {
               setUsagePage(0);
             }}
           >
-            Open details
+            {t("Open details")}
           </Button>
         ),
       })),
-    [codesResponse]
+    [codesResponse, t]
   );
 
   const renderYesNo = (value: boolean | null | undefined) => {
     if (value === null || value === undefined) {
       return (
         <Badge tone="neutral" size="sm">
-          N/A
+          {t("N/A")}
         </Badge>
       );
     }
 
     return value ? (
       <Badge tone="success-light" size="sm">
-        Yes
+        {t("Yes")}
       </Badge>
     ) : (
       <Badge tone="neutral" size="sm">
-        No
+        {t("No")}
       </Badge>
     );
   };
@@ -269,19 +271,19 @@ export const AdminReferralsOverview = () => {
   const resolvePrimaryActivityLabel = (activity: string | null | undefined) => {
     switch (activity) {
       case "MOMENT":
-        return "Moment";
+        return t("Moment");
       case "INSIGHTS":
-        return "Insights";
+        return t("Insights");
       case "CHAT":
-        return "Chat";
+        return t("Chat");
       case "FAVORITE":
-        return "Favorite";
+        return t("Favorite");
       case "PROFILE":
-        return "Profile";
+        return t("Profile");
       case "ONBOARDING":
-        return "Onboarding";
+        return t("Onboarding");
       case "NONE":
-        return "None";
+        return t("None");
       default:
         return activity ?? "-";
     }
@@ -322,18 +324,20 @@ export const AdminReferralsOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Referrals"
-        subtitle="Monitor referral codes and their usage."
+        title={t("Referrals")}
+        subtitle={t("Monitor referral codes and their usage.")}
       />
 
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-subtle">
-            Total referral codes: {formatNumber(codesResponse?.totalElements ?? 0)}
+            {t("Total referral codes: {count}", {
+              count: formatNumber(codesResponse?.totalElements ?? 0),
+            })}
           </p>
           {queryFilter ? (
             <Badge tone="accent" size="sm">
-              Filter: {queryFilter}
+              {t("Filter: {value}", { value: queryFilter })}
             </Badge>
           ) : null}
         </div>
@@ -354,10 +358,10 @@ export const AdminReferralsOverview = () => {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by code, email, or username"
+            placeholder={t("Search by code, email, or username")}
           />
           <Button type="submit" size="sm">
-            Apply
+            {t("Apply")}
           </Button>
           <Button
             type="button"
@@ -371,7 +375,7 @@ export const AdminReferralsOverview = () => {
               setQueryFilter(null);
             }}
           >
-            Reset
+            {t("Reset")}
           </Button>
         </form>
       </Card>
@@ -380,25 +384,25 @@ export const AdminReferralsOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Code details: {selectedCode}
+              {t("Code details: {code}", { code: selectedCode })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedCode(null)}>
-              Close details
+              {t("Close details")}
             </Button>
           </div>
 
           {detail ? (
             <div className="grid gap-3 md:grid-cols-2">
               <p className="text-sm text-muted">
-                <span className="font-semibold text-foreground">Owner:</span>{" "}
+                <span className="font-semibold text-foreground">{t("Owner:")}</span>{" "}
                 {detail.email ?? detail.username ?? detail.userId ?? "-"}
               </p>
               <p className="text-sm text-muted">
-                <span className="font-semibold text-foreground">Use count:</span>{" "}
+                <span className="font-semibold text-foreground">{t("Use count:")}</span>{" "}
                 {formatNumber(detail.usesCount)}
               </p>
               <p className="text-sm text-muted md:col-span-2">
-                <span className="font-semibold text-foreground">Created at:</span>{" "}
+                <span className="font-semibold text-foreground">{t("Created at:")}</span>{" "}
                 {formatDateTime(detail.createdAt)}
               </p>
             </div>
@@ -407,32 +411,40 @@ export const AdminReferralsOverview = () => {
           {detail ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Invited</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  {t("Invited")}
+                </p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
                   {formatNumber(detail.invitedCount)}
                 </p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Onboarding</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  {t("Onboarding")}
+                </p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
                   {formatNumber(detail.onboardingCompletedCount)}
                 </p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Profile</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  {t("Profile")}
+                </p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
                   {formatNumber(detail.profileCompletedCount)}
                 </p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Insights</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
+                  {t("Insights")}
+                </p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
                   {formatNumber(detail.insightsCompletedCount)}
                 </p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                  Moment / activity
+                  {t("Moment / activity")}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-foreground">
                   {formatNumber(detail.momentOrActivityCount)}
@@ -443,24 +455,28 @@ export const AdminReferralsOverview = () => {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-foreground">Code usage</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("Code usage")}
+              </h3>
               <p className="text-xs text-subtle">
-                Total: {formatNumber(usageResponse?.totalElements ?? 0)}
+                {t("Total: {count}", {
+                  count: formatNumber(usageResponse?.totalElements ?? 0),
+                })}
               </p>
             </div>
 
             <AdminTable
               columns={[
-                { key: "invited", label: "Invited user" },
-                { key: "createdAt", label: "Used at" },
-                { key: "profileCompleted", label: "Profile (exists)" },
-                { key: "insightsCompletedCount", label: "Insights" },
-                { key: "hasMoment", label: "Moment" },
-                { key: "primaryActivity", label: "Activity" },
-                { key: "ip", label: "IP" },
+                { key: "invited", label: t("Invited user") },
+                { key: "createdAt", label: t("Used at") },
+                { key: "profileCompleted", label: t("Profile (exists)") },
+                { key: "insightsCompletedCount", label: t("Insights") },
+                { key: "hasMoment", label: t("Moment") },
+                { key: "primaryActivity", label: t("Activity") },
+                { key: "ip", label: t("IP") },
               ]}
               rows={usageRows}
-              emptyLabel="No usage found"
+              emptyLabel={t("No usage found")}
             />
 
             <div className="flex items-center justify-end gap-2">
@@ -470,7 +486,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setUsagePage((current) => Math.max(0, current - 1))}
                 disabled={(usageResponse?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -478,7 +494,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setUsagePage((current) => current + 1)}
                 disabled={Boolean(usageResponse?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>
@@ -490,20 +506,22 @@ export const AdminReferralsOverview = () => {
           <Loader size="sm" />
           <p className="text-sm text-muted">
             {loading
-              ? "Loading referrals..."
+              ? t("Loading referrals...")
               : detailLoading
-                ? "Loading referral details..."
-                : "Loading referral usage..."}
+                ? t("Loading referral details...")
+                : t("Loading referral usage...")}
           </p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load referrals</p>
+          <p className="text-sm font-semibold text-danger">
+            {t("Unable to load referrals")}
+          </p>
           <p className="text-sm text-muted">{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => void loadCodes()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -512,19 +530,22 @@ export const AdminReferralsOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "code", label: "Code" },
-              { key: "owner", label: "Owner" },
-              { key: "usesCount", label: "Uses" },
-              { key: "createdAt", label: "Created at" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "code", label: t("Code") },
+              { key: "owner", label: t("Owner") },
+              { key: "usesCount", label: t("Uses") },
+              { key: "createdAt", label: t("Created at") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
             rows={codeRows}
-            emptyLabel="No referrals found"
+            emptyLabel={t("No referrals found")}
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Page {(codesResponse?.number ?? 0) + 1} of {Math.max(codesResponse?.totalPages ?? 1, 1)}
+              {t("Page {current} of {total}", {
+                current: (codesResponse?.number ?? 0) + 1,
+                total: Math.max(codesResponse?.totalPages ?? 1, 1),
+              })}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -533,7 +554,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setPage((current) => Math.max(0, current - 1))}
                 disabled={(codesResponse?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -541,7 +562,7 @@ export const AdminReferralsOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(codesResponse?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>
@@ -550,11 +571,11 @@ export const AdminReferralsOverview = () => {
 
       <Modal
         open={userModalOpen}
-        title="User progress details"
+        title={t("User progress details")}
         description={selectedInvitedUserId ? `UserId: ${selectedInvitedUserId}` : undefined}
         onClose={() => setUserModalOpen(false)}
         secondaryAction={{
-          label: "Close",
+          label: t("Close"),
           variant: "outline",
           onClick: () => setUserModalOpen(false),
         }}
@@ -562,11 +583,13 @@ export const AdminReferralsOverview = () => {
         {userLoading ? (
           <div className="flex items-center gap-3">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading user details...</p>
+            <p className="text-sm text-muted">{t("Loading user details...")}</p>
           </div>
         ) : userModalError ? (
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-danger">Unable to load user</p>
+            <p className="text-sm font-semibold text-danger">
+              {t("Unable to load user")}
+            </p>
             <p className="text-sm text-muted">{userModalError.message}</p>
           </div>
         ) : (
@@ -575,30 +598,41 @@ export const AdminReferralsOverview = () => {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">
-                    {userDetail?.email ?? "Unknown email"}
+                    {userDetail?.email ?? t("Unknown email")}
                   </p>
                   <p className="text-xs text-subtle">
-                    {userDetail?.username ? `@${userDetail.username}` : "No username"}
+                    {userDetail?.username
+                      ? `@${userDetail.username}`
+                      : t("No username")}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <Badge tone="neutral" size="sm">
-                    Status: {userDetail?.status ?? "-"}
+                    {t("Status: {value}", { value: userDetail?.status ?? "-" })}
                   </Badge>
                   <Badge tone="neutral" size="sm">
-                    Lang: {userDetail?.language ?? "-"}
+                    {t("Lang: {value}", { value: userDetail?.language ?? "-" })}
                   </Badge>
                   <Badge tone={userDetail?.onboardingCompleted ? "success-light" : "neutral"} size="sm">
-                    Onboarding: {userDetail?.onboardingCompleted ? "Yes" : "No"}
+                    {t("Onboarding: {value}", {
+                      value: userDetail?.onboardingCompleted ? t("Yes") : t("No"),
+                    })}
                   </Badge>
                   <Badge tone={userProfile ? "success-light" : "neutral"} size="sm">
-                    Profile record: {userProfile ? "Yes" : "No"}
+                    {t("Profile record: {value}", {
+                      value: userProfile ? t("Yes") : t("No"),
+                    })}
                   </Badge>
                   <Badge tone={userProfile?.avatarUrl ? "success-light" : "neutral"} size="sm">
-                    Avatar: {userProfile?.avatarUrl ? "Yes" : "No"}
+                    {t("Avatar: {value}", {
+                      value: userProfile?.avatarUrl ? t("Yes") : t("No"),
+                    })}
                   </Badge>
                   <Badge tone={userTestsCount && userTestsCount > 0 ? "accent" : "neutral"} size="sm">
-                    Insights: {userTestsCount === null ? "-" : formatNumber(userTestsCount)}
+                    {t("Insights: {value}", {
+                      value:
+                        userTestsCount === null ? "-" : formatNumber(userTestsCount),
+                    })}
                   </Badge>
                 </div>
               </div>
@@ -606,15 +640,20 @@ export const AdminReferralsOverview = () => {
               {userProfile ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="accent" size="sm">
-                    Fields filled: {formatNumber(profileFieldsStats.filled)}/{formatNumber(profileFieldsStats.total)}
+                    {t("Fields filled: {filled}/{total}", {
+                      filled: formatNumber(profileFieldsStats.filled),
+                      total: formatNumber(profileFieldsStats.total),
+                    })}
                   </Badge>
                   <Badge tone={profileFieldsStats.missing > 0 ? "warning" : "success-light"} size="sm">
-                    Missing: {formatNumber(profileFieldsStats.missing)}
+                    {t("Missing: {count}", {
+                      count: formatNumber(profileFieldsStats.missing),
+                    })}
                   </Badge>
                 </div>
               ) : (
                 <p className="text-xs text-subtle">
-                  This user does not have a profile record yet.
+                  {t("This user does not have a profile record yet.")}
                 </p>
               )}
             </div>
@@ -622,9 +661,13 @@ export const AdminReferralsOverview = () => {
             <div className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-semibold text-foreground">Profile fields</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("Profile fields")}
+                  </p>
                   <p className="text-xs text-subtle">
-                    {userProfile ? "Default view shows missing fields only." : "No profile fields available."}
+                    {userProfile
+                      ? t("Default view shows missing fields only.")
+                      : t("No profile fields available.")}
                   </p>
                 </div>
                 <Button
@@ -633,7 +676,7 @@ export const AdminReferralsOverview = () => {
                   onClick={() => setProfileFieldsOpen((current) => !current)}
                   disabled={!userProfile}
                 >
-                  {profileFieldsOpen ? "Hide fields" : "Show fields"}
+                  {profileFieldsOpen ? t("Hide fields") : t("Show fields")}
                 </Button>
               </div>
 
@@ -645,24 +688,26 @@ export const AdminReferralsOverview = () => {
                       variant={profileFieldsFilter === "missing" ? "secondary" : "outline"}
                       onClick={() => setProfileFieldsFilter("missing")}
                     >
-                      Missing
+                      {t("Missing")}
                     </Button>
                     <Button
                       size="sm"
                       variant={profileFieldsFilter === "filled" ? "secondary" : "outline"}
                       onClick={() => setProfileFieldsFilter("filled")}
                     >
-                      Filled
+                      {t("Filled")}
                     </Button>
                     <Button
                       size="sm"
                       variant={profileFieldsFilter === "all" ? "secondary" : "outline"}
                       onClick={() => setProfileFieldsFilter("all")}
                     >
-                      All
+                      {t("All")}
                     </Button>
                     <p className="text-xs text-subtle">
-                      Showing {formatNumber(filteredProfileFields.length)} field(s)
+                      {t("Showing {count} field(s)", {
+                        count: formatNumber(filteredProfileFields.length),
+                      })}
                     </p>
                   </div>
 
@@ -687,18 +732,18 @@ export const AdminReferralsOverview = () => {
                           <div className="shrink-0">
                             {field.filled ? (
                               <Badge tone="success-light" size="sm">
-                                Filled
+                                {t("Filled")}
                               </Badge>
                             ) : (
                               <Badge tone="neutral" size="sm">
-                                Missing
+                                {t("Missing")}
                               </Badge>
                             )}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-muted">No fields to show.</p>
+                      <p className="text-sm text-muted">{t("No fields to show.")}</p>
                     )}
                   </div>
                 </div>

@@ -8,6 +8,7 @@ import { Loader } from "@/components/elements/Loader";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createAdminCategory,
   deleteAdminCategory,
@@ -19,6 +20,8 @@ import type { CategoryResponse } from "@/types/catalog";
 import type { PageResponse } from "@/types/shared";
 
 export const AdminCategoriesOverview = () => {
+  const { t } = useT();
+
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -61,7 +64,7 @@ export const AdminCategoriesOverview = () => {
   };
 
   const handleUpdate = async (categoryId: string, currentName: string) => {
-    const nextName = window.prompt("New category name", currentName);
+    const nextName = window.prompt(t("New category name"), currentName);
     if (!nextName || !nextName.trim()) {
       return;
     }
@@ -76,7 +79,7 @@ export const AdminCategoriesOverview = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    const confirmed = window.confirm("Confirm category deletion?");
+    const confirmed = window.confirm(t("Confirm category deletion?"));
     if (!confirmed) {
       return;
     }
@@ -103,39 +106,39 @@ export const AdminCategoriesOverview = () => {
               variant="outline"
               onClick={() => void handleUpdate(category.id, category.name)}
             >
-              Edit
+              {t("Edit")}
             </Button>
             <Button
               size="sm"
               variant="danger"
               onClick={() => void handleDelete(category.id)}
             >
-              Delete
+              {t("Delete")}
             </Button>
           </div>
         ),
       })),
-    [response]
+    [response, t]
   );
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Categories"
-        subtitle="Manage catalog categories."
+        title={t("Categories")}
+        subtitle={t("Manage catalog categories.")}
       />
 
       <Card className="space-y-4 p-5">
         <form className="grid gap-3 lg:grid-cols-[1fr,auto]" onSubmit={handleCreate}>
           <Input
-            label="Category name"
+            label={t("Category name")}
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
           />
           <div className="flex items-end">
-            <Button type="submit" size="sm" loading={creating} loadingText="Creating">
-              Create category
+            <Button type="submit" size="sm" loading={creating} loadingText={t("Creating")}>
+              {t("Create category")}
             </Button>
           </div>
         </form>
@@ -143,21 +146,23 @@ export const AdminCategoriesOverview = () => {
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Total categories: {formatNumber(response?.totalElements ?? 0)}
+          {t("Total categories: {count}", {
+            count: formatNumber(response?.totalElements ?? 0),
+          })}
         </p>
       </Card>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading categories...</p>
+          <p className="text-sm text-muted">{t("Loading categories...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load categories</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load categories")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
         </Card>
       ) : null}
 
@@ -165,12 +170,12 @@ export const AdminCategoriesOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "name", label: "Name" },
-              { key: "createdAt", label: "Created at" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "name", label: t("Name") },
+              { key: "createdAt", label: t("Created at") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
             rows={rows}
-            emptyLabel="No categories"
+            emptyLabel={t("No categories")}
           />
 
           <div className="flex items-center justify-end gap-2">
@@ -180,7 +185,7 @@ export const AdminCategoriesOverview = () => {
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={(response?.number ?? 0) <= 0}
             >
-              Previous
+              {t("Previous")}
             </Button>
             <Button
               size="sm"
@@ -188,7 +193,7 @@ export const AdminCategoriesOverview = () => {
               onClick={() => setPage((current) => current + 1)}
               disabled={Boolean(response?.last ?? true)}
             >
-              Next
+              {t("Next")}
             </Button>
           </div>
         </>

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { HTMLAttributes, PointerEvent } from "react";
 import { MapPostMediaSlide } from "@/features/social/lists/MapPostMediaSlide";
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface PostMediaCarouselProps
@@ -22,6 +23,7 @@ export const PostMediaCarousel = ({
   showCounter = true,
   ...props
 }: PostMediaCarouselProps) => {
+  const { t } = useT();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const dragRef = useRef({
@@ -127,7 +129,7 @@ export const PostMediaCarousel = ({
                     ? "bg-foreground"
                     : "bg-border-strong"
                 )}
-                aria-label={`Vai al media ${index + 1}`}
+                aria-label={t("Go to media {index}", { index: index + 1 })}
               />
             ))}
           </div>

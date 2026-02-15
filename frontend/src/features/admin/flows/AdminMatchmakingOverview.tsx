@@ -10,6 +10,7 @@ import { Select } from "@/components/elements/Select";
 import { getMatchDomainMeta, MATCH_DOMAIN_ORDER } from "@/lib/matchDomains";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
+import { useT } from "@/hooks";
 import {
   getUsers,
   getUserPreferences,
@@ -40,20 +41,6 @@ type MatchmakingFormState = {
   geoAvailability: string;
   domainWeights: DomainWeightForm;
 };
-
-const MATCH_GENDER_OPTIONS = [
-  { value: "ANY", label: "Any" },
-  { value: "FEMALE", label: "Women" },
-  { value: "MALE", label: "Men" },
-  { value: "NON_BINARY", label: "Non-binary" },
-  { value: "OTHER", label: "Other" },
-];
-
-const GEO_AVAILABILITY_OPTIONS = [
-  { value: "MIXED", label: "Mixed (in-person + remote)" },
-  { value: "IN_PERSON", label: "In person only" },
-  { value: "REMOTE", label: "Remote only" },
-];
 
 const DOMAIN_WEIGHT_KEYS: DomainWeightKey[] = [
   "love",
@@ -118,6 +105,8 @@ const toRecord = (value: JsonValue | undefined): Record<string, JsonValue> => {
 };
 
 export const AdminMatchmakingOverview = () => {
+  const { t } = useT();
+
   const [emailFilter, setEmailFilter] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersResponse, setUsersResponse] = useState<PageResponse<UserResponse> | null>(null);
@@ -128,6 +117,26 @@ export const AdminMatchmakingOverview = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formState, setFormState] = useState<MatchmakingFormState>(DEFAULT_FORM_STATE);
   const [baseFilters, setBaseFilters] = useState<Record<string, JsonValue>>({});
+
+  const matchGenderOptions = useMemo(
+    () => [
+      { value: "ANY", label: t("Any") },
+      { value: "FEMALE", label: t("Women") },
+      { value: "MALE", label: t("Men") },
+      { value: "NON_BINARY", label: t("Non-binary") },
+      { value: "OTHER", label: t("Other") },
+    ],
+    [t]
+  );
+
+  const geoAvailabilityOptions = useMemo(
+    () => [
+      { value: "MIXED", label: t("Mixed (in-person + remote)") },
+      { value: "IN_PERSON", label: t("In person only") },
+      { value: "REMOTE", label: t("Remote only") },
+    ],
+    [t]
+  );
 
   const params = useMemo<AdminUsersParams>(
     () => ({
@@ -233,19 +242,21 @@ export const AdminMatchmakingOverview = () => {
       id: user.id,
       email: user.email ?? "-",
       username: user.username ?? "-",
-      status: <Badge tone={statusTone(user.status)}>{user.status}</Badge>,
-      onboarding: user.onboardingCompleted ? "Completed" : "In progress",
+      status: (
+        <Badge tone={statusTone(user.status)}>{t(user.status)}</Badge>
+      ),
+      onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
       action: (
         <Button
           size="sm"
           variant={selectedUserId === user.id ? "secondary" : "outline"}
           onClick={() => setSelectedUserId(user.id)}
         >
-          {selectedUserId === user.id ? "Selected" : "Configure"}
+          {selectedUserId === user.id ? t("Selected") : t("Configure")}
         </Button>
       ),
     }));
-  }, [selectedUserId, usersResponse]);
+  }, [selectedUserId, t, usersResponse]);
 
   const handleDomainWeightChange = (key: DomainWeightKey, value: string) => {
     setFormState((prev) => ({
@@ -332,22 +343,24 @@ export const AdminMatchmakingOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Matchmaking Control"
-        subtitle="Manage user-level matchmaking filters and domain weights from the back office."
+        title={t("Matchmaking Control")}
+        subtitle={t("Manage user-level matchmaking filters and domain weights from the back office.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Select user</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Select user")}
+        </h2>
         <div className="grid gap-3 lg:grid-cols-[1fr,auto]">
           <Input
-            label="Filter by email"
-            placeholder="user@email.com"
+            label={t("Filter by email")}
+            placeholder={t("user@email.com")}
             value={emailFilter}
             onChange={(event) => setEmailFilter(event.target.value)}
           />
           <div className="flex items-end">
             <Button size="sm" variant="secondary" onClick={() => void loadUsers()}>
-              Search
+              {t("Search")}
             </Button>
           </div>
         </div>
@@ -355,19 +368,19 @@ export const AdminMatchmakingOverview = () => {
         {loadingUsers ? (
           <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/70 p-4">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading users...</p>
+            <p className="text-sm text-muted">{t("Loading users...")}</p>
           </div>
         ) : (
           <AdminTable
             columns={[
-              { key: "email", label: "Email" },
-              { key: "username", label: "Username" },
-              { key: "status", label: "Status" },
-              { key: "onboarding", label: "Onboarding" },
-              { key: "action", label: "Action", align: "right" },
+              { key: "email", label: t("Email") },
+              { key: "username", label: t("Username") },
+              { key: "status", label: t("Status") },
+              { key: "onboarding", label: t("Onboarding") },
+              { key: "action", label: t("Action"), align: "right" },
             ]}
             rows={tableRows}
-            emptyLabel="No users found with this filter."
+            emptyLabel={t("No users found with this filter.")}
           />
         )}
       </Card>
@@ -375,25 +388,27 @@ export const AdminMatchmakingOverview = () => {
       <Card className="space-y-5 p-5">
         <div className="space-y-1">
           <h2 className="text-base font-semibold text-foreground">
-            Matchmaking settings
+            {t("Matchmaking settings")}
           </h2>
           <p className="text-sm text-muted">
             {selectedUser
-              ? `Editing: ${selectedUser.email ?? selectedUser.id}`
-              : "Select a user to edit matchmaking settings."}
+              ? t("Editing: {target}", {
+                  target: selectedUser.email ?? selectedUser.id,
+                })
+              : t("Select a user to edit matchmaking settings.")}
           </p>
         </div>
 
         {!selectedUser ? null : loadingPreferences ? (
           <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/70 p-4">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Loading matchmaking filters...</p>
+            <p className="text-sm text-muted">{t("Loading matchmaking filters...")}</p>
           </div>
         ) : (
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Input
-                label="Minimum age"
+                label={t("Minimum age")}
                 type="number"
                 min={18}
                 value={formState.ageMin}
@@ -402,7 +417,7 @@ export const AdminMatchmakingOverview = () => {
                 }
               />
               <Input
-                label="Maximum age"
+                label={t("Maximum age")}
                 type="number"
                 min={18}
                 value={formState.ageMax}
@@ -411,7 +426,7 @@ export const AdminMatchmakingOverview = () => {
                 }
               />
               <Input
-                label="Distance (km)"
+                label={t("Distance (km)")}
                 type="number"
                 min={0}
                 value={formState.distanceKm}
@@ -420,16 +435,16 @@ export const AdminMatchmakingOverview = () => {
                 }
               />
               <Select
-                label="Preferred gender"
-                options={MATCH_GENDER_OPTIONS}
+                label={t("Preferred gender")}
+                options={matchGenderOptions}
                 value={formState.gender}
                 onValueChange={(value) =>
                   setFormState((prev) => ({ ...prev, gender: value }))
                 }
               />
               <Select
-                label="Geo availability"
-                options={GEO_AVAILABILITY_OPTIONS}
+                label={t("Geo availability")}
+                options={geoAvailabilityOptions}
                 value={formState.geoAvailability}
                 onValueChange={(value) =>
                   setFormState((prev) => ({ ...prev, geoAvailability: value }))
@@ -439,14 +454,14 @@ export const AdminMatchmakingOverview = () => {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="Location city filter"
+                label={t("Location city filter")}
                 value={formState.locationCity}
                 onChange={(event) =>
                   setFormState((prev) => ({ ...prev, locationCity: event.target.value }))
                 }
               />
               <Input
-                label="Location country filter"
+                label={t("Location country filter")}
                 value={formState.locationCountry}
                 onChange={(event) =>
                   setFormState((prev) => ({ ...prev, locationCountry: event.target.value }))
@@ -455,7 +470,9 @@ export const AdminMatchmakingOverview = () => {
             </div>
 
             <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
-              <p className="text-sm font-semibold text-foreground">Domain weights</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("Domain weights")}
+              </p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {MATCH_DOMAIN_ORDER.map((domain) => {
                   const meta = getMatchDomainMeta(domain);
@@ -463,7 +480,7 @@ export const AdminMatchmakingOverview = () => {
                   return (
                     <Input
                       key={domain}
-                      label={`${meta.emoji} ${meta.label}`}
+                      label={`${meta.emoji} ${t(meta.label)}`}
                       type="number"
                       min={0}
                       max={20}
@@ -476,18 +493,20 @@ export const AdminMatchmakingOverview = () => {
                 })}
               </div>
               <p className="text-xs text-subtle">
-                Open to new connections and shared interests boost are always active by product rule.
+                {t(
+                  "Open to new connections and shared interests boost are always active by product rule."
+                )}
               </p>
             </div>
 
             {error?.message ? (
               <p className="rounded-[var(--radius-md)] border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-                {error.message}
+                {t(error.message)}
               </p>
             ) : null}
             {successMessage ? (
               <p className="rounded-[var(--radius-md)] border border-success/40 bg-success/10 px-3 py-2 text-sm text-success">
-                {successMessage}
+                {t(successMessage)}
               </p>
             ) : null}
 
@@ -496,10 +515,10 @@ export const AdminMatchmakingOverview = () => {
                 size="sm"
                 variant="secondary"
                 loading={savingPreferences}
-                loadingText="Saving"
+                loadingText={t("Saving")}
                 onClick={() => void handleSave()}
               >
-                Save matchmaking settings
+                {t("Save matchmaking settings")}
               </Button>
             </div>
           </div>

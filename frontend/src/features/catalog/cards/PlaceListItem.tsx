@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Badge } from "@/components/elements/Badge";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface PlaceListItemProps
@@ -52,6 +53,8 @@ export const PlaceListItem = ({
   onPress,
   ...props
 }: PlaceListItemProps) => {
+  const { t } = useT();
+
   const resolvedScore =
     typeof matchScore === "number"
       ? Math.round(matchScore)
@@ -121,9 +124,9 @@ export const PlaceListItem = ({
                   : `${distanceKm.toFixed(1)}km`}
               </span>
             ) : (
-              <span className="text-subtle">View details</span>
+              <span className="text-subtle">{t("View details")}</span>
             )}
-            <span className="text-accent">View details</span>
+            <span className="text-accent">{t("View details")}</span>
           </div>
         </div>
       </div>

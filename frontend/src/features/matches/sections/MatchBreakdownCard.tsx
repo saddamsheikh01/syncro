@@ -5,14 +5,18 @@ import { ProgressBar, type ProgressBarTone } from "@/components/elements/Progres
 import type { DimensionScores, MatchBreakdown } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { resolveMatchDomainSlots } from "@/lib/matchDomains";
+import { useT } from "@/hooks";
 
-const DIMENSION_CONFIG: Record<keyof DimensionScores, { label: string; emoji: string }> = {
-  interests: { label: "Interests", emoji: "💫" },
-  lifestyle: { label: "Lifestyle", emoji: "🏃" },
-  values: { label: "Values", emoji: "💎" },
-  objectives: { label: "Goals", emoji: "🎯" },
-  psy: { label: "Personality", emoji: "🧠" },
-  astro: { label: "Astrology", emoji: "✨" },
+const DIMENSION_CONFIG: Record<
+  keyof DimensionScores,
+  { labelKey: string; emoji: string }
+> = {
+  interests: { labelKey: "Interests", emoji: "💫" },
+  lifestyle: { labelKey: "Lifestyle", emoji: "🏃" },
+  values: { labelKey: "Values", emoji: "💎" },
+  objectives: { labelKey: "Goals", emoji: "🎯" },
+  psy: { labelKey: "Personality", emoji: "🧠" },
+  astro: { labelKey: "Astrology", emoji: "✨" },
 };
 
 const getProgressTone = (value: number): ProgressBarTone => {
@@ -89,6 +93,8 @@ export interface MatchBreakdownCardProps {
 }
 
 export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardProps) => {
+  const { t } = useT();
+
   if (!breakdown) {
     return null;
   }
@@ -100,11 +106,16 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
   // Normalizza i valori negativi a 0
   const availableDims = (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
     .filter((key) => dimensions?.[key] !== null && dimensions?.[key] !== undefined)
-    .map((key) => ({ key, value: Math.max(0, dimensions![key] as number), ...DIMENSION_CONFIG[key] }));
+    .map((key) => ({
+      key,
+      value: Math.max(0, dimensions![key] as number),
+      emoji: DIMENSION_CONFIG[key].emoji,
+      label: t(DIMENSION_CONFIG[key].labelKey),
+    }));
 
   const missingDims = (Object.keys(DIMENSION_CONFIG) as Array<keyof DimensionScores>)
     .filter((key) => dimensions?.[key] === null || dimensions?.[key] === undefined)
-    .map((key) => DIMENSION_CONFIG[key].label);
+    .map((key) => t(DIMENSION_CONFIG[key].labelKey));
 
   // Se non c'e nulla, non mostrare
   if (availableDims.length === 0 && domainSlots.length === 0) {
@@ -118,7 +129,7 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                Domain fit
+                {t("Domain fit")}
               </h4>
             </div>
             <div className="space-y-3">
@@ -126,7 +137,7 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
                 <DomainItem
                   key={domain.domain}
                   emoji={domain.emoji}
-                  label={domain.label}
+                  label={t(domain.label)}
                   value={domain.score}
                   missing={domain.missing}
                 />
@@ -142,11 +153,14 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-subtle">
-                Compatibility analysis
+                {t("Compatibility analysis")}
               </h4>
               {completeness !== undefined && (
                 <span className="text-[11px] text-muted">
-                  {availableDimensions ?? availableDims.length}/{totalDimensions ?? 6} dimensions
+                  {t("{available}/{total} dimensions", {
+                    available: availableDimensions ?? availableDims.length,
+                    total: totalDimensions ?? 6,
+                  })}
                 </span>
               )}
             </div>
@@ -157,7 +171,8 @@ export const MatchBreakdownCard = ({ breakdown, className }: MatchBreakdownCardP
             </div>
             {missingDims.length > 0 && (
               <p className="mt-3 text-[11px] text-subtle">
-                <span className="text-muted">Not analyzed:</span> {missingDims.join(", ")}
+                <span className="text-muted">{t("Not analyzed:")}</span>{" "}
+                {missingDims.join(", ")}
               </p>
             )}
           </div>

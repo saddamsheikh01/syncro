@@ -7,6 +7,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface ProfileInfoValues {
   fullName: string;
@@ -41,6 +42,8 @@ export const ProfileInfoForm = ({
   submitLabel = "Save",
   showSubmit = true,
 }: ProfileInfoFormProps) => {
+  const { t } = useT();
+
   const isControlled = value !== undefined;
   const initialValue = useMemo(
     () => ({ ...EMPTY_VALUES, ...defaultValue, ...value }),
@@ -68,34 +71,34 @@ export const ProfileInfoForm = ({
     <Card className={cx("space-y-4 p-5", className)}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <Input
-          label="Full name"
+          label={t("Full name")}
           value={currentValue.fullName}
-          placeholder="First and last name"
+          placeholder={t("First and last name")}
           onChange={(event) => updateValue({ fullName: event.target.value })}
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
-            label="City"
+            label={t("City")}
             value={currentValue.city}
-            placeholder="Milan"
+            placeholder={t("Milan")}
             onChange={(event) => updateValue({ city: event.target.value })}
           />
           <Input
-            label="Country"
+            label={t("Country")}
             value={currentValue.country}
-            placeholder="Italy"
+            placeholder={t("Italy")}
             onChange={(event) => updateValue({ country: event.target.value })}
           />
         </div>
         <Textarea
-          label="Bio"
+          label={t("Bio")}
           value={currentValue.bio}
-          placeholder="Tell us about yourself"
+          placeholder={t("Tell us about yourself")}
           onChange={(event) => updateValue({ bio: event.target.value })}
         />
         {showSubmit ? (
           <Button type="submit" size="sm" fullWidth>
-            {submitLabel}
+            {t(submitLabel)}
           </Button>
         ) : null}
       </form>

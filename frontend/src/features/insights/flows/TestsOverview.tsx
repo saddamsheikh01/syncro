@@ -8,9 +8,10 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { TestsHelperCard } from "@/features/insights/cards/TestsHelperCard";
+import { InsightsDbLanguageDisclaimer } from "@/features/insights/elements/InsightsDbLanguageDisclaimer";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
-import { useAnalytics, useTests } from "@/hooks";
+import { useAnalytics, useT, useTests } from "@/hooks";
 import { resolveTestCopy } from "@/lib/insightsCopy";
 
 const isLocalhost = () =>
@@ -19,6 +20,7 @@ const isLocalhost = () =>
     window.location.hostname === "127.0.0.1");
 
 export const TestsOverview = () => {
+  const { t } = useT();
   const { tests, loading, error, completedCount, countLoading, actions } =
     useTests();
   const { actions: analyticsActions } = useAnalytics();
@@ -85,11 +87,11 @@ export const TestsOverview = () => {
               },
             });
           },
-          actionLabel: "View Insights",
+          actionLabel: t("View Insights"),
           completed: test.completed,
         };
       }),
-    [analyticsActions, tests]
+    [analyticsActions, t, tests]
   );
 
   const isInitialLoading = loading && tests.length === 0;
@@ -112,15 +114,15 @@ export const TestsOverview = () => {
                 Zyra
               </p>
               <p className="text-xs text-muted">
-                Clear signals lead to better matches.
+                {t("Clear signals lead to better matches.")}
               </p>
             </div>
           </div>
           <p className="text-sm text-muted">
-            The more you answer, the fewer mismatches you get.
+            {t("The more you answer, the fewer mismatches you get.")}
           </p>
           <div className="text-xs text-subtle">
-            — Zyra
+            {t("— Zyra")}
           </div>
         </Card>
       </div>
@@ -128,9 +130,11 @@ export const TestsOverview = () => {
       {isLocalhost() ? (
         <Card className="flex items-center justify-between gap-3 border-dashed border-amber-500/50 bg-amber-500/5 p-4">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-amber-600">Debug Mode</p>
+            <p className="text-sm font-semibold text-amber-600">
+              {t("Debug Mode")}
+            </p>
             <p className="text-xs text-muted">
-              Reset your submissions to retake tests.
+              {t("Reset your submissions to retake tests.")}
             </p>
           </div>
           <Button
@@ -138,36 +142,38 @@ export const TestsOverview = () => {
             variant="secondary"
             onClick={handleResetSubmissions}
             loading={resetting}
-            loadingText="Resetting..."
+            loadingText={t("Resetting...")}
           >
-            Reset insights
+            {t("Reset insights")}
           </Button>
         </Card>
       ) : null}
 
       <SectionHeader
-        title="Improve Your Matches"
-        subtitle="Your progress drives more precise results."
+        title={t("Improve Your Matches")}
+        subtitle={t("Your progress drives more precise results.")}
       />
+
+      <InsightsDbLanguageDisclaimer />
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading insights...</p>
+          <p className="text-sm text-muted">{t("Loading insights...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <ErrorState
-          title="Unable to load insights"
+          title={t("Unable to load insights")}
           description={error.message}
         />
       ) : null}
 
       {!isInitialLoading && !error && tests.length === 0 ? (
         <EmptyState
-          title="No insights available"
-          description="Check back later for new profiling insights."
+          title={t("No insights available")}
+          description={t("Check back later for new profiling insights.")}
         />
       ) : null}
 

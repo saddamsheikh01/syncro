@@ -15,7 +15,7 @@ import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { TestCountCard } from "@/components/ui/TestCountCard";
 import { MATCH_DOMAIN_ORDER, getMatchDomainMeta } from "@/lib/matchDomains";
 import { resolveMatchCopy } from "@/lib/matchCopy";
-import { useAnalytics, useAuth, useChat, useUser } from "@/hooks";
+import { useAnalytics, useAuth, useChat, useT, useUser } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserTestsCount } from "@/services/insights";
 import { getUserPosts, getUserProfile } from "@/services/users";
@@ -97,12 +97,15 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const formatLocation = (profile: UserPublicProfileResponse | null) => {
+const formatLocation = (
+  profile: UserPublicProfileResponse | null,
+  t: (key: string, values?: Record<string, string | number>) => string
+) => {
   if (!profile) return undefined;
   const parts = [profile.city, profile.country].filter(Boolean);
   const location = parts.length ? parts.join(", ") : "";
-  const ageLabel = profile.age ? `${profile.age} years` : "";
-  return [location, ageLabel].filter(Boolean).join(" · ") || undefined;
+  const ageLabel = profile.age ? t("{age} years", { age: profile.age }) : "";
+  return [location, ageLabel].filter(Boolean).join(" - ") || undefined;
 };
 
 const resolveLabel = (value: string | null | undefined, map: Record<string, string>) =>
@@ -138,6 +141,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const { preferences, actions: userActions } = useUser();
   const { actions: chatActions, loadingConversations } = useChat();
   const { actions: analyticsActions } = useAnalytics();
+  const { t } = useT();
 
   const [profile, setProfile] = useState<UserPublicProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -251,7 +255,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           })
           .catch((error) => {
             if (!active) return;
-            setPostsError(resolveErrorMessage(error, "Unable to load posts."));
+            setPostsError(resolveErrorMessage(error, "Unable to load posts"));
           })
           .finally(() => {
             if (!active) return;
@@ -263,7 +267,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       .catch((error) => {
         if (!active) return;
         setProfileError(
-          resolveErrorMessage(error, "Profile unavailable.")
+          resolveErrorMessage(error, "Profile unavailable")
         );
       })
       .finally(() => {
@@ -277,41 +281,50 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   }, [router, user?.id, userId]);
 
   const displayName = useMemo(() => {
-    if (!profile) return "Profile";
+    if (!profile) return t("Profile");
     return (
       profile.fullName?.trim() ||
       profile.username ||
-      `User ${profile.userId.slice(0, 6)}`
+      t("User {id}", { id: profile.userId.slice(0, 6) })
     );
-  }, [profile]);
+  }, [profile, t]);
 
-  const locationLabel = useMemo(() => formatLocation(profile), [profile]);
+  const locationLabel = useMemo(() => formatLocation(profile, t), [profile, t]);
   const extendedSections = useMemo(
     () => [
-      { label: "What defines me", value: profile?.traitsText ?? null },
-      { label: "What I love", value: profile?.lovesText ?? null },
-      { label: "What I can't stand", value: profile?.dislikesText ?? null },
-      { label: "What I'm looking for", value: profile?.goalsText ?? null },
-      { label: "Values", value: profile?.valuesText ?? null },
+      { label: t("What defines me"), value: profile?.traitsText ?? null },
+      { label: t("What I love"), value: profile?.lovesText ?? null },
+      { label: t("What I can't stand"), value: profile?.dislikesText ?? null },
+      { label: t("What I'm looking for"), value: profile?.goalsText ?? null },
+      { label: t("Values"), value: profile?.valuesText ?? null },
     ],
-    [profile]
+    [profile, t]
   );
   const personalSections = useMemo(
     () => [
       {
-        label: "Relationship status",
-        value: resolveLabel(profile?.relationshipStatus, RELATIONSHIP_LABELS),
+        label: t("Relationship status"),
+        value: (() => {
+          const label = resolveLabel(profile?.relationshipStatus, RELATIONSHIP_LABELS);
+          return label ? t(label) : null;
+        })(),
       },
       {
-        label: "Orientation",
-        value: resolveLabel(profile?.orientation, ORIENTATION_LABELS),
+        label: t("Orientation"),
+        value: (() => {
+          const label = resolveLabel(profile?.orientation, ORIENTATION_LABELS);
+          return label ? t(label) : null;
+        })(),
       },
       {
-        label: "Children",
-        value: resolveLabel(profile?.childrenStatus, CHILDREN_LABELS),
+        label: t("Children"),
+        value: (() => {
+          const label = resolveLabel(profile?.childrenStatus, CHILDREN_LABELS);
+          return label ? t(label) : null;
+        })(),
       },
     ],
-    [profile]
+    [profile, t]
   );
   const filledExtendedSections = useMemo(
     () => extendedSections.filter((item) => item.value && item.value.trim().length > 0),
@@ -353,34 +366,37 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
 
     const ageLabel =
       ageMin != null || ageMax != null
-        ? `${ageMin != null ? ageMin : "Any"}-${ageMax != null ? ageMax : "Any"}`
-        : "Any";
+        ? `${ageMin != null ? ageMin : t("Any")}-${ageMax != null ? ageMax : t("Any")}`
+        : t("Any");
 
     const locationLabel =
       city || country
         ? [city, country].filter(Boolean).join(", ")
-        : "Any location";
+        : t("Any location");
 
     return [
-      { label: "Age range", value: ageLabel },
+      { label: t("Age range"), value: ageLabel },
       {
-        label: "Preferred gender",
-        value: MATCH_GENDER_LABELS[preferredGender] ?? preferredGender,
+        label: t("Preferred gender"),
+        value: t(MATCH_GENDER_LABELS[preferredGender] ?? preferredGender),
       },
       {
-        label: "Distance",
-        value: distanceKm != null && distanceKm > 0 ? `Within ${distanceKm} km` : "Any distance",
+        label: t("Distance"),
+        value:
+          distanceKm != null && distanceKm > 0
+            ? t("Within {count} km", { count: distanceKm })
+            : t("Any distance"),
       },
       {
-        label: "Availability",
-        value: GEO_AVAILABILITY_LABELS[availability] ?? availability,
+        label: t("Availability"),
+        value: t(GEO_AVAILABILITY_LABELS[availability] ?? availability),
       },
       {
-        label: "Location filter",
+        label: t("Location filter"),
         value: locationLabel,
       },
     ];
-  }, [currentFilters]);
+  }, [currentFilters, t]);
   const matchContextItems = useMemo(() => {
     if (!parsedBreakdown) return [];
 
@@ -394,7 +410,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     const items: Array<{ label: string; value: string }> = [];
     if (sharedCount != null) {
       items.push({
-        label: "Shared interests found",
+        label: t("Shared interests found"),
         value: `${sharedCount}`,
       });
     }
@@ -403,7 +419,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       Number.isFinite(parsedBreakdown.distanceKm)
     ) {
       items.push({
-        label: "Distance",
+        label: t("Distance"),
         value: `${parsedBreakdown.distanceKm.toFixed(1)} km`,
       });
     }
@@ -412,12 +428,15 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       typeof parsedBreakdown.totalDimensions === "number"
     ) {
       items.push({
-        label: "Data completeness",
-        value: `${parsedBreakdown.availableDimensions}/${parsedBreakdown.totalDimensions} dimensions`,
+        label: t("Data completeness"),
+        value: t("{available}/{total} dimensions", {
+          available: parsedBreakdown.availableDimensions,
+          total: parsedBreakdown.totalDimensions,
+        }),
       });
     }
     return items;
-  }, [parsedBreakdown]);
+  }, [parsedBreakdown, t]);
   const resolvedMatchScore = useMemo(() => {
     if (typeof match?.scoreTotal !== "number" || !Number.isFinite(match.scoreTotal)) {
       return undefined;
@@ -567,7 +586,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         setPostsHasMore(!response.last);
       })
       .catch((error) => {
-        setPostsError(resolveErrorMessage(error, "Unable to load posts."));
+        setPostsError(resolveErrorMessage(error, "Unable to load posts"));
       })
       .finally(() => setPostsLoading(false));
   }, [postsHasMore, postsLoading, postsPage, userId]);
@@ -592,7 +611,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading profile...</p>
+          <p className="text-sm text-muted">{t("Loading profile...")}</p>
         </Card>
       </div>
     );
@@ -602,15 +621,15 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <ErrorState
-          title="Profile unavailable"
-          description={profileError}
+          title={t("Profile unavailable")}
+          description={t(profileError)}
         />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => router.back()}>
-            Go back
+            {t("Go back")}
           </Button>
           <Button onClick={() => router.push("/matches")}>
-            Discover matches
+            {t("Discover matches")}
           </Button>
         </div>
       </div>
@@ -621,8 +640,8 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
         <EmptyState
-          title="Profile unavailable"
-          description="This user hasn&apos;t completed their profile yet."
+          title={t("Profile unavailable")}
+          description={t("This user hasn't completed their profile yet.")}
         />
       </div>
     );
@@ -632,10 +651,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Public profile
+          {t("Public profile")}
         </p>
         <p className="text-sm text-muted">
-          Discover the profile, matches, and recent content.
+          {t("Discover the profile, matches, and recent content.")}
         </p>
       </header>
 
@@ -656,10 +675,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             <Card className="space-y-4 p-5">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-subtle">
-                  Personal profile
+                  {t("Personal profile")}
                 </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Who this person is
+                  {t("Who this person is")}
                 </h3>
               </div>
               <div className="space-y-4">
@@ -677,10 +696,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             <Card className="space-y-4 p-5">
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-subtle">
-                  Personal information
+                  {t("Personal information")}
                 </p>
                 <h3 className="text-base font-semibold text-foreground">
-                  Optional details
+                  {t("Optional details")}
                 </h3>
               </div>
               <div className="space-y-3">
@@ -699,27 +718,29 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       {!hasExtendedContent && fallbackBio ? (
         <Card className="space-y-2 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Bio
+            {t("Bio")}
           </p>
           <p className="text-sm text-foreground">{fallbackBio}</p>
         </Card>
       ) : null}
 
       <TestCountCard
-        title="Insights completed"
+        title={t("Insights completed")}
         count={testsCount}
         loading={testsCountLoading}
         description={
           testsCountLoading
-            ? "Fetching completed insights."
-            : `This profile has completed ${testsCount ?? 0} insights.`
+            ? t("Fetching completed insights.")
+            : t("This profile has completed {count} insights.", {
+                count: testsCount ?? 0,
+              })
         }
         variant="compact"
       />
 
       <ZyraProfileRecap
         userId={profile.userId}
-        title={`Zyra recap for ${displayName}`}
+        title={t("Zyra recap for {name}", { name: displayName })}
       />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -727,10 +748,10 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-                Match with you
+                {t("Match with you")}
               </p>
               <h3 className="text-base font-semibold text-foreground">
-                Current compatibility
+                {t("Current compatibility")}
               </h3>
             </div>
             {typeof resolvedMatchScore === "number" ? (
@@ -740,22 +761,22 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           {matchLoading ? (
             <div className="flex items-center gap-3 text-sm text-muted">
               <Loader size="sm" />
-              Calculating match...
+              {t("Calculating match...")}
             </div>
           ) : matchError ? (
-            <p className="text-sm text-muted">{matchError}</p>
+            <p className="text-sm text-muted">{t(matchError)}</p>
           ) : match ? (
             <>
               {matchExplanation ? (
-                <p className="text-sm text-muted">{matchExplanation}</p>
+                <p className="text-sm text-muted">{t(matchExplanation)}</p>
               ) : null}
               <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-subtle">
-                    Match context
+                    {t("Match context")}
                   </p>
                   <p className="text-sm text-muted">
-                    Why this profile is compatible with your current settings.
+                    {t("Why this profile is compatible with your current settings.")}
                   </p>
                 </div>
 
@@ -776,7 +797,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
                 {activeFilterDomains.length > 0 ? (
                   <div className="space-y-1">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">
-                      Active match domains
+                      {t("Active match domains")}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {activeFilterDomains.map((domain) => (
@@ -784,7 +805,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
                           key={domain.domain}
                           className="inline-flex items-center rounded-full bg-background px-2 py-0.5 text-xs font-semibold text-foreground"
                         >
-                          {domain.emoji} {domain.label}
+                          {domain.emoji} {t(domain.label)}
                         </span>
                       ))}
                     </div>
@@ -810,30 +831,30 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
             </>
           ) : (
             <p className="text-sm text-muted">
-              Match unavailable at the moment.
+              {t("Match unavailable at the moment.")}
             </p>
           )}
         </Card>
 
         <Card className="space-y-3 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-            Quick actions
+            {t("Quick actions")}
           </p>
           <Button
             size="sm"
             onClick={handleStartChat}
             loading={startingChat || loadingConversations}
-            loadingText="Opening"
+            loadingText={t("Opening")}
             disabled={status !== "authenticated"}
           >
-            Start chat
+            {t("Start chat")}
           </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => router.push("/matches")}
           >
-            Back to matches
+            {t("Back to matches")}
           </Button>
         </Card>
       </section>
@@ -841,9 +862,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">Latest posts</h2>
+            <h2 className="text-xl font-semibold text-foreground">{t("Latest posts")}</h2>
             <p className="text-sm text-muted">
-              Recent updates shared by the user.
+              {t("Recent updates shared by the user.")}
             </p>
           </div>
           {postsLoading ? <Loader size="sm" /> : null}
@@ -851,13 +872,13 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
 
         {postsError ? (
           <ErrorState
-            title="Unable to load posts"
-            description={postsError}
+            title={t("Unable to load posts")}
+            description={t(postsError)}
           />
         ) : posts.length === 0 && !postsLoading ? (
           <EmptyState
-            title="No recent posts"
-            description="This profile hasn&apos;t published any content yet."
+            title={t("No recent posts")}
+            description={t("This profile hasn't published any content yet.")}
           />
         ) : null}
 
@@ -870,9 +891,9 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
               size="md"
               onClick={handleLoadMore}
               loading={postsLoading}
-              loadingText="Loading"
+              loadingText={t("Loading")}
             >
-              Load more
+              {t("Load more")}
             </Button>
           </div>
         ) : null}

@@ -12,6 +12,7 @@ import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createAdminAnswerOption,
   createAdminQuestion,
@@ -33,35 +34,9 @@ import type {
   TestType,
 } from "@/types/insights";
 
-const TEST_TYPE_OPTIONS = [
-  { value: "", label: "All types" },
-  { value: "INTERESTS", label: "INTERESTS" },
-  { value: "LIFESTYLE", label: "LIFESTYLE" },
-  { value: "VALUES", label: "VALUES" },
-  { value: "OBJECTIVES", label: "OBJECTIVES" },
-  { value: "PSY", label: "PSY" },
-  { value: "ASTRO", label: "ASTRO" },
-  { value: "OTHER", label: "OTHER" },
-];
-
-const SCORING_OPTIONS = [
-  { value: "SINGLE_SCORE", label: "SINGLE_SCORE" },
-  { value: "CLUSTER_SCORE", label: "CLUSTER_SCORE" },
-  { value: "AXES_SCORE", label: "AXES_SCORE" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "", label: "Status: all" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-];
-
-const QUESTION_TYPE_OPTIONS = [
-  { value: "SINGLE", label: "SINGLE" },
-  { value: "MULTI", label: "MULTI" },
-];
-
 export const AdminTestsOverview = () => {
+  const { t } = useT();
+
   const [tests, setTests] = useState<AdminTestDefinitionResponse[]>([]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("");
@@ -98,6 +73,90 @@ export const AdminTestsOverview = () => {
   const [creatingOptionForQuestionId, setCreatingOptionForQuestionId] = useState<string | null>(null);
   const [optionLabel, setOptionLabel] = useState("");
   const [optionWeight, setOptionWeight] = useState("1");
+
+  const testTypeOptions = useMemo(
+    () => [
+      { value: "", label: t("All types") },
+      { value: "INTERESTS", label: t("Interests") },
+      { value: "LIFESTYLE", label: t("Lifestyle") },
+      { value: "VALUES", label: t("Values") },
+      { value: "OBJECTIVES", label: t("Objectives") },
+      { value: "PSY", label: t("Psychology") },
+      { value: "ASTRO", label: t("Astrology") },
+      { value: "OTHER", label: t("Other") },
+    ],
+    [t]
+  );
+
+  const scoringOptions = useMemo(
+    () => [
+      { value: "SINGLE_SCORE", label: t("Single score") },
+      { value: "CLUSTER_SCORE", label: t("Cluster score") },
+      { value: "AXES_SCORE", label: t("Axes score") },
+    ],
+    [t]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "", label: t("Status: all") },
+      { value: "active", label: t("Active") },
+      { value: "inactive", label: t("Inactive") },
+    ],
+    [t]
+  );
+
+  const questionTypeOptions = useMemo(
+    () => [
+      { value: "SINGLE", label: t("Single choice") },
+      { value: "MULTI", label: t("Multiple choice") },
+    ],
+    [t]
+  );
+
+  const resolveQuestionTypeLabel = useCallback(
+    (value: "SINGLE" | "MULTI") =>
+      value === "MULTI" ? t("Multiple choice") : t("Single choice"),
+    [t]
+  );
+
+  const resolveTestTypeLabel = useCallback(
+    (value: TestType) => {
+      switch (value) {
+        case "INTERESTS":
+          return t("Interests");
+        case "LIFESTYLE":
+          return t("Lifestyle");
+        case "VALUES":
+          return t("Values");
+        case "OBJECTIVES":
+          return t("Objectives");
+        case "PSY":
+          return t("Psychology");
+        case "ASTRO":
+          return t("Astrology");
+        case "OTHER":
+        default:
+          return t("Other");
+      }
+    },
+    [t]
+  );
+
+  const resolveScoringLabel = useCallback(
+    (value: TestScoringStrategy) => {
+      switch (value) {
+        case "CLUSTER_SCORE":
+          return t("Cluster score");
+        case "AXES_SCORE":
+          return t("Axes score");
+        case "SINGLE_SCORE":
+        default:
+          return t("Single score");
+      }
+    },
+    [t]
+  );
 
   const loadTests = useCallback(async () => {
     setLoading(true);
@@ -163,16 +222,16 @@ export const AdminTestsOverview = () => {
     });
   }, [query, statusFilter, tests, typeFilter]);
 
-    const rows = useMemo(
+  const rows = useMemo(
     () =>
       filteredTests.map((test) => ({
         id: test.id,
         title: test.title,
-        type: test.testType,
-        strategy: test.scoringStrategy,
+        type: resolveTestTypeLabel(test.testType),
+        strategy: resolveScoringLabel(test.scoringStrategy),
         status: (
           <Badge tone={test.active ? "success" : "warning"}>
-            {test.active ? "ACTIVE" : "INACTIVE"}
+            {test.active ? t("ACTIVE") : t("INACTIVE")}
           </Badge>
         ),
         updatedAt: formatDateTime(test.updatedAt),
@@ -182,11 +241,11 @@ export const AdminTestsOverview = () => {
             variant="outline"
             onClick={() => setSelectedTestId(test.id)}
           >
-            Manage
+            {t("Manage")}
           </Button>
         ),
       })),
-    [filteredTests]
+    [filteredTests, resolveScoringLabel, resolveTestTypeLabel, t]
   );
 
   const activeCount = useMemo(
@@ -249,7 +308,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confirm test deletion?");
+    const confirmed = window.confirm(t("Confirm test deletion?"));
     if (!confirmed) {
       return;
     }
@@ -313,23 +372,23 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const nextQuestion = window.prompt("Question text", currentQuestion);
+    const nextQuestion = window.prompt(t("Question text"), currentQuestion);
     if (!nextQuestion || !nextQuestion.trim()) {
       return;
     }
 
-    const nextPositionRaw = window.prompt("Position", String(currentPosition));
+    const nextPositionRaw = window.prompt(t("Position"), String(currentPosition));
     const nextPosition = Math.max(1, Number(nextPositionRaw || currentPosition) || currentPosition);
 
-    const nextRequired = window.confirm("Required question? OK = yes, Cancel = no");
+    const nextRequired = window.confirm(t("Required question? OK = yes, Cancel = no"));
 
-    const nextTypeRaw = window.prompt("Question type (SINGLE/MULTI)", currentType);
+    const nextTypeRaw = window.prompt(t("Question type (SINGLE/MULTI)"), currentType);
     const nextType = nextTypeRaw === "MULTI" ? "MULTI" : "SINGLE";
 
     let nextMaxSelections = 1;
     if (nextType === "MULTI") {
       const raw = window.prompt(
-        "Max selections",
+        t("Max selections"),
         String(currentMaxSelections ?? 1)
       );
       nextMaxSelections = Math.max(1, Number(raw || currentMaxSelections || 1) || 1);
@@ -355,7 +414,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confirm question deletion?");
+    const confirmed = window.confirm(t("Confirm question deletion?"));
     if (!confirmed) {
       return;
     }
@@ -402,12 +461,12 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const nextLabel = window.prompt("Option label", currentLabel);
+    const nextLabel = window.prompt(t("Option label"), currentLabel);
     if (!nextLabel || !nextLabel.trim()) {
       return;
     }
 
-    const nextWeightRaw = window.prompt("Option weight", String(currentWeight));
+    const nextWeightRaw = window.prompt(t("Option weight"), String(currentWeight));
     const nextWeight = Number(nextWeightRaw || currentWeight) || currentWeight;
 
     setError(null);
@@ -427,7 +486,7 @@ export const AdminTestsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm("Confirm option deletion?");
+    const confirmed = window.confirm(t("Confirm option deletion?"));
     if (!confirmed) {
       return;
     }
@@ -444,50 +503,57 @@ export const AdminTestsOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Insights tests"
-        subtitle="Full management of tests, questions, and options."
+        title={t("Insights tests")}
+        subtitle={t("Full management of tests, questions, and options.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Create new test</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Create new test")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleCreateTest}>
           <Input
-            label="Title"
+            label={t("Title")}
             value={createTitle}
             onChange={(event) => setCreateTitle(event.target.value)}
             required
           />
           <Select
-            label="Test type"
+            label={t("Test type")}
             value={createType}
-            options={TEST_TYPE_OPTIONS.filter((item) => item.value)}
+            options={testTypeOptions.filter((item) => item.value)}
             onValueChange={(value) => setCreateType(value as TestType)}
           />
           <Select
-            label="Scoring"
+            label={t("Scoring")}
             value={createScoring}
-            options={SCORING_OPTIONS}
+            options={scoringOptions}
             onValueChange={(value) => setCreateScoring(value as TestScoringStrategy)}
           />
           <Select
-            label="Status"
+            label={t("Status")}
             value={createActive}
             options={[
-              { value: "true", label: "ACTIVE" },
-              { value: "false", label: "INACTIVE" },
+              { value: "true", label: t("ACTIVE") },
+              { value: "false", label: t("INACTIVE") },
             ]}
             onValueChange={setCreateActive}
           />
           <div className="lg:col-span-2">
             <Textarea
-              label="Description"
+              label={t("Description")}
               value={createDescription}
               onChange={(event) => setCreateDescription(event.target.value)}
             />
           </div>
           <div>
-            <Button type="submit" size="sm" loading={creatingTest} loadingText="Creating">
-              Create test
+            <Button
+              type="submit"
+              size="sm"
+              loading={creatingTest}
+              loadingText={t("Creating")}
+            >
+              {t("Create test")}
             </Button>
           </div>
         </form>
@@ -497,54 +563,56 @@ export const AdminTestsOverview = () => {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by title or description"
+          placeholder={t("Search by title or description")}
         />
         <Select
           value={typeFilter}
-          options={TEST_TYPE_OPTIONS}
+          options={testTypeOptions}
           onValueChange={setTypeFilter}
         />
         <Select
           value={statusFilter}
-          options={STATUS_OPTIONS}
+          options={statusOptions}
           onValueChange={setStatusFilter}
         />
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Total tests"
+          label={t("Total tests")}
           value={formatNumber(filteredTests.length)}
           trend="neutral"
-          trendLabel="Current filters"
+          trendLabel={t("Current filters")}
         />
         <AdminStatCard
-          label="Active tests"
+          label={t("Active tests")}
           value={formatNumber(activeCount)}
           trend="neutral"
-          trendLabel="Current filters"
+          trendLabel={t("Current filters")}
         />
         <AdminStatCard
-          label="Inactive tests"
+          label={t("Inactive tests")}
           value={formatNumber(Math.max(filteredTests.length - activeCount, 0))}
           trend="neutral"
-          trendLabel="Current filters"
+          trendLabel={t("Current filters")}
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading tests...</p>
+          <p className="text-sm text-muted">{t("Loading tests...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load tests</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">
+            {t("Unable to load tests")}
+          </p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadTests()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -552,22 +620,22 @@ export const AdminTestsOverview = () => {
       {!loading && !error ? (
         <AdminTable
           columns={[
-            { key: "title", label: "Title" },
-            { key: "type", label: "Type" },
-            { key: "strategy", label: "Scoring" },
-            { key: "status", label: "Status" },
-            { key: "updatedAt", label: "Updated at" },
-            { key: "actions", label: "Actions", align: "right" },
+            { key: "title", label: t("Title") },
+            { key: "type", label: t("Type") },
+            { key: "strategy", label: t("Scoring") },
+            { key: "status", label: t("Status") },
+            { key: "updatedAt", label: t("Updated at") },
+            { key: "actions", label: t("Actions"), align: "right" },
           ]}
           rows={rows}
-          emptyLabel="No tests found"
+          emptyLabel={t("No tests found")}
         />
       ) : null}
 
       {detailLoading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading test details...</p>
+          <p className="text-sm text-muted">{t("Loading test details...")}</p>
         </Card>
       ) : null}
 
@@ -575,51 +643,56 @@ export const AdminTestsOverview = () => {
         <Card className="space-y-5 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-foreground">
-              Test management: {selectedTestDetail.title}
+              {t("Test management: {title}", { title: selectedTestDetail.title })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedTestId(null)}>
-              Close
+              {t("Close")}
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-2" onSubmit={handleUpdateTest}>
             <Input
-              label="Title"
+              label={t("Title")}
               value={editTitle}
               onChange={(event) => setEditTitle(event.target.value)}
               required
             />
             <Select
-              label="Test type"
+              label={t("Test type")}
               value={editType}
-              options={TEST_TYPE_OPTIONS.filter((item) => item.value)}
+              options={testTypeOptions.filter((item) => item.value)}
               onValueChange={(value) => setEditType(value as TestType)}
             />
             <Select
-              label="Scoring"
+              label={t("Scoring")}
               value={editScoring}
-              options={SCORING_OPTIONS}
+              options={scoringOptions}
               onValueChange={(value) => setEditScoring(value as TestScoringStrategy)}
             />
             <Select
-              label="Status"
+              label={t("Status")}
               value={editActive}
               options={[
-                { value: "true", label: "ACTIVE" },
-                { value: "false", label: "INACTIVE" },
+                { value: "true", label: t("ACTIVE") },
+                { value: "false", label: t("INACTIVE") },
               ]}
               onValueChange={setEditActive}
             />
             <div className="lg:col-span-2">
               <Textarea
-                label="Description"
+                label={t("Description")}
                 value={editDescription}
                 onChange={(event) => setEditDescription(event.target.value)}
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button type="submit" size="sm" loading={updatingTest} loadingText="Saving">
-                Save test
+              <Button
+                type="submit"
+                size="sm"
+                loading={updatingTest}
+                loadingText={t("Saving")}
+              >
+                {t("Save test")}
               </Button>
               <Button
                 type="button"
@@ -627,24 +700,26 @@ export const AdminTestsOverview = () => {
                 variant="danger"
                 onClick={handleDeleteTest}
                 loading={deletingTest}
-                loadingText="Deleting"
+                loadingText={t("Deleting")}
               >
-                Delete test
+                {t("Delete test")}
               </Button>
             </div>
           </form>
 
           <Card className="space-y-3 p-4">
-            <h3 className="text-base font-semibold text-foreground">Create question</h3>
+            <h3 className="text-base font-semibold text-foreground">
+              {t("Create question")}
+            </h3>
             <form className="grid gap-3 lg:grid-cols-5" onSubmit={handleCreateQuestion}>
               <Input
-                label="Question"
+                label={t("Question")}
                 value={questionText}
                 onChange={(event) => setQuestionText(event.target.value)}
                 required
               />
               <Input
-                label="Position"
+                label={t("Position")}
                 type="number"
                 min={1}
                 value={questionPosition}
@@ -652,22 +727,22 @@ export const AdminTestsOverview = () => {
                 required
               />
               <Select
-                label="Type"
+                label={t("Type")}
                 value={questionType}
-                options={QUESTION_TYPE_OPTIONS}
+                options={questionTypeOptions}
                 onValueChange={setQuestionType}
               />
               <Select
-                label="Required"
+                label={t("Required")}
                 value={questionRequired}
                 options={[
-                  { value: "true", label: "true" },
-                  { value: "false", label: "false" },
+                  { value: "true", label: t("Yes") },
+                  { value: "false", label: t("No") },
                 ]}
                 onValueChange={setQuestionRequired}
               />
               <Input
-                label="Max selections"
+                label={t("Max selections")}
                 type="number"
                 min={1}
                 value={questionMaxSelections}
@@ -675,17 +750,26 @@ export const AdminTestsOverview = () => {
                 disabled={questionType !== "MULTI"}
               />
               <div className="lg:col-span-5">
-                <Button type="submit" size="sm" loading={creatingQuestion} loadingText="Creating">
-                  Create question
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={creatingQuestion}
+                  loadingText={t("Creating")}
+                >
+                  {t("Create question")}
                 </Button>
               </div>
             </form>
           </Card>
 
           <div className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Questions and options</h3>
+            <h3 className="text-base font-semibold text-foreground">
+              {t("Questions and options")}
+            </h3>
             {selectedTestDetail.questions.length === 0 ? (
-              <Card className="p-4 text-sm text-muted">No questions available.</Card>
+              <Card className="p-4 text-sm text-muted">
+                {t("No questions available.")}
+              </Card>
             ) : (
               selectedTestDetail.questions.map((question) => (
                 <Card key={question.id} className="space-y-3 p-4">
@@ -695,7 +779,14 @@ export const AdminTestsOverview = () => {
                         #{question.position} - {question.question}
                       </p>
                       <p className="text-xs text-subtle">
-                        Type: {question.questionType} | Required: {String(question.required)} | Max selections: {question.maxSelections ?? "-"}
+                        {t(
+                          "Type: {type} | Required: {required} | Max selections: {max}",
+                          {
+                            type: resolveQuestionTypeLabel(question.questionType),
+                            required: question.required ? t("Yes") : t("No"),
+                            max: String(question.maxSelections ?? "-"),
+                          }
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -713,23 +804,23 @@ export const AdminTestsOverview = () => {
                           )
                         }
                       >
-                        Edit
+                        {t("Edit")}
                       </Button>
                       <Button
                         size="sm"
                         variant="danger"
                         onClick={() => void handleDeleteQuestion(question.id)}
                       >
-                        Delete
+                        {t("Delete")}
                       </Button>
                     </div>
                   </div>
 
                   <AdminTable
                     columns={[
-                      { key: "label", label: "Option" },
-                      { key: "weight", label: "Weight" },
-                      { key: "actions", label: "Actions", align: "right" },
+                      { key: "label", label: t("Option") },
+                      { key: "weight", label: t("Weight") },
+                      { key: "actions", label: t("Actions"), align: "right" },
                     ]}
                     rows={question.options.map((option) => ({
                       id: option.id,
@@ -749,29 +840,29 @@ export const AdminTestsOverview = () => {
                               )
                             }
                           >
-                            Edit
+                            {t("Edit")}
                           </Button>
                           <Button
                             size="sm"
                             variant="danger"
                             onClick={() => void handleDeleteOption(question.id, option.id)}
                           >
-                            Delete
+                            {t("Delete")}
                           </Button>
                         </div>
                       ),
                     }))}
-                    emptyLabel="No options"
+                    emptyLabel={t("No options")}
                   />
 
                   <div className="grid gap-2 lg:grid-cols-[1fr,160px,auto]">
                     <Input
-                      label="New option"
+                      label={t("New option")}
                       value={optionLabel}
                       onChange={(event) => setOptionLabel(event.target.value)}
                     />
                     <Input
-                      label="Weight"
+                      label={t("Weight")}
                       type="number"
                       value={optionWeight}
                       onChange={(event) => setOptionWeight(event.target.value)}
@@ -781,10 +872,10 @@ export const AdminTestsOverview = () => {
                         size="sm"
                         onClick={() => void handleCreateOption(question.id)}
                         loading={creatingOptionForQuestionId === question.id}
-                        loadingText="Creating"
+                        loadingText={t("Creating")}
                         disabled={!optionLabel.trim()}
                       >
-                        Add option
+                        {t("Add option")}
                       </Button>
                     </div>
                   </div>

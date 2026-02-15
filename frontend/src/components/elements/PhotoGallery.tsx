@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface PhotoGalleryProps {
   photos: string[];
@@ -12,11 +13,13 @@ export interface PhotoGalleryProps {
 
 export const PhotoGallery = ({
   photos,
-  alt = "Foto",
+  alt,
   className,
 }: PhotoGalleryProps) => {
+  const { t } = useT();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [imageError, setImageError] = useState<Record<number, boolean>>({});
+  const resolvedAlt = alt ?? t("Photo");
 
   if (photos.length === 0) {
     return (
@@ -55,7 +58,7 @@ export const PhotoGallery = ({
         {currentPhoto && !imageError[selectedIndex] ? (
           <Image
             src={currentPhoto}
-            alt={`${alt} ${selectedIndex + 1}`}
+            alt={`${resolvedAlt} ${selectedIndex + 1}`}
             fill
             className="object-cover"
             onError={() =>
@@ -93,7 +96,7 @@ export const PhotoGallery = ({
                 )
               }
               className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
-              aria-label="Foto precedente"
+              aria-label={t("Previous photo")}
             >
               <svg
                 width="20"
@@ -116,7 +119,7 @@ export const PhotoGallery = ({
                 )
               }
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70"
-              aria-label="Foto successiva"
+              aria-label={t("Next photo")}
             >
               <svg
                 width="20"
@@ -162,7 +165,7 @@ export const PhotoGallery = ({
               {!imageError[index] ? (
                 <Image
                   src={photo}
-                  alt={`${alt} thumbnail ${index + 1}`}
+                  alt={`${resolvedAlt} ${t("thumbnail")} ${index + 1}`}
                   fill
                   className="object-cover"
                   onError={() =>

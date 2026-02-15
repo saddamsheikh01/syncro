@@ -4,9 +4,10 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
-import { useChat, useAuth } from "@/hooks";
+import { useAuth, useChat, useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
+import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 const ChatIcon = () => (
   <svg
@@ -22,23 +23,9 @@ const ChatIcon = () => (
   </svg>
 );
 
-const formatTime = (isoDate: string) => {
-  const date = new Date(isoDate);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.round(diffMs / (1000 * 60));
-
-  if (diffMinutes < 1) return "Ora";
-  if (diffMinutes < 60) return `${diffMinutes}m`;
-  const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.round(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}g`;
-  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
-};
-
 export const RecentChatsCard = () => {
   const router = useRouter();
+  const { t } = useT();
   const { user } = useAuth();
   const { conversations, loadingConversations, actions } = useChat();
   const fetchedRef = useRef(false);
@@ -51,12 +38,30 @@ export const RecentChatsCard = () => {
 
   const recentChats = conversations.slice(0, 3);
 
+  const formatTime = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.round(diffMs / (1000 * 60));
+
+    if (diffMinutes < 1) return t("now");
+    if (diffMinutes < 60) return t("{count}m", { count: diffMinutes });
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return t("{count}h", { count: diffHours });
+    const diffDays = Math.round(diffHours / 24);
+    if (diffDays < 7) return t("{count}d", { count: diffDays });
+    return date.toLocaleDateString(getRuntimeBcp47(), {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
+
   if (loadingConversations && recentChats.length === 0) {
     return (
       <div className="rounded-[var(--radius-xl)] border border-border/70 bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-semibold text-foreground">
-            Your latest conversations
+            {t("Your latest conversations")}
           </p>
         </div>
         <div className="space-y-2">
@@ -81,13 +86,13 @@ export const RecentChatsCard = () => {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
           <ChatIcon />
-          <span>Your latest conversations</span>
+          <span>{t("Your latest conversations")}</span>
         </div>
         <Link
           href="/chat"
           className="text-[10px] font-medium text-accent hover:underline"
         >
-          View all
+          {t("View all")}
         </Link>
       </div>
 
@@ -97,8 +102,8 @@ export const RecentChatsCard = () => {
             (p) => p.userId !== user?.id
           );
           const otherParticipantId = otherParticipant?.userId ?? null;
-          const name = otherParticipant?.fullName || "User";
-          const lastMessage = conversation.lastMessage?.content || "No messages";
+          const name = otherParticipant?.fullName || t("User");
+          const lastMessage = conversation.lastMessage?.content || t("No messages");
           const time = conversation.lastMessage?.createdAt
             ? formatTime(conversation.lastMessage.createdAt)
             : conversation.createdAt
@@ -110,7 +115,7 @@ export const RecentChatsCard = () => {
               key={conversation.id}
               role="button"
               tabIndex={0}
-              aria-label={`Open chat with ${name}`}
+              aria-label={t("Open chat with {name}", { name })}
               className={cx(
                 "group flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 transition-colors",
                 "hover:bg-surface-muted"
@@ -142,7 +147,7 @@ export const RecentChatsCard = () => {
                           event.stopPropagation();
                           router.push(`/profile/${otherParticipantId}`);
                         }}
-                        aria-label={`Open profile of ${name}`}
+                        aria-label={t("Open profile of {name}", { name })}
                         className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-subtle transition-colors hover:bg-surface-muted hover:text-foreground"
                       >
                         <NavIcon name="user" className="h-3.5 w-3.5" />

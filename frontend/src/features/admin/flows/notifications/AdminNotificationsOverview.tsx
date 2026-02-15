@@ -8,6 +8,7 @@ import { Textarea } from "@/components/elements/Textarea";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import { createCustomNotifications } from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type { NotificationResponse } from "@/types/admin";
@@ -47,6 +48,8 @@ const isApiError = (value: unknown): value is ApiError => {
 };
 
 export const AdminNotificationsOverview = () => {
+  const { t } = useT();
+
   const [userIdsRaw, setUserIdsRaw] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -102,7 +105,14 @@ export const AdminNotificationsOverview = () => {
           requestError.message.includes("JSON") ||
           requestError.message.includes("Unexpected token"))
       ) {
-        setValidationError(requestError.message || "Invalid JSON data.");
+        const message = requestError.message || "Invalid JSON data.";
+        const normalized =
+          message.includes("Unexpected token") ||
+          message.includes("JSON") ||
+          message.includes("Unexpected end of JSON input")
+            ? "Invalid JSON data."
+            : message;
+        setValidationError(normalized);
         return;
       }
 
@@ -123,23 +133,25 @@ export const AdminNotificationsOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Custom notifications"
-        subtitle="Send custom push notifications to one or more users."
+        title={t("Custom notifications")}
+        subtitle={t("Send custom push notifications to one or more users.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Create notification</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Create notification")}
+        </h2>
         <form className="space-y-3" onSubmit={handleSubmit}>
           <Textarea
-            label="User IDs"
+            label={t("User IDs")}
             value={userIdsRaw}
             onChange={(event) => setUserIdsRaw(event.target.value)}
-            placeholder="UUIDs separated by comma, space, or newline"
+            placeholder={t("UUIDs separated by comma, space, or newline")}
             required
           />
 
           <Input
-            label="Title"
+            label={t("Title")}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={120}
@@ -147,23 +159,28 @@ export const AdminNotificationsOverview = () => {
           />
 
           <Textarea
-            label="Body"
+            label={t("Body")}
             value={body}
             onChange={(event) => setBody(event.target.value)}
             maxLength={1000}
-            placeholder="Optional text"
+            placeholder={t("Optional text")}
           />
 
           <Textarea
-            label="JSON data"
+            label={t("JSON data")}
             value={dataRaw}
             onChange={(event) => setDataRaw(event.target.value)}
-            placeholder='{"source":"backoffice","priority":"high"}'
+            placeholder={t('{"source":"backoffice","priority":"high"}')}
           />
 
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" loading={saving} loadingText="Sending">
-              Send notifications
+            <Button
+              type="submit"
+              size="sm"
+              loading={saving}
+              loadingText={t("Sending")}
+            >
+              {t("Send notifications")}
             </Button>
             <Button
               type="button"
@@ -177,7 +194,7 @@ export const AdminNotificationsOverview = () => {
                 setValidationError(null);
               }}
             >
-              Reset form
+              {t("Reset form")}
             </Button>
           </div>
         </form>
@@ -185,34 +202,40 @@ export const AdminNotificationsOverview = () => {
 
       {validationError ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Validation error</p>
-          <p className="text-sm text-muted">{validationError}</p>
+          <p className="text-sm font-semibold text-danger">
+            {t("Validation error")}
+          </p>
+          <p className="text-sm text-muted">{t(validationError)}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Notification send error</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">
+            {t("Notification send error")}
+          </p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
         </Card>
       ) : null}
 
       <Card className="p-5">
         <p className="text-sm text-subtle">
-          Last send: {formatNumber(createdNotifications.length)} notifications created
+          {t("Last send: {count} notifications created", {
+            count: formatNumber(createdNotifications.length),
+          })}
         </p>
       </Card>
 
       <AdminTable
         columns={[
-          { key: "idShort", label: "Notification ID" },
-          { key: "userId", label: "User ID" },
-          { key: "title", label: "Title" },
-          { key: "type", label: "Type" },
-          { key: "createdAt", label: "Created at" },
+          { key: "idShort", label: t("Notification ID") },
+          { key: "userId", label: t("User ID") },
+          { key: "title", label: t("Title") },
+          { key: "type", label: t("Type") },
+          { key: "createdAt", label: t("Created at") },
         ]}
         rows={rows}
-        emptyLabel="No notifications sent in this session"
+        emptyLabel={t("No notifications sent in this session")}
       />
     </div>
   );

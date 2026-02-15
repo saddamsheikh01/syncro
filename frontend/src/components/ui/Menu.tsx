@@ -6,35 +6,36 @@ import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
 import { SidebarIcon } from "@/components/ui/SidebarIcon";
 import type { SidebarIconName } from "@/components/ui/SidebarIcon";
+import { useT } from "@/hooks";
 
 export type MenuItem = {
   id: string;
-  label: string;
+  labelKey: string;
   href: string;
   icon: SidebarIconName;
 };
 
 export const MENU_ITEMS: MenuItem[] = [
-  { id: "home", label: "Home", href: "/home", icon: "home" },
+  { id: "home", labelKey: "Home", href: "/home", icon: "home" },
   {
     id: "people",
-    label: "People & Connections",
+    labelKey: "People & Connections",
     href: "/matches",
     icon: "people",
   },
   {
     id: "places",
-    label: "Places & Experiences",
+    labelKey: "Places & Experiences",
     href: "/places",
     icon: "places",
   },
-  { id: "moments", label: "Moments", href: "/moments", icon: "moments" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "insights" },
-  { id: "zyra", label: "Zyra", href: "/zyra", icon: "zyra" },
-  { id: "chat", label: "Conversations", href: "/chat", icon: "chat" },
-  { id: "profile", label: "Profile", href: "/profile", icon: "profile" },
-  { id: "settings", label: "Settings", href: "/settings", icon: "settings" },
-  { id: "support", label: "Support", href: "/support", icon: "support" },
+  { id: "moments", labelKey: "Moments", href: "/moments", icon: "moments" },
+  { id: "insights", labelKey: "Insights", href: "/insights", icon: "insights" },
+  { id: "zyra", labelKey: "Zyra", href: "/zyra", icon: "zyra" },
+  { id: "chat", labelKey: "Conversations", href: "/chat", icon: "chat" },
+  { id: "profile", labelKey: "Profile", href: "/profile", icon: "profile" },
+  { id: "settings", labelKey: "Settings", href: "/settings", icon: "settings" },
+  { id: "support", labelKey: "Support", href: "/support", icon: "support" },
 ];
 
 const normalizePath = (path: string) =>
@@ -63,16 +64,18 @@ export const Menu = ({
   ...props
 }: MenuProps) => {
   const pathname = usePathname();
+  const { t } = useT();
   const menuItems = items ?? MENU_ITEMS;
 
   return (
     <nav
       className={cx("space-y-2", className)}
-      aria-label="Navigazione principale"
+      aria-label={t("Main navigation")}
       {...props}
     >
       {menuItems.map((item) => {
         const active = isItemActive(pathname, item.href);
+        const label = t(item.labelKey);
 
         return (
           <Link
@@ -87,7 +90,7 @@ export const Menu = ({
               collapsed && "justify-center px-2",
             )}
             aria-current={active ? "page" : undefined}
-            aria-label={item.label}
+            aria-label={label}
           >
             <span
               className={cx(
@@ -102,7 +105,7 @@ export const Menu = ({
                 collapsed ? "sr-only" : "truncate"
               )}
             >
-              {item.label}
+              {label}
             </span>
           </Link>
         );

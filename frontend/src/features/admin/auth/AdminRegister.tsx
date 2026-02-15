@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "../../../hooks/admin/useAdminAuth";
@@ -9,14 +9,13 @@ import { Select } from "@/components/elements/Select";
 import { Logo } from "@/components/elements/Logo";
 import { Input } from "@/components/elements/Input";
 import { Button } from "@/components/buttons/Button";
+import { useT } from "@/hooks";
 
 const ADMIN_ROLES: AdminRole[] = ["ADMIN", "SUPER_ADMIN"];
-const ADMIN_ROLE_OPTIONS = ADMIN_ROLES.map((roleItem) => ({
-  value: roleItem,
-  label: roleItem,
-}));
 
 export const AdminRegister = () => {
+  const { t } = useT();
+
   const router = useRouter();
   const { status, error, isAuthenticated, admin, actions } = useAdminAuth();
   const [email, setEmail] = useState("");
@@ -36,6 +35,14 @@ export const AdminRegister = () => {
   }, [admin, isAuthenticated, router]);
 
   const isSubmitting = status === "loading";
+  const roleOptions = useMemo(
+    () =>
+      ADMIN_ROLES.map((roleItem) => ({
+        value: roleItem,
+        label: t(roleItem),
+      })),
+    [t]
+  );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,71 +67,74 @@ export const AdminRegister = () => {
             <Logo width={28} className="h-auto w-7" priority />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Admin registration
+            {t("Admin registration")}
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Create a new admin user for Syncro.
+            {t("Create a new admin user for Syncro.")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <Input
             id="admin-register-email"
-            label="Email"
+            label={t("Email")}
             name="email"
             type="email"
             autoComplete="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="admin@email.com"
+            placeholder={t("admin@email.com")}
           />
 
           <Input
             id="admin-register-password"
-            label="Password"
+            label={t("Password")}
             name="password"
             type="password"
             autoComplete="new-password"
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Create a password"
+            placeholder={t("Create a password")}
           />
 
           <Select
-            label="Role"
+            label={t("Role")}
             name="role"
             value={role}
-            options={ADMIN_ROLE_OPTIONS}
+            options={roleOptions}
             onValueChange={(nextRole) => setRole(nextRole as AdminRole)}
           />
 
           <Input
             id="admin-register-bootstrap"
-            label="Bootstrap secret (optional)"
+            label={t("Bootstrap secret (optional)")}
             name="bootstrapSecret"
             type="text"
             value={bootstrapSecret}
             onChange={(event) => setBootstrapSecret(event.target.value)}
-            placeholder="Only for the first setup"
+            placeholder={t("Only for the first setup")}
           />
 
           {error ? (
             <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-              {error.message}
+              {t(error.message)}
             </div>
           ) : null}
 
           {success && !error ? (
             <div className="rounded-[var(--radius-md)] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
-              Admin created successfully.
+              {t("Admin created successfully.")}
             </div>
           ) : null}
 
           {isAuthenticated && admin ? (
             <div className="rounded-[var(--radius-md)] border border-border-strong bg-surface px-4 py-3 text-sm text-foreground">
-              Active admin: {admin.email} ({admin.role}).
+              {t("Active admin: {email} ({role}).", {
+                email: admin.email,
+                role: t(admin.role),
+              })}
             </div>
           ) : null}
 
@@ -133,16 +143,16 @@ export const AdminRegister = () => {
             size="lg"
             fullWidth
             loading={isSubmitting}
-            loadingText="Creating"
+            loadingText={t("Creating")}
           >
-            Create admin
+            {t("Create admin")}
           </Button>
         </form>
 
         <div className="mt-8 text-sm text-muted">
-          Already have an admin?{" "}
+          {t("Already have an admin?")}{" "}
           <Link className="font-semibold text-foreground" href="/admin/login">
-            Log in
+            {t("Log in")}
           </Link>
         </div>
       </div>

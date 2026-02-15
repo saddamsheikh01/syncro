@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import type { HTMLAttributes } from "react";
@@ -7,6 +9,7 @@ import { cx } from "@/lib/classNames";
 import { getTestCardTheme } from "@/lib/testCardTheme";
 import { getInsightCardImage } from "@/lib/insightCardImage";
 import type { TestType } from "@/types/insights";
+import { useT } from "@/hooks";
 
 export interface TestListItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
@@ -33,19 +36,21 @@ export const TestListItem = ({
   href,
   onPress,
   onOpen,
-  actionLabel = "Start",
+  actionLabel,
   completed = false,
   testType,
   ...props
 }: TestListItemProps) => {
+  const { t } = useT();
   const theme = getTestCardTheme(testType);
   const imageSrc = getInsightCardImage(testType, title);
   const isRetakeAvailable = completed && Boolean(href || onPress);
+  const resolvedActionLabelBase = actionLabel ? t(actionLabel) : t("Start");
   const resolvedActionLabel = isRetakeAvailable
-    ? actionLabel
+    ? resolvedActionLabelBase
     : completed
-      ? "Completed"
-      : actionLabel;
+      ? t("Completed")
+      : resolvedActionLabelBase;
 
   const content = (
     <Card
@@ -71,7 +76,7 @@ export const TestListItem = ({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-900/30 to-transparent" />
         {completed ? (
           <span className="absolute right-3 top-3 rounded-full border border-emerald-200/80 bg-emerald-50/95 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
-            Completed
+            {t("Completed")}
           </span>
         ) : null}
         <h4 className="absolute bottom-3 left-3 right-3 line-clamp-2 text-sm font-semibold leading-snug text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
@@ -87,14 +92,14 @@ export const TestListItem = ({
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-subtle">
             {statusLabel ? (
               <span className={cx("inline-flex items-center rounded-full", theme.chip)}>
-                {statusLabel}
+                {t(statusLabel)}
               </span>
             ) : null}
             {typeof questionCount === "number" ? (
-              <span>{questionCount} questions</span>
+              <span>{t("{count} questions", { count: questionCount })}</span>
             ) : null}
             {typeof estimatedMinutes === "number" ? (
-              <span>{estimatedMinutes} min</span>
+              <span>{t("{count} min", { count: estimatedMinutes })}</span>
             ) : null}
           </div>
         ) : null}

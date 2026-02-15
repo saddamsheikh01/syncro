@@ -11,6 +11,7 @@ import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import {
   createAdmin,
   deleteAdmin,
@@ -22,23 +23,6 @@ import type { ApiError } from "@/types/api";
 import type { AdminRole, AdminStatus, AdminUserResponse } from "@/types/admin";
 import type { PageResponse } from "@/types/shared";
 
-const STATUS_OPTIONS = [
-  { value: "", label: "All statuses" },
-  { value: "ACTIVE", label: "ACTIVE" },
-  { value: "SUSPENDED", label: "SUSPENDED" },
-];
-
-const ROLE_OPTIONS = [
-  { value: "", label: "All roles" },
-  { value: "ADMIN", label: "ADMIN" },
-  { value: "SUPER_ADMIN", label: "SUPER_ADMIN" },
-];
-
-const UPDATE_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "ACTIVE" },
-  { value: "SUSPENDED", label: "SUSPENDED" },
-];
-
 const statusTone = (status: AdminStatus) =>
   status === "ACTIVE" ? ("success" as const) : ("warning" as const);
 
@@ -46,6 +30,8 @@ const roleTone = (role: AdminRole) =>
   role === "SUPER_ADMIN" ? ("accent" as const) : ("neutral" as const);
 
 export const AdminAdminsOverview = () => {
+  const { t } = useT();
+
   const [query, setQuery] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -63,6 +49,32 @@ export const AdminAdminsOverview = () => {
   const [selectedStatus, setSelectedStatus] = useState<AdminStatus>("ACTIVE");
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const statusOptions = useMemo(
+    () => [
+      { value: "", label: t("All statuses") },
+      { value: "ACTIVE", label: t("ACTIVE") },
+      { value: "SUSPENDED", label: t("SUSPENDED") },
+    ],
+    [t]
+  );
+
+  const roleOptions = useMemo(
+    () => [
+      { value: "", label: t("All roles") },
+      { value: "ADMIN", label: t("ADMIN") },
+      { value: "SUPER_ADMIN", label: t("SUPER_ADMIN") },
+    ],
+    [t]
+  );
+
+  const updateStatusOptions = useMemo(
+    () => [
+      { value: "ACTIVE", label: t("ACTIVE") },
+      { value: "SUSPENDED", label: t("SUSPENDED") },
+    ],
+    [t]
+  );
 
   const params = useMemo<AdminAdminsParams>(
     () => ({
@@ -113,8 +125,8 @@ export const AdminAdminsOverview = () => {
       return response.content.map((admin) => ({
         id: admin.id,
         email: admin.email,
-        role: <Badge tone={roleTone(admin.role)}>{admin.role}</Badge>,
-        status: <Badge tone={statusTone(admin.status)}>{admin.status}</Badge>,
+        role: <Badge tone={roleTone(admin.role)}>{t(admin.role)}</Badge>,
+        status: <Badge tone={statusTone(admin.status)}>{t(admin.status)}</Badge>,
         lastLogin: admin.lastLogin ? formatDateTime(admin.lastLogin) : "-",
         createdAt: formatDateTime(admin.createdAt),
         actions: (
@@ -123,11 +135,11 @@ export const AdminAdminsOverview = () => {
             variant="outline"
             onClick={() => setSelectedAdminId(admin.id)}
           >
-            Manage
+            {t("Manage")}
           </Button>
         ),
       }));
-  }, [response]);
+  }, [response, t]);
 
   const superAdminsInPage = useMemo(
     () => response?.content.filter((admin) => admin.role === "SUPER_ADMIN").length ?? 0,
@@ -180,9 +192,7 @@ export const AdminAdminsOverview = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Confirm deletion for this admin account?"
-    );
+    const confirmed = window.confirm(t("Confirm deletion for this admin account?"));
     if (!confirmed) {
       return;
     }
@@ -204,30 +214,32 @@ export const AdminAdminsOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Admin users"
-        subtitle="Back office access governance with a focus on SUPER_ADMIN roles."
+        title={t("Admin users")}
+        subtitle={t("Back office access governance with a focus on SUPER_ADMIN roles.")}
       />
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Create new admin</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Create new admin")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-[1fr,1fr,auto]" onSubmit={handleCreateAdmin}>
           <Input
-            label="Email"
+            label={t("Email")}
             type="email"
             value={createEmail}
             onChange={(event) => setCreateEmail(event.target.value)}
             required
           />
           <Input
-            label="Password"
+            label={t("Password")}
             type="password"
             value={createPassword}
             onChange={(event) => setCreatePassword(event.target.value)}
             required
           />
           <div className="flex items-end">
-            <Button type="submit" size="sm" loading={creating} loadingText="Creating">
-              Create admin
+            <Button type="submit" size="sm" loading={creating} loadingText={t("Creating")}>
+              {t("Create admin")}
             </Button>
           </div>
         </form>
@@ -245,11 +257,11 @@ export const AdminAdminsOverview = () => {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by admin email"
+            placeholder={t("Search by admin email")}
           />
           <Select
             value={statusFilter}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             onValueChange={(value) => {
               setStatusFilter(value);
               setPage(0);
@@ -257,14 +269,14 @@ export const AdminAdminsOverview = () => {
           />
           <Select
             value={roleFilter}
-            options={ROLE_OPTIONS}
+            options={roleOptions}
             onValueChange={(value) => {
               setRoleFilter(value);
               setPage(0);
             }}
           />
           <Button type="submit" size="sm">
-            Apply filters
+            {t("Apply filters")}
           </Button>
         </form>
       </Card>
@@ -273,23 +285,23 @@ export const AdminAdminsOverview = () => {
         <Card className="space-y-4 border-accent/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-foreground">
-              Selected admin: {selectedAdmin.email}
+              {t("Selected admin: {email}", { email: selectedAdmin.email })}
             </h2>
             <Button size="sm" variant="ghost" onClick={() => setSelectedAdminId(null)}>
-              Close
+              {t("Close")}
             </Button>
           </div>
 
           <form className="grid gap-3 lg:grid-cols-[240px,auto]" onSubmit={handleUpdateAdmin}>
             <Select
-              label="Status"
+              label={t("Status")}
               value={selectedStatus}
-              options={UPDATE_STATUS_OPTIONS}
+              options={updateStatusOptions}
               onValueChange={(value) => setSelectedStatus(value as AdminStatus)}
             />
             <div className="flex items-end gap-2">
-              <Button type="submit" size="sm" loading={updating} loadingText="Saving">
-                Save status
+              <Button type="submit" size="sm" loading={updating} loadingText={t("Saving")}>
+                {t("Save status")}
               </Button>
               <Button
                 type="button"
@@ -297,9 +309,9 @@ export const AdminAdminsOverview = () => {
                 variant="danger"
                 onClick={handleDeleteAdmin}
                 loading={deleting}
-                loadingText="Deleting"
+                loadingText={t("Deleting")}
               >
-                Delete admin
+                {t("Delete admin")}
               </Button>
             </div>
           </form>
@@ -308,40 +320,40 @@ export const AdminAdminsOverview = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminStatCard
-          label="Total admins"
+          label={t("Total admins")}
           value={formatNumber(response?.totalElements ?? 0)}
           trend="neutral"
-          trendLabel="Filtered dataset"
+          trendLabel={t("Filtered dataset")}
         />
         <AdminStatCard
-          label="SUPER_ADMIN (page)"
+          label={t("SUPER_ADMIN (page)")}
           value={formatNumber(superAdminsInPage)}
           trend="neutral"
-          trendLabel="Current page"
+          trendLabel={t("Current page")}
         />
         <AdminStatCard
-          label="ACTIVE (page)"
+          label={t("ACTIVE (page)")}
           value={formatNumber(
             response?.content.filter((admin) => admin.status === "ACTIVE").length ?? 0
           )}
           trend="neutral"
-          trendLabel="Current page"
+          trendLabel={t("Current page")}
         />
       </div>
 
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading admins...</p>
+          <p className="text-sm text-muted">{t("Loading admins...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load admins</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load admins")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadAdmins()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -350,20 +362,23 @@ export const AdminAdminsOverview = () => {
         <>
           <AdminTable
             columns={[
-              { key: "email", label: "Email" },
-              { key: "role", label: "Role" },
-              { key: "status", label: "Status" },
-              { key: "lastLogin", label: "Last login" },
-              { key: "createdAt", label: "Created at" },
-              { key: "actions", label: "Actions", align: "right" },
+              { key: "email", label: t("Email") },
+              { key: "role", label: t("Role") },
+              { key: "status", label: t("Status") },
+              { key: "lastLogin", label: t("Last login") },
+              { key: "createdAt", label: t("Created at") },
+              { key: "actions", label: t("Actions"), align: "right" },
             ]}
             rows={rows}
-            emptyLabel="No admins found with the current filters"
+            emptyLabel={t("No admins found with the current filters")}
           />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-subtle">
-              Page {(response?.number ?? 0) + 1} of {Math.max(response?.totalPages ?? 1, 1)}
+              {t("Page {page} of {total}", {
+                page: (response?.number ?? 0) + 1,
+                total: Math.max(response?.totalPages ?? 1, 1),
+              })}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -372,7 +387,7 @@ export const AdminAdminsOverview = () => {
                 onClick={() => setPage((current) => Math.max(current - 1, 0))}
                 disabled={(response?.number ?? 0) <= 0}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <Button
                 size="sm"
@@ -380,7 +395,7 @@ export const AdminAdminsOverview = () => {
                 onClick={() => setPage((current) => current + 1)}
                 disabled={Boolean(response?.last ?? true)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>

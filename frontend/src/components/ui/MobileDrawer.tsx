@@ -5,6 +5,8 @@ import { cx } from "@/lib/classNames";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { Logout } from "@/components/buttons/Logout";
 import { Menu, MENU_ITEMS } from "@/components/ui/Menu";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
+import { useT } from "@/hooks";
 
 const MOBILE_MENU_IDS = new Set(["home", "people", "insights", "profile"]);
 
@@ -14,6 +16,8 @@ export interface MobileDrawerProps {
 }
 
 export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
+  const { t } = useT();
+
   useEffect(() => {
     if (!open) return;
     const handleKey = (event: KeyboardEvent) => {
@@ -59,7 +63,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
         )}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label={t("Navigation menu")}
       >
         {/* Handle indicator */}
         <div className="flex justify-center py-3">
@@ -68,15 +72,18 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 px-5 pb-4">
-          <h2 className="text-lg font-semibold text-foreground">Menu</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-            aria-label="Close menu"
-          >
-            <NavIcon name="x" className="h-5 w-5" />
-          </button>
+          <h2 className="text-lg font-semibold text-foreground">{t("Menu")}</h2>
+          <div className="flex items-center gap-2">
+            <LanguageSwitch />
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+              aria-label={t("Close menu")}
+            >
+              <NavIcon name="x" className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation items */}
@@ -84,7 +91,7 @@ export const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
           <Menu
             items={MENU_ITEMS.filter((item) => !MOBILE_MENU_IDS.has(item.id))}
             onItemClick={onClose}
-            aria-label="Secondary navigation"
+            aria-label={t("Secondary navigation")}
           />
         </div>
 

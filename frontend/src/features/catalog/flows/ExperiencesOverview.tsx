@@ -8,12 +8,14 @@ import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { Input } from "@/components/elements/Input";
 import { MapExperienceListItem } from "@/features/catalog/lists/MapExperienceListItem";
-import { useCatalog } from "@/hooks";
+import { useCatalog, useT } from "@/hooks";
 import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
+import { toBcp47 } from "@/i18n/locales";
 
 const PAGE_SIZE = 10;
 
 export const ExperiencesOverview = () => {
+  const { t, locale } = useT();
   const {
     experiences,
     experiencesPage,
@@ -94,7 +96,7 @@ export const ExperiencesOverview = () => {
   ): string | undefined => {
     if (price == null) return undefined;
     const curr = currency ?? "EUR";
-    return new Intl.NumberFormat("it-IT", {
+    return new Intl.NumberFormat(toBcp47(locale), {
       style: "currency",
       currency: curr,
     }).format(price);
@@ -127,11 +129,13 @@ export const ExperiencesOverview = () => {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
-          Catalog
+          {t("Catalog")}
         </p>
-        <h1 className="text-3xl font-semibold text-foreground">Experiences</h1>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {t("Experiences")}
+        </h1>
         <p className="text-sm text-muted">
-          Discover unique experiences selected for you.
+          {t("Discover unique experiences selected for you.")}
         </p>
       </header>
 
@@ -139,15 +143,15 @@ export const ExperiencesOverview = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Input
-              label="Search"
-              placeholder="Name or description..."
+              label={t("Search")}
+              placeholder={t("Name or description...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
           <Button onClick={handleSearch} disabled={loading}>
-            Search
+            {t("Search")}
           </Button>
         </div>
         {categories.length > 0 && (
@@ -161,7 +165,7 @@ export const ExperiencesOverview = () => {
                   : "bg-surface-muted text-muted hover:bg-border"
               }`}
             >
-              All
+              {t("All")}
             </button>
             {categories.map((cat) => (
               <button
@@ -184,21 +188,21 @@ export const ExperiencesOverview = () => {
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading experiences...</p>
+          <p className="text-sm text-muted">{t("Loading experiences...")}</p>
         </Card>
       )}
 
       {error && !isInitialLoading && (
         <ErrorState
-          title="Unable to load experiences"
+          title={t("Unable to load experiences")}
           description={error.message}
         />
       )}
 
       {!isInitialLoading && !error && experiences.length === 0 && (
         <EmptyState
-          title="No experiences found"
-          description="Try adjusting your search filters."
+          title={t("No experiences found")}
+          description={t("Try adjusting your search filters.")}
         />
       )}
 
@@ -211,9 +215,9 @@ export const ExperiencesOverview = () => {
                 variant="secondary"
                 onClick={handleLoadMore}
                 loading={loading}
-                loadingText="Loading"
+                loadingText={t("Loading")}
               >
-                Load more experiences
+                {t("Load more experiences")}
               </Button>
             </div>
           )}
@@ -222,7 +226,10 @@ export const ExperiencesOverview = () => {
 
       {experiencesPage.totalElements > 0 && (
         <p className="text-center text-xs text-subtle">
-          {experiences.length} of {experiencesPage.totalElements} experiences
+          {t("{current} of {total} experiences", {
+            current: experiences.length,
+            total: experiencesPage.totalElements,
+          })}
         </p>
       )}
     </div>

@@ -1,6 +1,8 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { useEffect, useMemo, useRef } from "react";
-import { useUser } from "@/hooks";
+import { useT, useUser } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const StatusDot = ({ className }: { className?: string }) => (
@@ -19,6 +21,7 @@ export const RightbarStatusCard = ({
   className,
   ...props
 }: RightbarStatusCardProps) => {
+  const { t } = useT();
   const { profile, actions } = useUser();
   const fetchedRef = useRef(false);
 
@@ -35,18 +38,18 @@ export const RightbarStatusCard = ({
   const focusLabel = useMemo(() => {
     const goals = profile?.goalsText?.trim();
     if (goals) return goals.split(",")[0]?.trim();
-    return "Exploration";
-  }, [profile?.goalsText]);
+    return t("Exploration");
+  }, [profile?.goalsText, t]);
 
   const items = [
-    location ? `Currently in ${location}` : "Currently in Milan",
-    `Current focus: ${focusLabel}`,
-    "Open to new connections",
+    t("Currently in {location}", { location: location || t("Milan") }),
+    t("Current focus: {focus}", { focus: focusLabel }),
+    t("Open to new connections"),
   ];
 
   return (
     <div className={cx("space-y-2", className)} {...props}>
-      <p className="text-xs font-semibold text-foreground">Your Status</p>
+      <p className="text-xs font-semibold text-foreground">{t("Your Status")}</p>
       <div className="space-y-1.5 text-xs text-muted">
         {items.map((item) => (
           <div key={item} className="flex items-start gap-2">

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "../../hooks";
+import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 
 const CheckIcon = () => (
   <svg
@@ -113,6 +114,7 @@ export const Register = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, error, isAuthenticated, user, actions } = useAuth();
+  const { t, locale } = useT();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export const Register = () => {
     setPhoneError(null);
 
     if (normalizedPhone && !PHONE_PATTERN.test(normalizedPhone)) {
-      setPhoneError("Use an international format, e.g. +393331234567.");
+      setPhoneError(t("Use an international format, e.g. +393331234567."));
       return;
     }
 
@@ -149,6 +151,7 @@ export const Register = () => {
         password,
         phone: normalizedPhone || undefined,
         refCode,
+        language: locale,
       });
       router.push("/home");
     } catch {}
@@ -159,32 +162,33 @@ export const Register = () => {
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)] lg:grid lg:grid-cols-[minmax(0,500px)_minmax(0,560px)] lg:items-center lg:justify-center lg:gap-10">
         <div className="w-full max-w-[480px] lg:max-w-[500px]">
           <div className="rounded-[28px] border border-[#eef2f8] bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
-            <div className="mb-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <Logo width={130} className="h-auto w-[120px]" priority />
+              <LanguageSwitch variant="full" />
             </div>
             <h1 className="text-3xl font-semibold text-[#2b4c8f]">
-              Sign Up To Start
+              {t("Sign Up To Start")}
               <br />
-              Your Journey
+              {t("Your Journey")}
             </h1>
             <p className="mt-3 text-sm text-muted">
-              Smart Matching For People And Places.
+              {t("Smart Matching For People And Places.")}
               <br />
-              For Expats, Conscious Travelers And Locals Seeking Real Affinity.
+              {t("For Expats, Conscious Travelers And Locals Seeking Real Affinity.")}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-muted">
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>Matches based on who you really are</span>
+                <span>{t("Matches based on who you really are")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>Real affinity, explained with clear percentages</span>
+                <span>{t("Real affinity, explained with clear percentages")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>People, places & experiences aligned with you</span>
+                <span>{t("People, places & experiences aligned with you")}</span>
               </li>
             </ul>
 
@@ -202,7 +206,7 @@ export const Register = () => {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="Email"
+                  placeholder={t("Email")}
                 />
               </div>
 
@@ -221,7 +225,7 @@ export const Register = () => {
                     if (phoneError) setPhoneError(null);
                   }}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="Phone number"
+                  placeholder={t("Phone number")}
                   aria-invalid={Boolean(phoneError)}
                 />
               </div>
@@ -242,13 +246,13 @@ export const Register = () => {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="w-full rounded-[14px] border border-border bg-white px-11 py-3 pr-14 text-sm text-foreground shadow-sm placeholder:text-subtle"
-                  placeholder="Password"
+                  placeholder={t("Password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("Hide password") : t("Show password")}
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -262,7 +266,9 @@ export const Register = () => {
 
               {isAuthenticated && user ? (
                 <div className="rounded-[12px] border border-border-strong bg-surface px-4 py-2 text-sm text-foreground">
-                  Signed in as {user.email ?? "user"}.
+                  {t("Signed in as {email}.", {
+                    email: user.email ?? t("user"),
+                  })}
                 </div>
               ) : null}
 
@@ -271,25 +277,25 @@ export const Register = () => {
                 disabled={isSubmitting}
                 className="mt-2 flex w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#3f69d0] to-[#3a66d5] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(58,102,213,0.3)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Creating account..." : "Get Started"}
+                {isSubmitting ? t("Creating account...") : t("Get Started")}
               </button>
             </form>
 
             <p className="mt-6 text-xs text-subtle">
-              You&apos;ll Complete Your Profile Step By Step
+              {t("You'll complete your profile step by step.")}
               <br />
-              The More You Share, The Better Your Matches Become.
+              {t("The more you share, the better your matches become.")}
             </p>
 
             <div className="mt-5 text-sm text-muted">
-              Already have an account?{" "}
+              {t("Already have an account?")}{" "}
               <Link className="font-semibold text-foreground" href="/login">
-                Login
+                {t("Login")}
               </Link>
             </div>
           </div>
         </div>
-        <AuthDesktopVisual alt="Syncro registration visual" />
+        <AuthDesktopVisual alt={t("Syncro registration visual")} />
       </div>
     </div>
   );

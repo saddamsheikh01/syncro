@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { getServerTranslator } from "@/i18n/server";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ChatDetail } from "@/features/social/flows/ChatDetail";
 
-export const metadata: Metadata = {
-  title: "Conversation | Syncro",
-  description: "Chat with another user.",
+export const generateMetadata = async (): Promise<Metadata> => {
+  const { t } = await getServerTranslator();
+
+  return {
+    title: t("Conversation | Syncro"),
+    description: t("Chat with another user."),
+  };
 };
 
 interface ChatDetailPageProps {

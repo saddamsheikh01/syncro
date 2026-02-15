@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { getPostMedia } from "@/services/media";
 import type { PostResponse } from "@/types/social";
+import { useT } from "@/hooks";
 
 const LikeIcon = () => (
   <svg
@@ -43,9 +44,11 @@ export interface ProfileMomentCardProps
   post: PostResponse;
 }
 
-const buildTitle = (content: string) => {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const buildTitle = (t: Translator, content: string) => {
   const trimmed = content.trim();
-  if (!trimmed) return "Moment";
+  if (!trimmed) return t("Moment");
   return trimmed.length > 36 ? `${trimmed.slice(0, 36)}...` : trimmed;
 };
 
@@ -60,6 +63,7 @@ export const ProfileMomentCard = ({
   post,
   ...props
 }: ProfileMomentCardProps) => {
+  const { t } = useT();
   const [fetchedCoverUrl, setFetchedCoverUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +104,7 @@ export const ProfileMomentCard = ({
     };
   }, [post.id, previewCoverUrl]);
 
-  const title = useMemo(() => buildTitle(post.content ?? ""), [post.content]);
+  const title = useMemo(() => buildTitle(t, post.content ?? ""), [post.content, t]);
   const description = useMemo(
     () => buildDescription(post.content ?? ""),
     [post.content]
@@ -120,7 +124,7 @@ export const ProfileMomentCard = ({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-surface-muted text-xs text-subtle">
-            {coverLoading ? "Loading..." : "No image"}
+            {coverLoading ? t("Loading...") : t("No image")}
           </div>
         )}
       </div>

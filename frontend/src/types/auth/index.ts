@@ -38,6 +38,7 @@ export type RegisterRequest = {
   password: string;
   phone?: string | null;
   refCode?: string | null;
+  language?: string | null;
 };
 
 export type RefreshTokenRequest = {

@@ -43,13 +43,13 @@ export const Avatar = ({
         SIZE_CLASSES[size],
         className
       )}
-      aria-label={name ?? "Avatar"}
+      aria-label={name ?? undefined}
       {...props}
     >
       {safeSrc ? (
         <img
           src={safeSrc}
-          alt={name ?? "Avatar"}
+          alt={name ?? ""}
           className="h-full w-full object-cover"
           loading="lazy"
         />

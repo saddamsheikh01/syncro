@@ -10,6 +10,7 @@ import { KpiRangeSelector } from "@/features/admin/elements/KpiRangeSelector";
 import { formatDuration, formatNumber } from "@/features/admin/lib/formatters";
 import { buildTrend, lastSeriesValue, sumSeries, toChartPoints } from "@/features/admin/lib/kpis";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { useT } from "@/hooks";
 import { getKpis, refreshKpis } from "@/services/admin";
 import type { ApiError } from "@/types/api";
 import type { AnalyticsKpiParams, AnalyticsKpiResponse } from "@/types/analytics";
@@ -40,6 +41,8 @@ const buildRangeParams = (days: number): AnalyticsKpiParams => {
 };
 
 export const AdminAnalyticsOverview = () => {
+  const { t } = useT();
+
   const [selectedRangeId, setSelectedRangeId] = useState<string>("30d");
   const [kpis, setKpis] = useState<AnalyticsKpiResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,23 +127,23 @@ export const AdminAnalyticsOverview = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Analytics overview"
-        subtitle="Key KPIs, trends, and usage signals for the selected range."
+        title={t("Analytics overview")}
+        subtitle={t("Key KPIs, trends, and usage signals for the selected range.")}
         actions={
           <Button
             variant="secondary"
             size="sm"
             onClick={handleRefresh}
             loading={refreshing}
-            loadingText="Refreshing"
+            loadingText={t("Refreshing")}
           >
-            Refresh KPIs
+            {t("Refresh KPIs")}
           </Button>
         }
       />
 
       <KpiRangeSelector
-        ranges={RANGE_ITEMS.map((item) => ({ id: item.id, label: item.label }))}
+        ranges={RANGE_ITEMS.map((item) => ({ id: item.id, label: t(item.label) }))}
         selectedId={selectedRangeId}
         onRangeSelect={setSelectedRangeId}
       />
@@ -148,16 +151,16 @@ export const AdminAnalyticsOverview = () => {
       {loading ? (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
-          <p className="text-sm text-muted">Loading analytics KPIs...</p>
+          <p className="text-sm text-muted">{t("Loading analytics KPIs...")}</p>
         </Card>
       ) : null}
 
       {error ? (
         <Card className="space-y-3 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Unable to load KPIs</p>
-          <p className="text-sm text-muted">{error.message}</p>
+          <p className="text-sm font-semibold text-danger">{t("Unable to load KPIs")}</p>
+          <p className="text-sm text-muted">{t(error.message)}</p>
           <Button size="sm" variant="outline" onClick={() => void loadKpis()}>
-            Try again
+            {t("Try again")}
           </Button>
         </Card>
       ) : null}
@@ -166,101 +169,134 @@ export const AdminAnalyticsOverview = () => {
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <AdminStatCard
-              label="Registrations"
+              label={t("Registrations")}
               value={formatNumber(analytics.registrations)}
               trend={analytics.registrationsTrend.direction}
-              trendLabel={analytics.registrationsTrend.label}
+              trendLabel={t(
+                analytics.registrationsTrend.labelKey,
+                analytics.registrationsTrend.labelValues
+              )}
             />
             <AdminStatCard
-              label="Onboarding completed"
+              label={t("Onboarding completed")}
               value={formatNumber(analytics.onboardingCompleted)}
               trend={analytics.onboardingTrend.direction}
-              trendLabel={analytics.onboardingTrend.label}
+              trendLabel={t(
+                analytics.onboardingTrend.labelKey,
+                analytics.onboardingTrend.labelValues
+              )}
             />
             <AdminStatCard
-              label="Daily active users"
+              label={t("Daily active users")}
               value={formatNumber(analytics.dau)}
               trend={analytics.activeUsersTrend.direction}
-              trendLabel={analytics.activeUsersTrend.label}
+              trendLabel={t(
+                analytics.activeUsersTrend.labelKey,
+                analytics.activeUsersTrend.labelValues
+              )}
             />
             <AdminStatCard
-              label="Average session duration"
+              label={t("Average session duration")}
               value={formatDuration(analytics.avgSessionDuration)}
               trend="neutral"
-              trendLabel="Period average"
+              trendLabel={t("Period average")}
             />
             <AdminStatCard
-              label="Weekly active users"
+              label={t("Weekly active users")}
               value={formatNumber(analytics.wau)}
               trend="neutral"
-              trendLabel="Latest available bucket"
+              trendLabel={t("Latest available bucket")}
             />
             <AdminStatCard
-              label="Returning users"
+              label={t("Returning users")}
               value={formatNumber(analytics.returningUsers)}
               trend="neutral"
-              trendLabel="Latest weekly window"
+              trendLabel={t("Latest weekly window")}
             />
             <AdminStatCard
-              label="Match section opened"
+              label={t("Match section opened")}
               value={formatNumber(analytics.matchOpened)}
               trend={analytics.matchTrend.direction}
-              trendLabel={analytics.matchTrend.label}
+              trendLabel={t(
+                analytics.matchTrend.labelKey,
+                analytics.matchTrend.labelValues
+              )}
             />
             <AdminStatCard
-              label="Map opened"
+              label={t("Map opened")}
               value={formatNumber(analytics.mapOpened)}
               trend={analytics.mapTrend.direction}
-              trendLabel={analytics.mapTrend.label}
+              trendLabel={t(
+                analytics.mapTrend.labelKey,
+                analytics.mapTrend.labelValues
+              )}
             />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
             <KpiChartCard
-              title="Registrations"
-              subtitle="Daily series"
+              title={t("Registrations")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.registrations)}
-              deltaLabel={analytics.registrationsTrend.label}
+              deltaLabel={t(
+                analytics.registrationsTrend.labelKey,
+                analytics.registrationsTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.registrationsTrend.direction)}
               dataPoints={analytics.registrationsChart}
             />
             <KpiChartCard
-              title="Onboarding completed"
-              subtitle="Daily series"
+              title={t("Onboarding completed")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.onboardingCompleted)}
-              deltaLabel={analytics.onboardingTrend.label}
+              deltaLabel={t(
+                analytics.onboardingTrend.labelKey,
+                analytics.onboardingTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.onboardingTrend.direction)}
               dataPoints={analytics.onboardingChart}
             />
             <KpiChartCard
-              title="Active users (DAU)"
-              subtitle="Daily series"
+              title={t("Active users (DAU)")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.dau)}
-              deltaLabel={analytics.activeUsersTrend.label}
+              deltaLabel={t(
+                analytics.activeUsersTrend.labelKey,
+                analytics.activeUsersTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.activeUsersTrend.direction)}
               dataPoints={analytics.activeUsersChart}
             />
             <KpiChartCard
-              title="Match section opened"
-              subtitle="Daily series"
+              title={t("Match section opened")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.matchOpened)}
-              deltaLabel={analytics.matchTrend.label}
+              deltaLabel={t(
+                analytics.matchTrend.labelKey,
+                analytics.matchTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.matchTrend.direction)}
               dataPoints={analytics.matchChart}
             />
             <KpiChartCard
-              title="Profile viewed"
-              subtitle="Daily series"
+              title={t("Profile viewed")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.profileViewed)}
-              deltaLabel={analytics.profileTrend.label}
+              deltaLabel={t(
+                analytics.profileTrend.labelKey,
+                analytics.profileTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.profileTrend.direction)}
               dataPoints={analytics.profileChart}
             />
             <KpiChartCard
-              title="Map opened"
-              subtitle="Daily series"
+              title={t("Map opened")}
+              subtitle={t("Daily series")}
               value={formatNumber(analytics.mapOpened)}
-              deltaLabel={analytics.mapTrend.label}
+              deltaLabel={t(
+                analytics.mapTrend.labelKey,
+                analytics.mapTrend.labelValues
+              )}
               deltaTone={trendToTone(analytics.mapTrend.direction)}
               dataPoints={analytics.mapChart}
             />

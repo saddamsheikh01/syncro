@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { HTMLAttributes } from "react";
 import { Card } from "@/components/elements/Card";
 import { cx } from "@/lib/classNames";
+import { useT } from "@/hooks";
 
 export interface TestsHelperCardProps
   extends HTMLAttributes<HTMLDivElement> {
@@ -12,37 +13,48 @@ export interface TestsHelperCardProps
   loading?: boolean;
 }
 
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
 const resolveProgressLabel = (
+  t: Translator,
   completedCount: number | null | undefined,
   totalTests?: number
 ) => {
   if (!totalTests || totalTests <= 0) {
-    return completedCount == null ? "Progress pending" : `${completedCount} completed`;
+    return completedCount == null
+      ? t("Progress pending")
+      : t("{count} completed", { count: completedCount });
   }
   if (completedCount == null) {
-    return `0 / ${totalTests} completed`;
+    return t("{completed} / {total} completed", {
+      completed: 0,
+      total: totalTests,
+    });
   }
-  return `${completedCount} / ${totalTests} completed`;
+  return t("{completed} / {total} completed", {
+    completed: completedCount,
+    total: totalTests,
+  });
 };
 
-const resolveTitle = (completedCount: number | null | undefined) => {
-  if (completedCount == null) return "Boost Zyra to the max";
-  if (completedCount === 0) return "Start with your first insight";
-  if (completedCount < 3) return "Refine your profile";
-  return "Profile in progress";
+const resolveTitle = (t: Translator, completedCount: number | null | undefined) => {
+  if (completedCount == null) return t("Boost Zyra to the max");
+  if (completedCount === 0) return t("Start with your first insight");
+  if (completedCount < 3) return t("Refine your profile");
+  return t("Profile in progress");
 };
 
-const resolveDescription = (completedCount: number | null | undefined) => {
+const resolveDescription = (t: Translator, completedCount: number | null | undefined) => {
   if (completedCount == null) {
-    return "Fetching your progress so we can see what to improve.";
+    return t("Fetching your progress so we can see what to improve.");
   }
   if (completedCount === 0) {
-    return "Insights help Zyra understand you and suggest better matches.";
+    return t("Insights help Zyra understand you and suggest better matches.");
   }
   if (completedCount < 3) {
-    return "Each insight adds valuable signals—just a few minutes make a difference.";
+    return t("Each insight adds valuable signals - just a few minutes make a difference.");
   }
-  return "Great job—keep completing insights for even more accurate matches.";
+  return t("Great job - keep completing insights for even more accurate matches.");
 };
 
 export const TestsHelperCard = ({
@@ -52,12 +64,13 @@ export const TestsHelperCard = ({
   loading,
   ...props
 }: TestsHelperCardProps) => {
+  const { t } = useT();
   const progressLabel = useMemo(
-    () => resolveProgressLabel(completedCount, totalTests),
-    [completedCount, totalTests]
+    () => resolveProgressLabel(t, completedCount, totalTests),
+    [completedCount, t, totalTests]
   );
-  const title = resolveTitle(completedCount);
-  const description = resolveDescription(completedCount);
+  const title = resolveTitle(t, completedCount);
+  const description = resolveDescription(t, completedCount);
 
   return (
     <Card
@@ -72,12 +85,12 @@ export const TestsHelperCard = ({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-subtle">
-              Insight guide
+              {t("Insight guide")}
             </p>
             <h2 className="text-base font-semibold text-foreground">{title}</h2>
           </div>
           <span className="rounded-full bg-qa-tests-bg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--qa-tests-gradient-start)]">
-            {loading ? "..." : progressLabel}
+            {loading ? t("...") : progressLabel}
           </span>
         </div>
 
@@ -86,31 +99,33 @@ export const TestsHelperCard = ({
         <div className="grid gap-3 sm:grid-cols-3">
           {[
             {
-              label: "What you get",
-              value: "More accurate matches",
+              labelKey: "What you get",
+              valueKey: "More accurate matches",
             },
             {
-              label: "Average time",
-              value: "2-3 minutes",
+              labelKey: "Average time",
+              valueKey: "2-3 minutes",
             },
             {
-              label: "Flexibility",
-              value: "Whenever you want",
+              labelKey: "Flexibility",
+              valueKey: "Whenever you want",
             },
           ].map((item) => (
             <div
-              key={item.label}
+              key={item.labelKey}
               className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/60 p-3 text-center"
             >
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-subtle">
-                {item.label}
+                {t(item.labelKey)}
               </p>
-              <p className="text-sm font-semibold text-foreground">{item.value}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t(item.valueKey)}
+              </p>
             </div>
           ))}
         </div>
         <p className="text-xs text-subtle">
-          Zyra updates your profile after each completed insight.
+          {t("Zyra updates your profile after each completed insight.")}
         </p>
       </div>
     </Card>

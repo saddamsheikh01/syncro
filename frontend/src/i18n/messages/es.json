@@ -1,0 +1,81 @@
+{
+  "common": {
+    "continue": "Continuar",
+    "saving": "Guardando...",
+    "save": "Guardar"
+  },
+  "languages": {
+    "en": "English",
+    "it": "Italiano",
+    "es": "Espanol",
+    "fr": "Francais"
+  },
+  "onboarding": {
+    "residence": {
+      "title": "Residencia",
+      "description": "Dinos donde vives para sugerencias mas precisas.",
+      "cityLabel": "Ciudad",
+      "cityPlaceholder": "Milan",
+      "countryLabel": "Pais",
+      "countryPlaceholder": "Italia"
+    },
+    "step1": {
+      "header": {
+        "title": "Completa tu perfil",
+        "subtitle": "Agrega los datos principales para personalizar tu experiencia."
+      },
+      "basic": {
+        "title": "Informacion basica",
+        "subtitle": "Esto nos ayuda a ofrecer sugerencias mas precisas."
+      },
+      "fullName": {
+        "label": "Nombre completo",
+        "placeholder": "Nombre y apellido",
+        "requiredError": "Introduce tu nombre completo."
+      },
+      "residence": {
+        "requiredError": "Introduce tu ciudad y pais de residencia."
+      },
+      "birthDate": {
+        "label": "Fecha de nacimiento",
+        "placeholder": "Selecciona una fecha"
+      },
+      "saveError": "Error al guardar."
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Elige el idioma de la app."
+    },
+    "visibility": {
+      "public": {
+        "label": "Publico",
+        "description": "Muestra tu perfil completo."
+      },
+      "partial": {
+        "label": "Parcial",
+        "description": "Oculta algunos detalles sensibles."
+      },
+      "private": {
+        "label": "Privado",
+        "description": "Perfil visible solo en los matches."
+      }
+    }
+  },
+  "cookieConsent": {
+    "title": "Privacidad y cookies",
+    "description": "Para seguir usando Syncro, acepta nuestra politica de privacidad y la gestion de cookies. Tambien puedes elegir si quieres recibir nuestro boletin.",
+    "primaryAction": {
+      "accept": "Aceptar y continuar",
+      "saving": "Guardando..."
+    },
+    "box": {
+      "text": "Usamos cookies esenciales necesarias para que la app funcione y cookies de analitica para mejorar tu experiencia.",
+      "privacyLink": "Leer la Politica de Privacidad completa"
+    },
+    "newsletter": {
+      "label": "Suscribirse al boletin",
+      "description": "Recibe actualizaciones, noticias y contenido exclusivo por email."
+    },
+    "saveError": "Error al guardar las preferencias:"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "common": {
+    "continue": "Continue",
+    "saving": "Saving...",
+    "save": "Save"
+  },
+  "languages": {
+    "en": "English",
+    "it": "Italiano",
+    "es": "Espanol",
+    "fr": "Francais"
+  },
+  "onboarding": {
+    "residence": {
+      "title": "Residence",
+      "description": "Tell us where you live for more accurate suggestions.",
+      "cityLabel": "City",
+      "cityPlaceholder": "Milan",
+      "countryLabel": "Country",
+      "countryPlaceholder": "Italy"
+    },
+    "step1": {
+      "header": {
+        "title": "Complete your profile",
+        "subtitle": "Add the main details to personalize your experience."
+      },
+      "basic": {
+        "title": "Basic information",
+        "subtitle": "This helps us deliver more accurate suggestions."
+      },
+      "fullName": {
+        "label": "Full name",
+        "placeholder": "First and last name",
+        "requiredError": "Enter your full name."
+      },
+      "residence": {
+        "requiredError": "Enter your city and country of residence."
+      },
+      "birthDate": {
+        "label": "Date of birth",
+        "placeholder": "Select a date"
+      },
+      "saveError": "Error while saving."
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred app language."
+    },
+    "visibility": {
+      "public": {
+        "label": "Public",
+        "description": "Show your full profile."
+      },
+      "partial": {
+        "label": "Partial",
+        "description": "Hide some sensitive details."
+      },
+      "private": {
+        "label": "Private",
+        "description": "Profile visible only in matches."
+      }
+    }
+  },
+  "cookieConsent": {
+    "title": "Privacy and cookies",
+    "description": "To continue using Syncro, accept our privacy policy and cookie management. You can also choose whether to receive our newsletter.",
+    "primaryAction": {
+      "accept": "Accept and continue",
+      "saving": "Saving..."
+    },
+    "box": {
+      "text": "We use essential cookies required for the app to work and analytics cookies to improve your experience.",
+      "privacyLink": "Read the full Privacy Policy"
+    },
+    "newsletter": {
+      "label": "Subscribe to the newsletter",
+      "description": "Receive updates, news, and exclusive content by email."
+    },
+    "saveError": "Error saving consent preferences:"
+  }
+}

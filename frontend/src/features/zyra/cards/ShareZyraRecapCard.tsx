@@ -1,20 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/elements/Card";
+import { useT } from "@/hooks";
 
-const buildShareText = (recap: string) => {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+const buildShareText = (t: Translator, recap: string) => {
   const plain = recap
     .replace(/[#*_~`>[\]()!|-]/g, "")
     .replace(/\n{2,}/g, "\n")
     .trim();
 
   return [
-    "This is my Zyra profile recap on Syncro:",
+    t("This is my Zyra profile recap on Syncro:"),
     "",
     `"${plain}"`,
     "",
-    "Discover yours on Syncro",
+    t("Discover yours on Syncro"),
   ].join("\n");
 };
 
@@ -98,8 +101,9 @@ export interface ShareZyraRecapCardProps {
 }
 
 export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
+  const { t } = useT();
   const [copied, setCopied] = useState(false);
-  const shareText = buildShareText(recap);
+  const shareText = useMemo(() => buildShareText(t, recap), [t, recap]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -145,45 +149,45 @@ export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
       <div className="relative space-y-5">
         <div className="space-y-1 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-subtle">
-            Share your recap
+            {t("Share your recap")}
           </p>
           <h3 className="text-base font-semibold text-foreground">
-            Let people see your profile vibe.
+            {t("Let people see your profile vibe.")}
           </h3>
           <p className="text-sm text-muted">
-            Share your Zyra profile recap and invite others to discover theirs.
+            {t("Share your Zyra profile recap and invite others to discover theirs.")}
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-5">
           <SocialButton
             icon={<FacebookIcon />}
-            label="Facebook"
+            label={t("Facebook")}
             color="#1877F2"
             onClick={handleFacebook}
           />
           <SocialButton
             icon={<InstagramIcon />}
-            label="Instagram"
+            label={t("Instagram")}
             color="#E4405F"
             onClick={handleInstagram}
           />
           <SocialButton
             icon={<WhatsAppIcon />}
-            label="WhatsApp"
+            label={t("WhatsApp")}
             color="#25D366"
             onClick={handleWhatsApp}
           />
           <SocialButton
             icon={copied ? <CheckIcon /> : <CopyIcon />}
-            label={copied ? "Copied!" : "Copy"}
+            label={copied ? t("Copied!") : t("Copy")}
             color="var(--accent)"
             onClick={handleCopy}
           />
         </div>
 
         <p className="text-center text-[11px] text-subtle">
-          Only your recap summary is shared.
+          {t("Only your recap summary is shared.")}
         </p>
       </div>
     </Card>

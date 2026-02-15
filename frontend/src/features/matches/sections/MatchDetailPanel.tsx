@@ -1,3 +1,5 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -8,6 +10,7 @@ import { MatchBreakdownCard } from "@/features/matches/sections/MatchBreakdownCa
 import type { MatchBreakdown } from "@/types/matches";
 import { cx } from "@/lib/classNames";
 import { formatInterestLabel } from "@/lib/interestEmoji";
+import { useT } from "@/hooks";
 
 export interface MatchDetailPanelProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -35,88 +38,102 @@ export const MatchDetailPanel = ({
   bio,
   sharedPassions = [],
   breakdown,
-  primaryActionLabel = "View profile",
-  secondaryActionLabel = "Save",
+  primaryActionLabel,
+  secondaryActionLabel,
   onPrimaryAction,
   onSecondaryAction,
   primaryActionDisabled,
   secondaryActionDisabled,
   ...props
-}: MatchDetailPanelProps) => (
-  <div className={cx("space-y-4", className)} {...props}>
-    {/* Header Card */}
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={name} src={avatarUrl} size="lg" />
-          <div className="min-w-0 space-y-1">
-            <p className="truncate text-lg font-semibold text-foreground">
-              {name}
-            </p>
-            {location ? (
-              <p className="flex items-center gap-1 text-sm text-muted">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                {location}
+}: MatchDetailPanelProps) => {
+  const { t } = useT();
+  const resolvedPrimaryActionLabel = primaryActionLabel ?? t("View profile");
+  const resolvedSecondaryActionLabel = secondaryActionLabel ?? t("Save");
+
+  return (
+    <div className={cx("space-y-4", className)} {...props}>
+      {/* Header Card */}
+      <Card className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={name} src={avatarUrl} size="lg" />
+            <div className="min-w-0 space-y-1">
+              <p className="truncate text-lg font-semibold text-foreground">
+                {name}
               </p>
+              {location ? (
+                <p className="flex items-center gap-1 text-sm text-muted">
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {location}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          {typeof matchScore === "number" ? (
+            <MatchScoreBadge score={matchScore} size="lg" />
+          ) : null}
+        </div>
+
+        {/* Passioni condivise */}
+        {sharedPassions.length > 0 && (
+          <div className="mt-4 rounded-lg bg-surface-muted/50 p-3">
+            <p className="mb-2 text-xs font-medium text-subtle">
+              {t("Shared interests")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sharedPassions.slice(0, 6).map((passion) => (
+                <Tag key={passion} tone="accent">
+                  {formatInterestLabel(passion)}
+                </Tag>
+              ))}
+              {sharedPassions.length > 6 && (
+                <span className="flex items-center text-xs text-muted">
+                  {t("+{count} more", { count: sharedPassions.length - 6 })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        {(resolvedPrimaryActionLabel || resolvedSecondaryActionLabel) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {resolvedPrimaryActionLabel ? (
+              <Button
+                size="sm"
+                onClick={onPrimaryAction}
+                disabled={primaryActionDisabled}
+                className="flex-1"
+              >
+                {resolvedPrimaryActionLabel}
+              </Button>
+            ) : null}
+            {resolvedSecondaryActionLabel ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onSecondaryAction}
+                disabled={secondaryActionDisabled}
+                className="flex-1"
+              >
+                {resolvedSecondaryActionLabel}
+              </Button>
             ) : null}
           </div>
-        </div>
-        {typeof matchScore === "number" ? (
-          <MatchScoreBadge score={matchScore} size="lg" />
-        ) : null}
-      </div>
+        )}
+      </Card>
 
-      {/* Passioni condivise */}
-      {sharedPassions.length > 0 && (
-        <div className="mt-4 rounded-lg bg-surface-muted/50 p-3">
-          <p className="mb-2 text-xs font-medium text-subtle">Shared interests</p>
-          <div className="flex flex-wrap gap-2">
-            {sharedPassions.slice(0, 6).map((passion) => (
-              <Tag key={passion} tone="accent">
-                {formatInterestLabel(passion)}
-              </Tag>
-            ))}
-            {sharedPassions.length > 6 && (
-              <span className="flex items-center text-xs text-muted">
-                +{sharedPassions.length - 6} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Actions */}
-      {(primaryActionLabel || secondaryActionLabel) && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {primaryActionLabel && (
-            <Button
-              size="sm"
-              onClick={onPrimaryAction}
-              disabled={primaryActionDisabled}
-              className="flex-1"
-            >
-              {primaryActionLabel}
-            </Button>
-          )}
-          {secondaryActionLabel && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={onSecondaryAction}
-              disabled={secondaryActionDisabled}
-              className="flex-1"
-            >
-              {secondaryActionLabel}
-            </Button>
-          )}
-        </div>
-      )}
-    </Card>
-
-    {/* Breakdown Cards */}
-    {breakdown && <MatchBreakdownCard breakdown={breakdown} />}
-  </div>
-);
+      {/* Breakdown Cards */}
+      {breakdown && <MatchBreakdownCard breakdown={breakdown} />}
+    </div>
+  );
+};

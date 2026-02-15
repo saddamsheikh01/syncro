@@ -1,6 +1,8 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { useEffect, useMemo, useRef } from "react";
-import { useMatches } from "@/hooks";
+import { useMatches, useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const Bullet = ({ className }: { className?: string }) => (
@@ -20,6 +22,7 @@ export const RightbarMatchSummary = ({
   className,
   ...props
 }: RightbarMatchSummaryProps) => {
+  const { t } = useT();
   const { userMatches, recommendations, actions } = useMatches();
   const fetchedRef = useRef(false);
 
@@ -44,22 +47,22 @@ export const RightbarMatchSummary = ({
     {
       label:
         alignedPeopleCount > 0
-          ? `${alignedPeopleCount} aligned people near you`
-          : "New matches coming soon",
+          ? t("{count} aligned people near you", { count: alignedPeopleCount })
+          : t("New matches coming soon"),
       tone: "bg-rose-400/70",
     },
     {
       label:
         alignedPlacesCount > 0
-          ? `${alignedPlacesCount} compatible places`
-          : "1 compatible place",
+          ? t("{count} compatible places", { count: alignedPlacesCount })
+          : t("1 compatible place"),
       tone: "bg-emerald-400/70",
     },
     {
       label:
         alignedExperiencesCount > 0
-          ? `${alignedExperiencesCount} suggested experiences`
-          : "1 experience in progress",
+          ? t("{count} suggested experiences", { count: alignedExperiencesCount })
+          : t("1 experience in progress"),
       tone: "bg-amber-400/70",
     },
   ];
@@ -67,7 +70,7 @@ export const RightbarMatchSummary = ({
   return (
     <div className={cx("space-y-2", className)} {...props}>
       <p className="text-xs font-semibold text-foreground">
-        Other matches aligned with you
+        {t("Other matches aligned with you")}
       </p>
       <div className="space-y-1.5 text-xs text-muted">
         {items.map((item) => (

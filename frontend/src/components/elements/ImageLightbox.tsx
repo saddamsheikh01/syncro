@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { useT } from "@/hooks";
 
 export interface ImageLightboxProps {
   src: string;
@@ -10,7 +11,9 @@ export interface ImageLightboxProps {
 }
 
 export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
+  const { t } = useT();
   const safeSrc = resolveMediaUrl(src);
+  const fallbackAlt = t("Image preview");
 
   const handleKey = useCallback(
     (event: KeyboardEvent) => {
@@ -35,14 +38,14 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={alt ?? "Image preview"}
+      aria-label={alt ?? fallbackAlt}
       onClick={onClose}
     >
       <button
         type="button"
         onClick={onClose}
         className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60"
-        aria-label="Close"
+        aria-label={t("Close")}
       >
         <svg
           viewBox="0 0 24 24"
@@ -60,7 +63,7 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
 
       <img
         src={safeSrc}
-        alt={alt ?? "Image preview"}
+        alt={alt ?? fallbackAlt}
         className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       />

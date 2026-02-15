@@ -9,20 +9,21 @@ import { SidebarIcon } from "@/components/ui/SidebarIcon";
 import type { SidebarIconName } from "@/components/ui/SidebarIcon";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { MobileDrawer } from "@/components/ui/MobileDrawer";
+import { useT } from "@/hooks";
 
 type MobileNavItem = {
   id: string;
-  label: string;
+  labelKey: string;
   href: string;
   icon: SidebarIconName;
   isZyra?: boolean;
 };
 
 const MOBILE_ITEMS: MobileNavItem[] = [
-  { id: "home", label: "Home", href: "/home", icon: "home" },
-  { id: "people", label: "Match", href: "/matches", icon: "people" },
-  { id: "insights", label: "Insights", href: "/insights", icon: "insights" },
-  { id: "profile", label: "Profile", href: "/profile", icon: "profile" },
+  { id: "home", labelKey: "Home", href: "/home", icon: "home" },
+  { id: "people", labelKey: "Match", href: "/matches", icon: "people" },
+  { id: "insights", labelKey: "Insights", href: "/insights", icon: "insights" },
+  { id: "profile", labelKey: "Profile", href: "/profile", icon: "profile" },
 ];
 
 const normalizePath = (path: string) =>
@@ -47,6 +48,7 @@ export const MobileBar = ({
   ...props
 }: MobileBarProps) => {
   const pathname = usePathname();
+  const { t } = useT();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
@@ -58,10 +60,11 @@ export const MobileBar = ({
         {/* Main navigation bar */}
         <nav
           className="flex flex-1 items-center justify-between rounded-[2rem] border border-border/70 bg-surface px-3 shadow-md"
-          aria-label="Mobile navigation"
+          aria-label={t("Mobile navigation")}
         >
           {MOBILE_ITEMS.map((item) => {
             const active = isItemActive(pathname, item.href);
+            const label = t(item.labelKey);
 
             if (item.isZyra) {
               return (
@@ -75,7 +78,7 @@ export const MobileBar = ({
                       : "text-zyra-text/70 hover:text-zyra-text"
                   )}
                   aria-current={active ? "page" : undefined}
-                  aria-label={item.label}
+                  aria-label={label}
                 >
                   <ZyraMark size="xs" glow={active} />
                   <span
@@ -84,7 +87,7 @@ export const MobileBar = ({
                       !active && "opacity-70 group-hover:opacity-100"
                     )}
                   >
-                    {item.label}
+                    {label}
                   </span>
                 </Link>
               );
@@ -101,7 +104,7 @@ export const MobileBar = ({
                     : "text-muted hover:bg-surface-muted hover:text-foreground"
                 )}
                 aria-current={active ? "page" : undefined}
-                aria-label={item.label}
+                aria-label={label}
               >
                 <span
                   className={cx(
@@ -113,7 +116,7 @@ export const MobileBar = ({
                 >
                   <SidebarIcon name={item.icon} size={26} />
                 </span>
-                <span className={cx(active && "text-white")}>{item.label}</span>
+                <span className={cx(active && "text-white")}>{label}</span>
               </Link>
             );
           })}
@@ -129,7 +132,7 @@ export const MobileBar = ({
               ? "border-accent/30 bg-accent-soft text-accent"
               : "text-muted hover:bg-surface-muted hover:text-foreground"
           )}
-          aria-label="Apri menu"
+          aria-label={t("Open menu")}
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
         >

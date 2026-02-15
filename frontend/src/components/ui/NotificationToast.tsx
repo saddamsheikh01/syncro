@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/classNames";
 import type { ToastTone } from "@/stores/ui/uiStore";
+import { useT } from "@/hooks";
 
 export interface NotificationToastProps extends HTMLAttributes<HTMLDivElement> {
   title?: string;
@@ -29,14 +30,16 @@ const TONE_DOT: Record<ToastTone, string> = {
 
 export const NotificationToast = ({
   className,
-  title = "Notifica",
+  title,
   message,
   tone = "info",
   durationMs,
   onClose,
   ...props
 }: NotificationToastProps) => {
+  const { t } = useT();
   const [closing, setClosing] = useState(false);
+  const resolvedTitle = title ? t(title) : t("Notification");
 
   const handleClose = useMemo(
     () => () => {
@@ -71,7 +74,7 @@ export const NotificationToast = ({
       <div className="flex items-start gap-3">
         <span className={cx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", TONE_DOT[tone])} />
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="text-sm font-semibold text-foreground">{resolvedTitle}</p>
           <p className="text-xs text-muted">{message}</p>
         </div>
         {onClose ? (
@@ -79,7 +82,7 @@ export const NotificationToast = ({
             type="button"
             onClick={handleClose}
             className="text-xs font-semibold text-subtle hover:text-foreground"
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             x
           </button>

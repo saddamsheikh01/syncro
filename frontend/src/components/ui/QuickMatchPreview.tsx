@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
-import { useMatches } from "@/hooks";
+import { useMatches, useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const SparkIcon = () => (
@@ -21,6 +21,7 @@ const getScoreColor = (score: number) => {
 };
 
 export const QuickMatchPreview = () => {
+  const { t } = useT();
   const { userMatches, loadingUserMatches, actions } = useMatches();
   const fetchedRef = useRef(false);
 
@@ -49,7 +50,8 @@ export const QuickMatchPreview = () => {
   if (!match) return null;
 
   const name =
-    match.user?.fullName?.trim() || `User ${match.userId.slice(0, 6)}`;
+    match.user?.fullName?.trim() ||
+    t("User {shortId}", { shortId: match.userId.slice(0, 6) });
   const location = [match.user?.city, match.user?.country]
     .filter(Boolean)
     .join(", ");
@@ -61,13 +63,13 @@ export const QuickMatchPreview = () => {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-foreground">
-          Most aligned with you today
+          {t("Most aligned with you today")}
         </p>
         <Link
           href="/matches"
           className="text-[10px] font-medium text-accent hover:underline"
         >
-          View all
+          {t("View all")}
         </Link>
       </div>
       <div
@@ -105,7 +107,7 @@ export const QuickMatchPreview = () => {
         </div>
         <Link href={profileHref} className="mt-3 block">
           <Button size="sm" fullWidth>
-            Connect
+            {t("Connect")}
           </Button>
         </Link>
       </div>

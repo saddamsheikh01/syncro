@@ -18,6 +18,9 @@ import type {
   GoogleMapsSyncResponse,
   GoogleMapsSyncStatusResponse,
 } from "@/types/admin";
+import { useT } from "@/hooks";
+
+type GoogleMapsSyncAction = "nearby" | "textSearch" | "singlePlace";
 
 const parseOptionalNumber = (value: string): number | null => {
   const trimmed = value.trim();
@@ -42,12 +45,15 @@ const parseOptionalInteger = (value: string): number | null => {
 };
 
 export const AdminGoogleMapsSyncOverview = () => {
+  const { t } = useT();
   const [status, setStatus] = useState<GoogleMapsSyncStatusResponse | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [runningAction, setRunningAction] = useState<string | null>(null);
+  const [runningAction, setRunningAction] = useState<GoogleMapsSyncAction | null>(
+    null
+  );
   const [error, setError] = useState<ApiError | null>(null);
 
-  const [lastAction, setLastAction] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<GoogleMapsSyncAction | null>(null);
   const [lastResult, setLastResult] = useState<GoogleMapsSyncResponse | null>(null);
 
   const [nearbyLat, setNearbyLat] = useState("");
@@ -83,7 +89,7 @@ export const AdminGoogleMapsSyncOverview = () => {
   }, [loadStatus]);
 
   const runAction = async (
-    action: string,
+    action: GoogleMapsSyncAction,
     task: () => Promise<GoogleMapsSyncResponse>
   ) => {
     setRunningAction(action);
@@ -104,7 +110,7 @@ export const AdminGoogleMapsSyncOverview = () => {
   const handleNearbySync = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    await runAction("Nearby Sync", async () =>
+    await runAction("nearby", async () =>
       syncGoogleMapsNearby({
         latitude: Number(nearbyLat),
         longitude: Number(nearbyLng),
@@ -118,7 +124,7 @@ export const AdminGoogleMapsSyncOverview = () => {
   const handleSearchSync = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    await runAction("Text Search Sync", async () =>
+    await runAction("textSearch", async () =>
       syncGoogleMapsSearch({
         query: searchQuery.trim(),
         latitude: parseOptionalNumber(searchLat),
@@ -132,68 +138,83 @@ export const AdminGoogleMapsSyncOverview = () => {
   const handlePlaceSync = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    await runAction("Single Place Sync", async () =>
+    await runAction("singlePlace", async () =>
       syncGoogleMapsPlace(googlePlaceId.trim())
     );
+  };
+
+  const resolveActionLabel = (action: GoogleMapsSyncAction | null) => {
+    if (action === "nearby") return t("Nearby Sync");
+    if (action === "textSearch") return t("Text Search Sync");
+    if (action === "singlePlace") return t("Single Place Sync");
+    return t("-");
   };
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Google Maps Sync"
-        subtitle="Sync the places catalog from Google Maps APIs."
+        title={t("Google Maps Sync")}
+        subtitle={t("Sync the places catalog from Google Maps APIs.")}
       />
 
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-foreground">Integration status</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {t("Integration status")}
+          </h2>
           <Button size="sm" variant="outline" onClick={() => void loadStatus()}>
-            Refresh status
+            {t("Refresh status")}
           </Button>
         </div>
 
         {statusLoading ? (
           <div className="flex items-center gap-3">
             <Loader size="sm" />
-            <p className="text-sm text-muted">Checking Google Maps configuration...</p>
+            <p className="text-sm text-muted">
+              {t("Checking Google Maps configuration...")}
+            </p>
           </div>
         ) : (
           <p className="text-sm text-muted">
-            <span className="font-semibold text-foreground">Configured:</span>{" "}
-            {status?.configured ? "YES" : "NO"}
+            <span className="font-semibold text-foreground">
+              {t("Configured:")}
+            </span>{" "}
+            {status?.configured ? t("YES") : t("NO")}
             {" · "}
-            {status?.message ?? "N/A"}
+            {status?.message ?? t("N/A")}
           </p>
         )}
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Nearby sync</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Nearby sync")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleNearbySync}>
           <Input
-            label="Latitude"
+            label={t("Latitude")}
             value={nearbyLat}
             onChange={(event) => setNearbyLat(event.target.value)}
             required
           />
           <Input
-            label="Longitude"
+            label={t("Longitude")}
             value={nearbyLng}
             onChange={(event) => setNearbyLng(event.target.value)}
             required
           />
           <Input
-            label="Radius (meters)"
+            label={t("Radius (meters)")}
             value={nearbyRadius}
             onChange={(event) => setNearbyRadius(event.target.value)}
           />
           <Input
-            label="Type"
+            label={t("Type")}
             value={nearbyType}
             onChange={(event) => setNearbyType(event.target.value)}
           />
           <Input
-            label="Max results"
+            label={t("Max results")}
             value={nearbyMaxResults}
             onChange={(event) => setNearbyMaxResults(event.target.value)}
           />
@@ -201,41 +222,43 @@ export const AdminGoogleMapsSyncOverview = () => {
             <Button
               type="submit"
               size="sm"
-              loading={runningAction === "Nearby Sync"}
-              loadingText="Syncing"
+              loading={runningAction === "nearby"}
+              loadingText={t("Syncing")}
             >
-              Start nearby sync
+              {t("Start nearby sync")}
             </Button>
           </div>
         </form>
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Text search sync</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Text search sync")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleSearchSync}>
           <Input
-            label="Query"
+            label={t("Query")}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             required
           />
           <Input
-            label="Latitude (optional)"
+            label={t("Latitude (optional)")}
             value={searchLat}
             onChange={(event) => setSearchLat(event.target.value)}
           />
           <Input
-            label="Longitude (optional)"
+            label={t("Longitude (optional)")}
             value={searchLng}
             onChange={(event) => setSearchLng(event.target.value)}
           />
           <Input
-            label="Radius (meters)"
+            label={t("Radius (meters)")}
             value={searchRadius}
             onChange={(event) => setSearchRadius(event.target.value)}
           />
           <Input
-            label="Max results"
+            label={t("Max results")}
             value={searchMaxResults}
             onChange={(event) => setSearchMaxResults(event.target.value)}
           />
@@ -243,20 +266,22 @@ export const AdminGoogleMapsSyncOverview = () => {
             <Button
               type="submit"
               size="sm"
-              loading={runningAction === "Text Search Sync"}
-              loadingText="Syncing"
+              loading={runningAction === "textSearch"}
+              loadingText={t("Syncing")}
             >
-              Start text search sync
+              {t("Start text search sync")}
             </Button>
           </div>
         </form>
       </Card>
 
       <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">Single place ID sync</h2>
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Single place ID sync")}
+        </h2>
         <form className="grid gap-3 lg:grid-cols-[1fr,auto]" onSubmit={handlePlaceSync}>
           <Input
-            label="Google Place ID"
+            label={t("Google Place ID")}
             value={googlePlaceId}
             onChange={(event) => setGooglePlaceId(event.target.value)}
             required
@@ -265,10 +290,10 @@ export const AdminGoogleMapsSyncOverview = () => {
             <Button
               type="submit"
               size="sm"
-              loading={runningAction === "Single Place Sync"}
-              loadingText="Syncing"
+              loading={runningAction === "singlePlace"}
+              loadingText={t("Syncing")}
             >
-              Start place sync
+              {t("Start place sync")}
             </Button>
           </div>
         </form>
@@ -276,7 +301,7 @@ export const AdminGoogleMapsSyncOverview = () => {
 
       {error ? (
         <Card className="space-y-2 border-danger/30 p-5">
-          <p className="text-sm font-semibold text-danger">Sync error</p>
+          <p className="text-sm font-semibold text-danger">{t("Sync error")}</p>
           <p className="text-sm text-muted">{error.message}</p>
         </Card>
       ) : null}
@@ -284,31 +309,41 @@ export const AdminGoogleMapsSyncOverview = () => {
       {lastResult ? (
         <Card className="space-y-3 p-5">
           <h2 className="text-base font-semibold text-foreground">
-            Latest result: {lastAction}
+            {t("Latest result: {action}", { action: resolveActionLabel(lastAction) })}
           </h2>
           <p className="text-sm text-muted">{lastResult.message}</p>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Total found:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Total found:")}
+              </span>{" "}
               {formatNumber(lastResult.totalFound)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Created:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Created:")}
+              </span>{" "}
               {formatNumber(lastResult.created)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Updated:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Updated:")}
+              </span>{" "}
               {formatNumber(lastResult.updated)}
             </p>
             <p className="text-sm text-muted">
-              <span className="font-semibold text-foreground">Errors:</span>{" "}
+              <span className="font-semibold text-foreground">
+                {t("Errors:")}
+              </span>{" "}
               {formatNumber(lastResult.errors)}
             </p>
           </div>
 
           {lastResult.errorMessages.length ? (
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Error messages</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t("Error messages")}
+              </p>
               <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
                 {lastResult.errorMessages.map((message, index) => (
                   <li key={`${message}-${index}`}>{message}</li>
