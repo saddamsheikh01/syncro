@@ -16,6 +16,9 @@ import type {
 } from "../../types/insights";
 import type { Uuid } from "../../types/shared";
 
+const AUTO_TRANSLATE_SINGLE_TIMEOUT_MS = 10 * 60 * 1000;
+const AUTO_TRANSLATE_ALL_TIMEOUT_MS = 20 * 60 * 1000;
+
 export const getAdminTests = async (): Promise<AdminTestDefinitionResponse[]> => {
   const { data } = await apiClient.get<AdminTestDefinitionResponse[]>(
     "/admin/tests"
@@ -151,7 +154,7 @@ export const autoTranslateAdminTest = async (
   const { data } = await apiClient.post<AdminTestTranslationResponse>(
     `/admin/tests/${testId}/translations/${locale}/auto`,
     null,
-    { timeout: 60000 }
+    { timeout: AUTO_TRANSLATE_SINGLE_TIMEOUT_MS }
   );
   return data;
 };
@@ -162,7 +165,7 @@ export const autoTranslateAllAdminTest = async (
   const { data } = await apiClient.post<AdminTestTranslationResponse[]>(
     `/admin/tests/${testId}/translations/auto-all`,
     null,
-    { timeout: 300000 }
+    { timeout: AUTO_TRANSLATE_ALL_TIMEOUT_MS }
   );
   return data;
 };

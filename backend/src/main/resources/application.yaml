@@ -27,6 +27,7 @@ app:
       default-max-pages: ${VIATOR_SYNC_DEFAULT_MAX_PAGES:5}
       initial-lookback-hours: ${VIATOR_SYNC_INITIAL_LOOKBACK_HOURS:24}
   zyra:
+    timeout-seconds: ${ZYRA_TIMEOUT_SECONDS:600}
     profile-recap-cache-ttl-minutes: ${ZYRA_PROFILE_RECAP_TTL_MINUTES:720}
     place-recap-cache-ttl-minutes: ${ZYRA_PLACE_RECAP_TTL_MINUTES:720}
     chat-recap-cache-ttl-minutes: ${ZYRA_CHAT_RECAP_TTL_MINUTES:15}

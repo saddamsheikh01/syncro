@@ -4,6 +4,7 @@ import com.syncro.backend.common.exception.ExternalServiceException;
 import com.syncro.backend.config.ZyraProperties;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -18,8 +19,13 @@ public class OpenAiZyraClient implements ZyraClient {
     public OpenAiZyraClient(ZyraProperties properties) {
         this.apiKey = properties.apiKey();
         this.model = properties.model();
+        int timeoutMs = Math.max(properties.timeoutSeconds(), 1) * 1000;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(timeoutMs);
+        requestFactory.setReadTimeout(timeoutMs);
         this.restClient = RestClient.builder()
             .baseUrl(properties.baseUrl())
+            .requestFactory(requestFactory)
             .build();
     }
 

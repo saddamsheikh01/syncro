@@ -13,6 +13,7 @@ public record ZyraProperties(
     @NotBlank String baseUrl,
     @NotBlank String model,
     String apiKey,
+    @Positive int timeoutSeconds,
     @Positive int maxHistory,
     @Positive int profileRecapCacheTtlMinutes,
     @Positive int placeRecapCacheTtlMinutes,
