@@ -20,20 +20,20 @@ const isLocalhost = () =>
     window.location.hostname === "127.0.0.1");
 
 export const TestsOverview = () => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const { tests, loading, error, completedCount, countLoading, actions } =
     useTests();
   const { actions: analyticsActions } = useAnalytics();
-  const bootstrappedRef = useRef(false);
+  const loadedLocaleRef = useRef<string | null>(null);
   const analyticsTrackedRef = useRef(false);
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    if (bootstrappedRef.current) return;
-    bootstrappedRef.current = true;
+    if (loadedLocaleRef.current === locale) return;
+    loadedLocaleRef.current = locale;
     actions.fetchTests().catch(() => undefined);
     actions.fetchCompletedCount().catch(() => undefined);
-  }, [actions]);
+  }, [actions, locale]);
 
   useEffect(() => {
     if (analyticsTrackedRef.current) return;

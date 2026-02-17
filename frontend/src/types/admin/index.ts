@@ -29,6 +29,14 @@ export type AdminRegisterRequest = {
   role: AdminRole;
 };
 
+export type AdminLanguageResponse = {
+  language: string;
+};
+
+export type AdminUpdateLanguageRequest = {
+  language: string;
+};
+
 export type AdminCreateAdminRequest = {
   email: string;
   password: string;

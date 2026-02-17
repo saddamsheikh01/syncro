@@ -31,7 +31,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
   const router = useRouter();
   const { activeTest, loading, error, actions } = useTests();
   const { actions: analyticsActions } = useAnalytics();
-  const { t } = useT();
+  const { t, locale } = useT();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -60,6 +60,13 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     actions.fetchTest(testId).catch(() => undefined);
     return () => actions.clearActiveTest();
   }, [actions, testId, isValidTestId]);
+
+  useEffect(() => {
+    if (!isValidTestId) {
+      return;
+    }
+    actions.fetchTest(testId).catch(() => undefined);
+  }, [actions, isValidTestId, locale, testId]);
 
   useEffect(() => {
     setCurrentIndex(0);

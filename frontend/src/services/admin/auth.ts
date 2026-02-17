@@ -1,8 +1,10 @@
 import { apiClient } from "../axiosConfig";
 import type {
+  AdminLanguageResponse,
   AdminAuthResponse,
   AdminLoginRequest,
   AdminRegisterRequest,
+  AdminUpdateLanguageRequest,
 } from "../../types/admin";
 import type { RefreshTokenRequest, TokenResponse } from "../../types/auth";
 import type { AdminUserResponse } from "../../types/admin";
@@ -51,5 +53,22 @@ export const logoutAdmin = async (): Promise<void> => {
 
 export const getAdminMe = async (): Promise<AdminUserResponse> => {
   const { data } = await apiClient.get<AdminUserResponse>("/auth/admin/me");
+  return data;
+};
+
+export const getAdminLanguage = async (): Promise<AdminLanguageResponse> => {
+  const { data } = await apiClient.get<AdminLanguageResponse>(
+    "/auth/admin/language"
+  );
+  return data;
+};
+
+export const updateAdminLanguage = async (
+  payload: AdminUpdateLanguageRequest
+): Promise<AdminLanguageResponse> => {
+  const { data } = await apiClient.patch<AdminLanguageResponse>(
+    "/auth/admin/language",
+    payload
+  );
   return data;
 };

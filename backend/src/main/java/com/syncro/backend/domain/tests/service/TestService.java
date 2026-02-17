@@ -7,14 +7,19 @@ import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.tests.dto.TestAnswerRequest;
+import com.syncro.backend.domain.tests.dto.TestAnswerOptionResponse;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.dto.TestDetailResponse;
 import com.syncro.backend.domain.tests.dto.TestListResponse;
+import com.syncro.backend.domain.tests.dto.TestQuestionResponse;
 import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
 import com.syncro.backend.domain.tests.dto.TestSubmissionResponse;
 import com.syncro.backend.domain.tests.entity.TestAnswerOption;
+import com.syncro.backend.domain.tests.entity.TestAnswerOptionTranslation;
 import com.syncro.backend.domain.tests.entity.TestDefinition;
+import com.syncro.backend.domain.tests.entity.TestDefinitionTranslation;
 import com.syncro.backend.domain.tests.entity.TestQuestion;
+import com.syncro.backend.domain.tests.entity.TestQuestionTranslation;
 import com.syncro.backend.domain.tests.entity.TestQuestionType;
 import com.syncro.backend.domain.tests.entity.TestScoringStrategy;
 import com.syncro.backend.domain.tests.entity.TestType;
@@ -23,8 +28,11 @@ import com.syncro.backend.domain.tests.entity.UserTestAnswer;
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
 import com.syncro.backend.domain.tests.mapper.TestMapper;
 import com.syncro.backend.domain.tests.repository.TestAnswerOptionRepository;
+import com.syncro.backend.domain.tests.repository.TestAnswerOptionTranslationRepository;
 import com.syncro.backend.domain.tests.repository.TestDefinitionRepository;
+import com.syncro.backend.domain.tests.repository.TestDefinitionTranslationRepository;
 import com.syncro.backend.domain.tests.repository.TestQuestionRepository;
+import com.syncro.backend.domain.tests.repository.TestQuestionTranslationRepository;
 import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
@@ -41,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,9 +59,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TestService {
 
+    private static final Set<String> SUPPORTED_LOCALES = Set.of("en", "it", "es", "fr");
+
     private final TestDefinitionRepository testDefinitionRepository;
     private final TestQuestionRepository testQuestionRepository;
     private final TestAnswerOptionRepository testAnswerOptionRepository;
+    private final TestDefinitionTranslationRepository testDefinitionTranslationRepository;
+    private final TestQuestionTranslationRepository testQuestionTranslationRepository;
+    private final TestAnswerOptionTranslationRepository testAnswerOptionTranslationRepository;
     private final UserTestSubmissionRepository userTestSubmissionRepository;
     private final UserTestAnswerRepository userTestAnswerRepository;
     private final UserPsyProfileRepository userPsyProfileRepository;
@@ -65,6 +79,9 @@ public class TestService {
         TestDefinitionRepository testDefinitionRepository,
         TestQuestionRepository testQuestionRepository,
         TestAnswerOptionRepository testAnswerOptionRepository,
+        TestDefinitionTranslationRepository testDefinitionTranslationRepository,
+        TestQuestionTranslationRepository testQuestionTranslationRepository,
+        TestAnswerOptionTranslationRepository testAnswerOptionTranslationRepository,
         UserTestSubmissionRepository userTestSubmissionRepository,
         UserTestAnswerRepository userTestAnswerRepository,
         UserPsyProfileRepository userPsyProfileRepository,
@@ -76,6 +93,9 @@ public class TestService {
         this.testDefinitionRepository = testDefinitionRepository;
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerOptionRepository = testAnswerOptionRepository;
+        this.testDefinitionTranslationRepository = testDefinitionTranslationRepository;
+        this.testQuestionTranslationRepository = testQuestionTranslationRepository;
+        this.testAnswerOptionTranslationRepository = testAnswerOptionTranslationRepository;
         this.userTestSubmissionRepository = userTestSubmissionRepository;
         this.userTestAnswerRepository = userTestAnswerRepository;
         this.userPsyProfileRepository = userPsyProfileRepository;
@@ -88,16 +108,28 @@ public class TestService {
     @Transactional(readOnly = true)
     public TestListResponse getTests(UserPrincipal principal) {
         User user = getUser(principal);
+        String locale = resolveLocale(user.getLanguage());
         List<TestDefinition> tests = testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc();
         List<UUID> completedIds = userTestSubmissionRepository
             .findDistinctTestDefinitionIdsByUserId(user.getId());
         java.util.Set<UUID> completedSet = new java.util.HashSet<>(completedIds);
+        Map<UUID, TestDefinitionTranslation> definitionTranslations = loadDefinitionTranslations(
+            tests.stream().map(TestDefinition::getId).toList(),
+            locale
+        );
         return new TestListResponse(
             tests.stream()
-                .map(definition -> testMapper.toSummaryResponse(
-                    definition,
-                    completedSet.contains(definition.getId())
-                ))
+                .map(definition -> {
+                    TestDefinitionTranslation translation = definitionTranslations.get(definition.getId());
+                    String title = resolveDefinitionTitle(definition, translation);
+                    String description = resolveDefinitionDescription(definition, translation);
+                    return testMapper.toSummaryResponse(
+                        definition,
+                        completedSet.contains(definition.getId()),
+                        title,
+                        description
+                    );
+                })
                 .toList()
         );
     }
@@ -105,13 +137,57 @@ public class TestService {
     @Transactional(readOnly = true)
     public TestDetailResponse getTest(UserPrincipal principal, UUID testId) {
         User user = getUser(principal);
+        String locale = resolveLocale(user.getLanguage());
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         Map<UUID, List<TestAnswerOption>> optionsByQuestion = loadOptionsByQuestion(questions);
         boolean completed = userTestSubmissionRepository
             .existsByUser_IdAndTestDefinition_Id(user.getId(), testId);
-        return testMapper.toDetailResponse(definition, questions, optionsByQuestion, completed);
+
+        Map<UUID, TestDefinitionTranslation> definitionTranslations = loadDefinitionTranslations(
+            List.of(definition.getId()),
+            locale
+        );
+        Map<UUID, TestQuestionTranslation> questionTranslations = loadQuestionTranslations(
+            questions.stream().map(TestQuestion::getId).toList(),
+            locale
+        );
+        List<UUID> optionIds = optionsByQuestion.values().stream()
+            .flatMap(List::stream)
+            .map(TestAnswerOption::getId)
+            .toList();
+        Map<UUID, TestAnswerOptionTranslation> optionTranslations = loadOptionTranslations(optionIds, locale);
+
+        List<TestQuestionResponse> questionResponses = questions.stream()
+            .map(question -> new TestQuestionResponse(
+                question.getId(),
+                resolveQuestionText(question, questionTranslations.get(question.getId())),
+                question.getPosition(),
+                question.getQuestionType(),
+                question.isRequired(),
+                question.getMaxSelections(),
+                optionsByQuestion.getOrDefault(question.getId(), List.of()).stream()
+                    .map(option -> new TestAnswerOptionResponse(
+                        option.getId(),
+                        resolveOptionLabel(option, optionTranslations.get(option.getId())),
+                        option.getMetadata()
+                    ))
+                    .toList()
+            ))
+            .toList();
+
+        TestDefinitionTranslation definitionTranslation = definitionTranslations.get(definition.getId());
+        return new TestDetailResponse(
+            definition.getId(),
+            resolveDefinitionTitle(definition, definitionTranslation),
+            resolveDefinitionDescription(definition, definitionTranslation),
+            definition.getTestType(),
+            completed,
+            definition.getScoringStrategy(),
+            definition.getConfig(),
+            questionResponses
+        );
     }
 
     @Transactional(readOnly = true)
@@ -292,6 +368,164 @@ public class TestService {
         userTestSubmissionRepository.delete(submission);
         removeTestFromProfile(user, testId, definition.getTestType());
         recapCache.invalidateUser(user.getId());
+    }
+
+    private String resolveLocale(String language) {
+        if (language == null || language.isBlank()) {
+            return "en";
+        }
+        String normalized = language.trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        return SUPPORTED_LOCALES.contains(normalized) ? normalized : "en";
+    }
+
+    private List<String> buildLocalePriority(String locale) {
+        return "en".equals(locale) ? List.of("en") : List.of(locale, "en");
+    }
+
+    private Map<UUID, TestDefinitionTranslation> loadDefinitionTranslations(
+        List<UUID> testIds,
+        String locale
+    ) {
+        if (testIds == null || testIds.isEmpty()) {
+            return Map.of();
+        }
+        List<TestDefinitionTranslation> translations = testDefinitionTranslationRepository
+            .findByTestDefinition_IdInAndLocaleIn(testIds, buildLocalePriority(locale));
+        Map<UUID, TestDefinitionTranslation> selected = new HashMap<>();
+        for (TestDefinitionTranslation translation : translations) {
+            if (translation == null || translation.getTestDefinition() == null) {
+                continue;
+            }
+            UUID testId = translation.getTestDefinition().getId();
+            if (testId == null) {
+                continue;
+            }
+            TestDefinitionTranslation current = selected.get(testId);
+            if (current == null || isBetterLocaleMatch(translation.getLocale(), current.getLocale(), locale)) {
+                selected.put(testId, translation);
+            }
+        }
+        return selected;
+    }
+
+    private Map<UUID, TestQuestionTranslation> loadQuestionTranslations(
+        List<UUID> questionIds,
+        String locale
+    ) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            return Map.of();
+        }
+        List<TestQuestionTranslation> translations = testQuestionTranslationRepository
+            .findByQuestion_IdInAndLocaleIn(questionIds, buildLocalePriority(locale));
+        Map<UUID, TestQuestionTranslation> selected = new HashMap<>();
+        for (TestQuestionTranslation translation : translations) {
+            if (translation == null || translation.getQuestion() == null) {
+                continue;
+            }
+            UUID questionId = translation.getQuestion().getId();
+            if (questionId == null) {
+                continue;
+            }
+            TestQuestionTranslation current = selected.get(questionId);
+            if (current == null || isBetterLocaleMatch(translation.getLocale(), current.getLocale(), locale)) {
+                selected.put(questionId, translation);
+            }
+        }
+        return selected;
+    }
+
+    private Map<UUID, TestAnswerOptionTranslation> loadOptionTranslations(
+        List<UUID> optionIds,
+        String locale
+    ) {
+        if (optionIds == null || optionIds.isEmpty()) {
+            return Map.of();
+        }
+        List<TestAnswerOptionTranslation> translations = testAnswerOptionTranslationRepository
+            .findByOption_IdInAndLocaleIn(optionIds, buildLocalePriority(locale));
+        Map<UUID, TestAnswerOptionTranslation> selected = new HashMap<>();
+        for (TestAnswerOptionTranslation translation : translations) {
+            if (translation == null || translation.getOption() == null) {
+                continue;
+            }
+            UUID optionId = translation.getOption().getId();
+            if (optionId == null) {
+                continue;
+            }
+            TestAnswerOptionTranslation current = selected.get(optionId);
+            if (current == null || isBetterLocaleMatch(translation.getLocale(), current.getLocale(), locale)) {
+                selected.put(optionId, translation);
+            }
+        }
+        return selected;
+    }
+
+    private boolean isBetterLocaleMatch(String candidateLocale, String currentLocale, String preferredLocale) {
+        String candidate = normalizeLocale(candidateLocale);
+        String current = normalizeLocale(currentLocale);
+        if (current == null) {
+            return true;
+        }
+        boolean candidatePreferred = preferredLocale.equals(candidate);
+        boolean currentPreferred = preferredLocale.equals(current);
+        if (candidatePreferred != currentPreferred) {
+            return candidatePreferred;
+        }
+        boolean candidateEnglish = "en".equals(candidate);
+        boolean currentEnglish = "en".equals(current);
+        if (candidateEnglish != currentEnglish) {
+            return candidateEnglish;
+        }
+        return false;
+    }
+
+    private String normalizeLocale(String locale) {
+        if (locale == null || locale.isBlank()) {
+            return null;
+        }
+        return locale.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String resolveDefinitionTitle(
+        TestDefinition definition,
+        TestDefinitionTranslation translation
+    ) {
+        if (translation != null && isNotBlank(translation.getTitle())) {
+            return translation.getTitle();
+        }
+        return definition.getTitle();
+    }
+
+    private String resolveDefinitionDescription(
+        TestDefinition definition,
+        TestDefinitionTranslation translation
+    ) {
+        if (translation != null && translation.getDescription() != null) {
+            return translation.getDescription();
+        }
+        return definition.getDescription();
+    }
+
+    private String resolveQuestionText(TestQuestion question, TestQuestionTranslation translation) {
+        if (translation != null && isNotBlank(translation.getQuestionText())) {
+            return translation.getQuestionText();
+        }
+        return question.getQuestion();
+    }
+
+    private String resolveOptionLabel(TestAnswerOption option, TestAnswerOptionTranslation translation) {
+        if (translation != null && isNotBlank(translation.getLabel())) {
+            return translation.getLabel();
+        }
+        return option.getLabel();
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private User getUser(UserPrincipal principal) {

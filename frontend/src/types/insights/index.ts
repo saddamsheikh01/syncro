@@ -179,3 +179,41 @@ export type AdminTestAnswerOptionResponse = {
   weight: number;
   metadata?: JsonObject | null;
 };
+
+export type TestTranslationLocale = "en" | "it" | "es" | "fr";
+
+export type AdminTestAnswerOptionTranslationResponse = {
+  optionId: Uuid;
+  label: string | null;
+};
+
+export type AdminTestQuestionTranslationResponse = {
+  questionId: Uuid;
+  questionText: string | null;
+  options: AdminTestAnswerOptionTranslationResponse[];
+};
+
+export type AdminTestTranslationResponse = {
+  testId: Uuid;
+  locale: TestTranslationLocale;
+  title: string | null;
+  description: string | null;
+  questions: AdminTestQuestionTranslationResponse[];
+};
+
+export type AdminTestAnswerOptionTranslationUpsertRequest = {
+  optionId: Uuid;
+  label: string;
+};
+
+export type AdminTestQuestionTranslationUpsertRequest = {
+  questionId: Uuid;
+  questionText: string;
+  options: AdminTestAnswerOptionTranslationUpsertRequest[];
+};
+
+export type AdminTestTranslationUpsertRequest = {
+  title: string;
+  description?: string | null;
+  questions: AdminTestQuestionTranslationUpsertRequest[];
+};

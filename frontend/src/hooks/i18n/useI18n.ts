@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useUserStore } from "../../stores/user/useUserStore";
 import { userActions } from "../../stores/user/userStore";
+import { getAdminLanguage, updateAdminLanguage } from "../../services/admin";
 
 const FALLBACK_LANGUAGE = "en";
 
@@ -14,6 +15,16 @@ export const useI18n = () => {
       setLanguage: userActions.setLanguage,
       syncLanguage: (language: string) =>
         userActions.updateUser({ language }),
+      syncAdminLanguage: async (language: string) => {
+        const response = await updateAdminLanguage({ language });
+        userActions.setLanguage(response.language);
+        return response;
+      },
+      fetchAdminLanguage: async () => {
+        const response = await getAdminLanguage();
+        userActions.setLanguage(response.language);
+        return response;
+      },
     }),
     []
   );

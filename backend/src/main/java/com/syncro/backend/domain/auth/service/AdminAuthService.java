@@ -1,12 +1,15 @@
 package com.syncro.backend.domain.auth.service;
 
 import com.syncro.backend.common.exception.ConflictException;
+import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.AdminBootstrapProperties;
 import com.syncro.backend.domain.auth.dto.AdminAuthResponse;
+import com.syncro.backend.domain.auth.dto.AdminLanguageResponse;
 import com.syncro.backend.domain.auth.dto.AdminLoginRequest;
 import com.syncro.backend.domain.auth.dto.AdminRegisterRequest;
+import com.syncro.backend.domain.auth.dto.AdminUpdateLanguageRequest;
 import com.syncro.backend.domain.auth.dto.AdminUserResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
@@ -20,6 +23,7 @@ import com.syncro.backend.security.JwtService;
 import com.syncro.backend.security.SubjectType;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,24 +32,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AdminAuthService {
 
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
+
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AdminAuthMapper adminAuthMapper;
     private final AdminBootstrapProperties adminBootstrapProperties;
+    private final AdminLanguagePreferenceService adminLanguagePreferenceService;
 
     public AdminAuthService(
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         JwtService jwtService,
         AdminAuthMapper adminAuthMapper,
-        AdminBootstrapProperties adminBootstrapProperties
+        AdminBootstrapProperties adminBootstrapProperties,
+        AdminLanguagePreferenceService adminLanguagePreferenceService
     ) {
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.adminAuthMapper = adminAuthMapper;
         this.adminBootstrapProperties = adminBootstrapProperties;
+        this.adminLanguagePreferenceService = adminLanguagePreferenceService;
     }
 
     @Transactional
@@ -104,13 +113,29 @@ public class AdminAuthService {
     }
 
     public AdminUserResponse getMe(AdminPrincipal principal) {
-        if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
-        }
-        UUID adminId = principal.adminId();
-        AdminUser adminUser = adminUserRepository.findById(adminId)
-            .orElseThrow(() -> new NotFoundException("Admin non trovato"));
+        AdminUser adminUser = getAdminUser(principal);
         return adminAuthMapper.toAdminResponse(adminUser);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminLanguageResponse getMyLanguage(AdminPrincipal principal) {
+        AdminUser adminUser = getAdminUser(principal);
+        String language = adminLanguagePreferenceService.getLanguage(adminUser.getId());
+        if (language == null || language.isBlank()) {
+            return new AdminLanguageResponse("en");
+        }
+        return new AdminLanguageResponse(normalizeLanguage(language));
+    }
+
+    @Transactional
+    public AdminLanguageResponse updateMyLanguage(
+        AdminPrincipal principal,
+        AdminUpdateLanguageRequest request
+    ) {
+        AdminUser adminUser = getAdminUser(principal);
+        String normalizedLanguage = normalizeLanguage(request.language());
+        adminLanguagePreferenceService.setLanguage(adminUser.getId(), normalizedLanguage);
+        return new AdminLanguageResponse(normalizedLanguage);
     }
 
     private AdminAuthResponse buildAuthResponse(AdminUser adminUser) {
@@ -129,6 +154,30 @@ public class AdminAuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeLanguage(String language) {
+        if (language == null || language.isBlank()) {
+            throw new BadRequestException("Lingua non valida");
+        }
+        String normalized = language.trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        if (!SUPPORTED_LANGUAGES.contains(normalized)) {
+            throw new BadRequestException("Lingua non supportata");
+        }
+        return normalized;
+    }
+
+    private AdminUser getAdminUser(AdminPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        UUID adminId = principal.adminId();
+        return adminUserRepository.findById(adminId)
+            .orElseThrow(() -> new NotFoundException("Admin non trovato"));
     }
 
     private void ensureBootstrapAllowed(String bootstrapSecret) {

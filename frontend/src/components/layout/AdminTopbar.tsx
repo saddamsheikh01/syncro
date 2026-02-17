@@ -4,6 +4,7 @@ import type { HTMLAttributes } from "react";
 import { Badge } from "@/components/elements/Badge";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
@@ -34,6 +35,7 @@ export const AdminTopbar = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <LanguageSwitch variant="compact" align="right" />
           <Badge tone="accent" size="sm">
             {role}
           </Badge>

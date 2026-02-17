@@ -14,6 +14,7 @@ import { formatDateTime, formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { useT } from "@/hooks";
 import {
+  autoTranslateAllAdminTest,
   createAdminAnswerOption,
   createAdminQuestion,
   createAdminTest,
@@ -22,6 +23,8 @@ import {
   deleteAdminTest,
   getAdminTest,
   getAdminTests,
+  getAdminTestTranslations,
+  upsertAdminTestTranslations,
   updateAdminAnswerOption,
   updateAdminQuestion,
   updateAdminTest,
@@ -30,12 +33,36 @@ import type { ApiError } from "@/types/api";
 import type {
   AdminTestDefinitionResponse,
   AdminTestDetailResponse,
+  TestTranslationLocale,
   TestScoringStrategy,
   TestType,
 } from "@/types/insights";
 
+type TranslationQuestionForm = {
+  questionText: string;
+  options: Record<string, string>;
+};
+
+type TranslationFormState = {
+  title: string;
+  description: string;
+  questions: Record<string, TranslationQuestionForm>;
+};
+
+const SUPPORTED_TRANSLATION_LOCALES: readonly TestTranslationLocale[] = [
+  "en",
+  "it",
+  "es",
+  "fr",
+] as const;
+
+const toTranslationLocale = (value: string): TestTranslationLocale =>
+  SUPPORTED_TRANSLATION_LOCALES.includes(value as TestTranslationLocale)
+    ? (value as TestTranslationLocale)
+    : "en";
+
 export const AdminTestsOverview = () => {
-  const { t } = useT();
+  const { t, locale } = useT();
 
   const [tests, setTests] = useState<AdminTestDefinitionResponse[]>([]);
   const [query, setQuery] = useState("");
@@ -73,6 +100,13 @@ export const AdminTestsOverview = () => {
   const [creatingOptionForQuestionId, setCreatingOptionForQuestionId] = useState<string | null>(null);
   const [optionLabel, setOptionLabel] = useState("");
   const [optionWeight, setOptionWeight] = useState("1");
+  const [translationLocale, setTranslationLocale] = useState<TestTranslationLocale>(
+    toTranslationLocale(locale)
+  );
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [savingTranslations, setSavingTranslations] = useState(false);
+  const [autoTranslating, setAutoTranslating] = useState(false);
+  const [translationForm, setTranslationForm] = useState<TranslationFormState | null>(null);
 
   const testTypeOptions = useMemo(
     () => [
@@ -110,6 +144,16 @@ export const AdminTestsOverview = () => {
     () => [
       { value: "SINGLE", label: t("Single choice") },
       { value: "MULTI", label: t("Multiple choice") },
+    ],
+    [t]
+  );
+
+  const translationLocaleOptions = useMemo(
+    () => [
+      { value: "it", label: t("Italian") },
+      { value: "es", label: t("Spanish") },
+      { value: "fr", label: t("French") },
+      { value: "en", label: t("English") },
     ],
     [t]
   );
@@ -191,6 +235,57 @@ export const AdminTestsOverview = () => {
     }
   }, []);
 
+  const buildTranslationForm = useCallback(
+    (
+      detail: AdminTestDetailResponse,
+      payload: Awaited<ReturnType<typeof getAdminTestTranslations>>
+    ): TranslationFormState => {
+      const questions = detail.questions.reduce<Record<string, TranslationQuestionForm>>(
+        (acc, question) => {
+          const translatedQuestion = payload.questions.find(
+            (item) => item.questionId === question.id
+          );
+          const options = question.options.reduce<Record<string, string>>((optAcc, option) => {
+            const translatedOption = translatedQuestion?.options.find(
+              (item) => item.optionId === option.id
+            );
+            optAcc[option.id] = translatedOption?.label ?? option.label;
+            return optAcc;
+          }, {});
+          acc[question.id] = {
+            questionText: translatedQuestion?.questionText ?? question.question,
+            options,
+          };
+          return acc;
+        },
+        {}
+      );
+      return {
+        title: payload.title ?? detail.title,
+        description: payload.description ?? detail.description ?? "",
+        questions,
+      };
+    },
+    []
+  );
+
+  const loadTranslations = useCallback(
+    async (detail: AdminTestDetailResponse, locale: TestTranslationLocale) => {
+      setTranslationLoading(true);
+      setError(null);
+      try {
+        const payload = await getAdminTestTranslations(detail.id, locale);
+        setTranslationForm(buildTranslationForm(detail, payload));
+      } catch (requestError) {
+        setError(requestError as ApiError);
+        setTranslationForm(null);
+      } finally {
+        setTranslationLoading(false);
+      }
+    },
+    [buildTranslationForm]
+  );
+
   useEffect(() => {
     void loadTests();
   }, [loadTests]);
@@ -198,10 +293,24 @@ export const AdminTestsOverview = () => {
   useEffect(() => {
     if (!selectedTestId) {
       setSelectedTestDetail(null);
+      setTranslationForm(null);
       return;
     }
     void loadTestDetail(selectedTestId);
   }, [loadTestDetail, selectedTestId]);
+
+  useEffect(() => {
+    if (!selectedTestDetail) {
+      setTranslationForm(null);
+      return;
+    }
+    void loadTranslations(selectedTestDetail, translationLocale);
+  }, [loadTranslations, selectedTestDetail, translationLocale]);
+
+  useEffect(() => {
+    const nextLocale = toTranslationLocale(locale);
+    setTranslationLocale((prev) => (prev === nextLocale ? prev : nextLocale));
+  }, [locale]);
 
   const filteredTests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -500,6 +609,150 @@ export const AdminTestsOverview = () => {
     }
   };
 
+  const handleTranslationTitleChange = (value: string) => {
+    setTranslationForm((prev) => (prev ? { ...prev, title: value } : prev));
+  };
+
+  const handleTranslationDescriptionChange = (value: string) => {
+    setTranslationForm((prev) => (prev ? { ...prev, description: value } : prev));
+  };
+
+  const handleTranslationQuestionChange = (questionId: string, value: string) => {
+    setTranslationForm((prev) => {
+      if (!prev) return prev;
+      const existingQuestion = prev.questions[questionId];
+      if (!existingQuestion) return prev;
+      return {
+        ...prev,
+        questions: {
+          ...prev.questions,
+          [questionId]: {
+            ...existingQuestion,
+            questionText: value,
+          },
+        },
+      };
+    });
+  };
+
+  const handleTranslationOptionChange = (
+    questionId: string,
+    optionId: string,
+    value: string
+  ) => {
+    setTranslationForm((prev) => {
+      if (!prev) return prev;
+      const existingQuestion = prev.questions[questionId];
+      if (!existingQuestion) return prev;
+      return {
+        ...prev,
+        questions: {
+          ...prev.questions,
+          [questionId]: {
+            ...existingQuestion,
+            options: {
+              ...existingQuestion.options,
+              [optionId]: value,
+            },
+          },
+        },
+      };
+    });
+  };
+
+  const handleSaveTranslations = async () => {
+    if (!selectedTestDetail || !translationForm) {
+      return;
+    }
+
+    const title = translationForm.title.trim();
+    if (!title) {
+      setError({
+        code: "UNKNOWN",
+        status: 400,
+        message: t("Translation title is required."),
+      });
+      return;
+    }
+
+    const questionsPayload = selectedTestDetail.questions.map((question) => {
+      const translationQuestion = translationForm.questions[question.id];
+      const questionText = (translationQuestion?.questionText ?? "").trim();
+      return {
+        questionId: question.id,
+        questionText,
+        options: question.options.map((option) => ({
+          optionId: option.id,
+          label: (translationQuestion?.options[option.id] ?? "").trim(),
+        })),
+      };
+    });
+
+    if (questionsPayload.some((question) => !question.questionText)) {
+      setError({
+        code: "UNKNOWN",
+        status: 400,
+        message: t("Each translated question must have text."),
+      });
+      return;
+    }
+
+    if (
+      questionsPayload.some((question) =>
+        question.options.some((option) => !option.label)
+      )
+    ) {
+      setError({
+        code: "UNKNOWN",
+        status: 400,
+        message: t("Each translated option must have a label."),
+      });
+      return;
+    }
+
+    setSavingTranslations(true);
+    setError(null);
+    try {
+      const saved = await upsertAdminTestTranslations(
+        selectedTestDetail.id,
+        translationLocale,
+        {
+          title,
+          description: translationForm.description.trim() || null,
+          questions: questionsPayload,
+        }
+      );
+      setTranslationForm(buildTranslationForm(selectedTestDetail, saved));
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setSavingTranslations(false);
+    }
+  };
+
+  const handleAutoTranslate = async () => {
+    if (!selectedTestDetail) {
+      return;
+    }
+    setAutoTranslating(true);
+    setError(null);
+    try {
+      const savedByLocale = await autoTranslateAllAdminTest(selectedTestDetail.id);
+      const currentLocaleSaved = savedByLocale.find(
+        (item) => item.locale === translationLocale
+      );
+      if (currentLocaleSaved) {
+        setTranslationForm(buildTranslationForm(selectedTestDetail, currentLocaleSaved));
+      } else {
+        await loadTranslations(selectedTestDetail, translationLocale);
+      }
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setAutoTranslating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
@@ -706,6 +959,120 @@ export const AdminTestsOverview = () => {
               </Button>
             </div>
           </form>
+
+          <Card className="space-y-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-foreground">
+                {t("Translations")}
+              </h3>
+              <div className="w-full max-w-[220px]">
+                <Select
+                  value={translationLocale}
+                  options={translationLocaleOptions}
+                  onValueChange={(value) =>
+                    setTranslationLocale(value as TestTranslationLocale)
+                  }
+                />
+              </div>
+            </div>
+
+            {translationLoading ? (
+              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border/60 p-3">
+                <Loader size="sm" />
+                <p className="text-sm text-muted">
+                  {t("Loading translations...")}
+                </p>
+              </div>
+            ) : translationForm ? (
+              <div className="space-y-4">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <Input
+                    label={t("Translated title")}
+                    value={translationForm.title}
+                    onChange={(event) =>
+                      handleTranslationTitleChange(event.target.value)
+                    }
+                    required
+                  />
+                  <Textarea
+                    label={t("Translated description")}
+                    value={translationForm.description}
+                    onChange={(event) =>
+                      handleTranslationDescriptionChange(event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  {selectedTestDetail.questions.map((question) => (
+                    <Card key={`translation-${question.id}`} className="space-y-3 p-3">
+                      <p className="text-xs text-subtle">
+                        #{question.position} - {question.question}
+                      </p>
+                      <Textarea
+                        label={t("Translated question")}
+                        value={
+                          translationForm.questions[question.id]?.questionText ?? ""
+                        }
+                        onChange={(event) =>
+                          handleTranslationQuestionChange(
+                            question.id,
+                            event.target.value
+                          )
+                        }
+                      />
+                      <div className="grid gap-2 lg:grid-cols-2">
+                        {question.options.map((option) => (
+                          <Input
+                            key={`translation-${question.id}-${option.id}`}
+                            label={t("Option: {label}", { label: option.label })}
+                            value={
+                              translationForm.questions[question.id]?.options[
+                                option.id
+                              ] ?? ""
+                            }
+                            onChange={(event) =>
+                              handleTranslationOptionChange(
+                                question.id,
+                                option.id,
+                                event.target.value
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleAutoTranslate()}
+                      loading={autoTranslating}
+                      loadingText={t("Translating all")}
+                      disabled={savingTranslations}
+                    >
+                      {t("Auto translate all languages")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleSaveTranslations()}
+                      loading={savingTranslations}
+                      loadingText={t("Saving")}
+                      disabled={autoTranslating}
+                    >
+                      {t("Save translations")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">{t("No translation data available.")}</p>
+            )}
+          </Card>
 
           <Card className="space-y-3 p-4">
             <h3 className="text-base font-semibold text-foreground">

@@ -10,6 +10,9 @@ import type {
   AdminTestQuestionRequest,
   AdminTestQuestionResponse,
   AdminTestQuestionUpdateRequest,
+  AdminTestTranslationResponse,
+  AdminTestTranslationUpsertRequest,
+  TestTranslationLocale,
 } from "../../types/insights";
 import type { Uuid } from "../../types/shared";
 
@@ -117,4 +120,49 @@ export const deleteAdminAnswerOption = async (
   await apiClient.delete(
     `/admin/tests/${testId}/questions/${questionId}/options/${optionId}`
   );
+};
+
+export const getAdminTestTranslations = async (
+  testId: Uuid,
+  locale: TestTranslationLocale
+): Promise<AdminTestTranslationResponse> => {
+  const { data } = await apiClient.get<AdminTestTranslationResponse>(
+    `/admin/tests/${testId}/translations/${locale}`
+  );
+  return data;
+};
+
+export const upsertAdminTestTranslations = async (
+  testId: Uuid,
+  locale: TestTranslationLocale,
+  payload: AdminTestTranslationUpsertRequest
+): Promise<AdminTestTranslationResponse> => {
+  const { data } = await apiClient.put<AdminTestTranslationResponse>(
+    `/admin/tests/${testId}/translations/${locale}`,
+    payload
+  );
+  return data;
+};
+
+export const autoTranslateAdminTest = async (
+  testId: Uuid,
+  locale: TestTranslationLocale
+): Promise<AdminTestTranslationResponse> => {
+  const { data } = await apiClient.post<AdminTestTranslationResponse>(
+    `/admin/tests/${testId}/translations/${locale}/auto`,
+    null,
+    { timeout: 60000 }
+  );
+  return data;
+};
+
+export const autoTranslateAllAdminTest = async (
+  testId: Uuid
+): Promise<AdminTestTranslationResponse[]> => {
+  const { data } = await apiClient.post<AdminTestTranslationResponse[]>(
+    `/admin/tests/${testId}/translations/auto-all`,
+    null,
+    { timeout: 300000 }
+  );
+  return data;
 };

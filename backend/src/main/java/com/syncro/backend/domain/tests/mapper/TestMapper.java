@@ -22,10 +22,24 @@ import org.springframework.stereotype.Component;
 public class TestMapper {
 
     public TestSummaryResponse toSummaryResponse(TestDefinition definition, boolean completed) {
+        return toSummaryResponse(
+            definition,
+            completed,
+            definition.getTitle(),
+            definition.getDescription()
+        );
+    }
+
+    public TestSummaryResponse toSummaryResponse(
+        TestDefinition definition,
+        boolean completed,
+        String title,
+        String description
+    ) {
         return new TestSummaryResponse(
             definition.getId(),
-            definition.getTitle(),
-            definition.getDescription(),
+            title,
+            description,
             definition.getTestType(),
             completed
         );

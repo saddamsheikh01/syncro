@@ -1,8 +1,10 @@
 package com.syncro.backend.domain.auth.controller;
 
 import com.syncro.backend.domain.auth.dto.AdminAuthResponse;
+import com.syncro.backend.domain.auth.dto.AdminLanguageResponse;
 import com.syncro.backend.domain.auth.dto.AdminLoginRequest;
 import com.syncro.backend.domain.auth.dto.AdminRegisterRequest;
+import com.syncro.backend.domain.auth.dto.AdminUpdateLanguageRequest;
 import com.syncro.backend.domain.auth.dto.AdminUserResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
@@ -16,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -67,5 +70,24 @@ public class AdminAuthController {
     @SecurityRequirement(name = "bearer-jwt")
     public ResponseEntity<AdminUserResponse> me(@AuthenticationPrincipal AdminPrincipal principal) {
         return ResponseEntity.ok(adminAuthService.getMe(principal));
+    }
+
+    @GetMapping("/language")
+    @Operation(summary = "Get current admin language")
+    @SecurityRequirement(name = "bearer-jwt")
+    public ResponseEntity<AdminLanguageResponse> getMyLanguage(
+        @AuthenticationPrincipal AdminPrincipal principal
+    ) {
+        return ResponseEntity.ok(adminAuthService.getMyLanguage(principal));
+    }
+
+    @PatchMapping("/language")
+    @Operation(summary = "Update current admin language")
+    @SecurityRequirement(name = "bearer-jwt")
+    public ResponseEntity<AdminLanguageResponse> updateMyLanguage(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @Valid @RequestBody AdminUpdateLanguageRequest request
+    ) {
+        return ResponseEntity.ok(adminAuthService.updateMyLanguage(principal, request));
     }
 }

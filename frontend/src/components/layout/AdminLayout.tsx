@@ -9,7 +9,7 @@ import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { AdminTopbar } from "@/components/layout/AdminTopbar";
-import { useAdminAuth, useT } from "@/hooks";
+import { useAdminAuth, useI18n, useT } from "@/hooks";
 
 export interface AdminLayoutProps {
   children: ReactNode;
@@ -82,6 +82,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const { status, admin, tokens, actions } = useAdminAuth();
+  const { actions: i18nActions } = useI18n();
   const { t } = useT();
   const navItems = useMemo(
     () =>
@@ -106,6 +107,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       });
     }
   }, [actions, admin, status]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !admin) {
+      return;
+    }
+    i18nActions.fetchAdminLanguage().catch(() => undefined);
+  }, [admin, i18nActions, status]);
 
   useEffect(() => {
     if (status === "unauthenticated") {

@@ -2,8 +2,9 @@
 
 import type { HTMLAttributes } from "react";
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { useAuth, useI18n, useT } from "@/hooks";
+import { useAdminAuth, useAuth, useI18n, useT } from "@/hooks";
 import type { SupportedLocale } from "@/i18n/locales";
 import { cx } from "@/lib/classNames";
 
@@ -26,9 +27,12 @@ export const LanguageSwitch = ({
   align = "right",
   ...props
 }: LanguageSwitchProps) => {
+  const pathname = usePathname();
   const { t, locale } = useT();
   const { isAuthenticated } = useAuth();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   const { actions: i18nActions } = useI18n();
+  const isAdminArea = pathname?.startsWith("/admin") ?? false;
 
   const items = useMemo(
     () =>
@@ -50,6 +54,11 @@ export const LanguageSwitch = ({
         items={items}
         onSelect={(next) => {
           i18nActions.setLanguage(next);
+          if (isAdminArea) {
+            if (!isAdminAuthenticated) return;
+            i18nActions.syncAdminLanguage(next).catch(() => undefined);
+            return;
+          }
           if (!isAuthenticated) return;
           i18nActions.syncLanguage(next).catch(() => undefined);
         }}
@@ -60,4 +69,3 @@ export const LanguageSwitch = ({
     </div>
   );
 };
-

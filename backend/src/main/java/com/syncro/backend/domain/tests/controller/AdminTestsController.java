@@ -10,6 +10,8 @@ import com.syncro.backend.domain.tests.dto.AdminTestDetailResponse;
 import com.syncro.backend.domain.tests.dto.AdminTestQuestionRequest;
 import com.syncro.backend.domain.tests.dto.AdminTestQuestionResponse;
 import com.syncro.backend.domain.tests.dto.AdminTestQuestionUpdateRequest;
+import com.syncro.backend.domain.tests.dto.AdminTestTranslationResponse;
+import com.syncro.backend.domain.tests.dto.AdminTestTranslationUpsertRequest;
 import com.syncro.backend.domain.tests.service.AdminTestService;
 import com.syncro.backend.security.AdminPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -87,6 +89,46 @@ public class AdminTestsController {
     ) {
         adminTestService.deleteTest(principal, testId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{testId}/translations/{locale}")
+    @Operation(summary = "Dettaglio traduzioni test per lingua")
+    public ResponseEntity<AdminTestTranslationResponse> getTestTranslations(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID testId,
+        @PathVariable String locale
+    ) {
+        return ResponseEntity.ok(adminTestService.getTestTranslations(principal, testId, locale));
+    }
+
+    @PutMapping("/{testId}/translations/{locale}")
+    @Operation(summary = "Salva traduzioni test per lingua")
+    public ResponseEntity<AdminTestTranslationResponse> upsertTestTranslations(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID testId,
+        @PathVariable String locale,
+        @Valid @RequestBody AdminTestTranslationUpsertRequest request
+    ) {
+        return ResponseEntity.ok(adminTestService.upsertTestTranslations(principal, testId, locale, request));
+    }
+
+    @PostMapping("/{testId}/translations/{locale}/auto")
+    @Operation(summary = "Auto-traduce test per lingua con AI")
+    public ResponseEntity<AdminTestTranslationResponse> autoTranslateTest(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID testId,
+        @PathVariable String locale
+    ) {
+        return ResponseEntity.ok(adminTestService.autoTranslateTest(principal, testId, locale));
+    }
+
+    @PostMapping("/{testId}/translations/auto-all")
+    @Operation(summary = "Auto-traduce test in tutte le lingue supportate con AI")
+    public ResponseEntity<List<AdminTestTranslationResponse>> autoTranslateAllTestLocales(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID testId
+    ) {
+        return ResponseEntity.ok(adminTestService.autoTranslateAllTestLocales(principal, testId));
     }
 
     @PostMapping("/{testId}/questions")
