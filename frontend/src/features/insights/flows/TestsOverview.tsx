@@ -12,7 +12,6 @@ import { InsightsDbLanguageDisclaimer } from "@/features/insights/elements/Insig
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { useAnalytics, useT, useTests } from "@/hooks";
-import { resolveTestCopy } from "@/lib/insightsCopy";
 
 const isLocalhost = () =>
   typeof window !== "undefined" &&
@@ -66,16 +65,10 @@ export const TestsOverview = () => {
   const testItems = useMemo(
     () =>
       tests.map((test) => {
-        const localized = resolveTestCopy({
-          title: test.title,
-          description: test.description,
-          testType: test.testType,
-        });
-
         return {
           testType: test.testType,
-          title: localized.title,
-          description: localized.description,
+          title: test.title,
+          description: test.description ?? undefined,
           href: `/insights/${test.id}`,
           onOpen: () => {
             void analyticsActions.trackEvent({

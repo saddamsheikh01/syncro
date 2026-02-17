@@ -1454,5 +1454,11 @@
   "{uploadError} The post text may still exist because automatic rollback failed ({reason}).": "{uploadError} Le texte du post peut encore exister car le rollback automatique a echoue ({reason}).",
   "\u2014 Zyra": "\u2014 Zyra",
   "\u2728 Match mode": "\u2728 Mode match",
-  "\ud83c\udf10 All users (no filters)": "\ud83c\udf10 Tous les utilisateurs (sans filtres)"
+  "\ud83c\udf10 All users (no filters)": "\ud83c\udf10 Tous les utilisateurs (sans filtres)",
+  "Auto translate all languages": "Traduire automatiquement toutes les langues",
+  "Save translations": "Enregistrer les traductions",
+  "Translating all": "Traduction de toutes les langues",
+  "Loading translations...": "Chargement des traductions...",
+  "Each translated question must have text.": "Chaque question traduite doit avoir un texte.",
+  "Each translated option must have a label.": "Chaque option traduite doit avoir un libelle."
 }
