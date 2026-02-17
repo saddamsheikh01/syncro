@@ -50,7 +50,7 @@ public class User {
     void onCreate() {
         Instant now = Instant.now();
         if (language == null) {
-            language = "it";
+            language = "en";
         }
         if (status == null) {
             status = UserStatus.ACTIVE;

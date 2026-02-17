@@ -17,7 +17,6 @@ import type { UserSummaryResponse } from "@/types/profile";
 import { useAnalytics, useAuth, useMatches, useT } from "@/hooks";
 
 const PAGE_SIZE = 20;
-const DOMAIN_FILTER_ITEMS = getDomainFilterItems();
 const EMPTY_PAGE = {
   page: 0,
   size: 0,
@@ -157,6 +156,10 @@ export const MatchesOverview = () => {
     viewMode === "ALL_USERS" ? loadingAllUsers : loadingUserMatches;
   const currentErrorMessage =
     viewMode === "ALL_USERS" ? allUsersError : error?.message;
+  const domainFilterItems = useMemo(
+    () => getDomainFilterItems(t),
+    [t],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (viewMode === "ALL_USERS") {
@@ -230,10 +233,10 @@ export const MatchesOverview = () => {
 
       {viewMode === "MATCHES" ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          {DOMAIN_FILTER_ITEMS.map((domain) => (
+          {domainFilterItems.map((domain) => (
             <MatchTypeChip
               key={domain.id}
-              label={t(domain.label)}
+              label={domain.label}
               selected={selectedDomain === domain.id}
               onToggleState={(nextSelected) => {
                 if (!nextSelected) return;

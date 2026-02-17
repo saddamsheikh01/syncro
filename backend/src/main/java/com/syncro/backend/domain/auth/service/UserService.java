@@ -20,6 +20,7 @@ import com.syncro.backend.security.UserPrincipal;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9]{3,30}$");
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
     private static final String ACCOUNT_DELETION_CONFIRMATION_PHRASE = "DELETE MY PROFILE";
     private static final Pattern USERNAME_RESERVED_PATTERN =
         Pattern.compile("(riccardociviero|michelasardo|admin|support|syncro)");
@@ -183,7 +185,15 @@ public class UserService {
     }
 
     private String normalizeLanguage(String language) {
-        return language.trim().toLowerCase(Locale.ROOT);
+        String normalized = language.trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        if (!SUPPORTED_LANGUAGES.contains(normalized)) {
+            throw new BadRequestException("Lingua non supportata");
+        }
+        return normalized;
     }
 
     private String normalizeUsername(String username) {

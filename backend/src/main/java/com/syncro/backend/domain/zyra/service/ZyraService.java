@@ -61,10 +61,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -83,6 +86,7 @@ public class ZyraService {
     private static final int MAX_QUESTION_TEXT = 80;
     private static final String ENGLISH_ONLY_POLICY =
         "Always reply in English. Never reply in Italian or any other language.";
+    private static final Set<String> SUPPORTED_RECAP_LANGUAGES = Set.of("en", "it", "es", "fr");
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
@@ -282,13 +286,30 @@ public class ZyraService {
     @Transactional(readOnly = true)
     public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal) {
         User user = getUser(principal);
+        String preferredLanguage = resolvePreferredLanguage(user);
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile != null && isNotBlank(profile.getZyraRecap())) {
+            java.time.Instant generatedAt = profile.getUpdatedAt() != null
+                ? profile.getUpdatedAt()
+                : java.time.Instant.now();
+            return new ZyraProfileRecapResponse(
+                localizeRecap(profile.getZyraRecap(), preferredLanguage),
+                generatedAt
+            );
+        }
         return recapCache.getProfileRecap(user.getId())
-            .map(entry -> new ZyraProfileRecapResponse(entry.recap(), entry.generatedAt()))
+            .map(entry -> new ZyraProfileRecapResponse(
+                localizeRecap(entry.recap(), preferredLanguage),
+                entry.generatedAt()
+            ))
             .orElseGet(() -> {
                 String recap = generateProfileRecap(user);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(user.getId(), recap, generatedAt);
-                return new ZyraProfileRecapResponse(recap, generatedAt);
+                return new ZyraProfileRecapResponse(
+                    localizeRecap(recap, preferredLanguage),
+                    generatedAt
+                );
             });
     }
 
@@ -308,38 +329,62 @@ public class ZyraService {
 
     @Transactional(readOnly = true)
     public ZyraProfileRecapResponse getProfileRecapForUser(UserPrincipal principal, UUID userId) {
-        getUser(principal);
+        User requester = getUser(principal);
+        String preferredLanguage = resolvePreferredLanguage(requester);
         if (userId == null) {
             throw new NotFoundException("Utente non valido");
         }
         User target = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         ensureProfilePublic(target.getId());
+        UserProfile targetProfile = userProfileRepository.findByUserId(target.getId()).orElse(null);
+        if (targetProfile != null && isNotBlank(targetProfile.getZyraRecap())) {
+            java.time.Instant generatedAt = targetProfile.getUpdatedAt() != null
+                ? targetProfile.getUpdatedAt()
+                : java.time.Instant.now();
+            return new ZyraProfileRecapResponse(
+                localizeRecap(targetProfile.getZyraRecap(), preferredLanguage),
+                generatedAt
+            );
+        }
         return recapCache.getProfileRecap(target.getId())
-            .map(entry -> new ZyraProfileRecapResponse(entry.recap(), entry.generatedAt()))
+            .map(entry -> new ZyraProfileRecapResponse(
+                localizeRecap(entry.recap(), preferredLanguage),
+                entry.generatedAt()
+            ))
             .orElseGet(() -> {
                 String recap = generateProfileRecap(target);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(target.getId(), recap, generatedAt);
-                return new ZyraProfileRecapResponse(recap, generatedAt);
+                return new ZyraProfileRecapResponse(
+                    localizeRecap(recap, preferredLanguage),
+                    generatedAt
+                );
             });
     }
 
     @Transactional(readOnly = true)
     public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId) {
         User user = getUser(principal);
+        String preferredLanguage = resolvePreferredLanguage(user);
         if (placeId == null) {
             throw new NotFoundException("Luogo non valido");
         }
         Place place = placeRepository.findById(placeId)
             .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
         return recapCache.getPlaceRecap(user.getId(), placeId)
-            .map(entry -> new ZyraPlaceRecapResponse(entry.recap(), entry.generatedAt()))
+            .map(entry -> new ZyraPlaceRecapResponse(
+                localizeRecap(entry.recap(), preferredLanguage),
+                entry.generatedAt()
+            ))
             .orElseGet(() -> {
                 String recap = generatePlaceRecap(user, place);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putPlaceRecap(user.getId(), placeId, recap, generatedAt);
-                return new ZyraPlaceRecapResponse(recap, generatedAt);
+                return new ZyraPlaceRecapResponse(
+                    localizeRecap(recap, preferredLanguage),
+                    generatedAt
+                );
             });
     }
 
@@ -794,13 +839,25 @@ public class ZyraService {
     @Transactional(readOnly = true)
     public ZyraChatRecapResponse getChatRecap(UserPrincipal principal) {
         User user = getUser(principal);
-        return recapCache.getChatRecap(user.getId())
+        String preferredLanguage = resolvePreferredLanguage(user);
+        ZyraChatRecapResponse response = recapCache.getChatRecap(user.getId())
             .orElseGet(() -> buildChatRecap(user));
+        String localizedRecap = localizeRecap(response.recap(), preferredLanguage);
+        if (Objects.equals(localizedRecap, response.recap())) {
+            return response;
+        }
+        return new ZyraChatRecapResponse(
+            localizedRecap,
+            response.conversationCount(),
+            response.recentContacts(),
+            response.generatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
     public ZyraTestRecapResponse getTestRecap(UserPrincipal principal, UUID submissionId) {
         User user = getUser(principal);
+        String preferredLanguage = resolvePreferredLanguage(user);
         if (submissionId == null) {
             throw new BadRequestException("ID submission non valido");
         }
@@ -810,6 +867,7 @@ public class ZyraService {
             throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
         }
         String recap = generateTestRecap(submission);
+        String localizedRecap = localizeRecap(recap, preferredLanguage);
         String testTitle = submission.getTestDefinition() != null
             ? submission.getTestDefinition().getTitle()
             : "Test";
@@ -820,7 +878,7 @@ public class ZyraService {
             submissionId,
             testTitle,
             testType,
-            recap,
+            localizedRecap,
             java.time.Instant.now()
         );
     }
@@ -1402,6 +1460,68 @@ public class ZyraService {
             guarded.addAll(messages);
         }
         return guarded;
+    }
+
+    private String resolvePreferredLanguage(User user) {
+        return user == null ? "en" : normalizeLanguageCode(user.getLanguage());
+    }
+
+    private String normalizeLanguageCode(String languageCode) {
+        if (languageCode == null || languageCode.isBlank()) {
+            return "en";
+        }
+        String normalized = languageCode.trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        return SUPPORTED_RECAP_LANGUAGES.contains(normalized) ? normalized : "en";
+    }
+
+    private String localizeRecap(String recap, String languageCode) {
+        if (recap == null || recap.isBlank()) {
+            return recap;
+        }
+        String normalizedLanguage = normalizeLanguageCode(languageCode);
+        if ("en".equals(normalizedLanguage)) {
+            return recap;
+        }
+        return translateRecap(recap, normalizedLanguage);
+    }
+
+    private String translateRecap(String sourceRecap, String targetLanguage) {
+        String targetLanguageLabel = mapLanguageLabel(targetLanguage);
+        String translationInstruction = promptLoader.getPrompt(
+            PromptType.RECAP_TRANSLATE_USER,
+            Map.of("targetLanguage", targetLanguageLabel)
+        );
+        String userPrompt = translationInstruction
+            + "\n\nRecap to translate:\n\"\"\"\n"
+            + sourceRecap
+            + "\n\"\"\"";
+
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.RECAP_TRANSLATE_SYSTEM)),
+            new ZyraChatMessage("user", userPrompt)
+        );
+        try {
+            String translated = zyraClient.chat(messages);
+            if (translated == null || translated.isBlank()) {
+                return sourceRecap;
+            }
+            return translated.trim();
+        } catch (Exception ex) {
+            return sourceRecap;
+        }
+    }
+
+    private String mapLanguageLabel(String languageCode) {
+        return switch (normalizeLanguageCode(languageCode)) {
+            case "it" -> "Italian";
+            case "es" -> "Spanish";
+            case "fr" -> "French";
+            default -> "English";
+        };
     }
 
     private ZyraChatSession getSession(UUID userId, UUID sessionId) {

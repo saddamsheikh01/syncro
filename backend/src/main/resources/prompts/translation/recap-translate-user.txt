@@ -1,0 +1,2 @@
+Translate the following recap to {{targetLanguage}}.
+Return only the translated text.

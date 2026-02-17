@@ -50,7 +50,7 @@ export const ZyraProfileRecap = ({
     onRecapLoaded?.(recap);
   }, [recap, onRecapLoaded]);
 
-  const fetchRecap = useCallback(async () => {
+  const fetchRecap = useCallback(async (): Promise<string | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -59,19 +59,19 @@ export const ZyraProfileRecap = ({
         : await getProfileRecap();
       setRecap(response.recap);
       setEditedRecap(response.recap);
+      return response.recap;
     } catch {
       setError(t("Unable to generate the recap. Try again."));
+      return null;
     } finally {
       setLoading(false);
     }
   }, [t, userId]);
 
-  // Genera solo se non c'è recap salvato
+  // Forza il fetch dal backend per avere sempre il recap nella lingua corrente.
   useEffect(() => {
-    if (!savedRecap && !recap && !loading) {
-      fetchRecap();
-    }
-  }, [savedRecap, recap, loading, fetchRecap]);
+    void fetchRecap();
+  }, [fetchRecap]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -99,11 +99,11 @@ export const ZyraProfileRecap = ({
   };
 
   const handleRegenerate = async () => {
-    await fetchRecap();
+    const generatedRecap = await fetchRecap();
     // Salva automaticamente il nuovo recap generato
-    if (!userId && recap) {
+    if (!userId && generatedRecap) {
       try {
-        await userActions.saveProfile({ zyraRecap: recap });
+        await userActions.saveProfile({ zyraRecap: generatedRecap });
       } catch {
         // Ignora errori di salvataggio durante rigenerazione
       }

@@ -37,7 +37,6 @@ import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 const RECO_PAGE_SIZE = 8;
 const LOCATION_MODAL_DISMISSED_KEY = "syncro_location_modal_dismissed";
 const DISTANCE_EPSILON = 0.000001;
-const HOME_MATCH_DOMAIN_FILTER_ITEMS = getDomainFilterItems();
 
 export const HomeOverview = () => {
   const router = useRouter();
@@ -233,6 +232,10 @@ export const HomeOverview = () => {
         .map((rec) => rec.place!),
     [recommendations],
   );
+  const homeMatchDomainFilterItems = useMemo(
+    () => getDomainFilterItems(t),
+    [t],
+  );
   const matchScoreLabel = useMemo(
     () =>
       selectedDomain === "ALL"
@@ -365,7 +368,7 @@ export const HomeOverview = () => {
         />
 
         <div className="flex flex-wrap gap-2">
-          {HOME_MATCH_DOMAIN_FILTER_ITEMS.map((domain) => (
+          {homeMatchDomainFilterItems.map((domain) => (
             <MatchTypeChip
               key={domain.id}
               label={domain.label}

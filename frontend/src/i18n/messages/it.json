@@ -13,8 +13,8 @@
   "onboarding": {
     "residence": {
       "title": "Residenza",
-      "description": "Dicci dove vivi per suggerimenti piu accurati.",
-      "cityLabel": "Citta",
+      "description": "Dicci dove vivi per suggerimenti più accurati.",
+      "cityLabel": "Città",
       "cityPlaceholder": "Milano",
       "countryLabel": "Paese",
       "countryPlaceholder": "Italia"
@@ -26,7 +26,7 @@
       },
       "basic": {
         "title": "Informazioni di base",
-        "subtitle": "Questo ci aiuta a offrire suggerimenti piu accurati."
+        "subtitle": "Questo ci aiuta a offrire suggerimenti più accurati."
       },
       "fullName": {
         "label": "Nome completo",
@@ -34,7 +34,7 @@
         "requiredError": "Inserisci il tuo nome completo."
       },
       "residence": {
-        "requiredError": "Inserisci citta e paese di residenza."
+        "requiredError": "Inserisci città e paese di residenza."
       },
       "birthDate": {
         "label": "Data di nascita",
@@ -74,7 +74,7 @@
     },
     "newsletter": {
       "label": "Iscriviti alla newsletter",
-      "description": "Ricevi aggiornamenti, novita e contenuti esclusivi via email."
+      "description": "Ricevi aggiornamenti, novità e contenuti esclusivi via email."
     },
     "saveError": "Errore nel salvataggio delle preferenze:"
   }

@@ -43,6 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.security.SecureRandom;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -56,6 +57,7 @@ public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
     private static final Duration PASSWORD_RESET_TOKEN_TTL = Duration.ofMinutes(30);
     private static final int PASSWORD_RESET_TOKEN_BYTES = 32;
     private static final String PASSWORD_RESET_GENERIC_MESSAGE =
@@ -108,7 +110,7 @@ public class AuthService {
         User user = new User();
         user.setEmail(email);
         user.setPhone(phone);
-        user.setLanguage("it");
+        user.setLanguage(normalizeLanguage(request.language()));
         user.setOnboardingCompleted(false);
         user.setStatus(UserStatus.ACTIVE);
         User savedUser = userRepository.save(user);
@@ -319,6 +321,18 @@ public class AuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeLanguage(String language) {
+        if (language == null || language.isBlank()) {
+            return "en";
+        }
+        String normalized = language.trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        return SUPPORTED_LANGUAGES.contains(normalized) ? normalized : "en";
     }
 
     private String generatePasswordResetToken() {

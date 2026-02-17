@@ -20,6 +20,10 @@ export type MatchDomainSlot = MatchDomainMeta & {
   missing: boolean;
 };
 
+type TranslateLabel = (label: string) => string;
+
+const identityTranslate: TranslateLabel = (label) => label;
+
 const DOMAIN_META: Record<MatchDomain, MatchDomainMeta> = {
   LOVE: {
     domain: "LOVE",
@@ -71,19 +75,24 @@ export const MATCH_DOMAIN_ORDER: MatchDomain[] = [
 export const getMatchDomainMeta = (domain: MatchDomain): MatchDomainMeta =>
   DOMAIN_META[domain];
 
-export const formatMatchDomainLabel = (domain: MatchDomain) => {
+export const formatMatchDomainLabel = (
+  domain: MatchDomain,
+  translate: TranslateLabel = identityTranslate,
+) => {
   const meta = getMatchDomainMeta(domain);
-  return `${meta.emoji} ${meta.label}`;
+  return `${meta.emoji} ${translate(meta.label)}`;
 };
 
-export const getDomainFilterItems = (): Array<{
+export const getDomainFilterItems = (
+  translate: TranslateLabel = identityTranslate,
+): Array<{
   id: DomainFilter;
   label: string;
 }> => [
-  { id: "ALL", label: "\u{2728} All contexts" },
+  { id: "ALL", label: `\u{2728} ${translate("All contexts")}` },
   ...MATCH_DOMAIN_ORDER.map((domain) => ({
     id: domain,
-    label: formatMatchDomainLabel(domain),
+    label: formatMatchDomainLabel(domain, translate),
   })),
 ];
 
