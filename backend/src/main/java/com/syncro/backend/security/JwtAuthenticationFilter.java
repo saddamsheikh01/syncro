@@ -10,8 +10,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,9 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final AdminUserRepository adminUserRepository;
 
     public JwtAuthenticationFilter(
-        JwtService jwtService,
-        UserRepository userRepository,
-        AdminUserRepository adminUserRepository
+            JwtService jwtService,
+            UserRepository userRepository,
+            AdminUserRepository adminUserRepository
     ) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
@@ -39,9 +41,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
     ) throws ServletException, IOException {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header == null || !header.startsWith("Bearer ")) {
@@ -54,25 +56,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JwtIdentity identity = jwtService.parseAccessToken(token);
             if (!isActive(identity)) {
                 SecurityContextHolder.clearContext();
-                filterChain.doFilter(request, response);
+                sendUnauthorized(response, request.getRequestURI(), "Account is not active");
                 return;
             }
             Object principal = buildPrincipal(identity);
             List<GrantedAuthority> authorities = identity.subjectType() == SubjectType.ADMIN && identity.role() != null
-                ? List.of(new SimpleGrantedAuthority("ROLE_" + identity.role()))
-                : List.of();
+                    ? List.of(new SimpleGrantedAuthority("ROLE_" + identity.role()))
+                    : List.of();
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                principal,
-                token,
-                authorities
+                    principal,
+                    token,
+                    authorities
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException ex) {
             SecurityContextHolder.clearContext();
+            sendUnauthorized(response, request.getRequestURI(), "Token invalid or expired");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendUnauthorized(HttpServletResponse response, String path, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        String body = String.format(
+                "{\"timestamp\":\"%s\",\"status\":401,\"error\":\"Unauthorized\",\"message\":\"%s\",\"path\":\"%s\"}",
+                Instant.now().toString(),
+                message.replace("\"", "\\\""),
+                path.replace("\\", "\\\\").replace("\"", "\\\"")
+        );
+        response.getWriter().write(body);
     }
 
     private boolean isActive(JwtIdentity identity) {
