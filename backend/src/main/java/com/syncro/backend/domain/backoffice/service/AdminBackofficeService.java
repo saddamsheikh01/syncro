@@ -319,7 +319,7 @@ public class AdminBackofficeService {
         AdminUser adminUser = new AdminUser();
         adminUser.setEmail(email);
         adminUser.setPassword(passwordEncoder.encode(request.password()));
-        adminUser.setRole(AdminRole.ADMIN);
+        adminUser.setRole(request.role() != null ? request.role() : AdminRole.ADMIN);
         adminUser.setStatus(AdminStatus.ACTIVE);
 
         AdminUser saved = adminUserRepository.save(adminUser);

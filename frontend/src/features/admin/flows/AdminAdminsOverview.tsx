@@ -44,6 +44,8 @@ export const AdminAdminsOverview = () => {
   const [creating, setCreating] = useState(false);
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [createRole, setCreateRole] = useState<AdminRole>("ADMIN");
 
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<AdminStatus>("ACTIVE");
@@ -72,6 +74,14 @@ export const AdminAdminsOverview = () => {
     () => [
       { value: "ACTIVE", label: t("ACTIVE") },
       { value: "SUSPENDED", label: t("SUSPENDED") },
+    ],
+    [t]
+  );
+
+  const createRoleOptions = useMemo(
+    () => [
+      { value: "ADMIN", label: t("ADMIN") },
+      { value: "SUPER_ADMIN", label: t("SUPER_ADMIN") },
     ],
     [t]
   );
@@ -155,9 +165,11 @@ export const AdminAdminsOverview = () => {
       await createAdmin({
         email: createEmail.trim(),
         password: createPassword,
+        role: createRole,
       });
       setCreateEmail("");
       setCreatePassword("");
+      setCreateRole("ADMIN");
       await loadAdmins();
     } catch (requestError) {
       setError(requestError as ApiError);
@@ -222,7 +234,10 @@ export const AdminAdminsOverview = () => {
         <h2 className="text-base font-semibold text-foreground">
           {t("Create new admin")}
         </h2>
-        <form className="grid gap-3 lg:grid-cols-[1fr,1fr,auto]" onSubmit={handleCreateAdmin}>
+        <form
+          className="grid gap-3 lg:grid-cols-[1fr,1fr,220px,auto]"
+          onSubmit={handleCreateAdmin}
+        >
           <Input
             label={t("Email")}
             type="email"
@@ -232,10 +247,28 @@ export const AdminAdminsOverview = () => {
           />
           <Input
             label={t("Password")}
-            type="password"
+            type={showCreatePassword ? "text" : "password"}
             value={createPassword}
             onChange={(event) => setCreatePassword(event.target.value)}
+            rightSlot={
+              <button
+                type="button"
+                className="text-xs font-semibold text-subtle hover:text-foreground"
+                onClick={() => setShowCreatePassword((current) => !current)}
+                aria-label={
+                  showCreatePassword ? t("Hide password") : t("Show password")
+                }
+              >
+                {showCreatePassword ? t("Hide") : t("Show")}
+              </button>
+            }
             required
+          />
+          <Select
+            label={t("Role")}
+            value={createRole}
+            options={createRoleOptions}
+            onValueChange={(value) => setCreateRole(value as AdminRole)}
           />
           <div className="flex items-end">
             <Button type="submit" size="sm" loading={creating} loadingText={t("Creating")}>

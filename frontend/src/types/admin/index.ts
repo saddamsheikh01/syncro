@@ -40,6 +40,7 @@ export type AdminUpdateLanguageRequest = {
 export type AdminCreateAdminRequest = {
   email: string;
   password: string;
+  role: AdminRole;
 };
 
 export type AdminUpdateAdminRequest = {
