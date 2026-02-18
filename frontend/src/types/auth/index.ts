@@ -63,6 +63,7 @@ export type UpdateUserRequest = {
   onboardingCompleted?: boolean | null;
   username?: string | null;
   phone?: string | null;
+  email?: string | null;
 };
 
 export type ChangePasswordRequest = {

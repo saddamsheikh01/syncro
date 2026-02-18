@@ -100,6 +100,15 @@ public class UserService {
                 user.setPhone(normalizedPhone);
             }
         }
+        if (request.email() != null && !request.email().isBlank()) {
+            String normalizedEmail = normalizeEmail(request.email());
+            if (!normalizedEmail.equals(user.getEmail())) {
+                if (userRepository.existsByEmail(normalizedEmail)) {
+                    throw new ConflictException("Email già in uso");
+                }
+                user.setEmail(normalizedEmail);
+            }
+        }
 
         User saved = userRepository.save(user);
         if (!onboardingWasCompleted && saved.isOnboardingCompleted()) {
@@ -201,6 +210,13 @@ public class UserService {
             return null;
         }
         return username.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private void validateUsername(String username) {

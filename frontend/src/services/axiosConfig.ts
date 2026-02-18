@@ -12,6 +12,7 @@ const normalizeBaseUrl = (baseUrl: string) => {
   return `${trimmed}/api/v1`;
 };
 
+
 const resolveBaseUrl = () => {
   if (typeof window !== "undefined") {
     return "/api/v1";
@@ -26,6 +27,7 @@ export const API_BASE_URL = resolveBaseUrl();
 
 let accessToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
+let unauthorizedHandling = false;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
@@ -113,8 +115,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      if (onUnauthorized) {
-        onUnauthorized();
+      if (onUnauthorized && !unauthorizedHandling) {
+        unauthorizedHandling = true;
+        try {
+          onUnauthorized();
+        } finally {
+          unauthorizedHandling = false;
+        }
       }
     }
     return Promise.reject(normalizeApiError(error));
