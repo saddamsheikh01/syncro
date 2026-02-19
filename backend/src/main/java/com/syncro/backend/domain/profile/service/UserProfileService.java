@@ -53,11 +53,15 @@ public class UserProfileService {
         this.zyraService = zyraService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserProfileResponse getProfile(UserPrincipal principal) {
         User user = getUser(principal);
         UserProfile profile = profileRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new NotFoundException("Profilo non trovato"));
+            .orElseGet(() -> {
+                UserProfile created = new UserProfile();
+                created.setUser(user);
+                return profileRepository.save(created);
+            });
         String avatarUrl = resolveAvatarUrl(user.getId());
         return profileMapper.toResponse(profile, avatarUrl);
     }

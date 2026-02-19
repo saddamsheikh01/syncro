@@ -274,7 +274,7 @@ export const ProfileSettings = ({
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
-  const profileInitializedRef = useRef(false);
+  const profileInitializedRef = useRef<string | boolean>(false);
   const preferencesInitializedRef = useRef(false);
   const interestsInitializedRef = useRef(false);
   const avatarInitializedRef = useRef(false);
@@ -485,8 +485,12 @@ export const ProfileSettings = ({
       .catch(() => undefined);
   }, [analyticsActions, status]);
 
+  // Sync form state from profile whenever profile loads or updates (e.g. after save)
   useEffect(() => {
-    if (!profile || profileInitializedRef.current) return;
+    if (!profile) return;
+    const profileUpdatedAt = profile.updatedAt ?? "";
+    if (profileInitializedRef.current === profileUpdatedAt) return;
+    profileInitializedRef.current = profileUpdatedAt;
     setFullName(profile.fullName ?? "");
     setBirthDate(profile.birthDate ?? "");
     setCity(profile.city ?? "");
@@ -504,7 +508,6 @@ export const ProfileSettings = ({
     setOrientation(profile.orientation ?? "");
     setChildrenStatus(profile.childrenStatus ?? "");
     setVisibility(profile.visibility ?? "PUBLIC");
-    profileInitializedRef.current = true;
   }, [profile]);
 
   useEffect(() => {
