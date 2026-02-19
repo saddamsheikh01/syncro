@@ -57,7 +57,8 @@ const buildSuggestions = (
 
 export const OnboardingProgressCard = () => {
   const { t } = useT();
-  const { percentage, categories } = useProfileCompletion();
+  const { percentage: rawPercentage, categories, loading } = useProfileCompletion();
+  const percentage = Math.min(100, Math.max(0, Math.round(rawPercentage ?? 0)));
 
   const isComplete = percentage >= 100;
 
@@ -95,6 +96,24 @@ export const OnboardingProgressCard = () => {
             <Button size="sm">{t("Profile Insights")}</Button>
           </Link>
         </div>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-2xl font-semibold text-foreground">
+              {t("Loading profile…")}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {t("Complete your profile to get more accurate matches.")}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80 animate-pulse" />
       </Card>
     );
   }

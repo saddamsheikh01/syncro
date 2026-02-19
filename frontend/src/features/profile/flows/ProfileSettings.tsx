@@ -269,8 +269,8 @@ export const ProfileSettings = ({
   } = useTags();
   const { hasPosition } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
-  const { percentage: profileCompleteness } = useProfileCompletion();
-  const displayPercentage = Math.min(100, Math.max(0, Number(profileCompleteness) || 0));
+  const { percentage: profileCompleteness, loading: profileCompletionLoading } = useProfileCompletion();
+  const displayPercentage = Math.min(100, Math.max(0, Math.round(Number(profileCompleteness) || 0)));
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
@@ -1225,19 +1225,23 @@ export const ProfileSettings = ({
               {resolvedTitle}
             </p>
             <h1 className="text-2xl font-semibold text-foreground">
-              {t("{name}, Your Profile Is {percent}% Complete.", {
-                name: displayName,
-                percent: displayPercentage,
-              })}
+              {profileCompletionLoading
+                ? t("Loading profile…")
+                : t("{name}, Your Profile Is {percent}% Complete.", {
+                    name: displayName,
+                    percent: displayPercentage,
+                  })}
             </h1>
             <p className="text-sm text-muted">{resolvedSubtitle}</p>
           </div>
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)]"
-              style={{ width: `${displayPercentage}%` }}
-            />
-          </div>
+          {!profileCompletionLoading ? (
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] transition-all duration-500 ease-out"
+                style={{ width: `${displayPercentage}%` }}
+              />
+            </div>
+          ) : null}
           <div className="mt-4 border-t border-border/70 pt-4">
             <p className="text-sm font-semibold text-foreground">
               {t("Just one thing left: What are you really looking for?")}
