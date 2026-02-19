@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
+import { GoogleAuthButton } from "@/features/auth/components/GoogleAuthButton";
 
 const CheckIcon = () => (
   <svg
@@ -111,6 +112,7 @@ export const Login = () => {
     isLocalhost() ? DEV_CREDENTIALS.password : "",
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   useEffect(() => {
     actions.hydrate();
@@ -131,6 +133,23 @@ export const Login = () => {
       await actions.login({ email, password });
       router.push("/home");
     } catch {}
+  };
+
+  const handleGoogleLogin = async (idToken: string) => {
+    setGoogleError(null);
+    try {
+      await actions.loginWithGoogle({ idToken });
+      router.push("/home");
+    } catch (requestError) {
+      const message =
+        requestError &&
+        typeof requestError === "object" &&
+        "message" in requestError &&
+        typeof requestError.message === "string"
+          ? requestError.message
+          : t("Unable to sign in with Google. Try again.");
+      setGoogleError(message);
+    }
   };
 
   return (
@@ -162,6 +181,25 @@ export const Login = () => {
                 <span>{t("People, places and experiences aligned with you")}</span>
               </li>
             </ul>
+
+            <div className="mt-6 space-y-4">
+              <GoogleAuthButton
+                mode="signin"
+                disabled={isSubmitting}
+                onCredential={handleGoogleLogin}
+              />
+              {googleError ? (
+                <div className="rounded-[12px] border border-danger/20 bg-danger/10 px-4 py-2 text-sm text-danger">
+                  {googleError}
+                </div>
+              ) : null}
+              <div className="relative py-1 text-center text-xs text-subtle">
+                <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-border" />
+                <span className="relative bg-white px-3">
+                  {t("Or continue with email")}
+                </span>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="relative">

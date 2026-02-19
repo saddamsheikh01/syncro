@@ -1,6 +1,7 @@
 import { apiClient } from "../axiosConfig";
 import type {
   AuthResponse,
+  GoogleAuthRequest,
   LoginRequest,
   PasswordResetConfirmRequest,
   PasswordResetRequest,
@@ -19,6 +20,13 @@ export const register = async (payload: RegisterRequest): Promise<AuthResponse> 
 
 export const login = async (payload: LoginRequest): Promise<AuthResponse> => {
   const { data } = await apiClient.post<AuthResponse>("/auth/login", payload);
+  return data;
+};
+
+export const loginWithGoogle = async (
+  payload: GoogleAuthRequest
+): Promise<AuthResponse> => {
+  const { data } = await apiClient.post<AuthResponse>("/auth/google", payload);
   return data;
 };
 

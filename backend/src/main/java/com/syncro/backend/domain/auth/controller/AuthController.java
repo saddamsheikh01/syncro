@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.auth.controller;
 
 import com.syncro.backend.domain.auth.dto.AuthResponse;
+import com.syncro.backend.domain.auth.dto.GoogleAuthRequest;
 import com.syncro.backend.domain.auth.dto.LoginRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetConfirmRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetRequest;
@@ -55,6 +56,19 @@ public class AuthController {
     @Operation(summary = "Login user")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Login/Register with Google")
+    public ResponseEntity<AuthResponse> google(
+        @Valid @RequestBody GoogleAuthRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        return ResponseEntity.ok(authService.loginWithGoogle(
+            request,
+            httpRequest != null ? httpRequest.getRemoteAddr() : null,
+            httpRequest != null ? httpRequest.getHeader("User-Agent") : null
+        ));
     }
 
     @PostMapping("/refresh")

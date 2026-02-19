@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UserAuthProviderRepository extends JpaRepository<UserAuthProvider, UUID> {
 
     Optional<UserAuthProvider> findByUserIdAndProvider(UUID userId, AuthProvider provider);
+
+    Optional<UserAuthProvider> findByProviderAndProviderUserId(AuthProvider provider, String providerUserId);
 }
