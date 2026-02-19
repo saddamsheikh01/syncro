@@ -141,7 +141,7 @@ export const AddToHomeScreenModal = () => {
           "relative w-full max-w-md overflow-y-auto rounded-[var(--radius-xl)] border border-border/70 bg-card px-6 pb-6 pt-7 shadow-xl",
           "animate-in slide-in-from-bottom duration-300",
         )}
-        style={{ maxHeight: "calc(100dvh - 32px)" }}
+        style={{ maxHeight: "min(calc(100dvh - 32px), 90vh)" }}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Close */}
@@ -166,13 +166,13 @@ export const AddToHomeScreenModal = () => {
         </button>
 
         {/* Logo */}
-        <div className="flex justify-center">
+        <div className="flex min-h-[44px] shrink-0 items-center justify-center">
           <Image
             src="/new_logosvg.svg"
             alt={t("Syncro")}
             width={160}
             height={40}
-            className="h-auto w-[140px]"
+            className="h-10 w-[140px] object-contain object-center"
             priority
           />
         </div>

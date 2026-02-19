@@ -38,7 +38,7 @@ export const Logo = ({
       alt={alt}
       width={size.width}
       height={size.height}
-      className={cx("h-auto w-auto", className)}
+      className={cx("h-auto w-auto min-h-[20px] object-contain", className)}
       {...props}
     />
   );
