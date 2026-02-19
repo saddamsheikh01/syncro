@@ -11,6 +11,7 @@ export const useAuth = () => {
     () => ({
       hydrate: authActions.hydrate,
       login: authActions.login,
+      loginWithGoogle: authActions.loginWithGoogle,
       register: authActions.register,
       refresh: authActions.refresh,
       fetchMe: authActions.fetchMe,

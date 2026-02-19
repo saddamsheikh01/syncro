@@ -1,6 +1,7 @@
 import type { ApiError } from "../../types/api";
 import type {
   AuthResponse,
+  GoogleAuthRequest,
   LoginRequest,
   RegisterRequest,
   TokenResponse,
@@ -12,6 +13,7 @@ import { setAccessToken } from "../../services/axiosConfig";
 import {
   getMe,
   login,
+  loginWithGoogle,
   logout,
   refreshToken,
   register,
@@ -119,6 +121,19 @@ export const authActions = {
 
     try {
       const response = await login(payload);
+      applyAuthResponse(response);
+      return response;
+    } catch (error) {
+      authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      throw error;
+    }
+  },
+
+  loginWithGoogle: async (payload: GoogleAuthRequest): Promise<AuthResponse> => {
+    authStore.setState({ status: "loading", error: null });
+
+    try {
+      const response = await loginWithGoogle(payload);
       applyAuthResponse(response);
       return response;
     } catch (error) {

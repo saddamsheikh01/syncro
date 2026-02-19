@@ -5,6 +5,7 @@ import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.dto.AuthResponse;
+import com.syncro.backend.domain.auth.dto.GoogleAuthRequest;
 import com.syncro.backend.domain.auth.dto.LoginRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetConfirmRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetRequest;
@@ -72,6 +73,7 @@ public class AuthService {
     private final AuthMapper authMapper;
     private final ReferralService referralService;
     private final AnalyticsService analyticsService;
+    private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -83,7 +85,8 @@ public class AuthService {
         JwtService jwtService,
         AuthMapper authMapper,
         ReferralService referralService,
-        AnalyticsService analyticsService
+        AnalyticsService analyticsService,
+        GoogleIdTokenVerifierService googleIdTokenVerifierService
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -94,6 +97,7 @@ public class AuthService {
         this.authMapper = authMapper;
         this.referralService = referralService;
         this.analyticsService = analyticsService;
+        this.googleIdTokenVerifierService = googleIdTokenVerifierService;
     }
 
     @Transactional
@@ -132,11 +136,19 @@ public class AuthService {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
-            analyticsService.trackServerEventSafe(null, "LOGIN_FAILED", buildLoginFailurePayload("USER_NOT_FOUND"));
+            analyticsService.trackServerEventSafe(
+                null,
+                "LOGIN_FAILED",
+                buildLoginFailurePayload("USER_NOT_FOUND", AuthProvider.EMAIL)
+            );
             throw new UnauthorizedException("Credenziali non valide");
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
-            analyticsService.trackServerEventSafe(user.getId(), "LOGIN_FAILED", buildLoginFailurePayload("USER_INACTIVE"));
+            analyticsService.trackServerEventSafe(
+                user.getId(),
+                "LOGIN_FAILED",
+                buildLoginFailurePayload("USER_INACTIVE", AuthProvider.EMAIL)
+            );
             throw new UnauthorizedException("Account sospeso");
         }
 
@@ -145,7 +157,7 @@ public class AuthService {
             analyticsService.trackServerEventSafe(
                 user.getId(),
                 "LOGIN_FAILED",
-                buildLoginFailurePayload("PROVIDER_NOT_FOUND")
+                buildLoginFailurePayload("PROVIDER_NOT_FOUND", AuthProvider.EMAIL)
             );
             throw new UnauthorizedException("Credenziali non valide");
         }
@@ -154,13 +166,107 @@ public class AuthService {
             analyticsService.trackServerEventSafe(
                 user.getId(),
                 "LOGIN_FAILED",
-                buildLoginFailurePayload("INVALID_PASSWORD")
+                buildLoginFailurePayload("INVALID_PASSWORD", AuthProvider.EMAIL)
             );
             throw new UnauthorizedException("Credenziali non valide");
         }
 
         analyticsService.trackServerEventSafe(user.getId(), "LOGIN_SUCCESS", Map.of("authProvider", AuthProvider.EMAIL.name()));
         return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public AuthResponse loginWithGoogle(GoogleAuthRequest request, String ip, String userAgent) {
+        GoogleIdTokenVerifierService.GoogleIdentity googleIdentity = googleIdTokenVerifierService.verify(request.idToken());
+        String googleSubject = googleIdentity.subject();
+        String email = normalizeEmail(googleIdentity.email());
+
+        UserAuthProvider googleProvider = providerRepository
+            .findByProviderAndProviderUserId(AuthProvider.GOOGLE, googleSubject)
+            .orElse(null);
+        if (googleProvider != null) {
+            UUID userId = googleProvider.getUser().getId();
+            User existingGoogleUser = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("Account non valido"));
+            ensureUserActive(existingGoogleUser);
+            analyticsService.trackServerEventSafe(
+                existingGoogleUser.getId(),
+                "LOGIN_SUCCESS",
+                Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
+            );
+            return buildAuthResponse(existingGoogleUser);
+        }
+
+        User userByEmail = userRepository.findByEmail(email).orElse(null);
+        if (userByEmail != null) {
+            ensureUserActive(userByEmail);
+
+            UserAuthProvider existingGoogleLink = providerRepository
+                .findByUserIdAndProvider(userByEmail.getId(), AuthProvider.GOOGLE)
+                .orElse(null);
+            if (existingGoogleLink == null) {
+                UserAuthProvider newGoogleLink = new UserAuthProvider();
+                newGoogleLink.setUser(userByEmail);
+                newGoogleLink.setProvider(AuthProvider.GOOGLE);
+                newGoogleLink.setProviderUserId(googleSubject);
+                providerRepository.save(newGoogleLink);
+            } else if (
+                existingGoogleLink.getProviderUserId() != null &&
+                !existingGoogleLink.getProviderUserId().isBlank() &&
+                !existingGoogleLink.getProviderUserId().equals(googleSubject)
+            ) {
+                analyticsService.trackServerEventSafe(
+                    userByEmail.getId(),
+                    "LOGIN_FAILED",
+                    buildLoginFailurePayload("GOOGLE_SUBJECT_MISMATCH", AuthProvider.GOOGLE)
+                );
+                throw new ConflictException("Account Google non associabile a questo utente");
+            } else if (
+                existingGoogleLink.getProviderUserId() == null ||
+                existingGoogleLink.getProviderUserId().isBlank()
+            ) {
+                existingGoogleLink.setProviderUserId(googleSubject);
+                providerRepository.save(existingGoogleLink);
+            }
+
+            analyticsService.trackServerEventSafe(
+                userByEmail.getId(),
+                "LOGIN_SUCCESS",
+                Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", true)
+            );
+            return buildAuthResponse(userByEmail);
+        }
+
+        User newUser = new User();
+        newUser.setEmail(email);
+        newUser.setLanguage(resolveGoogleLanguage(request.language(), googleIdentity.locale()));
+        newUser.setOnboardingCompleted(false);
+        newUser.setStatus(UserStatus.ACTIVE);
+        User savedUser = userRepository.save(newUser);
+
+        UserAuthProvider provider = new UserAuthProvider();
+        provider.setUser(savedUser);
+        provider.setProvider(AuthProvider.GOOGLE);
+        provider.setProviderUserId(googleSubject);
+        providerRepository.save(provider);
+
+        referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
+        analyticsService.trackServerEventSafe(
+            savedUser.getId(),
+            "USER_REGISTERED",
+            buildRegisterPayload(
+                AuthProvider.GOOGLE,
+                false,
+                request.refCode() != null && !request.refCode().isBlank()
+            )
+        );
+        analyticsService.trackServerEventSafe(
+            savedUser.getId(),
+            "LOGIN_SUCCESS",
+            Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
+        );
+
+        return buildAuthResponse(savedUser);
     }
 
     public TokenResponse refresh(RefreshTokenRequest request) {
@@ -305,17 +411,33 @@ public class AuthService {
     }
 
     private Map<String, Object> buildRegisterPayload(RegisterRequest request) {
+        return buildRegisterPayload(
+            AuthProvider.EMAIL,
+            request.phone() != null && !request.phone().isBlank(),
+            request.refCode() != null && !request.refCode().isBlank()
+        );
+    }
+
+    private Map<String, Object> buildRegisterPayload(
+        AuthProvider authProvider,
+        boolean hasPhone,
+        boolean hasReferralCode
+    ) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("authProvider", AuthProvider.EMAIL.name());
-        payload.put("hasPhone", request.phone() != null && !request.phone().isBlank());
-        payload.put("hasReferralCode", request.refCode() != null && !request.refCode().isBlank());
+        payload.put("authProvider", authProvider.name());
+        payload.put("hasPhone", hasPhone);
+        payload.put("hasReferralCode", hasReferralCode);
         return payload;
     }
 
     private Map<String, Object> buildLoginFailurePayload(String reason) {
+        return buildLoginFailurePayload(reason, AuthProvider.EMAIL);
+    }
+
+    private Map<String, Object> buildLoginFailurePayload(String reason, AuthProvider authProvider) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("reason", reason);
-        payload.put("authProvider", AuthProvider.EMAIL.name());
+        payload.put("authProvider", authProvider.name());
         return payload;
     }
 
@@ -333,6 +455,13 @@ public class AuthService {
             normalized = normalized.substring(0, separatorIndex);
         }
         return SUPPORTED_LANGUAGES.contains(normalized) ? normalized : "en";
+    }
+
+    private String resolveGoogleLanguage(String requestLanguage, String googleLocale) {
+        if (requestLanguage != null && !requestLanguage.isBlank()) {
+            return normalizeLanguage(requestLanguage);
+        }
+        return normalizeLanguage(googleLocale);
     }
 
     private String generatePasswordResetToken() {
