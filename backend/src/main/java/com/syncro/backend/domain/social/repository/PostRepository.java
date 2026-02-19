@@ -39,7 +39,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             AND (up.visibility IS NULL OR up.visibility <> 'PRIVATE')
             AND (:scope IS NULL OR p.scope = :scope)
             AND (:mood IS NULL OR p.mood = :mood)
-            AND (:timeframe IS NULL OR p.timeframe = :timeframe)
+            AND (
+                :timeframe IS NULL
+                OR (
+                    CASE
+                        WHEN :timeframe = 'ORA' THEN p.created_at >= (NOW() - INTERVAL '1 hours')
+                        WHEN :timeframe = 'OGGI' THEN p.created_at >= CURRENT_DATE
+                        ELSE TRUE
+                    END
+                )
+            )
             AND (
                 :city IS NULL
                 OR (up.city IS NOT NULL AND LOWER(up.city) LIKE LOWER(CONCAT('%', :city, '%')))
@@ -78,7 +87,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             AND (up.visibility IS NULL OR up.visibility <> 'PRIVATE')
             AND (:scope IS NULL OR p.scope = :scope)
             AND (:mood IS NULL OR p.mood = :mood)
-            AND (:timeframe IS NULL OR p.timeframe = :timeframe)
+                AND (
+                    :timeframe IS NULL
+                    OR (
+                        CASE
+                            WHEN :timeframe = 'ORA' THEN p.created_at >= (NOW() - INTERVAL '2 hours')
+                            WHEN :timeframe = 'OGGI' THEN p.created_at >= CURRENT_DATE
+                            ELSE TRUE
+                        END
+                    )
+                )
             AND (
                 :city IS NULL
                 OR (up.city IS NOT NULL AND LOWER(up.city) LIKE LOWER(CONCAT('%', :city, '%')))
