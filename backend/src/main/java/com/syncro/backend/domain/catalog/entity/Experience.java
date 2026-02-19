@@ -32,7 +32,7 @@ public class Experience {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -69,7 +69,7 @@ public class Experience {
     private Integer durationMinutes;
 
     // Media
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -77,7 +77,7 @@ public class Experience {
     private List<String> images;
 
     // Prenotazione
-    @Column(name = "booking_url")
+    @Column(name = "booking_url", columnDefinition = "text")
     private String bookingUrl;
 
     // Recensioni
@@ -94,7 +94,7 @@ public class Experience {
     @Column(name = "longitude", precision = 9, scale = 6)
     private BigDecimal longitude;
 
-    @Column(name = "location_name")
+    @Column(name = "location_name", columnDefinition = "text")
     private String locationName;
 
     // Dettagli esperienza
@@ -114,10 +114,10 @@ public class Experience {
     @Column(name = "languages", columnDefinition = "jsonb")
     private List<String> languages;
 
-    @Column(name = "cancellation_policy")
+    @Column(name = "cancellation_policy", columnDefinition = "text")
     private String cancellationPolicy;
 
-    @Column(name = "meeting_point")
+    @Column(name = "meeting_point", columnDefinition = "text")
     private String meetingPoint;
 
     // Partecipanti

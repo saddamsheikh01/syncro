@@ -29,7 +29,7 @@ const DOMAIN_META: Record<MatchDomain, MatchDomainMeta> = {
     domain: "LOVE",
     key: "love",
     label: "Love",
-    emoji: "\u{1FA77}",
+    emoji: "\u2764", // ❤ heart (widely supported)
   },
   FRIENDSHIP: {
     domain: "FRIENDSHIP",

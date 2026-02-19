@@ -17,6 +17,24 @@ export type UserSearchParams = {
   q?: string;
   page?: number;
   size?: number;
+  /** City (partial match) */
+  city?: string;
+  /** Country (partial match) */
+  country?: string;
+  /** Minimum age (inclusive) */
+  ageMin?: number;
+  /** Maximum age (inclusive) */
+  ageMax?: number;
+  /** Gender enum: MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY */
+  gender?: string;
+  /** Orientation enum: HETERO, GAY, BI, ASEXUAL, OTHER */
+  orientation?: string;
+  /** Zodiac sign enum: ARIES, TAURUS, ... */
+  zodiacSign?: string;
+  /** Filter by users who have any of these interest tag IDs */
+  interestTagIds?: string[];
+  /** Values text (partial match on profile values) */
+  valuesText?: string;
 };
 
 export const getCurrentUser = async (): Promise<UserResponse> => {
