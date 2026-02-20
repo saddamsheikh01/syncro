@@ -1460,5 +1460,9 @@
   "Translating all": "Traduciendo todos",
   "Loading translations...": "Cargando traducciones...",
   "Each translated question must have text.": "Cada pregunta traducida debe tener texto.",
-  "Each translated option must have a label.": "Cada opcion traducida debe tener una etiqueta."
+  "Each translated option must have a label.": "Cada opcion traducida debe tener una etiqueta.",
+  "Google sign in is currently unavailable.": "El acceso con Google no esta disponible en este momento.",
+  "Unable to sign in with Google. Try again.": "No se puede iniciar sesion con Google. Intentalo de nuevo.",
+  "Unable to sign up with Google. Try again.": "No se puede registrar con Google. Intentalo de nuevo.",
+  "Or continue with email": "O continuar con email"
 }

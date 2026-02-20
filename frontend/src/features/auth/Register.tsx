@@ -7,6 +7,7 @@ import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
+import { GoogleAuthButton } from "@/features/auth/components/GoogleAuthButton";
 
 const CheckIcon = () => (
   <svg
@@ -120,6 +121,7 @@ export const Register = () => {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const refCode = searchParams.get("ref")?.trim() || undefined;
 
@@ -157,6 +159,27 @@ export const Register = () => {
     } catch {}
   };
 
+  const handleGoogleSignup = async (idToken: string) => {
+    setGoogleError(null);
+    try {
+      await actions.loginWithGoogle({
+        idToken,
+        refCode,
+        language: locale,
+      });
+      router.push("/home");
+    } catch (requestError) {
+      const message =
+        requestError &&
+        typeof requestError === "object" &&
+        "message" in requestError &&
+        typeof requestError.message === "string"
+          ? requestError.message
+          : t("Unable to sign up with Google. Try again.");
+      setGoogleError(message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f9ff] px-6 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)] lg:grid lg:grid-cols-[minmax(0,500px)_minmax(0,560px)] lg:items-center lg:justify-center lg:gap-10">
@@ -191,6 +214,25 @@ export const Register = () => {
                 <span>{t("People, places & experiences aligned with you")}</span>
               </li>
             </ul>
+
+            <div className="mt-6 space-y-4">
+              <GoogleAuthButton
+                mode="signup"
+                disabled={isSubmitting}
+                onCredential={handleGoogleSignup}
+              />
+              {googleError ? (
+                <div className="rounded-[12px] border border-danger/20 bg-danger/10 px-4 py-2 text-sm text-danger">
+                  {googleError}
+                </div>
+              ) : null}
+              <div className="relative py-1 text-center text-xs text-subtle">
+                <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-border" />
+                <span className="relative bg-white px-3">
+                  {t("Or continue with email")}
+                </span>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="relative">

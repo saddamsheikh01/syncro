@@ -45,6 +45,12 @@ export type RefreshTokenRequest = {
   refreshToken: string;
 };
 
+export type GoogleAuthRequest = {
+  idToken: string;
+  refCode?: string | null;
+  language?: string | null;
+};
+
 export type PasswordResetRequest = {
   email: string;
 };

@@ -10,5 +10,9 @@
   "Your message has been sent. We'll get back to you as soon as we can.": "Your message has been sent. We'll get back to you as soon as we can.",
   "Send another message": "Send another message",
   "Send message": "Send message",
-  "Sending...": "Sending..."
+  "Sending...": "Sending...",
+  "Google sign in is currently unavailable.": "Google sign in is currently unavailable.",
+  "Unable to sign in with Google. Try again.": "Unable to sign in with Google. Try again.",
+  "Unable to sign up with Google. Try again.": "Unable to sign up with Google. Try again.",
+  "Or continue with email": "Or continue with email"
 }
