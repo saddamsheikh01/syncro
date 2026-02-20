@@ -32,7 +32,7 @@ public class Experience {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "text")
+    @Column(name = "description")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)

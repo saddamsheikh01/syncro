@@ -34,7 +34,7 @@ public class ZyraMessage {
     @Column(name = "role", nullable = false)
     private ZyraMessageRole role;
 
-    @Column(name = "content", nullable = false, columnDefinition = "text")
+    @Column(name = "content", nullable = false)
     private String content;
 
     @Column(name = "created_at", nullable = false)

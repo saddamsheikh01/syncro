@@ -33,7 +33,7 @@ public class Place {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "text")
+    @Column(name = "description")
     private String description;
 
     @Column(name = "latitude")
