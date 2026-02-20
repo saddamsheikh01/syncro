@@ -553,7 +553,7 @@ export const Feed = () => {
               {t("Feed")}
             </p>
             <h1 className="text-3xl font-semibold text-foreground">
-              {t("Posts near you")}
+              {t("Moments")}
             </h1>
             <p className="text-sm text-muted">
               {t("Discover localized and personalized content.")}
