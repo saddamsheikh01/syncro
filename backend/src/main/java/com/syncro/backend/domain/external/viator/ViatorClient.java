@@ -1,6 +1,8 @@
 package com.syncro.backend.domain.external.viator;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syncro.backend.domain.external.viator.dto.ViatorFetchResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchPage;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductsPage;
@@ -13,7 +15,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -36,9 +37,12 @@ public class ViatorClient {
 
     private final ViatorConfig config;
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private volatile boolean bulkEndpointDenied = false;
 
-    public ViatorClient(ViatorConfig config) {
+    public ViatorClient(ViatorConfig config, ObjectMapper objectMapper) {
         this.config = config;
+        this.objectMapper = objectMapper;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         int timeoutMs = Math.max(config.getTimeoutSeconds(), 1) * 1000;
         factory.setConnectTimeout(timeoutMs);
@@ -72,11 +76,11 @@ public class ViatorClient {
         HttpEntity<Void> requestEntity = new HttpEntity<>(buildHeaders(acceptLanguage, false));
 
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class),
                 "GET /products/modified-since"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody(), "GET /products/modified-since");
             if (body == null || !body.isObject()) {
                 return ViatorFetchResult.success(new ViatorProductsPage(List.of(), null));
             }
@@ -95,7 +99,7 @@ public class ViatorClient {
             }
             log.error("Errore chiamata Viator modified-since (403): {}", body);
             return ViatorFetchResult.failure("403 Forbidden su /products/modified-since");
-        } catch (RestClientException ex) {
+        } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator modified-since: {}", ex.getMessage());
             return ViatorFetchResult.failure(ex.getMessage());
         }
@@ -113,11 +117,11 @@ public class ViatorClient {
 
         HttpEntity<Void> requestEntity = new HttpEntity<>(buildHeaders(acceptLanguage, false));
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class),
                 "GET /destinations"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody(), "GET /destinations");
             if (body == null || !body.isObject()) {
                 return List.of();
             }
@@ -126,7 +130,10 @@ public class ViatorClient {
             JsonNode destinations = body.path("destinations");
             if (destinations.isArray()) {
                 for (JsonNode destination : destinations) {
-                    String destinationId = text(destination, "destinationId");
+                    String destinationId = firstNonBlank(
+                        text(destination, "destinationId"),
+                        text(destination, "ref")
+                    );
                     if (isNotBlank(destinationId)) {
                         destinationIds.add(destinationId);
                     }
@@ -136,7 +143,7 @@ public class ViatorClient {
                 }
             }
             return destinationIds;
-        } catch (RestClientException ex) {
+        } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator destinations: {}", ex.getMessage());
             return List.of();
         }
@@ -167,17 +174,14 @@ public class ViatorClient {
             "currency", isNotBlank(currency) ? currency : "EUR"
         );
 
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(
-            payload,
-            buildHeaders(acceptLanguage, true)
-        );
+        HttpEntity<String> requestEntity = buildJsonRequestEntity(payload, acceptLanguage);
 
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class),
                 "POST /products/search"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody(), "POST /products/search");
             if (body == null || !body.isObject()) {
                 return Optional.of(new ViatorProductSearchPage(List.of(), 0));
             }
@@ -190,14 +194,14 @@ public class ViatorClient {
             int totalCount = body.path("totalCount").asInt(0);
 
             return Optional.of(new ViatorProductSearchPage(products, totalCount));
-        } catch (RestClientException ex) {
+        } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator products/search: {}", ex.getMessage());
             return Optional.empty();
         }
     }
 
     public List<JsonNode> getProductsBulk(List<String> productCodes, String acceptLanguage) {
-        if (!config.isConfigured() || productCodes == null || productCodes.isEmpty()) {
+        if (!config.isConfigured() || productCodes == null || productCodes.isEmpty() || bulkEndpointDenied) {
             return List.of();
         }
 
@@ -206,24 +210,34 @@ public class ViatorClient {
         applyOptionalQueryParams(builder);
 
         String url = builder.build(true).toUriString();
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(
+        HttpEntity<String> requestEntity = buildJsonRequestEntity(
             Map.of("productCodes", productCodes),
-            buildHeaders(acceptLanguage, true)
+            acceptLanguage
         );
 
         try {
-            ResponseEntity<List<JsonNode>> response = executeWithRetry(
-                () -> restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<List<JsonNode>>() {}
-                ),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class),
                 "POST /products/bulk"
             );
-            List<JsonNode> body = response.getBody();
-            return body != null ? body : List.of();
-        } catch (RestClientException ex) {
+            JsonNode body = parseBody(response.getBody(), "POST /products/bulk");
+            if (body == null || !body.isArray()) {
+                return List.of();
+            }
+            List<JsonNode> products = new ArrayList<>();
+            body.forEach(products::add);
+            return products;
+        } catch (HttpClientErrorException.Forbidden ex) {
+            String body = ex.getResponseBodyAsString();
+            String lowered = body != null ? body.toLowerCase() : "";
+            if (lowered.contains("endpoint access denied")) {
+                bulkEndpointDenied = true;
+                log.warn("Endpoint /products/bulk non abilitato per questa key: disabilitato per questa sessione");
+                return List.of();
+            }
+            log.error("Errore chiamata Viator bulk (403): {}", body);
+            return List.of();
+        } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator bulk: {}", ex.getMessage());
             return List.of();
         }
@@ -235,9 +249,18 @@ public class ViatorClient {
         headers.set("Accept", config.getAcceptVersion());
         headers.set("Accept-Language", isNotBlank(acceptLanguage) ? acceptLanguage : config.getDefaultLanguage());
         if (withContentType) {
-            headers.setContentType(MediaType.parseMediaType(config.getAcceptVersion()));
+            headers.setContentType(MediaType.APPLICATION_JSON);
         }
         return headers;
+    }
+
+    private HttpEntity<String> buildJsonRequestEntity(Map<String, Object> payload, String acceptLanguage) {
+        HttpHeaders headers = buildHeaders(acceptLanguage, true);
+        try {
+            return new HttpEntity<>(objectMapper.writeValueAsString(payload), headers);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Payload JSON non valido", ex);
+        }
     }
 
     private void applyOptionalQueryParams(UriComponentsBuilder builder) {
@@ -319,6 +342,20 @@ public class ViatorClient {
         return value != null && !value.isBlank();
     }
 
+    private JsonNode parseBody(String rawBody, String operation) {
+        if (!isNotBlank(rawBody)) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(rawBody);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException(
+                operation + " risposta JSON non valida: " + ex.getOriginalMessage(),
+                ex
+            );
+        }
+    }
+
     private String text(JsonNode node, String field) {
         JsonNode value = node.path(field);
         if (value.isMissingNode() || value.isNull()) {
@@ -326,5 +363,14 @@ public class ViatorClient {
         }
         String text = value.asText();
         return text != null && !text.isBlank() ? text : null;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (isNotBlank(value)) {
+                return value;
+            }
+        }
+        return null;
     }
 }

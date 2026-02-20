@@ -44,6 +44,8 @@ app:
     default-language: ${VIATOR_ACCEPT_LANGUAGE:en-US}
     sync:
       enabled: ${VIATOR_SYNC_ENABLED:false}
+      use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}
+      destination-refs: ${VIATOR_SYNC_DESTINATION_REFS:}
   zyra:
     provider: ${ZYRA_PROVIDER:OLLAMA}
     base-url: ${ZYRA_BASE_URL:http://localhost:11434}

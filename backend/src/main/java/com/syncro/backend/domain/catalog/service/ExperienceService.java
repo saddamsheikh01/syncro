@@ -7,6 +7,7 @@ import com.syncro.backend.domain.catalog.dto.CategoryResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceReferenceResponse;
+import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Category;
 import com.syncro.backend.domain.catalog.entity.Experience;
 import com.syncro.backend.domain.catalog.entity.ExperienceTag;
@@ -87,6 +88,7 @@ public class ExperienceService {
         Double longitude,
         Double radiusKm,
         String query,
+        CatalogSource source,
         int page,
         int size
     ) {
@@ -94,6 +96,7 @@ public class ExperienceService {
         String normalizedQuery = normalizeOptional(query);
         boolean tagFilter = tagIds != null && !tagIds.isEmpty();
         List<UUID> normalizedTags = normalizeTagIds(tagIds, tagFilter);
+        String sourceValue = source != null ? source.name() : null;
         PageRequest pageable = PageRequest.of(page, size);
         Page<Experience> experiences = experienceRepository.searchExperiences(
             categoryId,
@@ -103,6 +106,7 @@ public class ExperienceService {
             longitude,
             radiusKm,
             normalizedQuery,
+            sourceValue,
             pageable
         );
         Map<UUID, CategoryResponse> categories = loadCategories(experiences.getContent());

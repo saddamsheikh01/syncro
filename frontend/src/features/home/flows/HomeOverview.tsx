@@ -12,6 +12,7 @@ import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { LocationRequestModal } from "@/features/home/sections/LocationRequestModal";
 import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingProgressCard";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
+import { ViatorExperiencesSection } from "@/features/catalog/sections/ViatorExperiencesSection";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
 import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
@@ -472,6 +473,16 @@ export const HomeOverview = () => {
           </div>
         )}
       </section>
+
+      <ViatorExperiencesSection
+        title="Viator Experiences"
+        subtitle="Curated Viator activities, separated from local places."
+        actionLabel="View all"
+        actionHref="/places#viator-experiences"
+        pageSize={4}
+        maxItems={4}
+        showLoadMore={false}
+      />
 
       <AffiliationsRow
         actionLabel={t("View all")}

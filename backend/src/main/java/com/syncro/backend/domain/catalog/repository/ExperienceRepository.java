@@ -18,6 +18,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
             WHERE (e.is_active = true OR e.is_active IS NULL)
+              AND (:source IS NULL OR e.source = :source)
               AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
@@ -73,6 +74,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
             WHERE (e.is_active = true OR e.is_active IS NULL)
+              AND (:source IS NULL OR e.source = :source)
               AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
@@ -115,6 +117,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,
         @Param("q") String q,
+        @Param("source") String source,
         Pageable pageable
     );
 

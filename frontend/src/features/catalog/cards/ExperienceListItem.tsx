@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Badge } from "@/components/elements/Badge";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface ExperienceListItemProps
@@ -55,6 +56,7 @@ export const ExperienceListItem = ({
   onPress,
   ...props
 }: ExperienceListItemProps) => {
+  const { t } = useT();
   const isViator = provider?.toUpperCase() === "VIATOR";
 
   const card = (
@@ -125,7 +127,7 @@ export const ExperienceListItem = ({
       <div className="flex flex-1 flex-col gap-2 p-4">
         {isViator && (
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0085a6]">
-            Viator Experience
+            {t("Viator Experience")}
           </p>
         )}
         <div className="space-y-1">

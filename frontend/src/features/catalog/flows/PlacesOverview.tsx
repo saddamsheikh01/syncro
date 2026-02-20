@@ -8,6 +8,7 @@ import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
+import { ViatorExperiencesSection } from "@/features/catalog/sections/ViatorExperiencesSection";
 import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
 import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
@@ -119,11 +120,6 @@ export const PlacesOverview = () => {
         ))}
       </div>
 
-      <AffiliationsRow
-        id="affiliations"
-        subtitle={t("Affiliate stays and experiences from our partners.")}
-      />
-
       {isInitialLoading && (
         <Card className="flex items-center gap-3 p-5">
           <Loader size="sm" />
@@ -174,6 +170,19 @@ export const PlacesOverview = () => {
           })}
         </p>
       )}
+
+      <ViatorExperiencesSection
+        id="viator-experiences"
+        title="Viator Experiences"
+        subtitle="Experiences powered by Viator, separated from local places."
+        pageSize={8}
+        showLoadMore
+      />
+
+      <AffiliationsRow
+        id="affiliations"
+        subtitle={t("Affiliate stays and experiences from our partners.")}
+      />
     </div>
   );
 };

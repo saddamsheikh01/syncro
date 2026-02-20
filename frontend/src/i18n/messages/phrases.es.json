@@ -1464,5 +1464,11 @@
   "Google sign in is currently unavailable.": "El acceso con Google no esta disponible en este momento.",
   "Unable to sign in with Google. Try again.": "No se puede iniciar sesion con Google. Intentalo de nuevo.",
   "Unable to sign up with Google. Try again.": "No se puede registrar con Google. Intentalo de nuevo.",
-  "Or continue with email": "O continuar con email"
+  "Or continue with email": "O continuar con email",
+  "Viator Experience": "Experiencia Viator",
+  "Viator Experiences": "Experiencias Viator",
+  "Curated activities powered by Viator.": "Actividades seleccionadas impulsadas por Viator.",
+  "Experiences powered by Viator, separated from local places.": "Experiencias impulsadas por Viator, separadas de los lugares locales.",
+  "Curated Viator activities, separated from local places.": "Actividades Viator seleccionadas, separadas de los lugares locales.",
+  "No Viator experiences available right now.": "No hay experiencias Viator disponibles en este momento."
 }
