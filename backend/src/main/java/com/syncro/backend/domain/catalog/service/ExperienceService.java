@@ -21,6 +21,7 @@ import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.external.viator.ViatorSyncService;
 import com.syncro.backend.domain.tags.dto.TagResponse;
 import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.mapper.TagMapper;
@@ -36,11 +37,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 @Service
 public class ExperienceService {
 
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final String DUMMY_LOCATION_REF = "__NO_LOCATION_REF__";
 
     private final ExperienceRepository experienceRepository;
     private final CategoryRepository categoryRepository;
@@ -48,6 +51,7 @@ public class ExperienceService {
     private final ExperienceTagRepository experienceTagRepository;
     private final TagRepository tagRepository;
     private final AffiliationLinkRepository affiliationLinkRepository;
+    private final ViatorSyncService viatorSyncService;
     private final ExperienceMapper experienceMapper;
     private final CategoryMapper categoryMapper;
     private final PlaceMapper placeMapper;
@@ -61,6 +65,7 @@ public class ExperienceService {
         ExperienceTagRepository experienceTagRepository,
         TagRepository tagRepository,
         AffiliationLinkRepository affiliationLinkRepository,
+        ViatorSyncService viatorSyncService,
         ExperienceMapper experienceMapper,
         CategoryMapper categoryMapper,
         PlaceMapper placeMapper,
@@ -73,6 +78,7 @@ public class ExperienceService {
         this.experienceTagRepository = experienceTagRepository;
         this.tagRepository = tagRepository;
         this.affiliationLinkRepository = affiliationLinkRepository;
+        this.viatorSyncService = viatorSyncService;
         this.experienceMapper = experienceMapper;
         this.categoryMapper = categoryMapper;
         this.placeMapper = placeMapper;
@@ -97,15 +103,40 @@ public class ExperienceService {
         boolean tagFilter = tagIds != null && !tagIds.isEmpty();
         List<UUID> normalizedTags = normalizeTagIds(tagIds, tagFilter);
         String sourceValue = source != null ? source.name() : null;
+        List<String> locationRefs = List.of(DUMMY_LOCATION_REF);
+        boolean locationRefFilter = false;
+
+        Double effectiveLatitude = latitude;
+        Double effectiveLongitude = longitude;
+        Double effectiveRadiusKm = radiusKm;
+
+        if (source == CatalogSource.VIATOR && latitude != null && longitude != null) {
+            String localeTag = resolveLocaleTag();
+            ViatorSyncService.NearbySyncResult nearbySyncResult = viatorSyncService.syncNearbyForCoordinates(
+                latitude,
+                longitude,
+                localeTag
+            );
+            if (!nearbySyncResult.destinationRefs().isEmpty()) {
+                locationRefs = normalizeLocationRefs(nearbySyncResult.destinationRefs());
+                locationRefFilter = !locationRefs.isEmpty();
+                effectiveLatitude = null;
+                effectiveLongitude = null;
+                effectiveRadiusKm = null;
+            }
+        }
+
         PageRequest pageable = PageRequest.of(page, size);
         Page<Experience> experiences = experienceRepository.searchExperiences(
             categoryId,
             normalizedTags,
             tagFilter,
-            latitude,
-            longitude,
-            radiusKm,
+            effectiveLatitude,
+            effectiveLongitude,
+            effectiveRadiusKm,
             normalizedQuery,
+            locationRefs,
+            locationRefFilter,
             sourceValue,
             pageable
         );
@@ -231,5 +262,24 @@ public class ExperienceService {
             return List.of(DUMMY_TAG_ID);
         }
         return ids.stream().distinct().toList();
+    }
+
+    private List<String> normalizeLocationRefs(List<String> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = refs.stream()
+            .map(this::normalizeOptional)
+            .filter(value -> value != null)
+            .distinct()
+            .toList();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+        return normalized;
+    }
+
+    private String resolveLocaleTag() {
+        return normalizeOptional(LocaleContextHolder.getLocale().toLanguageTag());
     }
 }

@@ -46,6 +46,11 @@ app:
       enabled: ${VIATOR_SYNC_ENABLED:false}
       use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}
       destination-refs: ${VIATOR_SYNC_DESTINATION_REFS:}
+      nearby-enabled: ${VIATOR_SYNC_NEARBY_ENABLED:true}
+      nearby-max-destinations: ${VIATOR_SYNC_NEARBY_MAX_DESTINATIONS:3}
+      nearby-count-per-destination: ${VIATOR_SYNC_NEARBY_COUNT_PER_DESTINATION:20}
+      nearby-max-pages: ${VIATOR_SYNC_NEARBY_MAX_PAGES:3}
+      nearby-resync-minutes: ${VIATOR_SYNC_NEARBY_RESYNC_MINUTES:30}
   zyra:
     provider: ${ZYRA_PROVIDER:OLLAMA}
     base-url: ${ZYRA_BASE_URL:http://localhost:11434}

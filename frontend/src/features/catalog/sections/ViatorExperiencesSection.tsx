@@ -8,7 +8,7 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { MapExperienceListItem } from "@/features/catalog/lists/MapExperienceListItem";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
-import { useT } from "@/hooks";
+import { usePosition, useT } from "@/hooks";
 import { toBcp47 } from "@/i18n/locales";
 import { cx } from "@/lib/classNames";
 import { getExperiences } from "@/services/catalog";
@@ -17,6 +17,7 @@ import type { ExperienceListItemProps } from "@/features/catalog/cards/Experienc
 import type { ExperienceSummaryResponse } from "@/types/catalog";
 
 const DEFAULT_PAGE_SIZE = 8;
+type ViatorScope = "nearby" | "everywhere";
 
 type PageInfo = {
   page: number;
@@ -54,11 +55,19 @@ export const ViatorExperiencesSection = ({
   showLoadMore = true,
 }: ViatorExperiencesSectionProps) => {
   const { t, locale } = useT();
-  const initializedRef = useRef(false);
+  const { position, hasPosition } = usePosition();
+  const initializedRef = useRef<string | null>(null);
+  const [scope, setScope] = useState<ViatorScope>("nearby");
   const [items, setItems] = useState<ExperienceSummaryResponse[]>([]);
   const [pageInfo, setPageInfo] = useState<PageInfo>(emptyPage);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+
+  useEffect(() => {
+    if (!hasPosition && scope === "nearby") {
+      setScope("everywhere");
+    }
+  }, [hasPosition, scope]);
 
   const formatDuration = useCallback((minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
@@ -88,8 +97,18 @@ export const ViatorExperiencesSection = ({
       }
 
       try {
+        const useNearby =
+          scope === "nearby" &&
+          hasPosition &&
+          position?.latitude != null &&
+          position?.longitude != null;
+        const nearbyLat = useNearby ? (position?.latitude ?? undefined) : undefined;
+        const nearbyLng = useNearby ? (position?.longitude ?? undefined) : undefined;
+
         const response = await getExperiences({
           source: "VIATOR",
+          lat: nearbyLat,
+          lng: nearbyLng,
           page,
           size: pageSize,
         });
@@ -113,14 +132,18 @@ export const ViatorExperiencesSection = ({
         setLoading(false);
       }
     },
-    [maxItems, pageSize]
+    [hasPosition, maxItems, pageSize, position?.latitude, position?.longitude, scope]
   );
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    const fetchKey =
+      scope === "nearby" && hasPosition && position?.latitude != null && position?.longitude != null
+        ? `nearby:${position.latitude}:${position.longitude}`
+        : `${scope}:global`;
+    if (initializedRef.current === fetchKey) return;
+    initializedRef.current = fetchKey;
     void fetchPage(0, false);
-  }, [fetchPage]);
+  }, [fetchPage, hasPosition, position?.latitude, position?.longitude, scope]);
 
   const hasMore = useMemo(() => {
     const pageHasMore = pageInfo.page + 1 < pageInfo.totalPages;
@@ -164,6 +187,35 @@ export const ViatorExperiencesSection = ({
         actionLabel={actionLabel ? t(actionLabel) : undefined}
         actionHref={actionHref}
       />
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setScope("nearby")}
+          disabled={!hasPosition}
+          className={cx(
+            "rounded-full border px-3 py-1 text-xs font-semibold transition",
+            scope === "nearby"
+              ? "border-accent bg-accent text-accent-foreground"
+              : "border-border bg-surface text-foreground",
+            !hasPosition && "cursor-not-allowed opacity-50"
+          )}
+        >
+          {t("Near me")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setScope("everywhere")}
+          className={cx(
+            "rounded-full border px-3 py-1 text-xs font-semibold transition",
+            scope === "everywhere"
+              ? "border-accent bg-accent text-accent-foreground"
+              : "border-border bg-surface text-foreground"
+          )}
+        >
+          {t("Anywhere")}
+        </button>
+      </div>
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">

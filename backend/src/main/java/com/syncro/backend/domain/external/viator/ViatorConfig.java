@@ -28,6 +28,11 @@ public class ViatorConfig {
         private int defaultCount = 100;
         private int defaultMaxPages = 5;
         private int initialLookbackHours = 24;
+        private boolean nearbyEnabled = true;
+        private int nearbyMaxDestinations = 3;
+        private int nearbyCountPerDestination = 20;
+        private int nearbyMaxPages = 3;
+        private int nearbyResyncMinutes = 30;
 
         public boolean isEnabled() {
             return enabled;
@@ -91,6 +96,46 @@ public class ViatorConfig {
 
         public void setInitialLookbackHours(int initialLookbackHours) {
             this.initialLookbackHours = initialLookbackHours;
+        }
+
+        public boolean isNearbyEnabled() {
+            return nearbyEnabled;
+        }
+
+        public void setNearbyEnabled(boolean nearbyEnabled) {
+            this.nearbyEnabled = nearbyEnabled;
+        }
+
+        public int getNearbyMaxDestinations() {
+            return nearbyMaxDestinations;
+        }
+
+        public void setNearbyMaxDestinations(int nearbyMaxDestinations) {
+            this.nearbyMaxDestinations = nearbyMaxDestinations;
+        }
+
+        public int getNearbyCountPerDestination() {
+            return nearbyCountPerDestination;
+        }
+
+        public void setNearbyCountPerDestination(int nearbyCountPerDestination) {
+            this.nearbyCountPerDestination = nearbyCountPerDestination;
+        }
+
+        public int getNearbyMaxPages() {
+            return nearbyMaxPages;
+        }
+
+        public void setNearbyMaxPages(int nearbyMaxPages) {
+            this.nearbyMaxPages = nearbyMaxPages;
+        }
+
+        public int getNearbyResyncMinutes() {
+            return nearbyResyncMinutes;
+        }
+
+        public void setNearbyResyncMinutes(int nearbyResyncMinutes) {
+            this.nearbyResyncMinutes = nearbyResyncMinutes;
         }
     }
 

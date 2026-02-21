@@ -26,6 +26,10 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR e.description ILIKE CONCAT('%', :q, '%')
               )
               AND (
+                  :locationRefFilter = false
+                  OR e.location_name IN (:locationRefs)
+              )
+              AND (
                   :tagFilter = false
                   OR EXISTS (
                       SELECT 1
@@ -39,13 +43,13 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR :lng IS NULL
                   OR :radiusKm IS NULL
                   OR (
-                      p.latitude IS NOT NULL
-                      AND p.longitude IS NOT NULL
+                      COALESCE(e.latitude, p.latitude) IS NOT NULL
+                      AND COALESCE(e.longitude, p.longitude) IS NOT NULL
                       AND (
                           6371 * acos(least(1, greatest(-1,
-                              cos(radians(:lat)) * cos(radians(p.latitude))
-                              * cos(radians(p.longitude) - radians(:lng))
-                              + sin(radians(:lat)) * sin(radians(p.latitude))
+                              cos(radians(:lat)) * cos(radians(COALESCE(e.latitude, p.latitude)))
+                              * cos(radians(COALESCE(e.longitude, p.longitude)) - radians(:lng))
+                              + sin(radians(:lat)) * sin(radians(COALESCE(e.latitude, p.latitude)))
                           )))
                       ) <= :radiusKm
                   )
@@ -60,11 +64,12 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
               CASE WHEN :categoryId IS NOT NULL AND e.category_id = :categoryId
                   THEN 1 ELSE 0 END DESC,
               CASE WHEN :lat IS NOT NULL AND :lng IS NOT NULL
-                    AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL THEN
+                    AND COALESCE(e.latitude, p.latitude) IS NOT NULL
+                    AND COALESCE(e.longitude, p.longitude) IS NOT NULL THEN
                   6371 * acos(least(1, greatest(-1,
-                      cos(radians(:lat)) * cos(radians(p.latitude))
-                      * cos(radians(p.longitude) - radians(:lng))
-                      + sin(radians(:lat)) * sin(radians(p.latitude))
+                      cos(radians(:lat)) * cos(radians(COALESCE(e.latitude, p.latitude)))
+                      * cos(radians(COALESCE(e.longitude, p.longitude)) - radians(:lng))
+                      + sin(radians(:lat)) * sin(radians(COALESCE(e.latitude, p.latitude)))
                   )))
               END ASC NULLS LAST,
               e.created_at DESC
@@ -82,6 +87,10 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR e.description ILIKE CONCAT('%', :q, '%')
               )
               AND (
+                  :locationRefFilter = false
+                  OR e.location_name IN (:locationRefs)
+              )
+              AND (
                   :tagFilter = false
                   OR EXISTS (
                       SELECT 1
@@ -95,13 +104,13 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR :lng IS NULL
                   OR :radiusKm IS NULL
                   OR (
-                      p.latitude IS NOT NULL
-                      AND p.longitude IS NOT NULL
+                      COALESCE(e.latitude, p.latitude) IS NOT NULL
+                      AND COALESCE(e.longitude, p.longitude) IS NOT NULL
                       AND (
                           6371 * acos(least(1, greatest(-1,
-                              cos(radians(:lat)) * cos(radians(p.latitude))
-                              * cos(radians(p.longitude) - radians(:lng))
-                              + sin(radians(:lat)) * sin(radians(p.latitude))
+                              cos(radians(:lat)) * cos(radians(COALESCE(e.latitude, p.latitude)))
+                              * cos(radians(COALESCE(e.longitude, p.longitude)) - radians(:lng))
+                              + sin(radians(:lat)) * sin(radians(COALESCE(e.latitude, p.latitude)))
                           )))
                       ) <= :radiusKm
                   )
@@ -117,6 +126,8 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
         @Param("lng") Double lng,
         @Param("radiusKm") Double radiusKm,
         @Param("q") String q,
+        @Param("locationRefs") List<String> locationRefs,
+        @Param("locationRefFilter") boolean locationRefFilter,
         @Param("source") String source,
         Pageable pageable
     );

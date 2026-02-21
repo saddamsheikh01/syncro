@@ -3,6 +3,7 @@ package com.syncro.backend.domain.external.viator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.syncro.backend.domain.external.viator.dto.ViatorDestinationResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorFetchResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchPage;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductsPage;
@@ -197,6 +198,65 @@ public class ViatorClient {
         } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator products/search: {}", ex.getMessage());
             return Optional.empty();
+        }
+    }
+
+    public List<ViatorDestinationResult> searchDestinationsByTerm(
+        String searchTerm,
+        String acceptLanguage,
+        int count
+    ) {
+        if (!config.isConfigured() || !isNotBlank(searchTerm)) {
+            return List.of();
+        }
+
+        UriComponentsBuilder builder = UriComponentsBuilder
+            .fromUriString(config.getBaseUrl() + "/search/freetext");
+        applyOptionalQueryParams(builder);
+        String url = builder.build(true).toUriString();
+
+        int safeCount = Math.min(Math.max(count, 1), 50);
+        Map<String, Object> payload = Map.of(
+            "searchTerm", searchTerm.trim(),
+            "currency", "EUR",
+            "searchTypes", List.of(
+                Map.of(
+                    "searchType", "DESTINATIONS",
+                    "pagination", Map.of("start", 1, "count", safeCount)
+                )
+            )
+        );
+
+        HttpEntity<String> requestEntity = buildJsonRequestEntity(payload, acceptLanguage);
+        try {
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class),
+                "POST /search/freetext"
+            );
+            JsonNode body = parseBody(response.getBody(), "POST /search/freetext");
+            if (body == null || !body.isObject()) {
+                return List.of();
+            }
+
+            List<ViatorDestinationResult> destinations = new ArrayList<>();
+            JsonNode results = body.path("destinations").path("results");
+            if (results.isArray()) {
+                for (JsonNode item : results) {
+                    String id = firstNonBlank(text(item, "id"), text(item, "destinationId"));
+                    if (!isNotBlank(id)) {
+                        continue;
+                    }
+                    destinations.add(new ViatorDestinationResult(
+                        id,
+                        text(item, "name"),
+                        text(item, "parentDestinationName")
+                    ));
+                }
+            }
+            return destinations;
+        } catch (RuntimeException ex) {
+            log.error("Errore chiamata Viator search/freetext destinations: {}", ex.getMessage());
+            return List.of();
         }
     }
 
