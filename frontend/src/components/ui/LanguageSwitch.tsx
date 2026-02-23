@@ -19,6 +19,8 @@ const LOCALE_LABEL_KEYS: Record<SupportedLocale, string> = {
   it: "Italian",
   es: "Spanish",
   fr: "French",
+  sq: "Albanian",
+  pt: "Portuguese",
 };
 
 export const LanguageSwitch = ({

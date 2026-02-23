@@ -58,7 +58,7 @@ public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
-    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr", "sq", "pt");
     private static final Duration PASSWORD_RESET_TOKEN_TTL = Duration.ofMinutes(30);
     private static final int PASSWORD_RESET_TOKEN_BYTES = 32;
     private static final String PASSWORD_RESET_GENERIC_MESSAGE =

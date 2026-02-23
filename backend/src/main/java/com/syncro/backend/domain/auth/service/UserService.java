@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9]{3,30}$");
-    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr", "sq", "pt");
     private static final String ACCOUNT_DELETION_CONFIRMATION_PHRASE = "DELETE MY PROFILE";
     private static final Pattern USERNAME_RESERVED_PATTERN =
         Pattern.compile("(riccardociviero|michelasardo|admin|support|syncro)");

@@ -86,7 +86,7 @@ public class ZyraService {
     private static final int MAX_QUESTION_TEXT = 80;
     private static final String ENGLISH_ONLY_POLICY =
         "Always reply in English. Never reply in Italian or any other language.";
-    private static final Set<String> SUPPORTED_RECAP_LANGUAGES = Set.of("en", "it", "es", "fr");
+    private static final Set<String> SUPPORTED_RECAP_LANGUAGES = Set.of("en", "it", "es", "fr", "sq", "pt");
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
