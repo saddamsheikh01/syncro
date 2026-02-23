@@ -46,7 +46,7 @@ export interface ViatorExperiencesSectionProps {
 export const ViatorExperiencesSection = ({
   id,
   className,
-  title = "Viator Experiences",
+  title = "Experiences",
   subtitle = "Curated activities powered by Viator.",
   actionLabel,
   actionHref,

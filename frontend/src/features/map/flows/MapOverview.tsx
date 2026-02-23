@@ -134,6 +134,7 @@ export const MapOverview = () => {
 
     const params: Record<string, unknown> = {
       size: PAGE_SIZE,
+      source: "GOOGLE",
       categoryId: selectedCategory || undefined,
       q: searchQuery || undefined,
     };

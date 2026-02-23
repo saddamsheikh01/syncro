@@ -15,7 +15,6 @@ import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { ViatorExperiencesSection } from "@/features/catalog/sections/ViatorExperiencesSection";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
-import { AffiliationsRow } from "@/features/affiliations/sections/AffiliationsRow";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
 import { resolveTestCopy } from "@/lib/insightsCopy";
@@ -415,8 +414,8 @@ export const HomeOverview = () => {
 
       <section className="space-y-4">
         <SectionHeader
-          title={t("Places & Experiences")}
-          subtitle={t("Places that make sense for you right now.")}
+          title={t("Places")}
+          subtitle={t("Places from Google Maps that make sense for you right now.")}
           actionLabel={t("Explore More")}
           actionHref="/places"
         />
@@ -475,18 +474,13 @@ export const HomeOverview = () => {
       </section>
 
       <ViatorExperiencesSection
-        title="Viator Experiences"
+        title="Experiences"
         subtitle="Curated Viator activities, separated from local places."
         actionLabel="View all"
         actionHref="/places#viator-experiences"
         pageSize={4}
         maxItems={4}
         showLoadMore={false}
-      />
-
-      <AffiliationsRow
-        actionLabel={t("View all")}
-        actionHref="/places#affiliations"
       />
 
       <section className="space-y-4">
