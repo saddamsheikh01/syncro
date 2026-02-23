@@ -75,6 +75,7 @@ public class AdminExperienceService {
             longitude,
             radiusKm,
             query,
+            null,
             page,
             size
         );
