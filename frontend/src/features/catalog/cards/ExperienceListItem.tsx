@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Badge } from "@/components/elements/Badge";
+import { useT } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 export interface ExperienceListItemProps
@@ -55,20 +56,16 @@ export const ExperienceListItem = ({
   onPress,
   ...props
 }: ExperienceListItemProps) => {
-  const isViator = provider?.toUpperCase() === "VIATOR";
+  const { t } = useT();
 
   const card = (
     <div
       className={cx(
-        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border bg-card shadow-sm transition-all duration-300 hover:shadow-md",
-        isViator
-          ? "border-[#00a3c8]/35 bg-[radial-gradient(140%_100%_at_100%_0%,rgba(0,163,200,0.14)_0%,rgba(255,255,255,0)_62%)] hover:border-[#00a3c8]/65"
-          : "border-border/70 hover:border-border-strong",
+        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
         className
       )}
       {...props}
     >
-      {/* Image hero */}
       <div className="relative h-36 w-full overflow-hidden bg-surface-muted">
         {media ?? (imageUrl ? (
           <img
@@ -86,97 +83,66 @@ export const ExperienceListItem = ({
           </div>
         ))}
 
-        {/* Category badge overlay */}
-        {category && (
-          <div className="absolute left-3 top-3">
-            <Badge tone="neutral" className="bg-white/90 backdrop-blur-sm">
-              {category}
-            </Badge>
-          </div>
-        )}
-
-        {isViator && (
-          <div className="absolute right-3 top-3">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#00a3c8] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
-              Viator
-            </span>
-          </div>
-        )}
-
-        {/* Price badge overlay */}
         {priceLabel && (
-          <div className="absolute bottom-3 right-3">
-            <div className="flex items-center gap-1.5 rounded-full bg-foreground/90 px-2.5 py-1 backdrop-blur-sm">
+          <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-foreground shadow-sm">
+            <div className="flex items-center gap-1">
               {originalPriceLabel && (
-                <span className="text-xs text-white/60 line-through">
+                <span className="text-subtle line-through">
                   {originalPriceLabel}
                 </span>
               )}
-              <span className="text-sm font-semibold text-white">
-                {priceLabel}
-              </span>
+              <span>{priceLabel}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        {isViator && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0085a6]">
-            Viator Experience
-          </p>
-        )}
-        <div className="space-y-1">
-          <h4 className="line-clamp-2 text-sm font-semibold text-foreground transition-colors group-hover:text-accent">
-            {title}
-          </h4>
-          {subtitle && (
-            <p className="flex items-center gap-1 text-xs text-muted">
-              <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span className="truncate">{subtitle}</span>
-            </p>
-          )}
-        </div>
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <h4 className="line-clamp-2 text-sm font-semibold text-foreground">
+          {title}
+        </h4>
+        {subtitle ? (
+          <p className="line-clamp-2 text-xs text-muted">{subtitle}</p>
+        ) : null}
 
-        {/* Meta row */}
-        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-          {rating != null && (
-            <span className="flex items-center gap-1 text-xs font-medium text-foreground">
-              <StarIcon />
-              {rating.toFixed(1)}
-              {reviewCount != null && reviewCount > 0 && (
-                <span className="text-muted">({reviewCount})</span>
-              )}
-            </span>
-          )}
-          {durationLabel && (
-            <span className="flex items-center gap-1 text-xs text-muted">
-              <ClockIcon />
-              {durationLabel}
-            </span>
-          )}
-          {distanceKm != null && (
-            <span className="text-xs text-muted">
-              {distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m` : `${distanceKm.toFixed(1)}km`}
-            </span>
-          )}
-          {provider && (
-            <span
-              className={cx(
-                "ml-auto text-[10px] font-medium uppercase tracking-wide",
-                isViator
-                  ? "rounded-full bg-[#00a3c8]/12 px-2 py-0.5 text-[#007c9a]"
-                  : "text-subtle"
-              )}
-            >
-              {provider}
-            </span>
-          )}
+        {rating != null ? (
+          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+            <StarIcon />
+            <span>{rating.toFixed(1)}</span>
+            {reviewCount != null && reviewCount > 0 ? (
+              <span className="text-muted">({reviewCount})</span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          {category ? (
+            <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
+              {category}
+            </Badge>
+          ) : null}
+          <div className="flex items-center justify-between gap-2 text-[11px] text-subtle">
+            {durationLabel ? (
+              <span className="flex items-center gap-1">
+                <ClockIcon />
+                {durationLabel}
+              </span>
+            ) : distanceKm != null ? (
+              <span>
+                {distanceKm < 1
+                  ? `${Math.round(distanceKm * 1000)}m`
+                  : `${distanceKm.toFixed(1)}km`}
+              </span>
+            ) : (
+              <span className="text-subtle">{t("View details")}</span>
+            )}
+            <span className="text-accent">{t("View details")}</span>
+          </div>
+          {provider ? (
+            <div className="text-[11px] text-subtle">
+              {t("Provider")}: {provider}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

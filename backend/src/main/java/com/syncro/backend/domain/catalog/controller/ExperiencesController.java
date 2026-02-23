@@ -2,6 +2,7 @@ package com.syncro.backend.domain.catalog.controller;
 
 import com.syncro.backend.domain.catalog.dto.ExperienceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
+import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.service.ExperienceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -37,6 +38,7 @@ public class ExperiencesController {
         @RequestParam(required = false) Double lng,
         @RequestParam(required = false) Double radiusKm,
         @RequestParam(required = false) String q,
+        @RequestParam(required = false) CatalogSource source,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
@@ -47,6 +49,7 @@ public class ExperiencesController {
             lng,
             radiusKm,
             q,
+            source,
             page,
             size
         ));

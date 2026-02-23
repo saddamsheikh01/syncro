@@ -13,12 +13,16 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -30,17 +34,22 @@ public class ViatorSyncService {
     private static final int BULK_SIZE = 50;
     private static final int MAX_ERROR_MESSAGES = 50;
     private static final int MAX_DESTINATION_FALLBACK = 12;
+    private static final String LOCATION_KEY_SEPARATOR = ":";
 
     private final ViatorClient viatorClient;
     private final ViatorConfig viatorConfig;
+    private final ViatorNearbyDestinationResolver nearbyDestinationResolver;
     private final ViatorProductMapper productMapper;
     private final ExperienceRepository experienceRepository;
     private final AffiliationLinkRepository affiliationLinkRepository;
     private final ExternalSyncStateRepository syncStateRepository;
+    private final Map<String, Instant> nearbyDestinationLastSync = new ConcurrentHashMap<>();
+    private final Map<String, NearbyDestinationCacheEntry> nearbyDestinationCache = new ConcurrentHashMap<>();
 
     public ViatorSyncService(
         ViatorClient viatorClient,
         ViatorConfig viatorConfig,
+        ViatorNearbyDestinationResolver nearbyDestinationResolver,
         ViatorProductMapper productMapper,
         ExperienceRepository experienceRepository,
         AffiliationLinkRepository affiliationLinkRepository,
@@ -48,6 +57,7 @@ public class ViatorSyncService {
     ) {
         this.viatorClient = viatorClient;
         this.viatorConfig = viatorConfig;
+        this.nearbyDestinationResolver = nearbyDestinationResolver;
         this.productMapper = productMapper;
         this.experienceRepository = experienceRepository;
         this.affiliationLinkRepository = affiliationLinkRepository;
@@ -62,7 +72,89 @@ public class ViatorSyncService {
         String language
     ) {}
 
+    public record NearbySyncResult(
+        List<String> destinationRefs,
+        int pagesProcessed,
+        int productsSeen,
+        int created,
+        int updated,
+        int deactivated,
+        int errors,
+        List<String> errorMessages
+    ) {
+        public static NearbySyncResult empty() {
+            return new NearbySyncResult(List.of(), 0, 0, 0, 0, 0, 0, List.of());
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public synchronized NearbySyncResult syncNearbyForCoordinates(
+        double latitude,
+        double longitude,
+        String language
+    ) {
+        if (!viatorConfig.isConfigured() || !viatorConfig.getSync().isNearbyEnabled()) {
+            return NearbySyncResult.empty();
+        }
+
+        String effectiveLanguage = isNotBlank(language) ? language : viatorConfig.getDefaultLanguage();
+        List<String> destinationRefs = resolveNearbyDestinationRefs(latitude, longitude, effectiveLanguage);
+        if (destinationRefs.isEmpty()) {
+            log.info("Sync Viator nearby: nessuna destination risolta per lat={}, lng={}", latitude, longitude);
+            return NearbySyncResult.empty();
+        }
+        log.info("Sync Viator nearby: lat={}, lng={}, destinationRefs={}", latitude, longitude, destinationRefs);
+
+        Instant now = Instant.now();
+        List<String> destinationsToSync = destinationRefs.stream()
+            .filter(ref -> shouldSyncNearbyDestination(ref, now))
+            .toList();
+
+        if (destinationsToSync.isEmpty()) {
+            log.info("Sync Viator nearby: destinazioni già aggiornate recentemente, skip sync");
+            return new NearbySyncResult(destinationRefs, 0, 0, 0, 0, 0, 0, List.of());
+        }
+
+        int maxPages = Math.max(viatorConfig.getSync().getNearbyMaxPages(), destinationsToSync.size());
+        int countPerDestination = Math.max(viatorConfig.getSync().getNearbyCountPerDestination(), 1);
+        FallbackSyncResult syncResult = syncUsingSearchFallback(
+            maxPages,
+            countPerDestination,
+            effectiveLanguage,
+            destinationsToSync
+        );
+        markNearbyDestinationsSynced(destinationsToSync, now);
+
+        return new NearbySyncResult(
+            destinationRefs,
+            syncResult.pagesProcessed(),
+            syncResult.productsSeen(),
+            syncResult.created(),
+            syncResult.updated(),
+            syncResult.deactivated(),
+            syncResult.errors(),
+            syncResult.errorMessages()
+        );
+    }
+
     public ViatorSyncResponse syncProducts(SyncCommand command) {
+        try {
+            return doSyncProducts(command);
+        } catch (RuntimeException ex) {
+            log.error("Errore imprevisto durante sync Viator", ex);
+            String detail = normalize(ex.getMessage());
+            String message = "Errore imprevisto sync Viator";
+            if (detail != null) {
+                message = message + ": " + detail;
+            }
+            return buildResponse(
+                0, 0, 0, 0, 0, 1, null, command.modifiedSince(),
+                List.of(message)
+            );
+        }
+    }
+
+    private ViatorSyncResponse doSyncProducts(SyncCommand command) {
         if (!viatorConfig.isConfigured()) {
             return buildResponse(
                 0, 0, 0, 0, 0, 1, null, null,
@@ -96,6 +188,38 @@ public class ViatorSyncService {
 
         log.info("Avvio sync Viator: count={}, maxPages={}, cursor={}, modifiedSince={}",
             count, maxPages, cursor, effectiveModifiedSince);
+
+        if (viatorConfig.getSync().isUseSearchOnly()) {
+            log.info("Sync Viator in modalità Basic: uso diretto fallback /products/search");
+
+            FallbackSyncResult fallback = syncUsingSearchFallback(maxPages, count, language);
+            pagesProcessed = fallback.pagesProcessed();
+            productsSeen = fallback.productsSeen();
+            created = fallback.created();
+            updated = fallback.updated();
+            deactivated = fallback.deactivated();
+            errors = fallback.errors();
+            fallback.errorMessages().forEach(msg -> addError(errorMessages, msg));
+
+            cursor = null;
+            state.setCursorValue(null);
+            state.setCursorTs(Instant.now());
+            state.setLastSuccessAt(Instant.now());
+            state.setLastError(errors == 0 ? null : firstError(errorMessages));
+            syncStateRepository.save(state);
+
+            return buildResponse(
+                pagesProcessed,
+                productsSeen,
+                created,
+                updated,
+                deactivated,
+                errors,
+                cursor,
+                initialModifiedSince,
+                errorMessages
+            );
+        }
 
         while (pagesProcessed < maxPages) {
             ViatorFetchResult fetchResult = viatorClient.getModifiedProducts(
@@ -152,7 +276,7 @@ public class ViatorSyncService {
             List<JsonNode> products = page.products() != null ? page.products() : List.of();
             productsSeen += products.size();
 
-            PageSyncResult pageResult = processPageProducts(products, language);
+            PageSyncResult pageResult = processPageProducts(products, language, true);
             created += pageResult.created();
             updated += pageResult.updated();
             deactivated += pageResult.deactivated();
@@ -189,7 +313,11 @@ public class ViatorSyncService {
         );
     }
 
-    private PageSyncResult processPageProducts(List<JsonNode> products, String language) {
+    private PageSyncResult processPageProducts(
+        List<JsonNode> products,
+        String language,
+        boolean loadFullDetails
+    ) {
         if (products == null || products.isEmpty()) {
             return PageSyncResult.empty();
         }
@@ -221,7 +349,9 @@ public class ViatorSyncService {
         int deactivated = 0;
         Instant now = Instant.now();
 
-        Map<String, JsonNode> fullProducts = loadFullProducts(activeCodes, language);
+        Map<String, JsonNode> fullProducts = loadFullDetails
+            ? loadFullProducts(activeCodes, language)
+            : Map.of();
         for (String code : activeCodes) {
             JsonNode product = fullProducts.getOrDefault(code, fallbackProducts.get(code));
             if (product == null || product.isNull()) {
@@ -261,6 +391,20 @@ public class ViatorSyncService {
         int requestedCount,
         String language
     ) {
+        return syncUsingSearchFallback(
+            maxPages,
+            requestedCount,
+            language,
+            resolveDestinationIds(language)
+        );
+    }
+
+    private FallbackSyncResult syncUsingSearchFallback(
+        int maxPages,
+        int requestedCount,
+        String language,
+        List<String> destinationIds
+    ) {
         int pagesProcessed = 0;
         int productsSeen = 0;
         int created = 0;
@@ -269,7 +413,6 @@ public class ViatorSyncService {
         int errors = 0;
         List<String> errorMessages = new ArrayList<>();
 
-        List<String> destinationIds = viatorClient.getDestinationIds(language, MAX_DESTINATION_FALLBACK);
         if (destinationIds.isEmpty()) {
             errors++;
             addError(errorMessages, "Fallback search non disponibile: nessuna destination trovata");
@@ -283,15 +426,23 @@ public class ViatorSyncService {
                 errorMessages
             );
         }
+        log.info("Fallback /products/search attivo su {} destinazioni (maxPages={})",
+            destinationIds.size(), maxPages);
 
         int searchCount = Math.min(Math.max(requestedCount, 1), 50);
-        for (String destinationId : destinationIds) {
-            if (pagesProcessed >= maxPages) {
-                break;
-            }
+        Map<String, Integer> nextStartByDestination = new HashMap<>();
+        Set<String> completedDestinations = new HashSet<>();
 
-            int start = 1;
-            while (pagesProcessed < maxPages) {
+        while (pagesProcessed < maxPages && completedDestinations.size() < destinationIds.size()) {
+            for (String destinationId : destinationIds) {
+                if (pagesProcessed >= maxPages) {
+                    break;
+                }
+                if (completedDestinations.contains(destinationId)) {
+                    continue;
+                }
+
+                int start = nextStartByDestination.getOrDefault(destinationId, 1);
                 Optional<ViatorProductSearchPage> searchPageOpt = viatorClient.searchProductsByDestination(
                     destinationId,
                     start,
@@ -302,7 +453,8 @@ public class ViatorSyncService {
                 if (searchPageOpt.isEmpty()) {
                     errors++;
                     addError(errorMessages, "Fallback search fallita per destinationId=" + destinationId);
-                    break;
+                    completedDestinations.add(destinationId);
+                    continue;
                 }
 
                 ViatorProductSearchPage searchPage = searchPageOpt.get();
@@ -310,7 +462,7 @@ public class ViatorSyncService {
                 pagesProcessed++;
                 productsSeen += products.size();
 
-                PageSyncResult pageResult = processPageProducts(products, language);
+                PageSyncResult pageResult = processPageProducts(products, language, false);
                 created += pageResult.created();
                 updated += pageResult.updated();
                 deactivated += pageResult.deactivated();
@@ -318,16 +470,20 @@ public class ViatorSyncService {
                 pageResult.errorMessages().forEach(msg -> addError(errorMessages, msg));
 
                 if (products.isEmpty()) {
-                    break;
+                    completedDestinations.add(destinationId);
+                    continue;
                 }
 
                 if (searchPage.totalCount() > 0 && start + searchCount > searchPage.totalCount()) {
-                    break;
+                    completedDestinations.add(destinationId);
+                    continue;
                 }
                 if (products.size() < searchCount) {
-                    break;
+                    completedDestinations.add(destinationId);
+                    continue;
                 }
-                start += searchCount;
+
+                nextStartByDestination.put(destinationId, start + searchCount);
             }
         }
 
@@ -340,6 +496,76 @@ public class ViatorSyncService {
             errors,
             errorMessages
         );
+    }
+
+    private List<String> resolveDestinationIds(String language) {
+        String configuredRefs = normalize(viatorConfig.getSync().getDestinationRefs());
+        if (configuredRefs != null) {
+            List<String> refs = new ArrayList<>();
+            for (String item : configuredRefs.split(",")) {
+                String ref = normalize(item);
+                if (ref != null) {
+                    refs.add(ref);
+                }
+            }
+            if (!refs.isEmpty()) {
+                return refs;
+            }
+        }
+        return viatorClient.getDestinationIds(language, MAX_DESTINATION_FALLBACK);
+    }
+
+    private List<String> resolveNearbyDestinationRefs(double latitude, double longitude, String language) {
+        String locationKey = nearbyLocationKey(latitude, longitude);
+        Instant now = Instant.now();
+        NearbyDestinationCacheEntry cached = nearbyDestinationCache.get(locationKey);
+        int cacheMinutes = Math.max(viatorConfig.getSync().getNearbyResyncMinutes(), 1);
+        if (
+            cached != null
+                && cached.resolvedAt().plus(cacheMinutes, ChronoUnit.MINUTES).isAfter(now)
+                && !cached.destinationRefs().isEmpty()
+        ) {
+            return cached.destinationRefs();
+        }
+
+        List<String> refs = nearbyDestinationResolver.resolveDestinationRefs(
+            latitude,
+            longitude,
+            language,
+            viatorConfig.getSync().getNearbyMaxDestinations()
+        );
+
+        if (refs.isEmpty()) {
+            refs = resolveDestinationIds(language)
+                .stream()
+                .limit(Math.max(viatorConfig.getSync().getNearbyMaxDestinations(), 1))
+                .toList();
+        }
+        nearbyDestinationCache.put(locationKey, new NearbyDestinationCacheEntry(refs, now));
+        return refs;
+    }
+
+    private boolean shouldSyncNearbyDestination(String destinationRef, Instant now) {
+        Instant lastSync = nearbyDestinationLastSync.get(destinationRef);
+        if (lastSync == null) {
+            return true;
+        }
+        int resyncMinutes = Math.max(viatorConfig.getSync().getNearbyResyncMinutes(), 1);
+        return lastSync.plus(resyncMinutes, ChronoUnit.MINUTES).isBefore(now);
+    }
+
+    private void markNearbyDestinationsSynced(List<String> destinationRefs, Instant syncedAt) {
+        if (destinationRefs == null || destinationRefs.isEmpty()) {
+            return;
+        }
+        destinationRefs.forEach(ref -> nearbyDestinationLastSync.put(ref, syncedAt));
+    }
+
+    private String nearbyLocationKey(double latitude, double longitude) {
+        // Bucket da ~1km per ridurre chiamate duplicate per posizioni molto vicine.
+        double latBucket = Math.round(latitude * 100.0d) / 100.0d;
+        double lngBucket = Math.round(longitude * 100.0d) / 100.0d;
+        return latBucket + LOCATION_KEY_SEPARATOR + lngBucket;
     }
 
     private Map<String, JsonNode> loadFullProducts(List<String> activeCodes, String language) {
@@ -511,5 +737,10 @@ public class ViatorSyncService {
         int deactivated,
         int errors,
         List<String> errorMessages
+    ) {}
+
+    private record NearbyDestinationCacheEntry(
+        List<String> destinationRefs,
+        Instant resolvedAt
     ) {}
 }

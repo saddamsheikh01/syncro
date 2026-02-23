@@ -54,6 +54,7 @@ const toDateTimeLocal = (value: string | null): string => {
 };
 
 export const AdminViatorSyncOverview = () => {
+  const DEFAULT_COUNT = 20;
   const { t } = useT();
   const [status, setStatus] = useState<ViatorSyncStatusResponse | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -62,7 +63,7 @@ export const AdminViatorSyncOverview = () => {
 
   const [lastResult, setLastResult] = useState<ViatorSyncResponse | null>(null);
 
-  const [count, setCount] = useState("100");
+  const [count, setCount] = useState("");
   const [maxPages, setMaxPages] = useState("5");
   const [language, setLanguage] = useState("en-US");
   const [modifiedSince, setModifiedSince] = useState("");
@@ -93,7 +94,7 @@ export const AdminViatorSyncOverview = () => {
 
     try {
       const response = await syncViatorProducts({
-        count: parseOptionalInteger(count),
+        count: parseOptionalInteger(count) ?? DEFAULT_COUNT,
         maxPages: parseOptionalInteger(maxPages),
         modifiedSince: toIsoDateTimeOrNull(modifiedSince),
         resetCursor,
@@ -154,6 +155,7 @@ export const AdminViatorSyncOverview = () => {
           <Input
             label={t("Count per page")}
             value={count}
+            placeholder={String(DEFAULT_COUNT)}
             onChange={(event) => setCount(event.target.value)}
           />
           <Input
