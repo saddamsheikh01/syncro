@@ -20,6 +20,7 @@ export default async function SettingsPage() {
       <ProfileSettings
         title={t("Settings")}
         subtitle={t("Update your details and main preferences.")}
+        showAccountSection
       />
     </MainLayout>
   );

@@ -58,6 +58,7 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
       .catch(() => undefined);
   }, [user?.id]);
 
+  // Only show loading when we have no data yet; once we have profile or tests, show percentage so we don't get stuck if profile fetch fails
   const loading = !profile && tests.length === 0 && completedCount === null;
 
   const result = useMemo(() => {

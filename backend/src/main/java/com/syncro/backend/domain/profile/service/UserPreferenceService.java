@@ -37,11 +37,15 @@ public class UserPreferenceService {
         this.onboardingService = onboardingService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserPreferencesResponse getPreferences(UserPrincipal principal) {
         User user = getUser(principal);
         UserPreference preferences = preferenceRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new NotFoundException("Preferenze non trovate"));
+            .orElseGet(() -> {
+                UserPreference created = new UserPreference();
+                created.setUser(user);
+                return preferenceRepository.save(created);
+            });
         preferences.setMatchmakingFilters(enforceAlwaysOnFlags(preferences.getMatchmakingFilters()));
         return preferenceMapper.toResponse(preferences);
     }

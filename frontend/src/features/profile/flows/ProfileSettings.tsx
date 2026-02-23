@@ -36,9 +36,11 @@ import {
 } from "@/services/media";
 import { getMyReferralLink } from "@/services/referrals";
 import {
+  changeCurrentUserPassword,
   checkUsernameAvailability,
   deleteCurrentUser,
   getUserPosts,
+  updateCurrentUser,
 } from "@/services/users";
 import {
   updatePost as updatePostRequest,
@@ -169,11 +171,14 @@ const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
 export interface ProfileSettingsProps {
   title?: string;
   subtitle?: string;
+  /** When true, show Account section (email, password, delete) — used on /settings page */
+  showAccountSection?: boolean;
 }
 
 export const ProfileSettings = ({
   title,
   subtitle,
+  showAccountSection = false,
 }: ProfileSettingsProps) => {
   const { t } = useT();
 
@@ -264,11 +269,12 @@ export const ProfileSettings = ({
   } = useTags();
   const { hasPosition } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
-  const { percentage: profileCompleteness } = useProfileCompletion();
+  const { percentage: profileCompleteness, loading: profileCompletionLoading } = useProfileCompletion();
+  const displayPercentage = Math.min(100, Math.max(0, Math.round(Number(profileCompleteness) || 0)));
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
-  const profileInitializedRef = useRef(false);
+  const profileInitializedRef = useRef<string | boolean>(false);
   const preferencesInitializedRef = useRef(false);
   const interestsInitializedRef = useRef(false);
   const avatarInitializedRef = useRef(false);
@@ -348,6 +354,15 @@ export const ProfileSettings = ({
   const [profileRecapToShare, setProfileRecapToShare] = useState<string | null>(
     null,
   );
+  const [passwordCurrent, setPasswordCurrent] = useState("");
+  const [passwordNew, setPasswordNew] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountEmailSaving, setAccountEmailSaving] = useState(false);
+  const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Calcola se ci sono modifiche non salvate
@@ -470,8 +485,12 @@ export const ProfileSettings = ({
       .catch(() => undefined);
   }, [analyticsActions, status]);
 
+  // Sync form state from profile whenever profile loads or updates (e.g. after save)
   useEffect(() => {
-    if (!profile || profileInitializedRef.current) return;
+    if (!profile) return;
+    const profileUpdatedAt = profile.updatedAt ?? "";
+    if (profileInitializedRef.current === profileUpdatedAt) return;
+    profileInitializedRef.current = profileUpdatedAt;
     setFullName(profile.fullName ?? "");
     setBirthDate(profile.birthDate ?? "");
     setCity(profile.city ?? "");
@@ -489,7 +508,6 @@ export const ProfileSettings = ({
     setOrientation(profile.orientation ?? "");
     setChildrenStatus(profile.childrenStatus ?? "");
     setVisibility(profile.visibility ?? "PUBLIC");
-    profileInitializedRef.current = true;
   }, [profile]);
 
   useEffect(() => {
@@ -523,6 +541,10 @@ export const ProfileSettings = ({
     setSelectedTagIds(interests.tags.map((tag) => tag.id));
     interestsInitializedRef.current = true;
   }, [interests]);
+
+  useEffect(() => {
+    if (user?.email !== undefined) setAccountEmail(user.email ?? "");
+  }, [user?.email]);
 
   useEffect(() => {
     if (!user?.id || avatarInitializedRef.current) return;
@@ -999,6 +1021,66 @@ export const ProfileSettings = ({
     setDeleteProfileError(null);
   };
 
+  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError(null);
+    if (passwordNew.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+    if (passwordNew !== passwordConfirm) {
+      setPasswordError("New password and confirmation do not match.");
+      return;
+    }
+    if (passwordNew === passwordCurrent) {
+      setPasswordError("New password must be different from current password.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      await changeCurrentUserPassword({
+        currentPassword: passwordCurrent,
+        newPassword: passwordNew,
+      });
+      setPasswordSuccess(true);
+      setPasswordCurrent("");
+      setPasswordNew("");
+      setPasswordConfirm("");
+      await authActions.logout();
+      resetAllStores();
+      router.replace("/login");
+    } catch (err) {
+      setPasswordError(resolveErrorMessage(err, "Unable to update password."));
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleSaveAccountEmail = async () => {
+    const trimmed = accountEmail.trim();
+    if (!trimmed) {
+      setAccountEmailError("Email is required.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) {
+      setAccountEmailError("Please enter a valid email address.");
+      return;
+    }
+    if (trimmed === user?.email?.trim()) return;
+    setAccountEmailError(null);
+    setAccountEmailSaving(true);
+    try {
+      const updated = await updateCurrentUser({ email: trimmed });
+      authActions.setUser(updated);
+      setAccountEmail(trimmed);
+    } catch (err) {
+      setAccountEmailError(resolveErrorMessage(err, "Unable to update email."));
+    } finally {
+      setAccountEmailSaving(false);
+    }
+  };
+
   const handleDeleteProfile = async () => {
     if (!canConfirmProfileDeletion) {
       setDeleteProfileError(
@@ -1146,19 +1228,23 @@ export const ProfileSettings = ({
               {resolvedTitle}
             </p>
             <h1 className="text-2xl font-semibold text-foreground">
-              {t("{name}, Your Profile Is {percent}% Complete.", {
-                name: displayName,
-                percent: profileCompleteness,
-              })}
+              {profileCompletionLoading
+                ? t("Loading profile…")
+                : t("{name}, Your Profile Is {percent}% Complete.", {
+                    name: displayName,
+                    percent: displayPercentage,
+                  })}
             </h1>
             <p className="text-sm text-muted">{resolvedSubtitle}</p>
           </div>
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)]"
-              style={{ width: `${profileCompleteness}%` }}
-            />
-          </div>
+          {!profileCompletionLoading ? (
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-surface-muted/80">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] transition-all duration-500 ease-out"
+                style={{ width: `${displayPercentage}%` }}
+              />
+            </div>
+          ) : null}
           <div className="mt-4 border-t border-border/70 pt-4">
             <p className="text-sm font-semibold text-foreground">
               {t("Just one thing left: What are you really looking for?")}
@@ -1195,83 +1281,6 @@ export const ProfileSettings = ({
           <ShareZyraRecapCard recap={profileRecapToShare} />
         ) : null}
       </section>
-
-      <Card className="space-y-4 p-5">
-        <h2 className="text-base font-semibold text-foreground">
-          {t("{name}'s Public Profile", { name: displayFirstName })}
-        </h2>
-        <p className="text-sm text-muted">
-          {t("Share your public profile. Get aligned matches and insights.")}
-        </p>
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <Input
-            label={t("Username")}
-            value={username}
-            onChange={(event) => {
-              setUsernameError(null);
-              setUsername(event.target.value.replace(/\s+/g, ""));
-            }}
-            placeholder={t("e.g. marco")}
-            hint={usernameHint}
-            error={usernameError ? t(usernameError) : undefined}
-          />
-          <div className="flex items-end">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleSaveUsername}
-              loading={usernameSaving}
-              loadingText={t("Saving")}
-              disabled={!canSaveUsername}
-            >
-              {t("Save username")}
-            </Button>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <Input
-            label={t("Phone number (optional)")}
-            value={phone}
-            onChange={(event) => {
-              setPhoneError(null);
-              setPhone(event.target.value);
-            }}
-            placeholder="+393331234567"
-            hint={phoneHint}
-            error={phoneError ? t(phoneError) : undefined}
-          />
-          <div className="flex items-end">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleSavePhone}
-              loading={phoneSaving}
-              loadingText={t("Saving")}
-              disabled={!canSavePhone}
-            >
-              {t("Save phone")}
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/50 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              {t("Password")}
-            </p>
-            <p className="text-xs text-muted">
-              {t("Change your password in a dedicated security page.")}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => router.push("/profile/password")}
-          >
-            {t("Change password")}
-          </Button>
-        </div>
-      </Card>
 
       <section id="profile" className="space-y-4">
         <SectionHeader
@@ -1429,107 +1438,6 @@ export const ProfileSettings = ({
         </Card>
       </section>
 
-      <section id="match-preferences" className="space-y-4">
-        <SectionHeader
-          title={t("Match contexts & hard filters")}
-          subtitle={t("Hard filters define visibility. Domains define compatibility scoring.")}
-        />
-        <Card className="space-y-5 p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label={t("Minimum age")}
-              type="number"
-              min={18}
-              value={ageMin}
-              onChange={(event) => setAgeMin(event.target.value)}
-              placeholder="18"
-            />
-            <Input
-              label={t("Maximum age")}
-              type="number"
-              min={18}
-              value={ageMax}
-              onChange={(event) => setAgeMax(event.target.value)}
-              placeholder="45"
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label={t("Maximum distance (km)")}
-              type="number"
-              min={0}
-              value={distanceKm}
-              onChange={(event) => setDistanceKm(event.target.value)}
-              placeholder="25"
-            />
-            <Select
-              label={t("Availability")}
-              value={geoAvailability}
-              onValueChange={setGeoAvailability}
-              options={geoAvailabilityOptions}
-              placeholder={t("Select availability")}
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label={t("City filter (optional)")}
-              value={locationCityFilter}
-              onChange={(event) => setLocationCityFilter(event.target.value)}
-              placeholder={t("E.g. Milan")}
-            />
-            <Input
-              label={t("Country filter (optional)")}
-              value={locationCountryFilter}
-              onChange={(event) =>
-                setLocationCountryFilter(event.target.value)
-              }
-              placeholder={t("E.g. Italy")}
-            />
-          </div>
-
-          <Select
-            label={t("Preferred gender (hard filter)")}
-            value={matchGender}
-            onValueChange={setMatchGender}
-            options={matchGenderOptions}
-            placeholder={t("Select preference")}
-          />
-
-          <div className="space-y-3 rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/40 p-4">
-            <p className="text-sm font-semibold text-foreground">
-              {t("Match domains")}
-            </p>
-            <p className="text-xs text-muted">
-              {t("All domains are always active.")}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {DOMAIN_KEYS.map((domainKey) => (
-                <span
-                  key={domainKey}
-                  className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-foreground"
-                >
-                  {domainLabels[domainKey]}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="sm"
-              variant="secondary"
-              loading={preferencesSaving}
-              loadingText={t("Saving")}
-              onClick={handleSavePreferences}
-            >
-              {t("Save match preferences")}
-            </Button>
-          </div>
-        </Card>
-      </section>
-
       <section id="interests" className="space-y-4">
         <SectionHeader
           title={t("What are you into right now?")}
@@ -1601,6 +1509,124 @@ export const ProfileSettings = ({
         )}
       </Card>
 
+      {showAccountSection ? (
+        <section id="account" className="space-y-4">
+          <SectionHeader
+            title={t("Account")}
+            subtitle={t("Email, password and account deletion.")}
+          />
+          <Card className="space-y-4 p-5">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <Input
+                label={t("Email")}
+                type="email"
+                autoComplete="email"
+                value={accountEmail}
+                onChange={(e) => {
+                  setAccountEmailError(null);
+                  setAccountEmail(e.target.value);
+                }}
+                placeholder={t("Your email address")}
+                error={accountEmailError ? t(accountEmailError) : undefined}
+              />
+              <div className="flex items-end">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleSaveAccountEmail}
+                  loading={accountEmailSaving}
+                  loadingText={t("Saving")}
+                  disabled={
+                    accountEmailSaving ||
+                    accountEmail.trim() === (user?.email ?? "").trim()
+                  }
+                >
+                  {t("Save email")}
+                </Button>
+              </div>
+            </div>
+            <form className="space-y-3" onSubmit={handleChangePassword}>
+              <p className="text-sm font-semibold text-foreground">
+                {t("Password")}
+              </p>
+              <Input
+                label={t("Current password")}
+                type="password"
+                autoComplete="current-password"
+                value={passwordCurrent}
+                onChange={(e) => {
+                  setPasswordError(null);
+                  setPasswordCurrent(e.target.value);
+                }}
+                placeholder={t("Enter current password")}
+              />
+              <Input
+                label={t("New password")}
+                type="password"
+                autoComplete="new-password"
+                value={passwordNew}
+                onChange={(e) => {
+                  setPasswordError(null);
+                  setPasswordNew(e.target.value);
+                }}
+                placeholder={t("At least 8 characters")}
+              />
+              <Input
+                label={t("Confirm new password")}
+                type="password"
+                autoComplete="new-password"
+                value={passwordConfirm}
+                onChange={(e) => {
+                  setPasswordError(null);
+                  setPasswordConfirm(e.target.value);
+                }}
+                placeholder={t("Repeat new password")}
+              />
+              {passwordError ? (
+                <p className="text-sm text-danger">{t(passwordError)}</p>
+              ) : null}
+              {passwordSuccess ? (
+                <p className="text-sm text-success">
+                  {t("Password updated. Redirecting to login...")}
+                </p>
+              ) : null}
+              <Button
+                type="submit"
+                size="sm"
+                loading={passwordSaving}
+                loadingText={t("Saving")}
+                disabled={passwordSaving}
+              >
+                {t("Save new password")}
+              </Button>
+            </form>
+            <p className="text-xs text-muted">
+              {t("For security, you will be signed out after changing your password.")}
+            </p>
+            <div className="border-t border-border/70 pt-4">
+              <h3 className="text-sm font-semibold text-danger">
+                {t("Danger zone")}
+              </h3>
+              <p className="mt-1 text-xs text-danger/90">
+                {t("Deleting your profile is permanent and cannot be undone.")}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={handleOpenDeleteProfileModal}
+                >
+                  {t("Delete profile")}
+                </Button>
+                <p className="text-xs text-danger/80">
+                  {t("You will need to type a confirmation phrase.")}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </section>
+      ) : null}
+
       <section className="space-y-4">
         <SectionHeader
           title={t("My Moments")}
@@ -1659,29 +1685,6 @@ export const ProfileSettings = ({
           </p>
         </Card>
       ) : null}
-
-      <Card className="space-y-3 border-danger/40 bg-danger/10 p-5">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-danger">
-            {t("Danger zone")}
-          </h2>
-          <p className="text-sm text-danger/90">
-            {t("Deleting your profile is permanent and cannot be undone.")}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={handleOpenDeleteProfileModal}
-          >
-            {t("Delete profile")}
-          </Button>
-          <p className="text-xs text-danger/80">
-            {t("You will need to type a confirmation phrase.")}
-          </p>
-        </div>
-      </Card>
 
       <Modal
         open={deleteProfileModalOpen}

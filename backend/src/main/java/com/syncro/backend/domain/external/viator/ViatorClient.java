@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.external.viator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syncro.backend.domain.external.viator.dto.ViatorFetchResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchPage;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductsPage;
@@ -13,7 +14,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -36,9 +36,11 @@ public class ViatorClient {
 
     private final ViatorConfig config;
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
-    public ViatorClient(ViatorConfig config) {
+    public ViatorClient(ViatorConfig config, ObjectMapper objectMapper) {
         this.config = config;
+        this.objectMapper = objectMapper;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         int timeoutMs = Math.max(config.getTimeoutSeconds(), 1) * 1000;
         factory.setConnectTimeout(timeoutMs);
@@ -72,11 +74,11 @@ public class ViatorClient {
         HttpEntity<Void> requestEntity = new HttpEntity<>(buildHeaders(acceptLanguage, false));
 
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class),
                 "GET /products/modified-since"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody());
             if (body == null || !body.isObject()) {
                 return ViatorFetchResult.success(new ViatorProductsPage(List.of(), null));
             }
@@ -113,11 +115,11 @@ public class ViatorClient {
 
         HttpEntity<Void> requestEntity = new HttpEntity<>(buildHeaders(acceptLanguage, false));
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class),
                 "GET /destinations"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody());
             if (body == null || !body.isObject()) {
                 return List.of();
             }
@@ -173,11 +175,11 @@ public class ViatorClient {
         );
 
         try {
-            ResponseEntity<JsonNode> response = executeWithRetry(
-                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, JsonNode.class),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class),
                 "POST /products/search"
             );
-            JsonNode body = response.getBody();
+            JsonNode body = parseBody(response.getBody());
             if (body == null || !body.isObject()) {
                 return Optional.of(new ViatorProductSearchPage(List.of(), 0));
             }
@@ -212,20 +214,35 @@ public class ViatorClient {
         );
 
         try {
-            ResponseEntity<List<JsonNode>> response = executeWithRetry(
-                () -> restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<List<JsonNode>>() {}
-                ),
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class),
                 "POST /products/bulk"
             );
-            List<JsonNode> body = response.getBody();
-            return body != null ? body : List.of();
+            JsonNode root = parseBody(response.getBody());
+            if (root == null) {
+                return List.of();
+            }
+            JsonNode array = root.isArray() ? root : root.path("products");
+            if (!array.isArray()) {
+                return List.of();
+            }
+            List<JsonNode> items = new ArrayList<>();
+            array.forEach(items::add);
+            return items;
         } catch (RestClientException ex) {
             log.error("Errore chiamata Viator bulk: {}", ex.getMessage());
             return List.of();
+        }
+    }
+
+    private JsonNode parseBody(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(body);
+        } catch (Exception e) {
+            throw new RestClientException("Failed to parse Viator JSON response", e);
         }
     }
 

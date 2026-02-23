@@ -126,8 +126,11 @@ export const calculateProfileCompletion = (
     0,
   );
 
+  const rawPercentage = Math.round(totalPoints);
+  const percentage = Math.min(100, Math.max(0, rawPercentage));
+
   return {
-    percentage: Math.round(totalPoints),
+    percentage,
     categories,
   };
 };

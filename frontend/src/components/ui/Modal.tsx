@@ -53,12 +53,12 @@ export const Modal = ({
     >
       <div
         className={cx(
-          "w-full max-w-lg rounded-[var(--radius-lg)] border border-border/70 bg-card p-6 shadow-lg",
-          "space-y-5"
+          "flex w-full max-w-lg max-h-[85dvh] flex-col rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-lg",
+          "overflow-hidden"
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="space-y-2">
+        <div className="flex shrink-0 space-y-2 p-6 pb-0">
           {title ? (
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
           ) : null}
@@ -66,8 +66,13 @@ export const Modal = ({
             <p className="text-sm text-muted">{description}</p>
           ) : null}
         </div>
-        {children ? <div className="text-sm text-foreground">{children}</div> : null}
-        <div className="flex flex-wrap justify-end gap-2">
+        {children ? (
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 text-sm text-foreground">
+            {children}
+          </div>
+        ) : null}
+        {(primaryAction || secondaryAction) ? (
+        <div className="flex shrink-0 flex-wrap justify-end gap-2 p-6 pt-0">
           {secondaryAction ? (
             <Button
               variant={secondaryAction.variant ?? "secondary"}
@@ -91,6 +96,7 @@ export const Modal = ({
             </Button>
           ) : null}
         </div>
+        ) : null}
       </div>
     </div>
   );

@@ -55,7 +55,7 @@ public class Place {
     private String googlePlaceId;
 
     // Indirizzo
-    @Column(name = "address")
+    @Column(name = "address", columnDefinition = "text")
     private String address;
 
     @Column(name = "city")
@@ -71,7 +71,7 @@ public class Place {
     @Column(name = "phone")
     private String phone;
 
-    @Column(name = "website")
+    @Column(name = "website", columnDefinition = "text")
     private String website;
 
     // Rating e recensioni Google
@@ -86,7 +86,7 @@ public class Place {
     private Integer priceLevel;
 
     // Media
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
 
     @JdbcTypeCode(SqlTypes.JSON)

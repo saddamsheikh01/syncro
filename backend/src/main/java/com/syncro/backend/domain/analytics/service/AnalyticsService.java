@@ -19,6 +19,8 @@ import com.syncro.backend.domain.analytics.repository.AnalyticsDailyKpiRepositor
 import com.syncro.backend.domain.analytics.repository.AnalyticsEventDefinitionRepository;
 import com.syncro.backend.domain.analytics.repository.AnalyticsEventRepository;
 import com.syncro.backend.domain.analytics.repository.AnalyticsIngestionErrorRepository;
+import com.syncro.backend.domain.analytics.repository.AnalyticsSessionRepository;
+import com.syncro.backend.domain.analytics.entity.AnalyticsSession;
 import com.syncro.backend.domain.auth.entity.AdminRole;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
@@ -59,6 +61,7 @@ public class AnalyticsService {
     private final AnalyticsEventRepository analyticsEventRepository;
     private final AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository;
     private final AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository;
+    private final AnalyticsSessionRepository analyticsSessionRepository;
     private final AnalyticsDailyKpiRepository analyticsDailyKpiRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
@@ -67,6 +70,7 @@ public class AnalyticsService {
         AnalyticsEventRepository analyticsEventRepository,
         AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository,
         AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository,
+        AnalyticsSessionRepository analyticsSessionRepository,
         AnalyticsDailyKpiRepository analyticsDailyKpiRepository,
         UserRepository userRepository,
         JdbcTemplate jdbcTemplate
@@ -74,6 +78,7 @@ public class AnalyticsService {
         this.analyticsEventRepository = analyticsEventRepository;
         this.analyticsEventDefinitionRepository = analyticsEventDefinitionRepository;
         this.analyticsIngestionErrorRepository = analyticsIngestionErrorRepository;
+        this.analyticsSessionRepository = analyticsSessionRepository;
         this.analyticsDailyKpiRepository = analyticsDailyKpiRepository;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -400,6 +405,18 @@ public class AnalyticsService {
         event.setConsentAnalytics(consentAnalytics == null ? Boolean.TRUE : consentAnalytics);
         event.setUserAgent(normalizeBlank(userAgent));
         event.setPayload(normalizedPayload);
+
+        if (sessionId != null && !analyticsSessionRepository.existsById(sessionId)) {
+            AnalyticsSession session = new AnalyticsSession();
+            session.setSessionId(sessionId);
+            session.setUserId(userId);
+            session.setStartedAt(event.getOccurredAt() != null ? event.getOccurredAt() : Instant.now());
+            session.setPlatform(normalizeBlank(platform));
+            session.setAppVersion(normalizeBlank(appVersion));
+            session.setRouteStart(normalizeBlank(route));
+            analyticsSessionRepository.save(session);
+        }
+
         analyticsEventRepository.save(event);
 
         return TrackingOutcome.ACCEPTED;

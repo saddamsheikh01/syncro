@@ -243,6 +243,14 @@ public class OpenApiConfig {
     }
 
     @Bean
+    public GroupedOpenApi supportApi() {
+        return GroupedOpenApi.builder()
+            .group("support")
+            .pathsToMatch("/api/v1/support/**")
+            .build();
+    }
+
+    @Bean
     public GroupedOpenApi adminAnalyticsApi() {
         return GroupedOpenApi.builder()
             .group("admin-analytics")

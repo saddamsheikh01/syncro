@@ -105,22 +105,22 @@ export const TutorialModal = ({
           <div className="relative z-10 bg-white px-6 py-7 sm:px-10 sm:py-10 lg:px-11">
             <Logo
               width={156}
-              className="h-auto w-[130px] sm:w-[150px]"
+              className="h-auto w-[100px] sm:w-[130px]"
               priority
             />
 
-            <h2 className="mt-5 text-3xl font-bold leading-tight text-[#2f5394] sm:text-[46px]">
+            <h2 className="mt-5 text-xl font-bold leading-tight text-[#2f5394] sm:text-2xl">
               {t("I'll Help You Focus On")}
               <br />
               {t("What Really Fits You.")}
             </h2>
-            <p className="mt-4 max-w-md text-[17px] leading-snug text-[#66748f]">
+            <p className="mt-4 max-w-md text-sm leading-snug text-[#66748f] sm:text-base">
               {t("Syncro Works Best When It Understands Who You Are.")}
               <br />
               {t("Help It Read The Right Signals.")}
             </p>
 
-            <ol className="mt-8 space-y-4">
+            <ol className="mt-6 space-y-4">
               {[
                 {
                   titleKey: "Complete Your Profile",
@@ -146,10 +146,10 @@ export const TutorialModal = ({
                     ) : null}
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold leading-tight text-[#2f5394]">
+                    <p className="text-base font-semibold leading-tight text-[#2f5394] sm:text-lg">
                       {t(item.titleKey)}
                     </p>
-                    <p className="mt-1 max-w-md text-[15px] leading-snug text-[#6f7d95]">
+                    <p className="mt-1 max-w-md text-xs leading-snug text-[#6f7d95] sm:text-sm">
                       {t(item.bodyKey)}
                     </p>
                   </div>
@@ -195,13 +195,13 @@ export const TutorialModal = ({
             <div className="pointer-events-none absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-white via-white/65 to-transparent" />
 
             <div className="absolute bottom-8 left-6 right-6 rounded-[20px] border border-white/60 bg-white/92 p-5 shadow-[0_20px_40px_rgba(23,45,84,0.2)]">
-              <p className="text-[32px] font-semibold leading-tight text-[#0f4c87]">
+              <p className="text-lg font-semibold leading-tight text-[#0f4c87] sm:text-xl">
                 {t("Follow My Lead.")}
               </p>
-              <p className="mt-2 text-[24px] font-semibold leading-tight text-[#0d1e33]">
+              <p className="mt-2 text-base font-semibold leading-tight text-[#0d1e33] sm:text-lg">
                 {t("I'll help you skip mismatches and get better connections.")}
               </p>
-              <p className="mt-3 text-[32px] font-bold leading-none text-[#1a4f93]">
+              <p className="mt-3 text-lg font-bold leading-none text-[#1a4f93] sm:text-xl">
                 {t("- Zyra")}
               </p>
             </div>

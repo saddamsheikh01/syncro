@@ -17,13 +17,17 @@ import com.syncro.backend.domain.profile.entity.RelationshipStatus;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.profile.repository.UserProfileSearchSpec;
 import com.syncro.backend.domain.profile.entity.Orientation;
+import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,11 +57,15 @@ public class UserProfileService {
         this.zyraService = zyraService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserProfileResponse getProfile(UserPrincipal principal) {
         User user = getUser(principal);
         UserProfile profile = profileRepository.findByUserId(user.getId())
-            .orElseThrow(() -> new NotFoundException("Profilo non trovato"));
+            .orElseGet(() -> {
+                UserProfile created = new UserProfile();
+                created.setUser(user);
+                return profileRepository.save(created);
+            });
         String avatarUrl = resolveAvatarUrl(user.getId());
         return profileMapper.toResponse(profile, avatarUrl);
     }
@@ -194,6 +202,48 @@ public class UserProfileService {
                 String avatarUrl = resolveAvatarUrl(userId);
                 return profileMapper.toSummary(userId, profile.getUser().getUsername(), profile, avatarUrl);
             });
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserSummaryResponse> searchUsersWithFilters(
+        String q,
+        String city,
+        String country,
+        Integer ageMin,
+        Integer ageMax,
+        Gender gender,
+        Orientation orientation,
+        ZodiacSign zodiacSign,
+        List<UUID> interestTagIds,
+        String valuesText,
+        Pageable pageable
+    ) {
+        String normalizedQ = (q != null && q.trim().length() >= 2) ? q.trim() : null;
+        Specification<UserProfile> spec = UserProfileSearchSpec.withFilters(
+            ProfileVisibility.PUBLIC,
+            normalizedQ,
+            trimToNull(city),
+            trimToNull(country),
+            ageMin,
+            ageMax,
+            gender,
+            orientation,
+            zodiacSign,
+            interestTagIds != null && !interestTagIds.isEmpty() ? interestTagIds : null,
+            trimToNull(valuesText)
+        );
+        return profileRepository.findAll(spec, pageable)
+            .map(profile -> {
+                UUID userId = profile.getUser().getId();
+                String avatarUrl = resolveAvatarUrl(userId);
+                return profileMapper.toSummary(userId, profile.getUser().getUsername(), profile, avatarUrl);
+            });
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) return null;
+        String t = value.trim();
+        return t.isEmpty() ? null : t;
     }
 
     private User getUser(UserPrincipal principal) {
