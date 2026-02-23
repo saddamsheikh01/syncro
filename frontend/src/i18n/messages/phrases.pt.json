@@ -1469,5 +1469,12 @@
   "Google sign in is currently unavailable.": "O início de sessão com o Google não está disponível de momento.",
   "Unable to sign in with Google. Try again.": "Não foi possível iniciar sessão com o Google. Tenta novamente.",
   "Unable to sign up with Google. Try again.": "Não foi possível registar com o Google. Tenta novamente.",
-  "Or continue with email": "Ou continuar com e-mail"
+  "Or continue with email": "Ou continuar com e-mail",
+  "Viator Experience": "Experiência Viator",
+  "Viator Experiences": "Experiências Viator",
+  "Curated activities powered by Viator.": "Atividades selecionadas pela Viator.",
+  "Experiences powered by Viator, separated from local places.": "Experiências da Viator, separadas dos lugares locais.",
+  "Places from Google Maps that make sense for you right now.": "Lugares do Google Maps que fazem sentido para si agora.",
+  "Curated Viator activities, separated from local places.": "Atividades Viator selecionadas, separadas dos lugares locais.",
+  "No Viator experiences available right now.": "Não há experiências Viator disponíveis de momento."
 }

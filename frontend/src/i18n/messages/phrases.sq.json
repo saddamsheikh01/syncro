@@ -1469,5 +1469,12 @@
   "Google sign in is currently unavailable.": "Hyrja me Google aktualisht nuk është e disponueshme.",
   "Unable to sign in with Google. Try again.": "Nuk mund të hyni me Google. Provoni përsëri.",
   "Unable to sign up with Google. Try again.": "Nuk mund të regjistroheni me Google. Provoni përsëri.",
-  "Or continue with email": "Ose vazhdoni me email"
+  "Or continue with email": "Ose vazhdoni me email",
+  "Viator Experience": "Eksperienca Viator",
+  "Viator Experiences": "Eksperiencat Viator",
+  "Curated activities powered by Viator.": "Aktivitetet të kuratuara nga Viator.",
+  "Experiences powered by Viator, separated from local places.": "Eksperienca nga Viator, të ndara nga vendet lokale.",
+  "Places from Google Maps that make sense for you right now.": "Vende nga Google Maps që kanë kuptim për ju tani.",
+  "Curated Viator activities, separated from local places.": "Aktivitetet e kuratuara Viator, të ndara nga vendet lokale.",
+  "No Viator experiences available right now.": "Nuk ka eksperienca Viator të disponueshme tani."
 }
