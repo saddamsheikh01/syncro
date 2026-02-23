@@ -612,14 +612,6 @@ export const Feed = () => {
               setScopeFilter(value as "" | PostScope)
             }
           />
-          <Select
-            label={t("Timeframe")}
-            options={timeframeOptions}
-            value={timeframeFilter}
-            onValueChange={(value) =>
-              setTimeframeFilter(value as "" | PostTimeframe)
-            }
-          />
           <Input
             label={t("City")}
             value={cityFilter}
