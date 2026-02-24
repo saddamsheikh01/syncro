@@ -54,6 +54,8 @@ const SUPPORTED_TRANSLATION_LOCALES: readonly TestTranslationLocale[] = [
   "it",
   "es",
   "fr",
+  "sq",
+  "pt",
 ] as const;
 
 const toTranslationLocale = (value: string): TestTranslationLocale =>
@@ -154,6 +156,8 @@ export const AdminTestsOverview = () => {
       { value: "es", label: t("Spanish") },
       { value: "fr", label: t("French") },
       { value: "en", label: t("English") },
+      { value: "sq", label: t("Albanian") },
+      { value: "pt", label: t("Portuguese") },
     ],
     [t]
   );

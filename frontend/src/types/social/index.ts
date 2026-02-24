@@ -1,5 +1,27 @@
 import type { IsoDateTime, Uuid } from "../shared";
 
+export type ConnectionStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+export type ConnectionContext = "WORK" | "FRIENDSHIP" | "PROJECTS" | "LOVE" | "OTHER";
+
+export type ConnectionResponse = {
+  id: Uuid;
+  fromUserId: Uuid;
+  toUserId: Uuid;
+  status: ConnectionStatus;
+  context: ConnectionContext;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+export type SendConnectionRequest = {
+  toUserId: Uuid;
+  context: ConnectionContext;
+};
+
+export type ConnectionStatusResponse = {
+  status: ConnectionStatus | null;
+};
+
 export type PostScope = "AMICIZIA" | "ESPERIENZE" | "LAVORO" | "BENESSERE";
 
 export type PostMood =
@@ -100,6 +122,7 @@ export type ChatParticipantInfo = {
   userId: Uuid;
   fullName: string | null;
   avatarUrl: string | null;
+  profileIncomplete?: boolean;
 };
 
 export type ChatConversationResponse = {

@@ -1,0 +1,83 @@
+{
+  "common": {
+    "continue": "Continuar",
+    "saving": "A guardar...",
+    "save": "Guardar"
+  },
+  "languages": {
+    "en": "Inglês",
+    "it": "Italiano",
+    "es": "Espanhol",
+    "fr": "Francês",
+    "sq": "Albanês",
+    "pt": "Português"
+  },
+  "onboarding": {
+    "residence": {
+      "title": "Residência",
+      "description": "Diga-nos onde vive para sugestões mais precisas.",
+      "cityLabel": "Cidade",
+      "cityPlaceholder": "Lisboa",
+      "countryLabel": "País",
+      "countryPlaceholder": "Portugal"
+    },
+    "step1": {
+      "header": {
+        "title": "Complete o seu perfil",
+        "subtitle": "Adicione os dados principais para personalizar a sua experiência."
+      },
+      "basic": {
+        "title": "Informação básica",
+        "subtitle": "Isto ajuda-nos a dar sugestões mais precisas."
+      },
+      "fullName": {
+        "label": "Nome completo",
+        "placeholder": "Nome e apelido",
+        "requiredError": "Introduza o seu nome completo."
+      },
+      "residence": {
+        "requiredError": "Introduza a cidade e o país de residência."
+      },
+      "birthDate": {
+        "label": "Data de nascimento",
+        "placeholder": "Selecione uma data"
+      },
+      "saveError": "Erro ao guardar."
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Escolha o idioma preferido da aplicação."
+    },
+    "visibility": {
+      "public": {
+        "label": "Público",
+        "description": "Mostrar o seu perfil completo."
+      },
+      "partial": {
+        "label": "Parcial",
+        "description": "Ocultar alguns dados sensíveis."
+      },
+      "private": {
+        "label": "Privado",
+        "description": "Perfil visível apenas em correspondências."
+      }
+    }
+  },
+  "cookieConsent": {
+    "title": "Privacidade e cookies",
+    "description": "Para continuar a usar o Syncro, aceite a nossa política de privacidade e gestão de cookies. Pode também escolher se deseja receber a nossa newsletter.",
+    "primaryAction": {
+      "accept": "Aceitar e continuar",
+      "saving": "A guardar..."
+    },
+    "box": {
+      "text": "Utilizamos cookies essenciais necessários para o funcionamento da aplicação e cookies de análise para melhorar a sua experiência.",
+      "privacyLink": "Ler a Política de Privacidade completa"
+    },
+    "newsletter": {
+      "label": "Subscrever a newsletter",
+      "description": "Receba atualizações, notícias e conteúdo exclusivo por e-mail."
+    },
+    "saveError": "Erro ao guardar as preferências:"
+  }
+}

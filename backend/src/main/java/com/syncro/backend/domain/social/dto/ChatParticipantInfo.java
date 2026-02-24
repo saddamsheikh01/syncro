@@ -5,6 +5,7 @@ import java.util.UUID;
 public record ChatParticipantInfo(
     UUID userId,
     String fullName,
-    String avatarUrl
+    String avatarUrl,
+    boolean profileIncomplete
 ) {
 }

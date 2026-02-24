@@ -164,10 +164,7 @@ public class UserProfileService {
         User targetUser = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
-        if (profile == null) {
-            throw new NotFoundException("Profilo non disponibile");
-        }
-        if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
+        if (profile != null && profile.getVisibility() == ProfileVisibility.PRIVATE) {
             throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
         }
         String avatarUrl = resolveAvatarUrl(targetUser.getId());

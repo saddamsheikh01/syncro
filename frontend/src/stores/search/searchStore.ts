@@ -8,6 +8,32 @@ import type { UserSearchResult } from "../../types/search";
 import { globalSearch } from "../../services/search";
 import { createStore } from "../utils/createStore";
 
+const SEARCH_HISTORY_KEY = "syncro-search-history";
+const SEARCH_HISTORY_MAX = 10;
+
+function loadSearchHistory(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string").slice(0, SEARCH_HISTORY_MAX)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSearchHistory(history: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // ignore
+  }
+}
+
 export type SearchState = {
   query: string;
   places: PlaceSummaryResponse[];
@@ -17,6 +43,7 @@ export type SearchState = {
   loading: boolean;
   error: ApiError | null;
   isOpen: boolean;
+  searchHistory: string[];
 };
 
 const initialState: SearchState = {
@@ -28,6 +55,7 @@ const initialState: SearchState = {
   loading: false,
   error: null,
   isOpen: false,
+  searchHistory: [],
 };
 
 export const searchStore = createStore<SearchState>(initialState);
@@ -38,7 +66,24 @@ export const searchActions = {
   },
 
   setOpen: (isOpen: boolean) => {
-    searchStore.setState({ isOpen });
+    const state = searchStore.getState();
+    const searchHistory = state.searchHistory.length > 0 ? state.searchHistory : loadSearchHistory();
+    searchStore.setState({ isOpen, searchHistory });
+  },
+
+  addToHistory: (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const state = searchStore.getState();
+    const history = state.searchHistory.length > 0 ? state.searchHistory : loadSearchHistory();
+    const next = [trimmed, ...history.filter((q) => q !== trimmed)].slice(0, SEARCH_HISTORY_MAX);
+    searchStore.setState({ searchHistory: next });
+    saveSearchHistory(next);
+  },
+
+  clearHistory: () => {
+    searchStore.setState({ searchHistory: [] });
+    saveSearchHistory([]);
   },
 
   search: async (query: string): Promise<void> => {
@@ -64,6 +109,7 @@ export const searchActions = {
         posts: response.posts,
         loading: false,
       });
+      searchActions.addToHistory(query.trim());
     } catch (error) {
       searchStore.setState({ loading: false, error: error as ApiError });
     }

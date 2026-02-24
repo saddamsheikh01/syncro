@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import type { KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/lib/classNames";
@@ -21,7 +21,8 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { query, isOpen, loading, places, users, posts } = useSearchStore();
+  const listboxId = useId();
+  const { query, isOpen, loading, places, users, posts, searchHistory } = useSearchStore();
   const [localQuery, setLocalQuery] = useState(query);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -75,6 +76,9 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
     id: string
   ) => {
     searchActions.setOpen(false);
+    if (localQuery.trim().length >= 2) {
+      searchActions.addToHistory(localQuery.trim());
+    }
     setLocalQuery("");
     searchActions.clear();
 
@@ -145,8 +149,11 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
               placeholder={t("Find what works for you, now")}
               className="w-full bg-transparent text-sm font-semibold text-foreground placeholder:text-subtle focus:outline-none"
               aria-label={t("Search content")}
+              role="combobox"
               aria-expanded={showDropdown}
               aria-haspopup="listbox"
+              aria-controls={showDropdown ? listboxId : undefined}
+              aria-autocomplete="list"
             />
             <span className="text-[11px] text-subtle">
               {t("People / Places / Experiences / Events / Based on who you are")}
@@ -163,13 +170,20 @@ export const ZyraSearchBar = ({ className }: ZyraSearchBarProps) => {
 
       {showDropdown && (
         <ZyraSearchResults
+          id={listboxId}
           places={places}
           users={users}
           posts={posts}
           loading={loading}
           query={localQuery}
+          searchHistory={searchHistory}
           onResultClick={handleResultClick}
           onAskZyra={handleAskZyra}
+          onHistoryClick={(q) => {
+            setLocalQuery(q);
+            handleSearch(q);
+          }}
+          onClearHistory={searchActions.clearHistory}
         />
       )}
     </div>

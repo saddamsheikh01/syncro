@@ -10,30 +10,41 @@ import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { useT } from "@/hooks";
 
 export interface ZyraSearchResultsProps {
+  id?: string;
   places: PlaceSummaryResponse[];
   users: UserSearchResult[];
   posts: PostResponse[];
   loading: boolean;
   query: string;
+  searchHistory?: string[];
   onResultClick: (type: "place" | "user" | "post", id: string) => void;
   onAskZyra?: () => void;
+  onHistoryClick?: (query: string) => void;
+  onClearHistory?: () => void;
 }
 
 export const ZyraSearchResults = ({
+  id,
   places,
   users,
   posts,
   loading,
   query,
+  searchHistory = [],
   onResultClick,
   onAskZyra,
+  onHistoryClick,
+  onClearHistory,
 }: ZyraSearchResultsProps) => {
   const { t } = useT();
   const hasResults = places.length > 0 || users.length > 0 || posts.length > 0;
   const showNoResults = !loading && query.length >= 2 && !hasResults;
+  const showHistory =
+    !loading && searchHistory.length > 0 && query.length < 2 && !hasResults;
 
   return (
     <div
+      id={id}
       className={cx(
         "absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-lg)] border bg-surface shadow-md",
         "border-border/70"
@@ -59,6 +70,48 @@ export const ZyraSearchResults = ({
       </div>
 
       <div className="max-h-[400px] overflow-y-auto p-2">
+        {showHistory && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between gap-2 px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zyra-text">
+                {t("Recent searches")}
+              </span>
+              {onClearHistory && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onClearHistory();
+                  }}
+                  className="text-[10px] font-medium text-subtle hover:text-foreground"
+                >
+                  {t("Clear")}
+                </button>
+              )}
+            </div>
+            <div className="space-y-0.5">
+              {searchHistory.slice(0, 8).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onHistoryClick?.(item);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
+                  role="option"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-muted text-zyra-text">
+                    <NavIcon name="search" className="h-4 w-4" />
+                  </div>
+                  <span className="truncate text-sm text-foreground">{item}</span>
+                  <NavIcon name="chevron-right" className="h-4 w-4 shrink-0 text-subtle" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8 text-subtle">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-zyra-text border-t-transparent" />
@@ -113,7 +166,10 @@ export const ZyraSearchResults = ({
                     <button
                       key={place.id}
                       type="button"
-                      onClick={() => onResultClick("place", place.id)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onResultClick("place", place.id);
+                      }}
                       className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                       role="option"
                     >
@@ -169,7 +225,10 @@ export const ZyraSearchResults = ({
                       <button
                         key={user.userId}
                         type="button"
-                        onClick={() => onResultClick("user", user.userId)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          onResultClick("user", user.userId);
+                        }}
                         className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                         role="option"
                       >
@@ -212,7 +271,10 @@ export const ZyraSearchResults = ({
                     <button
                       key={post.id}
                       type="button"
-                      onClick={() => onResultClick("post", post.id)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onResultClick("post", post.id);
+                      }}
                       className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
                       role="option"
                     >

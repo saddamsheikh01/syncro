@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -40,17 +41,29 @@ const formatTimeLabel = (isoDate: string, t: (key: string) => string): string =>
   });
 };
 
+const resolveChatParticipantName = (
+  fullName: string | null | undefined,
+  userId: string | null,
+  t: (key: string, v?: Record<string, string>) => string
+): string => {
+  const s = fullName?.trim();
+  if (s && s.length > 0 && !/not found|non trovato|utente non trovato/i.test(s)) {
+    return s;
+  }
+  return userId ? t("User {id}", { id: userId.slice(0, 8) }) : t("User");
+};
+
 const getOtherParticipantName = (
   conversation: ChatConversationResponse,
   currentUserId: string | null,
-  t: (key: string) => string
+  t: (key: string, v?: Record<string, string>) => string
 ): string => {
   if (!currentUserId) return t("User");
 
   const other = conversation.participants.find(
     (p) => p.userId !== currentUserId
   );
-  return other?.fullName ?? t("User");
+  return resolveChatParticipantName(other?.fullName ?? null, other?.userId ?? null, t);
 };
 
 const getOtherParticipantAvatar = (
@@ -98,9 +111,17 @@ export const ChatConversationList = () => {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
           {t("Messages")}
         </p>
-        <h1 className="text-3xl font-semibold text-foreground">
-          {t("Your chats")}
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-3xl font-semibold text-foreground">
+            {t("Your chats")}
+          </h1>
+          <Link
+            href="/connections"
+            className="text-sm font-medium text-accent underline decoration-accent/60 underline-offset-2 transition hover:decoration-accent"
+          >
+            {t("Connection requests")}
+          </Link>
+        </div>
         <p className="text-sm text-muted">
           {t("Chat with people you've met.")}
         </p>
