@@ -117,11 +117,48 @@ export type AdminReferralUsageResponse = {
   primaryActivity: string | null;
 };
 
+export type AdminNotificationTargetType = "ALL" | "USER";
+
+export type AdminNotificationRecipientResponse = {
+  id: Uuid;
+  username: string | null;
+  fullName: string | null;
+  status: UserStatus;
+};
+
 export type AdminCreateNotificationRequest = {
-  userIds: Uuid[];
+  targetType: AdminNotificationTargetType;
+  userId?: Uuid | null;
   title: string;
   body?: string | null;
   data?: Record<string, unknown> | null;
+};
+
+export type AdminNotificationCampaignStatsResponse = {
+  campaignId: Uuid;
+  sentCount: number;
+  readCount: number;
+  unreadCount: number;
+  readRate: number;
+};
+
+export type AdminNotificationCampaignSortBy =
+  | "CREATED_AT"
+  | "READ_RATE"
+  | "SENT_COUNT"
+  | "READ_COUNT"
+  | "TITLE";
+
+export type AdminNotificationCampaignSortDirection = "ASC" | "DESC";
+
+export type AdminNotificationCampaignSummaryResponse = {
+  campaignId: Uuid;
+  title: string | null;
+  createdAt: IsoDateTime | null;
+  sentCount: number;
+  readCount: number;
+  unreadCount: number;
+  readRate: number;
 };
 
 export type NotificationResponse = {
@@ -134,6 +171,7 @@ export type NotificationResponse = {
   conversationId: Uuid | null;
   messageId: Uuid | null;
   createdByAdminId: Uuid | null;
+  campaignId: Uuid | null;
   createdAt: IsoDateTime;
   readAt: IsoDateTime | null;
 };

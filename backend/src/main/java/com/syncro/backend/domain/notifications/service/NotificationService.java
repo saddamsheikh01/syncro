@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private static final int MESSAGE_PREVIEW_LIMIT = 160;
+    private static final int COMMENT_PREVIEW_LIMIT = 120;
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
@@ -121,12 +122,95 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void createPostLikeNotification(
+        UUID recipientUserId,
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID postId
+    ) {
+        if (recipientUserId == null || actorUserId == null || postId == null) {
+            return;
+        }
+        if (recipientUserId.equals(actorUserId)) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUserId(recipientUserId);
+        notification.setType(NotificationType.POST_LIKE);
+        notification.setTitle("Nuovo like");
+        notification.setBody(resolveActorDisplayName(actorDisplayName) + " ha messo like al tuo post.");
+        notification.setData(buildPostLikeData(actorUserId, actorDisplayName, postId));
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createPostCommentNotification(
+        UUID recipientUserId,
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID postId,
+        UUID commentId,
+        String commentContent
+    ) {
+        if (recipientUserId == null || actorUserId == null || postId == null) {
+            return;
+        }
+        if (recipientUserId.equals(actorUserId)) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setUserId(recipientUserId);
+        notification.setType(NotificationType.POST_COMMENT);
+        notification.setTitle("Nuovo commento");
+        notification.setBody(buildCommentBody(actorDisplayName, commentContent));
+        notification.setData(buildPostCommentData(actorUserId, actorDisplayName, postId, commentId));
+        notificationRepository.save(notification);
+    }
+
     private Map<String, Object> buildMessageData(ChatMessage message, UUID conversationId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("conversationId", conversationId);
         payload.put("messageId", message.getId());
         payload.put("senderId", message.getUserId());
         return payload;
+    }
+
+    private Map<String, Object> buildPostLikeData(
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID postId
+    ) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("postId", postId);
+        payload.put("actorUserId", actorUserId);
+        payload.put("actorDisplayName", resolveActorDisplayName(actorDisplayName));
+        return payload;
+    }
+
+    private Map<String, Object> buildPostCommentData(
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID postId,
+        UUID commentId
+    ) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("postId", postId);
+        payload.put("commentId", commentId);
+        payload.put("actorUserId", actorUserId);
+        payload.put("actorDisplayName", resolveActorDisplayName(actorDisplayName));
+        return payload;
+    }
+
+    private String buildCommentBody(String actorDisplayName, String commentContent) {
+        String actor = resolveActorDisplayName(actorDisplayName);
+        String preview = buildCommentPreview(commentContent);
+        if (preview == null || preview.isBlank()) {
+            return actor + " ha commentato il tuo post.";
+        }
+        return actor + " ha commentato: " + preview;
     }
 
     private String buildMessagePreview(String content) {
@@ -138,6 +222,27 @@ public class NotificationService {
             return normalized;
         }
         return normalized.substring(0, MESSAGE_PREVIEW_LIMIT - 3) + "...";
+    }
+
+    private String buildCommentPreview(String content) {
+        if (content == null) {
+            return null;
+        }
+        String normalized = content.trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        if (normalized.length() <= COMMENT_PREVIEW_LIMIT) {
+            return normalized;
+        }
+        return normalized.substring(0, COMMENT_PREVIEW_LIMIT - 3) + "...";
+    }
+
+    private String resolveActorDisplayName(String actorDisplayName) {
+        if (actorDisplayName == null || actorDisplayName.isBlank()) {
+            return "Un utente";
+        }
+        return actorDisplayName.trim();
     }
 
     private User getUser(UserPrincipal principal) {

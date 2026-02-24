@@ -13,6 +13,7 @@ import { uiStore } from "../ui/uiStore";
 import { analyticsStore } from "../analytics/analyticsStore";
 import { zyraStore } from "../zyra/zyraStore";
 import { testsStore } from "../insights/insightsStore";
+import { notificationsStore } from "../notifications/notificationsStore";
 import { writeStorage } from "./storage";
 
 const LANGUAGE_STORAGE_KEY = "syncro.user.language";
@@ -35,6 +36,7 @@ export const resetAllStores = () => {
   searchStore.reset();
   tagsStore.reset();
   uiStore.reset();
+  notificationsStore.reset();
   analyticsStore.reset();
   zyraStore.reset();
   testsStore.reset();

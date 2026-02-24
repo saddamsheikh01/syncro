@@ -12,6 +12,7 @@ import { EarlyAccessFeedbackModal } from "@/components/ui/EarlyAccessFeedbackMod
 import { CookieConsentDrawer } from "@/components/ui/CookieConsentDrawer";
 import { NotificationStack } from "@/components/ui/NotificationStack";
 import { AnalyticsTracker } from "@/components/analytics/AnalyticsTracker";
+import { NotificationsTracker } from "@/components/notifications/NotificationsTracker";
 import { AuthInitializer } from "@/components/auth/AuthInitializer";
 import { useAuth } from "@/hooks";
 import { cx } from "@/lib/classNames";
@@ -95,6 +96,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
       <CookieConsentDrawer />
       <EarlyAccessFeedbackModal />
       <NotificationStack />
+      <NotificationsTracker />
       <AnalyticsTracker />
       <AuthInitializer />
     </div>

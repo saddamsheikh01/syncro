@@ -34,6 +34,7 @@ import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.favorites.repository.UserFavoriteRepository;
 import com.syncro.backend.domain.matchmaking.dto.DimensionScores;
 import com.syncro.backend.domain.matchmaking.service.DimensionScoreCalculator;
+import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.domain.social.mapper.PostMapper;
 import com.syncro.backend.domain.social.repository.PostCommentCountProjection;
 import com.syncro.backend.domain.social.repository.PostCommentRepository;
@@ -71,6 +72,7 @@ public class PostService {
     private final DimensionScoreCalculator dimensionScoreCalculator;
     private final MediaObjectRepository mediaObjectRepository;
     private final PostMapper postMapper;
+    private final NotificationService notificationService;
 
     public PostService(
         UserRepository userRepository,
@@ -83,7 +85,8 @@ public class PostService {
         UserPsyProfileRepository userPsyProfileRepository,
         DimensionScoreCalculator dimensionScoreCalculator,
         MediaObjectRepository mediaObjectRepository,
-        PostMapper postMapper
+        PostMapper postMapper,
+        NotificationService notificationService
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
@@ -96,6 +99,7 @@ public class PostService {
         this.dimensionScoreCalculator = dimensionScoreCalculator;
         this.mediaObjectRepository = mediaObjectRepository;
         this.postMapper = postMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -257,6 +261,7 @@ public class PostService {
             }
             existing.setReaction(PostReactionType.LIKE);
             postLikeRepository.save(existing);
+            createPostLikeNotification(post, user);
             return;
         }
         PostLike like = new PostLike();
@@ -264,6 +269,7 @@ public class PostService {
         like.setPost(post);
         like.setReaction(PostReactionType.LIKE);
         postLikeRepository.save(like);
+        createPostLikeNotification(post, user);
     }
 
     @Transactional
@@ -283,6 +289,9 @@ public class PostService {
             created.setPost(post);
             created.setReaction(reaction);
             postLikeRepository.save(created);
+            if (reaction == PostReactionType.LIKE) {
+                createPostLikeNotification(post, user);
+            }
             return;
         }
 
@@ -292,6 +301,9 @@ public class PostService {
 
         existing.setReaction(reaction);
         postLikeRepository.save(existing);
+        if (reaction == PostReactionType.LIKE) {
+            createPostLikeNotification(post, user);
+        }
     }
 
     @Transactional
@@ -375,6 +387,18 @@ public class PostService {
 
         long totalElements = minCompatibility == null ? posts.getTotalElements() : responses.size();
         return new PageImpl<>(responses, posts.getPageable(), totalElements);
+    }
+
+    private void createPostLikeNotification(Post post, User actor) {
+        if (post == null || actor == null) {
+            return;
+        }
+        notificationService.createPostLikeNotification(
+            post.getUserId(),
+            actor.getId(),
+            actor.getUsername(),
+            post.getId()
+        );
     }
 
     private PostResponse mapPostForUser(Post post, UUID userId) {

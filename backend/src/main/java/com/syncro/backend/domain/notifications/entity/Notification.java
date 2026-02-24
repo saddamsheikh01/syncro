@@ -69,6 +69,9 @@ public class Notification {
     @Column(name = "created_by_admin_id")
     private UUID createdByAdminId;
 
+    @Column(name = "campaign_id")
+    private UUID campaignId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_admin_id", insertable = false, updatable = false)
     private AdminUser createdByAdmin;
@@ -195,6 +198,14 @@ public class Notification {
     public void setCreatedByAdmin(AdminUser createdByAdmin) {
         this.createdByAdmin = createdByAdmin;
         this.createdByAdminId = createdByAdmin != null ? createdByAdmin.getId() : null;
+    }
+
+    public UUID getCampaignId() {
+        return campaignId;
+    }
+
+    public void setCampaignId(UUID campaignId) {
+        this.campaignId = campaignId;
     }
 
     public Instant getCreatedAt() {

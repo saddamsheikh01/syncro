@@ -18,6 +18,7 @@ public class NotificationMapper {
             notification.getConversationId(),
             notification.getMessageId(),
             notification.getCreatedByAdminId(),
+            notification.getCampaignId(),
             notification.getCreatedAt(),
             notification.getReadAt()
         );
