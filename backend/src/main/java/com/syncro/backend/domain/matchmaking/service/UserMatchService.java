@@ -485,14 +485,12 @@ public class UserMatchService {
     @SuppressWarnings("unchecked")
     private String buildExplanation(UserMatchScore match) {
         if (match.getBreakdown() == null) {
-            return "Match basato su compatibilita generale";
+            return null;
         }
 
         Object dimensionsObj = match.getBreakdown().get("dimensions");
         if (dimensionsObj instanceof Map) {
             Map<String, Object> dimensions = (Map<String, Object>) dimensionsObj;
-            StringBuilder sb = new StringBuilder();
-
             String topDimension = null;
             int topScore = 0;
             for (Map.Entry<String, Object> entry : dimensions.entrySet()) {
@@ -506,28 +504,27 @@ public class UserMatchService {
 
             if (topDimension != null && topScore >= 70) {
                 String label = switch (topDimension) {
-                    case "interests" -> "passioni condivise";
-                    case "lifestyle" -> "stile di vita";
-                    case "values" -> "valori";
-                    case "objectives" -> "obiettivi";
-                    case "psy" -> "personalita";
-                    case "astro" -> "compatibilita astrologica";
-                    default -> "compatibilita";
+                    case "interests" -> "interests";
+                    case "lifestyle" -> "lifestyle";
+                    case "values" -> "values";
+                    case "objectives" -> "goals";
+                    case "psy" -> "psychological profile";
+                    case "astro" -> "astrology";
+                    default -> "compatibility";
                 };
-                sb.append("Match basato su ").append(label).append(" (").append(topScore).append("%)");
-                return sb.toString();
+                return "Strong compatibility in " + label + " (" + topScore + "%)";
             }
         }
 
         Object shared = match.getBreakdown().get("sharedTags");
         if (shared instanceof List sharedList && !sharedList.isEmpty()) {
-            return "Match basato su " + sharedList.size() + " passioni condivise";
+            return sharedList.size() + " shared interests";
         }
         if (shared instanceof Number sharedCount) {
-            return "Match basato su " + sharedCount.intValue() + " passioni condivise";
+            return sharedCount.intValue() + " shared interests";
         }
 
-        return "Match basato su compatibilita generale";
+        return null;
     }
 
     private Map<UUID, String> loadExplanations(List<UserMatchScore> matches) {

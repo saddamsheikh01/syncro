@@ -7,9 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/**
- * Servizio per la generazione di spiegazioni testuali per i match.
- */
 @Service
 public class MatchExplanationGenerator {
 
@@ -17,14 +14,9 @@ public class MatchExplanationGenerator {
     private static final int HIGH_SCORE_THRESHOLD = 70;
     private static final int VERY_HIGH_SCORE_THRESHOLD = 85;
 
-    /**
-     * Genera una lista di spiegazioni per un match.
-     * Restituisce i 2-3 motivi principali del match.
-     */
     public List<String> generate(DimensionScores dimensions, DomainScores domains) {
         List<ExplanationCandidate> candidates = new ArrayList<>();
 
-        // Aggiungi spiegazioni basate sugli interessi condivisi
         if (dimensions.sharedTags() != null && !dimensions.sharedTags().isEmpty()) {
             int count = dimensions.sharedTags().size();
             String tagsPreview = String.join(", ", dimensions.sharedTags().stream().limit(3).toList());
@@ -34,26 +26,24 @@ public class MatchExplanationGenerator {
             int priority = count >= 5 ? 100 : count >= 3 ? 80 : 60;
             candidates.add(new ExplanationCandidate(
                 priority,
-                "Condividete " + count + " passioni: " + tagsPreview
+                count + " shared interests: " + tagsPreview
             ));
         }
 
-        // Spiegazioni basate sulle dimensioni
-        addDimensionExplanation(candidates, "Valori molto affini", dimensions.values());
-        addDimensionExplanation(candidates, "Stile di vita compatibile", dimensions.lifestyle());
-        addDimensionExplanation(candidates, "Obiettivi simili", dimensions.objectives());
-        addDimensionExplanation(candidates, "Personalita compatibili", dimensions.psy());
-        addDimensionExplanation(candidates, "Ottima compatibilita astrologica", dimensions.astro());
+        addDimensionExplanation(candidates, "Strong alignment in values", dimensions.values());
+        addDimensionExplanation(candidates, "Compatible lifestyle", dimensions.lifestyle());
+        addDimensionExplanation(candidates, "Similar goals", dimensions.objectives());
+        addDimensionExplanation(candidates, "Compatible psychological profile", dimensions.psy());
+        addDimensionExplanation(candidates, "Strong astrological compatibility", dimensions.astro());
+        addDimensionExplanation(candidates, "Shared interests", dimensions.interests());
 
-        // Spiegazioni basate sui domini
-        addDomainExplanation(candidates, "Ottimi per una relazione", domains.love());
-        addDomainExplanation(candidates, "Ottimi per un'amicizia", domains.friendship());
-        addDomainExplanation(candidates, "Potenziale collaborazione lavorativa", domains.work());
-        addDomainExplanation(candidates, "Ideali per progetti insieme", domains.projects());
-        addDomainExplanation(candidates, "Condividete hobby simili", domains.hobby());
-        addDomainExplanation(candidates, "Potete crescere insieme", domains.growth());
+        addDomainExplanation(candidates, "Strong match for relationship", domains.love());
+        addDomainExplanation(candidates, "Strong match for friendship", domains.friendship());
+        addDomainExplanation(candidates, "Good fit for collaboration and work", domains.work());
+        addDomainExplanation(candidates, "Good fit for projects together", domains.projects());
+        addDomainExplanation(candidates, "Shared hobbies", domains.hobby());
+        addDomainExplanation(candidates, "Good potential for growth together", domains.growth());
 
-        // Ordina per priorita e prendi i top 3
         candidates.sort(Comparator.comparingInt(ExplanationCandidate::priority).reversed());
 
         return candidates.stream()
@@ -62,13 +52,10 @@ public class MatchExplanationGenerator {
             .toList();
     }
 
-    /**
-     * Genera una spiegazione singola (per retrocompatibilita).
-     */
     public String generateSingle(DimensionScores dimensions, DomainScores domains) {
         List<String> explanations = generate(dimensions, domains);
         if (explanations.isEmpty()) {
-            return "Match basato su compatibilita generale";
+            return null;
         }
         return String.join(". ", explanations);
     }
@@ -90,6 +77,8 @@ public class MatchExplanationGenerator {
         }
         if (score >= VERY_HIGH_SCORE_THRESHOLD) {
             candidates.add(new ExplanationCandidate(score - 5, text));
+        } else if (score >= HIGH_SCORE_THRESHOLD) {
+            candidates.add(new ExplanationCandidate(score - 15, text));
         }
     }
 
