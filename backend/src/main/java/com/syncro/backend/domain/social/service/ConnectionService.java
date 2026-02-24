@@ -43,7 +43,8 @@ public class ConnectionService {
 
         var existing = connectionRepository.findByFromUserIdAndToUserId(fromUser.getId(), toUserId);
         if (existing.isPresent()) {
-            ConnectionStatus status = existing.get().getStatus();
+            Connection conn = existing.get();
+            ConnectionStatus status = conn.getStatus();
             if (status == ConnectionStatus.PENDING) {
                 throw new ConflictException("Connection request already sent");
             }
@@ -51,7 +52,10 @@ public class ConnectionService {
                 throw new ConflictException("Already connected");
             }
             if (status == ConnectionStatus.REJECTED) {
-                throw new BadRequestException("Previous request was rejected");
+                conn.setStatus(ConnectionStatus.PENDING);
+                conn.setContext(request.context());
+                Connection saved = connectionRepository.save(conn);
+                return toResponse(saved);
             }
         }
 

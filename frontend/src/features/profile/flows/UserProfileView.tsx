@@ -638,7 +638,7 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         <Card className="flex flex-wrap items-center gap-3 p-4">
           {connectionLoading ? (
             <Loader size="sm" />
-          ) : connectionStatus === null ? (
+          ) : connectionStatus === null || connectionStatus === "REJECTED" ? (
             <Button
               variant="primary"
               size="md"
