@@ -145,6 +145,23 @@ public class TestService {
         boolean completed = userTestSubmissionRepository
             .existsByUser_IdAndTestDefinition_Id(user.getId(), testId);
 
+        Set<UUID> selectedOptionIds;
+        if (completed) {
+            Optional<UserTestSubmission> submissionOpt = userTestSubmissionRepository
+                .findByUser_IdAndTestDefinition_Id(user.getId(), testId);
+            if (submissionOpt.isPresent()) {
+                List<UserTestAnswer> userAnswers = userTestAnswerRepository
+                    .findBySubmission_Id(submissionOpt.get().getId());
+                selectedOptionIds = userAnswers.stream()
+                    .map(a -> a.getAnswerOption().getId())
+                    .collect(Collectors.toSet());
+            } else {
+                selectedOptionIds = Set.of();
+            }
+        } else {
+            selectedOptionIds = Set.of();
+        }
+
         Map<UUID, TestDefinitionTranslation> definitionTranslations = loadDefinitionTranslations(
             List.of(definition.getId()),
             locale
@@ -171,7 +188,8 @@ public class TestService {
                     .map(option -> new TestAnswerOptionResponse(
                         option.getId(),
                         resolveOptionLabel(option, optionTranslations.get(option.getId())),
-                        option.getMetadata()
+                        option.getMetadata(),
+                        selectedOptionIds.contains(option.getId())
                     ))
                     .toList()
             ))

@@ -6,6 +6,7 @@ import java.util.UUID;
 public record TestAnswerOptionResponse(
     UUID id,
     String label,
-    Map<String, Object> metadata
+    Map<String, Object> metadata,
+    boolean isSelected
 ) {
 }

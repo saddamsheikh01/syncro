@@ -32,6 +32,7 @@ export type TestAnswerOptionResponse = {
   id: Uuid;
   label: string;
   metadata?: JsonObject | null;
+  isSelected?: boolean;
 };
 
 export type TestQuestionResponse = {
