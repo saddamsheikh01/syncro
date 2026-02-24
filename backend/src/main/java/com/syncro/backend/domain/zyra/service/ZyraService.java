@@ -394,20 +394,8 @@ public class ZyraService {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
 
-        String testCondition;
-        if (testSummaries != null && !testSummaries.isEmpty()) {
-            testCondition = "Naturally integrate completed test results, "
-                + "highlighting the personality traits that emerged (e.g., 'My test results suggest I am...').";
-        } else {
-            testCondition = "If there are no completed tests, do not mention tests.";
-        }
-
-        StringBuilder prompt = new StringBuilder(
-            promptLoader.getPrompt(
-                PromptType.PROFILE_RECAP,
-                Map.of("testCondition", testCondition)
-            )
-        );
+        // Profile recap is test-results summary only: no labels, no titles, no summarization of user-written profile text.
+        StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.PROFILE_RECAP));
         prompt.append("\n");
 
         if (profile != null) {
@@ -423,10 +411,7 @@ public class ZyraService {
             if (profile.getBirthDate() != null) {
                 prompt.append("- Age: ").append(formatAge(profile.getBirthDate())).append(" years\n");
             }
-            appendExtendedProfileInfo(prompt, profile);
-            if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
-                prompt.append("- Bio: ").append(profile.getBio()).append("\n");
-            }
+            // Do not append bio or extended profile text — recap must not summarize user-written content.
             String jobLabel = buildJobLabel(profile);
             if (jobLabel != null) {
                 prompt.append("- Job: ").append(jobLabel).append("\n");
@@ -577,51 +562,15 @@ public class ZyraService {
         String title = submission.getTestDefinition() != null
             ? normalizeOptional(submission.getTestDefinition().getTitle())
             : null;
-        String profileLabel = readProfileLabel(submission.getScorePayload());
         String answersSummary = buildAnswersSummary(answers);
 
         StringBuilder summary = new StringBuilder();
         summary.append(title != null ? title : "Test");
-        if (profileLabel != null) {
-            summary.append(": profile ").append(profileLabel);
-        }
         if (answersSummary != null) {
-            summary.append(profileLabel != null ? ". " : ": ");
+            summary.append(": ");
             summary.append("Key answers: ").append(answersSummary);
         }
         return summary.toString();
-    }
-
-    private String readProfileLabel(Map<String, Object> scorePayload) {
-        if (scorePayload == null) {
-            return null;
-        }
-        Object profileObj = scorePayload.get("profile");
-        if (!(profileObj instanceof Map<?, ?> profileMap)) {
-            return null;
-        }
-        String name = readText(profileMap, "name");
-        if (name != null) {
-            return name;
-        }
-        String label = readText(profileMap, "label");
-        if (label != null) {
-            return label;
-        }
-        String code = readText(profileMap, "code");
-        return code;
-    }
-
-    private String readText(Map<?, ?> map, String key) {
-        if (map == null || key == null) {
-            return null;
-        }
-        Object value = map.get(key);
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isBlank() ? null : text;
     }
 
     private String buildAnswersSummary(List<UserTestAnswer> answers) {
