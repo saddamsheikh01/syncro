@@ -220,7 +220,6 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await actions.resetSubmission(testId);
       const response = await actions.submitTest(testId, {
         answers: questions
           .map((question) => ({
