@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/elements/Card";
 import { Avatar } from "@/components/elements/Avatar";
-import { NavIcon } from "@/components/ui/NavIcon";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { ZyraSearchBar } from "@/features/zyra/search/ZyraSearchBar";
 import { useAuth, useT, useUser } from "@/hooks";
@@ -16,19 +16,6 @@ import {
   PROFILE_AVATAR_UPDATED_EVENT,
   type ProfileAvatarUpdatedDetail,
 } from "@/lib/mediaEvents";
-
-const NotificationBell = () => {
-  const { t } = useT();
-  return (
-    <button
-      type="button"
-      aria-label={t("Notifications")}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-surface text-subtle shadow-sm transition hover:border-accent/30 hover:bg-accent-soft hover:text-accent"
-    >
-      <NavIcon name="bell" className="h-4 w-4" />
-    </button>
-  );
-};
 
 const HeaderProfile = () => {
   const { t } = useT();

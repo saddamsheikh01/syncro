@@ -15,6 +15,7 @@ public record NotificationResponse(
     UUID conversationId,
     UUID messageId,
     UUID createdByAdminId,
+    UUID campaignId,
     Instant createdAt,
     Instant readAt
 ) {

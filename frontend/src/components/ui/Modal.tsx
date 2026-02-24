@@ -58,12 +58,14 @@ export const Modal = ({
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 space-y-2 p-6 pb-0">
+        <div className="shrink-0 p-6 pb-0">
           {title ? (
             <h2 className="text-xl font-semibold text-foreground">{title}</h2>
           ) : null}
           {description ? (
-            <p className="text-sm text-muted">{description}</p>
+            <p className={cx("text-sm text-muted", title ? "mt-2" : undefined)}>
+              {description}
+            </p>
           ) : null}
         </div>
         {children ? (
