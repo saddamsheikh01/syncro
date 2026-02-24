@@ -63,7 +63,8 @@ public class TestMapper {
                     .map(option -> new TestAnswerOptionResponse(
                         option.getId(),
                         option.getLabel(),
-                        option.getMetadata()
+                        option.getMetadata(),
+                        false
                     ))
                     .toList()
             ))
