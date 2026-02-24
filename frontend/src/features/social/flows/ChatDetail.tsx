@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/elements/Card";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
@@ -20,13 +19,25 @@ interface ChatDetailProps {
   conversationId: Uuid;
 }
 
+const resolveChatParticipantName = (
+  fullName: string | null | undefined,
+  userId: string | null,
+  t: (key: string, v?: Record<string, string>) => string
+): string => {
+  const s = fullName?.trim();
+  if (s && s.length > 0 && !/not found|non trovato|utente non trovato/i.test(s)) {
+    return s;
+  }
+  return userId ? t("User {id}", { id: userId.slice(0, 8) }) : t("User");
+};
+
 const getOtherParticipant = (
   conversation: ChatConversationResponse | null,
   currentUserId: string | null,
-  t: (key: string) => string
+  t: (key: string, v?: Record<string, string>) => string
 ) => {
   if (!conversation || !currentUserId) {
-    return { userId: null, name: t("User"), avatarUrl: undefined };
+    return { userId: null, name: t("User"), avatarUrl: undefined, profileIncomplete: false };
   }
 
   const other = conversation.participants.find(
@@ -35,8 +46,9 @@ const getOtherParticipant = (
 
   return {
     userId: other?.userId ?? null,
-    name: other?.fullName ?? t("User"),
+    name: resolveChatParticipantName(other?.fullName ?? null, other?.userId ?? null, t),
     avatarUrl: other?.avatarUrl ?? undefined,
+    profileIncomplete: other?.profileIncomplete ?? false,
   };
 };
 
@@ -46,7 +58,6 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   const {
     conversations,
     messagesByConversation,
-    loadingConversations,
     loadingMessages,
     sendingMessage,
     error,
@@ -157,6 +168,11 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
           onBack={handleBack}
           onProfileClick={otherParticipant.userId ? handleProfileOpen : undefined}
         />
+        {otherParticipant.profileIncomplete && (
+          <p className="mt-2 text-xs text-muted" role="status">
+            {t("This user has not completed their profile yet.")}
+          </p>
+        )}
       </div>
 
       <MessageList

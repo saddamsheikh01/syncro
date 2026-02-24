@@ -59,7 +59,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TestService {
 
-    private static final Set<String> SUPPORTED_LOCALES = Set.of("en", "it", "es", "fr");
+    private static final Set<String> SUPPORTED_LOCALES = Set.of("en", "it", "es", "fr", "sq", "pt");
 
     private final TestDefinitionRepository testDefinitionRepository;
     private final TestQuestionRepository testQuestionRepository;

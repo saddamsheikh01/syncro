@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["en", "it", "es", "fr"] as const;
+export const SUPPORTED_LOCALES = ["en", "it", "es", "fr", "sq", "pt"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -32,6 +32,10 @@ export const toBcp47 = (locale: SupportedLocale): string => {
       return "es-ES";
     case "fr":
       return "fr-FR";
+    case "sq":
+      return "sq-AL";
+    case "pt":
+      return "pt-PT";
   }
 };
 

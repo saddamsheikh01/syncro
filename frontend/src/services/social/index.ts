@@ -5,9 +5,12 @@ import type {
   ChatMessageRequest,
   ChatMessageResponse,
   CommentResponse,
+  ConnectionResponse,
+  ConnectionStatusResponse,
   CreateCommentRequest,
   CreateConversationRequest,
   CreatePostRequest,
+  SendConnectionRequest,
   UpdatePostRequest,
   PostResponse,
   PostReactionType,
@@ -171,4 +174,63 @@ export const deleteComment = async (
   commentId: Uuid
 ): Promise<void> => {
   await apiClient.delete(`/posts/${postId}/comments/${commentId}`);
+};
+
+// Connections API
+export const sendConnectionRequest = async (
+  payload: SendConnectionRequest
+): Promise<ConnectionResponse> => {
+  const { data } = await apiClient.post<ConnectionResponse>(
+    "/connections",
+    payload
+  );
+  return data;
+};
+
+export const acceptConnection = async (
+  connectionId: Uuid
+): Promise<ConnectionResponse> => {
+  const { data } = await apiClient.post<ConnectionResponse>(
+    `/connections/${connectionId}/accept`
+  );
+  return data;
+};
+
+export const rejectConnection = async (
+  connectionId: Uuid
+): Promise<ConnectionResponse> => {
+  const { data } = await apiClient.post<ConnectionResponse>(
+    `/connections/${connectionId}/reject`
+  );
+  return data;
+};
+
+export const getConnections = async (
+  params: PageParams = {}
+): Promise<PageResponse<ConnectionResponse>> => {
+  const { data } = await apiClient.get<PageResponse<ConnectionResponse>>(
+    "/connections",
+    { params: buildQueryParams(params) }
+  );
+  return data;
+};
+
+export const getPendingConnections = async (
+  params: PageParams = {}
+): Promise<PageResponse<ConnectionResponse>> => {
+  const { data } = await apiClient.get<PageResponse<ConnectionResponse>>(
+    "/connections/pending",
+    { params: buildQueryParams(params) }
+  );
+  return data;
+};
+
+export const getConnectionStatusWith = async (
+  userId: Uuid
+): Promise<ConnectionStatusResponse> => {
+  const { data } = await apiClient.get<ConnectionStatusResponse>(
+    "/connections/status",
+    { params: { userId } }
+  );
+  return data;
 };

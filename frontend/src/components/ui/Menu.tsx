@@ -33,6 +33,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { id: "insights", labelKey: "Insights", href: "/insights", icon: "insights" },
   { id: "zyra", labelKey: "Zyra", href: "/zyra", icon: "zyra" },
   { id: "chat", labelKey: "Conversations", href: "/chat", icon: "chat" },
+  { id: "connections", labelKey: "Connection requests", href: "/connections", icon: "people" },
   { id: "profile", labelKey: "Profile", href: "/profile", icon: "profile" },
   { id: "settings", labelKey: "Settings", href: "/settings", icon: "settings" },
   { id: "support", labelKey: "Support", href: "/support", icon: "support" },

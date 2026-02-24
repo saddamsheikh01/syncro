@@ -1,10 +1,13 @@
 package com.syncro.backend.domain.social.service;
 
 import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ForbiddenException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.media.entity.MediaOwnerType;
+import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.ChatConversationResponse;
@@ -20,6 +23,7 @@ import com.syncro.backend.domain.social.repository.ChatConversationRepository;
 import com.syncro.backend.domain.social.repository.ChatMessageRepository;
 import com.syncro.backend.domain.social.repository.ChatParticipantRepository;
 import com.syncro.backend.domain.notifications.service.NotificationService;
+import com.syncro.backend.domain.social.service.ConnectionService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,28 +43,34 @@ public class ChatService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
+    private final MediaObjectRepository mediaObjectRepository;
     private final ChatConversationRepository conversationRepository;
     private final ChatParticipantRepository participantRepository;
     private final ChatMessageRepository messageRepository;
     private final ChatMapper chatMapper;
     private final NotificationService notificationService;
+    private final ConnectionService connectionService;
 
     public ChatService(
         UserRepository userRepository,
         UserProfileRepository profileRepository,
+        MediaObjectRepository mediaObjectRepository,
         ChatConversationRepository conversationRepository,
         ChatParticipantRepository participantRepository,
         ChatMessageRepository messageRepository,
         ChatMapper chatMapper,
-        NotificationService notificationService
+        NotificationService notificationService,
+        ConnectionService connectionService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.mediaObjectRepository = mediaObjectRepository;
         this.conversationRepository = conversationRepository;
         this.participantRepository = participantRepository;
         this.messageRepository = messageRepository;
         this.chatMapper = chatMapper;
         this.notificationService = notificationService;
+        this.connectionService = connectionService;
     }
 
     @Transactional
@@ -75,6 +85,10 @@ public class ChatService {
         }
         User otherUser = userRepository.findById(otherUserId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        if (!connectionService.hasActiveConnection(user.getId(), otherUserId)) {
+            throw new ForbiddenException("Connection required to chat. Send a connection request and wait for acceptance.");
+        }
 
         List<UUID> participantIds = List.of(user.getId(), otherUserId);
 
@@ -125,7 +139,7 @@ public class ChatService {
             List<UUID> participantIds = participantsByConversation
                 .getOrDefault(participant.getConversationId(), List.of());
             List<ChatParticipantInfo> participantInfos = participantIds.stream()
-                .map(id -> userInfoMap.getOrDefault(id, new ChatParticipantInfo(id, null, null)))
+                .map(id -> userInfoMap.getOrDefault(id, new ChatParticipantInfo(id, null, null, true)))
                 .toList();
             ChatMessage lastMessage = lastMessages.get(participant.getConversationId());
             return chatMapper.toConversationResponse(conversation, participantIds, participantInfos, lastMessage);
@@ -141,6 +155,7 @@ public class ChatService {
     ) {
         User user = getUser(principal);
         ensureParticipant(user.getId(), conversationId);
+        ensureActiveConnection(conversationId, user.getId());
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
         Page<ChatMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtDesc(
             conversationId,
@@ -157,6 +172,7 @@ public class ChatService {
     ) {
         User user = getUser(principal);
         ensureParticipant(user.getId(), conversationId);
+        ensureActiveConnection(conversationId, user.getId());
         String content = normalizeRequired(request.content());
 
         ChatMessage message = new ChatMessage();
@@ -197,11 +213,7 @@ public class ChatService {
 
     private List<ChatParticipantInfo> loadParticipantInfos(List<UUID> userIds) {
         return userIds.stream()
-            .map(userId -> {
-                UserProfile profile = profileRepository.findByUserId(userId).orElse(null);
-                String fullName = profile != null ? profile.getFullName() : null;
-                return chatMapper.toParticipantInfo(userId, fullName, null);
-            })
+            .map(this::resolveParticipantInfo)
             .toList();
     }
 
@@ -211,11 +223,43 @@ public class ChatService {
         }
         Map<UUID, ChatParticipantInfo> map = new HashMap<>();
         for (UUID userId : userIds) {
-            UserProfile profile = profileRepository.findByUserId(userId).orElse(null);
-            String fullName = profile != null ? profile.getFullName() : null;
-            map.put(userId, chatMapper.toParticipantInfo(userId, fullName, null));
+            map.put(userId, resolveParticipantInfo(userId));
         }
         return map;
+    }
+
+    private ChatParticipantInfo resolveParticipantInfo(UUID userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        String displayName = null;
+        boolean profileIncomplete = true;
+        if (user != null) {
+            UserProfile profile = profileRepository.findByUserId(userId).orElse(null);
+            if (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank()) {
+                displayName = profile.getFullName().trim();
+                profileIncomplete = false;
+            }
+            if (displayName == null && user.getUsername() != null && !user.getUsername().isBlank()) {
+                displayName = user.getUsername();
+            }
+            if (displayName == null && user.getEmail() != null && !user.getEmail().isBlank()) {
+                displayName = user.getEmail();
+            }
+        }
+        if (displayName == null || displayName.isBlank()) {
+            displayName = "User";
+        }
+        String avatarUrl = resolveAvatarUrl(userId);
+        return chatMapper.toParticipantInfo(userId, displayName, avatarUrl, profileIncomplete);
+    }
+
+    private String resolveAvatarUrl(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return mediaObjectRepository
+            .findFirstByOwnerTypeAndOwnerIdOrderByCreatedAtDesc(MediaOwnerType.USER_PROFILE, userId)
+            .map(media -> media.getUrl())
+            .orElse(null);
     }
 
     private Map<UUID, ChatMessage> loadLastMessages(List<UUID> conversationIds) {
@@ -230,6 +274,18 @@ public class ChatService {
     private void ensureParticipant(UUID userId, UUID conversationId) {
         if (!participantRepository.existsByConversationIdAndUserId(conversationId, userId)) {
             throw new UnauthorizedException("Accesso alla conversazione negato");
+        }
+    }
+
+    private void ensureActiveConnection(UUID conversationId, UUID currentUserId) {
+        List<ChatParticipant> participants = participantRepository.findAllByConversationId(conversationId);
+        UUID otherUserId = participants.stream()
+            .map(ChatParticipant::getUserId)
+            .filter(id -> !id.equals(currentUserId))
+            .findFirst()
+            .orElse(null);
+        if (otherUserId == null || !connectionService.hasActiveConnection(currentUserId, otherUserId)) {
+            throw new ForbiddenException("Connection required to chat. Send a connection request and wait for acceptance.");
         }
     }
 

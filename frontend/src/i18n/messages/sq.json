@@ -1,0 +1,83 @@
+{
+  "common": {
+    "continue": "Vazhdo",
+    "saving": "Duke ruajtur...",
+    "save": "Ruaj"
+  },
+  "languages": {
+    "en": "Anglisht",
+    "it": "Italisht",
+    "es": "Spanjisht",
+    "fr": "Frëngjisht",
+    "sq": "Shqip",
+    "pt": "Portugeze"
+  },
+  "onboarding": {
+    "residence": {
+      "title": "Vendbanimi",
+      "description": "Na tregoni ku jetoni për sugjerime më të sakta.",
+      "cityLabel": "Qyteti",
+      "cityPlaceholder": "Tiranë",
+      "countryLabel": "Shteti",
+      "countryPlaceholder": "Shqipëria"
+    },
+    "step1": {
+      "header": {
+        "title": "Plotësoni profilin tuaj",
+        "subtitle": "Shtoni detajet kryesore për të personalizuar përvojën tuaj."
+      },
+      "basic": {
+        "title": "Informacioni bazë",
+        "subtitle": "Kjo na ndihmon të ofrojmë sugjerime më të sakta."
+      },
+      "fullName": {
+        "label": "Emri i plotë",
+        "placeholder": "Emri dhe mbiemri",
+        "requiredError": "Vendosni emrin tuaj të plotë."
+      },
+      "residence": {
+        "requiredError": "Vendosni qytetin dhe shtetin e vendbanimit."
+      },
+      "birthDate": {
+        "label": "Data e lindjes",
+        "placeholder": "Zgjidhni një datë"
+      },
+      "saveError": "Gabim gjatë ruajtjes."
+    },
+    "language": {
+      "title": "Gjuha",
+      "description": "Zgjidhni gjuhën e preferuar të aplikacionit."
+    },
+    "visibility": {
+      "public": {
+        "label": "Publik",
+        "description": "Shfaq profilin tuaj të plotë."
+      },
+      "partial": {
+        "label": "Pjesor",
+        "description": "Fshini disa detaje të ndjeshme."
+      },
+      "private": {
+        "label": "Privat",
+        "description": "Profili i dukshëm vetëm në përputhje."
+      }
+    }
+  },
+  "cookieConsent": {
+    "title": "Privatësia dhe cookies",
+    "description": "Për të vazhduar të përdorni Syncro, pranoni politikën e privatësisë dhe menaxhimin e cookies. Mund të zgjidhni edhe nëse dëshironi të merrni buletinin tonë.",
+    "primaryAction": {
+      "accept": "Prano dhe vazhdo",
+      "saving": "Duke ruajtur..."
+    },
+    "box": {
+      "text": "Përdorim cookies thelbësore që kërkohen që aplikacioni të funksionojë dhe cookies analitike për të përmirësuar përvojën tuaj.",
+      "privacyLink": "Lexoni Politikën e Plotë të Privatësisë"
+    },
+    "newsletter": {
+      "label": "Abonohu në buletinin",
+      "description": "Merrni përditësime, lajme dhe përmbajtje ekskluzive me email."
+    },
+    "saveError": "Gabim gjatë ruajtjes së preferencave:"
+  }
+}

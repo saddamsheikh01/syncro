@@ -36,6 +36,8 @@ export const LanguagePicker = ({
       { value: "it", label: t("languages.it") },
       { value: "es", label: t("languages.es") },
       { value: "fr", label: t("languages.fr") },
+      { value: "sq", label: t("languages.sq") },
+      { value: "pt", label: t("languages.pt") },
     ];
 
   return (

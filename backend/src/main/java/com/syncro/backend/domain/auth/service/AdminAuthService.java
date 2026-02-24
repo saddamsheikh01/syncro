@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AdminAuthService {
 
-    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr");
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("en", "it", "es", "fr", "sq", "pt");
 
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;

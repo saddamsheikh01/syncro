@@ -181,7 +181,7 @@ export type AdminTestAnswerOptionResponse = {
   metadata?: JsonObject | null;
 };
 
-export type TestTranslationLocale = "en" | "it" | "es" | "fr";
+export type TestTranslationLocale = "en" | "it" | "es" | "fr" | "sq" | "pt";
 
 export type AdminTestAnswerOptionTranslationResponse = {
   optionId: Uuid;

@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/elements/Avatar";
 import { Button } from "@/components/buttons/Button";
-import { useMatches, useT } from "@/hooks";
+import { useChat, useMatches, useT } from "@/hooks";
+import { getConnectionStatusWith } from "@/services/social";
 import { cx } from "@/lib/classNames";
+import type { ConnectionStatus } from "@/types/social";
 
 const SparkIcon = () => (
   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -21,9 +24,14 @@ const getScoreColor = (score: number) => {
 };
 
 export const QuickMatchPreview = () => {
+  const router = useRouter();
   const { t } = useT();
   const { userMatches, loadingUserMatches, actions } = useMatches();
+  const { actions: chatActions } = useChat();
   const fetchedRef = useRef(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [messageLoading, setMessageLoading] = useState(false);
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -32,6 +40,39 @@ export const QuickMatchPreview = () => {
   }, [actions]);
 
   const match = userMatches[0];
+
+  useEffect(() => {
+    if (!match?.userId) {
+      const tid = setTimeout(() => setConnectionStatus(null), 0);
+      return () => clearTimeout(tid);
+    }
+    const tid = setTimeout(() => setConnectionLoading(true), 0);
+    let cancelled = false;
+    getConnectionStatusWith(match.userId)
+      .then((res) => {
+        if (!cancelled) setConnectionStatus(res.status ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setConnectionStatus(null);
+      })
+      .finally(() => {
+        if (!cancelled) setConnectionLoading(false);
+      });
+    return () => {
+      clearTimeout(tid);
+      cancelled = true;
+    };
+  }, [match]);
+
+  const handleMessage = useCallback(() => {
+    if (!match?.userId) return;
+    setMessageLoading(true);
+    chatActions
+      .createConversation({ otherUserId: match.userId })
+      .then((conversation) => router.push(`/chat/${conversation.id}`))
+      .catch(() => {})
+      .finally(() => setMessageLoading(false));
+  }, [match, chatActions, router]);
 
   if (loadingUserMatches && !match) {
     return (
@@ -58,6 +99,43 @@ export const QuickMatchPreview = () => {
   const score = Math.round(match.scoreTotal ?? 0);
 
   const profileHref = `/profile/${match.userId}`;
+
+  const renderAction = () => {
+    if (connectionLoading) {
+      return (
+        <Button size="sm" fullWidth disabled>
+          {t("Connect")}
+        </Button>
+      );
+    }
+    if (connectionStatus === "ACCEPTED") {
+      return (
+        <Button
+          size="sm"
+          fullWidth
+          onClick={handleMessage}
+          loading={messageLoading}
+          loadingText={t("Message")}
+        >
+          {t("Message")}
+        </Button>
+      );
+    }
+    if (connectionStatus === "PENDING") {
+      return (
+        <Button size="sm" fullWidth variant="secondary" disabled>
+          {t("Request sent")}
+        </Button>
+      );
+    }
+    return (
+      <Link href={profileHref} className="block">
+        <Button size="sm" fullWidth>
+          {t("Connect")}
+        </Button>
+      </Link>
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -105,11 +183,7 @@ export const QuickMatchPreview = () => {
             {score}%
           </div>
         </div>
-        <Link href={profileHref} className="mt-3 block">
-          <Button size="sm" fullWidth>
-            {t("Connect")}
-          </Button>
-        </Link>
+        <div className="mt-3">{renderAction()}</div>
       </div>
     </div>
   );
