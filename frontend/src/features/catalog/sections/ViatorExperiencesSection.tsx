@@ -5,16 +5,17 @@ import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
+import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
 import { MapExperienceListItem } from "@/features/catalog/lists/MapExperienceListItem";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { usePosition, useT } from "@/hooks";
 import { toBcp47 } from "@/i18n/locales";
 import { cx } from "@/lib/classNames";
-import { getExperiences } from "@/services/catalog";
+import { getCategories, getExperiences } from "@/services/catalog";
 import type { ApiError } from "@/types/api";
 import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
-import type { ExperienceSummaryResponse } from "@/types/catalog";
+import type { CategoryResponse, ExperienceSummaryResponse } from "@/types/catalog";
 
 const DEFAULT_PAGE_SIZE = 8;
 type ViatorScope = "nearby" | "everywhere";
@@ -58,6 +59,10 @@ export const ViatorExperiencesSection = ({
   const { position, hasPosition } = usePosition();
   const initializedRef = useRef<string | null>(null);
   const [scope, setScope] = useState<ViatorScope>("nearby");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchApplied, setSearchApplied] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [items, setItems] = useState<ExperienceSummaryResponse[]>([]);
   const [pageInfo, setPageInfo] = useState<PageInfo>(emptyPage);
   const [loading, setLoading] = useState(false);
@@ -68,6 +73,12 @@ export const ViatorExperiencesSection = ({
       setScope("everywhere");
     }
   }, [hasPosition, scope]);
+
+  useEffect(() => {
+    getCategories({ size: 50 })
+      .then((res) => setCategories(res.content ?? []))
+      .catch(() => setCategories([]));
+  }, []);
 
   const formatDuration = useCallback((minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
@@ -107,6 +118,8 @@ export const ViatorExperiencesSection = ({
 
         const response = await getExperiences({
           source: "VIATOR",
+          q: searchApplied || undefined,
+          categoryId: selectedCategoryId || undefined,
           lat: nearbyLat,
           lng: nearbyLng,
           page,
@@ -132,18 +145,27 @@ export const ViatorExperiencesSection = ({
         setLoading(false);
       }
     },
-    [hasPosition, maxItems, pageSize, position?.latitude, position?.longitude, scope]
+    [hasPosition, maxItems, pageSize, position?.latitude, position?.longitude, scope, searchApplied, selectedCategoryId]
   );
+
+  const handleSearchApply = useCallback(() => {
+    setSearchApplied(searchQuery.trim() || "");
+  }, [searchQuery]);
+
+  const handleCategoryChange = useCallback((categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+  }, []);
 
   useEffect(() => {
     const fetchKey =
       scope === "nearby" && hasPosition && position?.latitude != null && position?.longitude != null
         ? `nearby:${position.latitude}:${position.longitude}`
         : `${scope}:global`;
-    if (initializedRef.current === fetchKey) return;
-    initializedRef.current = fetchKey;
+    const key = `${fetchKey}:q:${searchApplied}:cat:${selectedCategoryId ?? "all"}`;
+    if (initializedRef.current === key) return;
+    initializedRef.current = key;
     void fetchPage(0, false);
-  }, [fetchPage, hasPosition, position?.latitude, position?.longitude, scope]);
+  }, [fetchPage, hasPosition, position?.latitude, position?.longitude, scope, searchApplied, selectedCategoryId]);
 
   const hasMore = useMemo(() => {
     const pageHasMore = pageInfo.page + 1 < pageInfo.totalPages;
@@ -188,34 +210,83 @@ export const ViatorExperiencesSection = ({
         actionHref={actionHref}
       />
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setScope("nearby")}
-          disabled={!hasPosition}
-          className={cx(
-            "rounded-full border px-3 py-1 text-xs font-semibold transition",
-            scope === "nearby"
-              ? "border-accent bg-accent text-accent-foreground"
-              : "border-border bg-surface text-foreground",
-            !hasPosition && "cursor-not-allowed opacity-50"
-          )}
-        >
-          {t("Near me")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setScope("everywhere")}
-          className={cx(
-            "rounded-full border px-3 py-1 text-xs font-semibold transition",
-            scope === "everywhere"
-              ? "border-accent bg-accent text-accent-foreground"
-              : "border-border bg-surface text-foreground"
-          )}
-        >
-          {t("Anywhere")}
-        </button>
-      </div>
+      <Card className="space-y-3 border-border/70 bg-surface-muted/30 p-4">
+        <p className="text-xs font-semibold text-subtle">{t("Filters")}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+          <div className="flex-1">
+            <Input
+              label={t("Search experiences")}
+              placeholder={t("Name or description...")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchApply()}
+            />
+          </div>
+          <Button onClick={handleSearchApply} disabled={loading}>
+            {t("Search")}
+          </Button>
+        </div>
+        {categories.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleCategoryChange(null)}
+              className={cx(
+                "rounded-full px-3 py-1.5 text-xs font-medium transition",
+                selectedCategoryId === null
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-surface-muted text-foreground hover:bg-border"
+              )}
+            >
+              {t("All")}
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryChange(cat.id)}
+                className={cx(
+                  "rounded-full px-3 py-1.5 text-xs font-medium transition",
+                  selectedCategoryId === cat.id
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-surface-muted text-foreground hover:bg-border"
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-subtle">{t("Location")}:</span>
+          <button
+            type="button"
+            onClick={() => setScope("nearby")}
+            disabled={!hasPosition}
+            className={cx(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition",
+              scope === "nearby"
+                ? "border-accent bg-accent text-accent-foreground"
+                : "border-border bg-surface text-foreground",
+              !hasPosition && "cursor-not-allowed opacity-50"
+            )}
+          >
+            {t("Near me")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setScope("everywhere")}
+            className={cx(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition",
+              scope === "everywhere"
+                ? "border-accent bg-accent text-accent-foreground"
+                : "border-border bg-surface text-foreground"
+            )}
+          >
+            {t("Anywhere")}
+          </button>
+        </div>
+      </Card>
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">
