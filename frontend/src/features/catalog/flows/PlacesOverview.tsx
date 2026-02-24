@@ -49,7 +49,7 @@ export const PlacesOverview = () => {
       size: PAGE_SIZE,
       q: placeSearchApplied || undefined,
       minRating: placeMinRating ?? undefined,
-      openNow: placeOpenNow || undefined,
+      openNow: placeOpenNow ? true : undefined,
       lat: hasPosition ? position?.latitude ?? undefined : undefined,
       lng: hasPosition ? position?.longitude ?? undefined : undefined,
     }),
@@ -86,7 +86,13 @@ export const PlacesOverview = () => {
   const handlePlaceOpenNowChange = useCallback(
     (open: boolean) => {
       setPlaceOpenNow(open);
-      actions.fetchPlaces({ ...placeParams, openNow: open, page: 0 }).catch(() => undefined);
+      actions
+        .fetchPlaces({
+          ...placeParams,
+          openNow: open ? true : undefined,
+          page: 0,
+        })
+        .catch(() => undefined);
     },
     [actions, placeParams]
   );
