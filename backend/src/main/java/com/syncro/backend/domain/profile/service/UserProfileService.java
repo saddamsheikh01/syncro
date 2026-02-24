@@ -193,12 +193,19 @@ public class UserProfileService {
         if (normalized.length() < 2) {
             return Page.empty(pageable);
         }
-        return profileRepository.searchByNameOrCity(normalized, ProfileVisibility.PUBLIC, pageable)
-            .map(profile -> {
-                UUID userId = profile.getUser().getId();
-                String avatarUrl = resolveAvatarUrl(userId);
-                return profileMapper.toSummary(userId, profile.getUser().getUsername(), profile, avatarUrl);
-            });
+        return searchUsersWithFilters(
+            normalized,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            pageable
+        );
     }
 
     @Transactional(readOnly = true)

@@ -1,11 +1,13 @@
 package com.syncro.backend.domain.profile.repository;
 
+import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.profile.entity.Gender;
 import com.syncro.backend.domain.profile.entity.Orientation;
 import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.tags.entity.UserInterest;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
@@ -37,12 +39,20 @@ public final class UserProfileSearchSpec {
             predicates.add(cb.equal(root.get("visibility"), visibility));
 
             if (q != null && !q.isBlank()) {
-                String pattern = "%" + q.trim().toLowerCase() + "%";
-                predicates.add(cb.or(
-                    cb.like(cb.lower(root.get("fullName")), pattern),
-                    cb.like(cb.lower(root.get("city")), pattern),
-                    cb.like(cb.lower(root.get("user").get("username")), pattern)
-                ));
+                String normalized = q.trim().toLowerCase();
+                if (normalized.startsWith("@")) {
+                    normalized = normalized.substring(1).trim();
+                }
+                if (!normalized.isEmpty()) {
+                    String pattern = "%" + normalized + "%";
+                    Join<UserProfile, User> userJoin = root.join("user");
+                    predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("fullName")), pattern),
+                        cb.like(cb.lower(root.get("city")), pattern),
+                        cb.like(cb.lower(userJoin.get("username")), pattern),
+                        cb.like(cb.lower(userJoin.get("email")), pattern)
+                    ));
+                }
             }
 
             if (city != null && !city.isBlank()) {
