@@ -7,20 +7,38 @@ import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
+import { Modal } from "@/components/ui/Modal";
 import { ProfileSummaryCard } from "@/features/profile/cards/ProfileSummaryCard";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { TestCountCard } from "@/components/ui/TestCountCard";
-import { useAnalytics, useAuth, useT, useUser } from "@/hooks";
+import { useAnalytics, useAuth, useChat, useT, useUser } from "@/hooks";
 import { getMatchWithUser } from "@/services/matches";
 import { getUserTestsCount } from "@/services/insights";
 import { getUserPosts, getUserProfile } from "@/services/users";
-import { reactToPost, removeReaction } from "@/services/social";
+import {
+  acceptConnection,
+  getConnectionStatusWith,
+  getConnections,
+  getPendingConnections,
+  rejectConnection,
+  sendConnectionRequest,
+  reactToPost,
+  removeReaction,
+} from "@/services/social";
 import { addFavorite, removeFavorite } from "@/services/favorites";
-import type { PostReactionType } from "@/types/social";
+import type { ConnectionContext, PostReactionType } from "@/types/social";
 import type { UserPublicProfileResponse } from "@/types/profile";
 import type { PostResponse } from "@/types/social";
 import type { UserMatchResponse } from "@/types/matches";
+
+const CONNECTION_CONTEXTS: { value: ConnectionContext; labelKey: string }[] = [
+  { value: "WORK", labelKey: "Context: Work" },
+  { value: "FRIENDSHIP", labelKey: "Context: Friendship" },
+  { value: "PROJECTS", labelKey: "Context: Projects" },
+  { value: "LOVE", labelKey: "Context: Love" },
+  { value: "OTHER", labelKey: "Context: Other" },
+];
 
 const PAGE_SIZE = 6;
 
@@ -115,6 +133,19 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
   const [postsError, setPostsError] = useState<string | null>(null);
   const analyticsTrackedRef = useRef(false);
 
+  const [connectionStatus, setConnectionStatus] = useState<
+    "PENDING" | "ACCEPTED" | "REJECTED" | null
+  >(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [connectionIdForAccept, setConnectionIdForAccept] = useState<string | null>(null);
+  const [pendingSentByMe, setPendingSentByMe] = useState(false);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [selectedContext, setSelectedContext] = useState<ConnectionContext>("FRIENDSHIP");
+  const [sendRequestLoading, setSendRequestLoading] = useState(false);
+  const [acceptRejectLoading, setAcceptRejectLoading] = useState(false);
+
+  const { actions: chatActions } = useChat();
+
   useEffect(() => {
     authActions.hydrate();
     authActions.fetchMe().catch(() => undefined);
@@ -138,6 +169,53 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
       })
       .catch(() => undefined);
   }, [profile, analyticsActions]);
+
+  const currentUserId = user?.id ?? null;
+  const isViewingOther = Boolean(profile && currentUserId && profile.userId !== currentUserId);
+
+  useEffect(() => {
+    if (!isViewingOther || !profile?.userId || !currentUserId) {
+      setConnectionStatus(null);
+      setConnectionIdForAccept(null);
+      setPendingSentByMe(false);
+      return;
+    }
+    setConnectionLoading(true);
+    getConnectionStatusWith(profile.userId)
+      .then((res) => {
+        setConnectionStatus(res.status ?? null);
+      })
+      .catch(() => setConnectionStatus(null))
+      .finally(() => setConnectionLoading(false));
+  }, [isViewingOther, profile?.userId, currentUserId]);
+
+  useEffect(() => {
+    if (!isViewingOther || connectionStatus !== "PENDING" || !profile?.userId || !currentUserId) {
+      setConnectionIdForAccept(null);
+      setPendingSentByMe(false);
+      return;
+    }
+    Promise.all([getConnections({ size: 100 }), getPendingConnections({ size: 50 })])
+      .then(([allRes, pendingRes]) => {
+        const allList = allRes.content ?? [];
+        const pendingList = pendingRes.content ?? [];
+        const fromThem = pendingList.find((c) => c.fromUserId === profile.userId);
+        if (fromThem) {
+          setConnectionIdForAccept(fromThem.id);
+          setPendingSentByMe(false);
+          return;
+        }
+        const withUser = allList.find(
+          (c) =>
+            c.fromUserId === currentUserId && c.toUserId === profile.userId
+        );
+        if (withUser) {
+          setPendingSentByMe(true);
+          setConnectionIdForAccept(null);
+        }
+      })
+      .catch(() => {});
+  }, [isViewingOther, connectionStatus, profile?.userId, currentUserId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -404,6 +482,62 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
     [updatePost]
   );
 
+  const handleSendConnectionRequest = useCallback(async () => {
+    if (!profile?.userId) return;
+    setSendRequestLoading(true);
+    try {
+      await sendConnectionRequest({ toUserId: profile.userId, context: selectedContext });
+      setConnectionStatus("PENDING");
+      setPendingSentByMe(true);
+      setConnectionIdForAccept(null);
+      setConnectModalOpen(false);
+    } catch {
+      // Error could be shown via toast
+    } finally {
+      setSendRequestLoading(false);
+    }
+  }, [profile?.userId, selectedContext]);
+
+  const handleAcceptConnection = useCallback(async () => {
+    if (!connectionIdForAccept) return;
+    setAcceptRejectLoading(true);
+    try {
+      await acceptConnection(connectionIdForAccept);
+      setConnectionStatus("ACCEPTED");
+      setConnectionIdForAccept(null);
+      setPendingSentByMe(false);
+    } catch {
+      // Error could be shown via toast
+    } finally {
+      setAcceptRejectLoading(false);
+    }
+  }, [connectionIdForAccept]);
+
+  const handleRejectConnection = useCallback(async () => {
+    if (!connectionIdForAccept) return;
+    setAcceptRejectLoading(true);
+    try {
+      await rejectConnection(connectionIdForAccept);
+      setConnectionStatus("REJECTED");
+      setConnectionIdForAccept(null);
+      setPendingSentByMe(false);
+    } catch {
+      // Error could be shown via toast
+    } finally {
+      setAcceptRejectLoading(false);
+    }
+  }, [connectionIdForAccept]);
+
+  const handleMessage = useCallback(async () => {
+    if (!profile?.userId) return;
+    try {
+      const conversation = await chatActions.createConversation({ otherUserId: profile.userId });
+      router.push(`/chat/${conversation.id}`);
+    } catch {
+      // Backend returns 403 if not connected; user should see connection flow
+    }
+  }, [profile?.userId, chatActions, router]);
+
   const postItems = useMemo(
     () =>
       posts.map((post) => ({
@@ -499,6 +633,54 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
         avatarUrl={profile.avatarUrl ?? undefined}
         matchScore={resolvedMatchScore}
       />
+
+      {isViewingOther ? (
+        <Card className="flex flex-wrap items-center gap-3 p-4">
+          {connectionLoading ? (
+            <Loader size="sm" />
+          ) : connectionStatus === null ? (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setConnectModalOpen(true)}
+              aria-label={t("Connect")}
+            >
+              {t("Connect")}
+            </Button>
+          ) : connectionStatus === "PENDING" && pendingSentByMe ? (
+            <p className="text-sm text-muted">{t("Request sent")}</p>
+          ) : connectionStatus === "PENDING" && !pendingSentByMe ? (
+            connectionIdForAccept ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleAcceptConnection}
+                  loading={acceptRejectLoading}
+                  loadingText={t("Accept")}
+                >
+                  {t("Accept")}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={handleRejectConnection}
+                  loading={acceptRejectLoading}
+                  loadingText={t("Reject")}
+                >
+                  {t("Reject")}
+                </Button>
+              </div>
+            ) : (
+              <Loader size="sm" />
+            )
+          ) : connectionStatus === "ACCEPTED" ? (
+            <Button variant="primary" size="md" onClick={handleMessage}>
+              {t("Message")}
+            </Button>
+          ) : null}
+        </Card>
+      ) : null}
 
       {hasExtendedContent ? (
         <section className="grid gap-6 lg:grid-cols-2">
@@ -613,6 +795,43 @@ export const UserProfileView = ({ userId }: UserProfileViewProps) => {
           </div>
         ) : null}
       </section>
+
+      <Modal
+        open={connectModalOpen}
+        title={t("Choose why you're connecting")}
+        description={t("Connection context")}
+        onClose={() => setConnectModalOpen(false)}
+        primaryAction={{
+          label: t("Send connection request"),
+          onClick: handleSendConnectionRequest,
+          loading: sendRequestLoading,
+          loadingText: t("Send connection request"),
+        }}
+        secondaryAction={{
+          label: t("Cancel"),
+          variant: "secondary",
+          onClick: () => setConnectModalOpen(false),
+        }}
+      >
+        <div className="space-y-3 py-2">
+          {CONNECTION_CONTEXTS.map(({ value, labelKey }) => (
+            <label
+              key={value}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/70 p-3 transition hover:bg-surface-muted/50"
+            >
+              <input
+                type="radio"
+                name="connection-context"
+                value={value}
+                checked={selectedContext === value}
+                onChange={() => setSelectedContext(value)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span className="text-sm font-medium text-foreground">{t(labelKey)}</span>
+            </label>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 };

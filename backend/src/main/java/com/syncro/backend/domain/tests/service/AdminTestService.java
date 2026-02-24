@@ -54,7 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminTestService {
 
     private static final Set<String> SUPPORTED_LOCALES = Set.of("en", "it", "es", "fr", "sq", "pt");
-    private static final List<String> AUTO_TRANSLATION_LOCALES = List.of("it", "es", "fr");
+    private static final List<String> AUTO_TRANSLATION_LOCALES = List.of("it", "es", "fr", "sq", "pt");
 
     private final TestDefinitionRepository testDefinitionRepository;
     private final TestQuestionRepository testQuestionRepository;
@@ -771,6 +771,8 @@ public class AdminTestService {
             case "it" -> "Italian";
             case "es" -> "Spanish";
             case "fr" -> "French";
+            case "sq" -> "Albanian";
+            case "pt" -> "Portuguese";
             default -> "English";
         };
     }

@@ -37,7 +37,7 @@ public class ChatMapper {
         );
     }
 
-    public ChatParticipantInfo toParticipantInfo(UUID userId, String fullName, String avatarUrl) {
-        return new ChatParticipantInfo(userId, fullName, avatarUrl);
+    public ChatParticipantInfo toParticipantInfo(UUID userId, String fullName, String avatarUrl, boolean profileIncomplete) {
+        return new ChatParticipantInfo(userId, fullName, avatarUrl, profileIncomplete);
     }
 }

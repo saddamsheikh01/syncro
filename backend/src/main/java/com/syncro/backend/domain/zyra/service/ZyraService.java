@@ -1520,6 +1520,8 @@ public class ZyraService {
             case "it" -> "Italian";
             case "es" -> "Spanish";
             case "fr" -> "French";
+            case "sq" -> "Albanian";
+            case "pt" -> "Portuguese";
             default -> "English";
         };
     }
