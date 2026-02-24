@@ -1,7 +1,6 @@
 package com.syncro.backend.domain.tests.service;
 
 import com.syncro.backend.common.exception.BadRequestException;
-import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
@@ -42,6 +41,7 @@ import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
 import com.syncro.backend.security.UserPrincipal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -238,9 +238,8 @@ public class TestService {
         User user = getUser(principal);
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
-        if (userTestSubmissionRepository.existsByUser_IdAndTestDefinition_Id(user.getId(), testId)) {
-            throw new ConflictException("Test gia completato");
-        }
+        Optional<UserTestSubmission> existingSubmission = userTestSubmissionRepository
+            .findByUser_IdAndTestDefinition_Id(user.getId(), testId);
 
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         if (questions.isEmpty()) {
@@ -279,10 +278,18 @@ public class TestService {
             answersByQuestion
         );
 
-        UserTestSubmission submission = new UserTestSubmission();
-        submission.setUser(user);
-        submission.setTestDefinition(definition);
-        submission.setScorePayload(scorePayload);
+        UserTestSubmission submission;
+        if (existingSubmission.isPresent()) {
+            submission = existingSubmission.get();
+            userTestAnswerRepository.deleteBySubmissionId(submission.getId());
+            submission.setScorePayload(scorePayload);
+            submission.setSubmittedAt(Instant.now());
+        } else {
+            submission = new UserTestSubmission();
+            submission.setUser(user);
+            submission.setTestDefinition(definition);
+            submission.setScorePayload(scorePayload);
+        }
         UserTestSubmission savedSubmission = userTestSubmissionRepository.save(submission);
 
         List<UserTestAnswer> answers = new ArrayList<>();
