@@ -6,6 +6,7 @@ import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
 import com.syncro.backend.domain.media.repository.MediaObjectRepository;
+import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.CommentResponse;
@@ -35,6 +36,7 @@ public class PostCommentService {
     private final UserProfileRepository profileRepository;
     private final MediaObjectRepository mediaObjectRepository;
     private final PostCommentMapper commentMapper;
+    private final NotificationService notificationService;
 
     public PostCommentService(
         PostCommentRepository commentRepository,
@@ -42,7 +44,8 @@ public class PostCommentService {
         UserRepository userRepository,
         UserProfileRepository profileRepository,
         MediaObjectRepository mediaObjectRepository,
-        PostCommentMapper commentMapper
+        PostCommentMapper commentMapper,
+        NotificationService notificationService
     ) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
@@ -50,6 +53,7 @@ public class PostCommentService {
         this.profileRepository = profileRepository;
         this.mediaObjectRepository = mediaObjectRepository;
         this.commentMapper = commentMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -64,6 +68,14 @@ public class PostCommentService {
         comment.setContent(request.content().trim());
 
         PostComment saved = commentRepository.save(comment);
+        notificationService.createPostCommentNotification(
+            post.getUserId(),
+            user.getId(),
+            user.getUsername(),
+            post.getId(),
+            saved.getId(),
+            saved.getContent()
+        );
 
         UserProfile profile = profileRepository.findByUserId(user.getId()).orElse(null);
         String avatarUrl = resolveAvatarUrl(user.getId());

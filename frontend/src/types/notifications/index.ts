@@ -1,6 +1,10 @@
 import type { IsoDateTime, JsonObject, Uuid } from "../shared";
 
-export type NotificationType = "MESSAGE" | "CUSTOM";
+export type NotificationType =
+  | "MESSAGE"
+  | "POST_LIKE"
+  | "POST_COMMENT"
+  | "CUSTOM";
 
 export type UserNotificationResponse = {
   id: Uuid;

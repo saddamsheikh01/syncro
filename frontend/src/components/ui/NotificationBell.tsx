@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { NotificationDetailModal } from "@/components/ui/NotificationDetailModal";
 import { NavIcon } from "@/components/ui/NavIcon";
 import { useNotifications, useT } from "@/hooks";
@@ -21,6 +22,7 @@ const formatNotificationDate = (isoDate: string) => {
 
 export const NotificationBell = () => {
   const { t } = useT();
+  const router = useRouter();
   const {
     notifications,
     unreadCount,
@@ -76,6 +78,22 @@ export const NotificationBell = () => {
     if (!notification.readAt) {
       actions.markAsRead(notification.id).catch(() => undefined);
     }
+
+    if (notification.type === "MESSAGE") {
+      const conversationId =
+        notification.conversationId ??
+        (typeof notification.data?.conversationId === "string"
+          ? notification.data.conversationId
+          : null);
+
+      if (conversationId) {
+        setOpen(false);
+        setSelectedNotification(null);
+        router.push(`/chat/${conversationId}`);
+        return;
+      }
+    }
+
     setSelectedNotification(notification);
     setOpen(false);
   };
