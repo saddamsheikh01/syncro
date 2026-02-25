@@ -20,6 +20,7 @@ import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
@@ -34,9 +35,13 @@ import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
 import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
 import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.support.entity.SupportCategory;
+import com.syncro.backend.domain.support.entity.SupportMessage;
+import com.syncro.backend.domain.support.repository.SupportMessageRepository;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.security.AdminPrincipal;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -72,6 +77,7 @@ public class AdminBackofficeService {
     private final UserProfileMapper userProfileMapper;
     private final UserTestSubmissionRepository userTestSubmissionRepository;
     private final MediaObjectRepository mediaObjectRepository;
+    private final SupportMessageRepository supportMessageRepository;
 
     public AdminBackofficeService(
         UserRepository userRepository,
@@ -85,7 +91,8 @@ public class AdminBackofficeService {
         UserPreferenceMapper userPreferenceMapper,
         UserProfileMapper userProfileMapper,
         UserTestSubmissionRepository userTestSubmissionRepository,
-        MediaObjectRepository mediaObjectRepository
+        MediaObjectRepository mediaObjectRepository,
+        SupportMessageRepository supportMessageRepository
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
@@ -99,6 +106,7 @@ public class AdminBackofficeService {
         this.userProfileMapper = userProfileMapper;
         this.userTestSubmissionRepository = userTestSubmissionRepository;
         this.mediaObjectRepository = mediaObjectRepository;
+        this.supportMessageRepository = supportMessageRepository;
     }
 
     @Transactional(readOnly = true)
@@ -356,6 +364,53 @@ public class AdminBackofficeService {
         adminUserRepository.delete(adminUser);
     }
 
+    @Transactional(readOnly = true)
+    public Page<AdminSupportMessageResponse> getSupportMessages(
+        AdminPrincipal principal,
+        String q,
+        SupportCategory category,
+        int page,
+        int size
+    ) {
+        ensureSuperAdmin(principal);
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt")));
+        String normalizedQuery = normalizeSearchQuery(q);
+        Page<SupportMessage> messages = supportMessageRepository.search(normalizedQuery, category, pageable);
+
+        List<UUID> userIds = messages.getContent().stream()
+            .map(SupportMessage::getUserId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+
+        Map<UUID, UserProfile> profilesByUserId = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userProfileRepository.findByUserIdIn(userIds)
+                .forEach(profile -> {
+                    if (profile.getUser() != null && profile.getUser().getId() != null) {
+                        profilesByUserId.put(profile.getUser().getId(), profile);
+                    }
+                });
+        }
+
+        return messages.map(message -> {
+            User user = message.getUser();
+            UserProfile profile = profilesByUserId.get(message.getUserId());
+            String fullName = profile != null ? profile.getFullName() : null;
+            return new AdminSupportMessageResponse(
+                message.getId(),
+                message.getUserId(),
+                user != null ? user.getEmail() : null,
+                user != null ? user.getUsername() : null,
+                fullName,
+                message.getSubject(),
+                message.getMessage(),
+                message.getCategory(),
+                message.getCreatedAt()
+            );
+        });
+    }
+
     private void ensureSuperAdmin(AdminPrincipal principal) {
         if (principal == null || principal.role() == null) {
             throw new UnauthorizedException("Token mancante o non valido");
@@ -375,6 +430,13 @@ public class AdminBackofficeService {
             return null;
         }
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeSearchQuery(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        return query.trim().toLowerCase(Locale.ROOT);
     }
 
     private String normalizeLanguage(String language) {

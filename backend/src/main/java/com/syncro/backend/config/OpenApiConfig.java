@@ -166,7 +166,7 @@ public class OpenApiConfig {
     public GroupedOpenApi adminBackofficeApi() {
         return GroupedOpenApi.builder()
             .group("admin-backoffice")
-            .pathsToMatch("/api/v1/admin/users/**", "/api/v1/admin/admin-users/**")
+            .pathsToMatch("/api/v1/admin/users/**", "/api/v1/admin/admin-users/**", "/api/v1/admin/support/**")
             .build();
     }
 

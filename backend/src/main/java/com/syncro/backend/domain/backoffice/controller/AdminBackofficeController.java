@@ -7,6 +7,7 @@ import com.syncro.backend.domain.auth.entity.AdminStatus;
 import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
@@ -14,6 +15,7 @@ import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
 import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
+import com.syncro.backend.domain.support.entity.SupportCategory;
 import com.syncro.backend.domain.tests.dto.TestCountResponse;
 import com.syncro.backend.security.AdminPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -214,5 +216,19 @@ public class AdminBackofficeController {
     ) {
         adminBackofficeService.deleteAdmin(principal, adminId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/support/messages")
+    @Operation(summary = "Lista richieste supporto utenti")
+    public ResponseEntity<Page<AdminSupportMessageResponse>> getSupportMessages(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) SupportCategory category,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(
+            adminBackofficeService.getSupportMessages(principal, q, category, page, size)
+        );
     }
 }

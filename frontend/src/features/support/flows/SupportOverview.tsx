@@ -94,7 +94,7 @@ export const SupportOverview = () => {
       <div className="space-y-4">
         <SectionHeader
           title={t("Support")}
-          subtitle={t("Send a message to the team.")}
+          subtitle={t("Your message goes to the Syncro support inbox in the back office.")}
         />
         <Card className="p-6">
           <p className="text-sm text-muted">
@@ -110,12 +110,12 @@ export const SupportOverview = () => {
       <div className="space-y-4">
         <SectionHeader
           title={t("Support")}
-          subtitle={t("Send a message to the team.")}
+          subtitle={t("Your message goes to the Syncro support inbox in the back office.")}
         />
         <Card className="p-6">
           <div className="space-y-4">
             <p className="text-sm font-medium text-success">
-              {t("Your message has been sent. We'll get back to you as soon as we can.")}
+              {t("Your message has been sent to the support inbox. It will be reviewed by our team shortly.")}
             </p>
             <Button variant="secondary" onClick={resetForm}>
               {t("Send another message")}
@@ -130,7 +130,7 @@ export const SupportOverview = () => {
     <div className="space-y-4">
       <SectionHeader
         title={t("Support")}
-        subtitle={t("Send a message to the team. We read every message.")}
+        subtitle={t("Your message goes to the Syncro support inbox in the back office and is reviewed by our team.")}
       />
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -180,6 +180,9 @@ export const SupportOverview = () => {
             >
               {t("Send message")}
             </Button>
+            <p className="text-xs text-muted">
+              {t("We usually process support requests as soon as possible.")}
+            </p>
           </div>
         </form>
       </Card>

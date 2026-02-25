@@ -7,6 +7,8 @@ import type {
   AdminUpdateUserMatchmakingRequest,
   AdminUpdateAdminRequest,
   AdminUpdateUserRequest,
+  AdminSupportMessageResponse,
+  AdminSupportCategory,
   AdminUserResponse,
   AdminUserPreferencesResponse,
   AdminRole,
@@ -29,6 +31,13 @@ export type AdminAdminsParams = {
   email?: string;
   status?: AdminStatus;
   role?: AdminRole;
+  page?: number;
+  size?: number;
+};
+
+export type AdminSupportMessagesParams = {
+  q?: string;
+  category?: AdminSupportCategory;
   page?: number;
   size?: number;
 };
@@ -153,4 +162,14 @@ export const updateAdmin = async (
 
 export const deleteAdmin = async (adminId: Uuid): Promise<void> => {
   await apiClient.delete(`/admin/admin-users/${adminId}`);
+};
+
+export const getSupportMessages = async (
+  params: AdminSupportMessagesParams = {}
+): Promise<PageResponse<AdminSupportMessageResponse>> => {
+  const { data } = await apiClient.get<PageResponse<AdminSupportMessageResponse>>(
+    "/admin/support/messages",
+    { params: buildQueryParams(params) }
+  );
+  return data;
 };

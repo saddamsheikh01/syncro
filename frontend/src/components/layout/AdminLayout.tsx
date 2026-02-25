@@ -62,6 +62,11 @@ const NAV_ITEMS = [
     description: "Referral codes and usage",
   },
   {
+    href: "/admin/support",
+    label: "Support",
+    description: "User support inbox",
+  },
+  {
     href: "/admin/notifications",
     label: "Notifications",
     description: "Custom notification send",

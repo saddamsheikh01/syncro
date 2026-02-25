@@ -80,6 +80,25 @@ export type AdminUpdateUserMatchmakingRequest = {
   matchmakingFilters: JsonObject;
 };
 
+export type AdminSupportCategory =
+  | "GENERAL"
+  | "BUG"
+  | "FEATURE"
+  | "ACCOUNT"
+  | "OTHER";
+
+export type AdminSupportMessageResponse = {
+  id: Uuid;
+  userId: Uuid;
+  userEmail: string | null;
+  username: string | null;
+  fullName: string | null;
+  subject: string;
+  message: string;
+  category: AdminSupportCategory | null;
+  createdAt: IsoDateTime;
+};
+
 export type AdminReferralCodeResponse = {
   userId: Uuid | null;
   email: string | null;
