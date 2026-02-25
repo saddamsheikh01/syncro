@@ -18,7 +18,8 @@ import { searchUsers } from "@/services/users";
 import type { UserSearchParams } from "@/services/users";
 import type { UserMatchResponse } from "@/types/matches";
 import type { UserSummaryResponse } from "@/types/profile";
-import { useAnalytics, useAuth, useMatches, useTags, useT } from "@/hooks";
+import type { JsonObject, JsonValue } from "@/types/shared";
+import { useAnalytics, useAuth, useMatches, useTags, useT, useUser } from "@/hooks";
 import { cx } from "@/lib/classNames";
 
 const PAGE_SIZE = 20;
@@ -74,6 +75,19 @@ const sortMatchesByScore = (matches: UserMatchResponse[]) =>
     return scoreB - scoreA;
   });
 
+const readNumber = (value: JsonValue) =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+
+const readString = (value: JsonValue) =>
+  typeof value === "string" && value.trim().length > 0 ? value : null;
+
+const toNullableNumber = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export const MatchesOverview = () => {
   const { user } = useAuth();
   const { t } = useT();
@@ -86,15 +100,25 @@ export const MatchesOverview = () => {
     actions: matchesActions,
   } = useMatches();
   const { actions: analyticsActions } = useAnalytics();
+  const { preferences, actions: userActions } = useUser();
   const { tags, actions: tagsActions } = useTags();
   const analyticsTrackedRef = useRef(false);
+  const matchFiltersInitializedRef = useRef(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainFilter>("ALL");
   const [viewMode, setViewMode] = useState<ViewMode>("MATCHES");
   const [allUsers, setAllUsers] = useState<UserSummaryResponse[]>([]);
   const [allUsersPage, setAllUsersPage] = useState(EMPTY_PAGE);
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
   const [allUsersError, setAllUsersError] = useState<string | null>(null);
+  const [savingMatchFilters, setSavingMatchFilters] = useState(false);
+  const [matchFiltersError, setMatchFiltersError] = useState<string | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [matchFilterCity, setMatchFilterCity] = useState("");
+  const [matchFilterCountry, setMatchFilterCountry] = useState("");
+  const [matchFilterAgeMin, setMatchFilterAgeMin] = useState("");
+  const [matchFilterAgeMax, setMatchFilterAgeMax] = useState("");
+  const [matchFilterDistanceKm, setMatchFilterDistanceKm] = useState("");
+  const [matchFilterGender, setMatchFilterGender] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [filterAgeMin, setFilterAgeMin] = useState("");
@@ -208,6 +232,27 @@ export const MatchesOverview = () => {
   }, [viewMode, tags.length, tagsActions]);
 
   useEffect(() => {
+    userActions.fetchPreferences().catch(() => undefined);
+  }, [userActions]);
+
+  useEffect(() => {
+    if (matchFiltersInitializedRef.current || !preferences) return;
+    const storedFilters = (preferences.matchmakingFilters ?? {}) as Record<
+      string,
+      JsonValue
+    >;
+
+    setMatchFilterCity(readString(storedFilters.locationCity) ?? "");
+    setMatchFilterCountry(readString(storedFilters.locationCountry) ?? "");
+    setMatchFilterAgeMin(readNumber(storedFilters.ageMin)?.toString() ?? "");
+    setMatchFilterAgeMax(readNumber(storedFilters.ageMax)?.toString() ?? "");
+    setMatchFilterDistanceKm(readNumber(storedFilters.distanceKm)?.toString() ?? "");
+    const storedGender = readString(storedFilters.gender);
+    setMatchFilterGender(storedGender === "ANY" ? "" : (storedGender ?? ""));
+    matchFiltersInitializedRef.current = true;
+  }, [preferences]);
+
+  useEffect(() => {
     if (analyticsTrackedRef.current) return;
     analyticsTrackedRef.current = true;
     analyticsActions
@@ -286,6 +331,125 @@ export const MatchesOverview = () => {
     viewMode,
   ]);
 
+  const handleApplyMatchFilters = useCallback(async () => {
+    const ageMinValue = toNullableNumber(matchFilterAgeMin);
+    const ageMaxValue = toNullableNumber(matchFilterAgeMax);
+    const distanceKmValue = toNullableNumber(matchFilterDistanceKm);
+
+    if (ageMinValue !== null && ageMaxValue !== null && ageMinValue > ageMaxValue) {
+      setMatchFiltersError(t("Minimum age cannot be greater than maximum age."));
+      return;
+    }
+
+    if (distanceKmValue !== null && distanceKmValue < 0) {
+      setMatchFiltersError(t("Enter positive values for distances."));
+      return;
+    }
+
+    const existingFilters = (preferences?.matchmakingFilters ?? {}) as Record<
+      string,
+      JsonValue
+    >;
+
+    const cityValue = matchFilterCity.trim() || null;
+    const countryValue = matchFilterCountry.trim() || null;
+
+    const matchmakingFilters: JsonObject = {
+      ...existingFilters,
+      ageMin: ageMinValue,
+      ageMax: ageMaxValue,
+      distanceKm: distanceKmValue,
+      gender: matchFilterGender || "ANY",
+      locationCity: cityValue,
+      locationCountry: countryValue,
+      city: cityValue,
+      country: countryValue,
+      openToNewConnections: true,
+      sharedInterests: true,
+    };
+
+    setSavingMatchFilters(true);
+    setMatchFiltersError(null);
+    try {
+      await userActions.savePreferences({ matchmakingFilters });
+      await matchesActions.fetchUserMatches({
+        size: PAGE_SIZE,
+        refresh: true,
+        domain: selectedDomain === "ALL" ? undefined : selectedDomain,
+      });
+    } catch (saveError) {
+      setMatchFiltersError(
+        resolveErrorMessage(saveError, t("Unable to save matchmaking filters."))
+      );
+    } finally {
+      setSavingMatchFilters(false);
+    }
+  }, [
+    matchFilterAgeMax,
+    matchFilterAgeMin,
+    matchFilterCity,
+    matchFilterCountry,
+    matchFilterDistanceKm,
+    matchFilterGender,
+    matchesActions,
+    preferences?.matchmakingFilters,
+    resolveErrorMessage,
+    selectedDomain,
+    t,
+    userActions,
+  ]);
+
+  const handleClearMatchFilters = useCallback(async () => {
+    setMatchFilterCity("");
+    setMatchFilterCountry("");
+    setMatchFilterAgeMin("");
+    setMatchFilterAgeMax("");
+    setMatchFilterDistanceKm("");
+    setMatchFilterGender("");
+
+    const existingFilters = (preferences?.matchmakingFilters ?? {}) as Record<
+      string,
+      JsonValue
+    >;
+    const matchmakingFilters: JsonObject = {
+      ...existingFilters,
+      ageMin: null,
+      ageMax: null,
+      distanceKm: null,
+      gender: "ANY",
+      locationCity: null,
+      locationCountry: null,
+      city: null,
+      country: null,
+      openToNewConnections: true,
+      sharedInterests: true,
+    };
+
+    setSavingMatchFilters(true);
+    setMatchFiltersError(null);
+    try {
+      await userActions.savePreferences({ matchmakingFilters });
+      await matchesActions.fetchUserMatches({
+        size: PAGE_SIZE,
+        refresh: true,
+        domain: selectedDomain === "ALL" ? undefined : selectedDomain,
+      });
+    } catch (saveError) {
+      setMatchFiltersError(
+        resolveErrorMessage(saveError, t("Unable to save matchmaking filters."))
+      );
+    } finally {
+      setSavingMatchFilters(false);
+    }
+  }, [
+    matchesActions,
+    preferences?.matchmakingFilters,
+    resolveErrorMessage,
+    selectedDomain,
+    t,
+    userActions,
+  ]);
+
   const isInitialLoading = isLoadingCurrent && displayedItems.length === 0;
   const matchScoreLabel = useMemo(
     () =>
@@ -339,19 +503,94 @@ export const MatchesOverview = () => {
             />
           ))}
         </div>
-      ) : (
-        <Card className="mt-3 border-border/70 bg-surface-muted/40 p-3">
-          <button
-            type="button"
-            onClick={() => setFiltersExpanded((v) => !v)}
-            className="flex w-full items-center justify-between text-left text-sm font-medium text-foreground"
-          >
-            <span>{t("Filters")}</span>
-            <span className={cx("transition-transform", filtersExpanded && "rotate-180")}>
-              ▼
-            </span>
-          </button>
-          {filtersExpanded && (
+      ) : null}
+
+      <Card className="mt-3 border-border/70 bg-surface-muted/40 p-3">
+        <button
+          type="button"
+          onClick={() => setFiltersExpanded((v) => !v)}
+          className="flex w-full items-center justify-between text-left text-sm font-medium text-foreground"
+        >
+          <span>{viewMode === "MATCHES" ? t("Match filters") : t("Filters")}</span>
+          <span className={cx("transition-transform", filtersExpanded && "rotate-180")}>
+            ▼
+          </span>
+        </button>
+        {filtersExpanded &&
+          (viewMode === "MATCHES" ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Input
+                label={t("City")}
+                value={matchFilterCity}
+                onChange={(e) => setMatchFilterCity(e.target.value)}
+                placeholder={t("e.g. Milan")}
+              />
+              <Input
+                label={t("Country")}
+                value={matchFilterCountry}
+                onChange={(e) => setMatchFilterCountry(e.target.value)}
+                placeholder={t("e.g. Italy")}
+              />
+              <Select
+                label={t("Gender")}
+                value={matchFilterGender}
+                onValueChange={setMatchFilterGender}
+                options={GENDER_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: t(o.labelKey),
+                }))}
+              />
+              <Input
+                type="number"
+                label={t("Age min")}
+                value={matchFilterAgeMin}
+                onChange={(e) => setMatchFilterAgeMin(e.target.value)}
+                placeholder="18"
+                min={18}
+                max={120}
+              />
+              <Input
+                type="number"
+                label={t("Age max")}
+                value={matchFilterAgeMax}
+                onChange={(e) => setMatchFilterAgeMax(e.target.value)}
+                placeholder="99"
+                min={18}
+                max={120}
+              />
+              <Input
+                type="number"
+                label={t("Maximum distance (km)")}
+                value={matchFilterDistanceKm}
+                onChange={(e) => setMatchFilterDistanceKm(e.target.value)}
+                placeholder="25"
+                min={1}
+              />
+              {matchFiltersError ? (
+                <p className="text-sm text-danger sm:col-span-2 lg:col-span-3">
+                  {matchFiltersError}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleApplyMatchFilters().catch(() => undefined)}
+                  disabled={savingMatchFilters}
+                >
+                  {t("Apply filters")}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleClearMatchFilters().catch(() => undefined)}
+                  disabled={savingMatchFilters}
+                >
+                  {t("Clear filters")}
+                </Button>
+              </div>
+            </div>
+          ) : (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="sm:col-span-2 lg:col-span-3">
                 <Input
@@ -473,9 +712,8 @@ export const MatchesOverview = () => {
                 </Button>
               </div>
             </div>
-          )}
-        </Card>
-      )}
+          ))}
+      </Card>
 
       <div className="mt-6">
         {isInitialLoading && (
