@@ -104,6 +104,7 @@ export const MatchesOverview = () => {
   const [filterZodiacSign, setFilterZodiacSign] = useState("");
   const [filterInterestTagIds, setFilterInterestTagIds] = useState<string[]>([]);
   const [filterValuesText, setFilterValuesText] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
 
   const resolveErrorMessage = useCallback(
     (error: unknown, fallback: string) => {
@@ -118,6 +119,8 @@ export const MatchesOverview = () => {
 
   const buildSearchParams = useCallback((): UserSearchParams => {
     const params: UserSearchParams = { page: 0, size: PAGE_SIZE };
+    const q = filterSearch.trim() || undefined;
+    if (q) params.q = q;
     const city = filterCity.trim() || undefined;
     const country = filterCountry.trim() || undefined;
     if (city) params.city = city;
@@ -134,6 +137,7 @@ export const MatchesOverview = () => {
     if (valuesText) params.valuesText = valuesText;
     return params;
   }, [
+    filterSearch,
     filterCity,
     filterCountry,
     filterAgeMin,
@@ -349,6 +353,14 @@ export const MatchesOverview = () => {
           </button>
           {filtersExpanded && (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="sm:col-span-2 lg:col-span-3">
+                <Input
+                  label={t("Search (name, username or email)")}
+                  value={filterSearch}
+                  onChange={(e) => setFilterSearch(e.target.value)}
+                  placeholder={t("e.g. name, @username, or email")}
+                />
+              </div>
               <Input
                 label={t("City")}
                 value={filterCity}
@@ -443,6 +455,7 @@ export const MatchesOverview = () => {
                   variant="secondary"
                   size="sm"
                   onClick={() => {
+                    setFilterSearch("");
                     setFilterCity("");
                     setFilterCountry("");
                     setFilterAgeMin("");

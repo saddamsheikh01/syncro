@@ -1,10 +1,8 @@
-Write a short summary of who this person is (3-4 sentences, warm and personal).
-Focus on what matters most: what defines them, what they love, what they can't stand, what they're looking for, their values, relationship status, orientation, and whether they have children — if this information is available.
-If none of that is filled in, use the bio instead.
-Write in first person, as if the user were describing themselves to someone new.
-Example: 'I'm a curious soul who lives for traveling and deep conversations...'.
-Never invent details that aren't there. Don't use lists or bullet points — keep it flowing and natural.
-{{testCondition}}
-If there's an astrological profile, weave it in naturally (e.g., 'I'm an Aries with Leo rising — make of that what you will...' or 'My zodiac sign is...').
-If test results are available, use them to paint a picture of their personality. For example, someone with a high lifestyle score probably leads an active, social life; someone with strong values scores cares deeply about what they believe in; someone with a high introspection score tends to be thoughtful and reflective.
+Write a short, clear, readable summary of this person's test results only (3–4 sentences).
+Use the "Completed tests (summary by test)" and related test data below. Describe what the results indicate in plain language — for example: tendencies in communication or relationships, current phase in goals, lifestyle rhythm, values, or personality traits suggested by the tests.
+Write in first person, as if the user were describing their test outcomes to someone new.
+Do NOT invent or use any label, title, category, or profile name (e.g. no "Balanced Planner", "Inclusive Innovator", "Expansion phase" as a single tag). Do NOT reduce everything to one category or one name.
+Do NOT summarize, paraphrase, or repeat the user's own profile text (bio, description, etc.) — that content is already visible; your output must be strictly a summary of test results only.
+Keep it flowing and natural. No bullet points or lists. Never invent details that are not in the test data.
+If there are no completed tests, output a single short sentence such as: "No test results yet."
 Available data:

@@ -7,11 +7,11 @@ import { cx } from "@/lib/classNames";
 import {
   resolveMatchDomainScores,
 } from "@/lib/matchDomains";
-import { resolveMatchCopy } from "@/lib/matchCopy";
+import {
+  buildContextualMatchDescription,
+  resolveMatchCopy,
+} from "@/lib/matchCopy";
 import type { UserMatchResponse } from "@/types/matches";
-
-const DEFAULT_MATCH_DESCRIPTION =
-  "Relevant connection based on your current context.";
 
 export interface MatchCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onClick"> {
@@ -63,7 +63,14 @@ export const MatchCard = ({
   const score = Math.round(match.scoreTotal ?? 0);
   const description =
     descriptionOverride ??
-    resolveMatchCopy(match.explanation, t(DEFAULT_MATCH_DESCRIPTION));
+    resolveMatchCopy(
+      match.explanation,
+      buildContextualMatchDescription(
+        match.breakdown,
+        t,
+        `${match.matchId ?? ""}-${match.userId ?? ""}`,
+      ) ?? null,
+    );
   const imageUrl = match.user?.avatarUrl ?? null;
   const displayName =
     match.user?.fullName?.trim() ||
@@ -129,7 +136,9 @@ export const MatchCard = ({
             ))}
           </div>
         ) : null}
-        <p className="line-clamp-2 text-xs text-muted">{description}</p>
+        {description ? (
+          <p className="line-clamp-2 text-xs text-muted">{description}</p>
+        ) : null}
         <div className="mt-auto flex items-center justify-between text-[11px] text-subtle">
           <span>{t("View Profile")}</span>
           <span className="text-accent">→</span>

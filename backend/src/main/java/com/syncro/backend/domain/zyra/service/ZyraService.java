@@ -84,8 +84,6 @@ public class ZyraService {
     private static final int MAX_QUESTIONS_PER_TEST = 3;
     private static final int MAX_OPTIONS_PER_QUESTION = 2;
     private static final int MAX_QUESTION_TEXT = 80;
-    private static final String ENGLISH_ONLY_POLICY =
-        "Always reply in English. Never reply in Italian or any other language.";
     private static final Set<String> SUPPORTED_RECAP_LANGUAGES = Set.of("en", "it", "es", "fr", "sq", "pt");
 
     private final UserRepository userRepository;
@@ -222,8 +220,9 @@ public class ZyraService {
 
             String firstMessage = content;
             UUID sessionIdForAsync = session.getId();
+            String titleLanguage = resolveResponseLanguage(user);
             CompletableFuture.runAsync(() -> {
-                String generatedTitle = generateSessionTitle(firstMessage);
+                String generatedTitle = generateSessionTitle(firstMessage, titleLanguage);
                 if (generatedTitle != null && !generatedTitle.isBlank()) {
                     sessionRepository.findById(sessionIdForAsync).ifPresent(s -> {
                         s.setTitle(generatedTitle);
@@ -234,7 +233,8 @@ public class ZyraService {
         }
 
         List<ZyraChatMessage> promptMessages = buildPromptMessages(user, session.getId());
-        String assistantReply = zyraClient.chat(withEnglishGuard(promptMessages));
+        String responseLanguage = resolveResponseLanguage(user);
+        String assistantReply = zyraClient.chat(withLanguageGuard(promptMessages, responseLanguage));
 
         ZyraMessage assistantMessage = new ZyraMessage();
         assistantMessage.setSession(session);
@@ -266,7 +266,8 @@ public class ZyraService {
         String context = normalizeOptional(request.context());
         String prompt = buildSuggestionPrompt(request, context);
         List<ZyraChatMessage> messages = buildSuggestionMessages(user, prompt);
-        String reply = zyraClient.chat(withEnglishGuard(messages));
+        String responseLanguage = resolveResponseLanguage(user);
+        String reply = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", reply);
@@ -394,20 +395,8 @@ public class ZyraService {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
 
-        String testCondition;
-        if (testSummaries != null && !testSummaries.isEmpty()) {
-            testCondition = "Naturally integrate completed test results, "
-                + "highlighting the personality traits that emerged (e.g., 'My test results suggest I am...').";
-        } else {
-            testCondition = "If there are no completed tests, do not mention tests.";
-        }
-
-        StringBuilder prompt = new StringBuilder(
-            promptLoader.getPrompt(
-                PromptType.PROFILE_RECAP,
-                Map.of("testCondition", testCondition)
-            )
-        );
+        // Profile recap is test-results summary only: no labels, no titles, no summarization of user-written profile text.
+        StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.PROFILE_RECAP));
         prompt.append("\n");
 
         if (profile != null) {
@@ -423,10 +412,7 @@ public class ZyraService {
             if (profile.getBirthDate() != null) {
                 prompt.append("- Age: ").append(formatAge(profile.getBirthDate())).append(" years\n");
             }
-            appendExtendedProfileInfo(prompt, profile);
-            if (!hasExtendedProfile(profile) && profile.getBio() != null && !profile.getBio().isBlank()) {
-                prompt.append("- Bio: ").append(profile.getBio()).append("\n");
-            }
+            // Do not append bio or extended profile text — recap must not summarize user-written content.
             String jobLabel = buildJobLabel(profile);
             if (jobLabel != null) {
                 prompt.append("- Job: ").append(jobLabel).append("\n");
@@ -516,7 +502,8 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(withEnglishGuard(messages));
+            String responseLanguage = resolveResponseLanguage(user);
+            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             return recap != null ? recap.trim() : "Complete your profile to get a personalized recap.";
         } catch (Exception ex) {
             return "Complete your profile to get a personalized recap.";
@@ -577,51 +564,15 @@ public class ZyraService {
         String title = submission.getTestDefinition() != null
             ? normalizeOptional(submission.getTestDefinition().getTitle())
             : null;
-        String profileLabel = readProfileLabel(submission.getScorePayload());
         String answersSummary = buildAnswersSummary(answers);
 
         StringBuilder summary = new StringBuilder();
         summary.append(title != null ? title : "Test");
-        if (profileLabel != null) {
-            summary.append(": profile ").append(profileLabel);
-        }
         if (answersSummary != null) {
-            summary.append(profileLabel != null ? ". " : ": ");
+            summary.append(": ");
             summary.append("Key answers: ").append(answersSummary);
         }
         return summary.toString();
-    }
-
-    private String readProfileLabel(Map<String, Object> scorePayload) {
-        if (scorePayload == null) {
-            return null;
-        }
-        Object profileObj = scorePayload.get("profile");
-        if (!(profileObj instanceof Map<?, ?> profileMap)) {
-            return null;
-        }
-        String name = readText(profileMap, "name");
-        if (name != null) {
-            return name;
-        }
-        String label = readText(profileMap, "label");
-        if (label != null) {
-            return label;
-        }
-        String code = readText(profileMap, "code");
-        return code;
-    }
-
-    private String readText(Map<?, ?> map, String key) {
-        if (map == null || key == null) {
-            return null;
-        }
-        Object value = map.get(key);
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isBlank() ? null : text;
     }
 
     private String buildAnswersSummary(List<UserTestAnswer> answers) {
@@ -829,7 +780,8 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(withEnglishGuard(messages));
+            String responseLanguage = resolveResponseLanguage(user);
+            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             return recap != null ? recap.trim() : "Interesting place: update your profile for a more accurate match.";
         } catch (Exception ex) {
             return "Interesting place: update your profile for a more accurate match.";
@@ -934,7 +886,9 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(withEnglishGuard(messages));
+            User submissionUser = submission.getUser();
+            String responseLanguage = submissionUser != null ? resolveResponseLanguage(submissionUser) : "en";
+            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             return recap != null ? recap.trim() : "Great job! You completed the test successfully.";
         } catch (Exception ex) {
             return "Great job! You completed the test successfully.";
@@ -1014,7 +968,7 @@ public class ZyraService {
             }
         }
 
-        String recap = generateChatRecap(conversationData.toString(), conversationIds.size());
+        String recap = generateChatRecap(user, conversationData.toString(), conversationIds.size());
 
         ZyraChatRecapResponse response = new ZyraChatRecapResponse(
             recap,
@@ -1026,7 +980,7 @@ public class ZyraService {
         return response;
     }
 
-    private String generateChatRecap(String conversationData, int conversationCount) {
+    private String generateChatRecap(User user, String conversationData, int conversationCount) {
         if (conversationData.isBlank()) {
             return "Your conversations are still empty. Start exchanging messages!";
         }
@@ -1041,7 +995,8 @@ public class ZyraService {
         );
 
         try {
-            String recap = zyraClient.chat(withEnglishGuard(messages));
+            String responseLanguage = user != null ? resolveResponseLanguage(user) : "en";
+            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             return recap != null ? recap.trim() : "You have " + conversationCount + " active conversations.";
         } catch (Exception ex) {
             return "You have " + conversationCount + " active conversations.";
@@ -1427,14 +1382,15 @@ public class ZyraService {
         }
     }
 
-    private String generateSessionTitle(String firstUserMessage) {
+    private String generateSessionTitle(String firstUserMessage, String languageCode) {
         String prompt = promptLoader.getPrompt(PromptType.CHAT_SESSION_TITLE);
         List<ZyraChatMessage> messages = List.of(
             new ZyraChatMessage("system", prompt),
             new ZyraChatMessage("user", firstUserMessage)
         );
+        String responseLanguage = (languageCode != null && !languageCode.isBlank()) ? languageCode.trim().toLowerCase(Locale.ROOT) : "en";
         try {
-            String title = zyraClient.chat(withEnglishGuard(messages));
+            String title = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             if (title == null) {
                 return null;
             }
@@ -1453,17 +1409,72 @@ public class ZyraService {
         return trimmed.length() > 48 ? trimmed.substring(0, 48) + "..." : trimmed;
     }
 
-    private List<ZyraChatMessage> withEnglishGuard(List<ZyraChatMessage> messages) {
+    private List<ZyraChatMessage> withLanguageGuard(List<ZyraChatMessage> messages, String languageCode) {
+        String code = (languageCode != null && !languageCode.isBlank()) ? languageCode.trim().toLowerCase(Locale.ROOT) : "en";
+        int separatorIndex = code.indexOf('-');
+        if (separatorIndex > 0) {
+            code = code.substring(0, separatorIndex);
+        }
+        String languageLabel = languageLabelForResponse(code);
+        String instruction = "You must respond only in " + languageLabel + ". Use that language for every response.";
+        if ("pt".equals(code)) {
+            instruction += " Do not answer in English; the user's language is Portuguese.";
+        }
         List<ZyraChatMessage> guarded = new ArrayList<>((messages != null ? messages.size() : 0) + 1);
-        guarded.add(new ZyraChatMessage("system", ENGLISH_ONLY_POLICY));
+        guarded.add(new ZyraChatMessage("system", instruction));
         if (messages != null && !messages.isEmpty()) {
             guarded.addAll(messages);
         }
         return guarded;
     }
 
+    /**
+     * Preferred language for AI responses (chat, recaps, suggestions). Uses the user's profile/app language
+     * without restricting to recap-supported locales, so Zyra responds in the user's selected language.
+     */
+    private String resolveResponseLanguage(User user) {
+        if (user == null || user.getLanguage() == null || user.getLanguage().isBlank()) {
+            return "en";
+        }
+        String normalized = user.getLanguage().trim().toLowerCase(Locale.ROOT);
+        int separatorIndex = normalized.indexOf('-');
+        if (separatorIndex > 0) {
+            normalized = normalized.substring(0, separatorIndex);
+        }
+        return normalized.isEmpty() ? "en" : normalized;
+    }
+
     private String resolvePreferredLanguage(User user) {
         return user == null ? "en" : normalizeLanguageCode(user.getLanguage());
+    }
+
+    /**
+     * Human-readable language label for the response-language instruction. Used so the model replies in the correct language.
+     * Unknown codes use a generic phrase so the model can still attempt the language; no hardcoded English fallback.
+     */
+    private String languageLabelForResponse(String languageCode) {
+        if (languageCode == null || languageCode.isBlank()) {
+            return "English";
+        }
+        return switch (languageCode) {
+            case "en" -> "English";
+            case "it" -> "Italian";
+            case "es" -> "Spanish";
+            case "fr" -> "French";
+            case "sq" -> "Albanian";
+            case "pt" -> "Portuguese (Português)";
+            case "de" -> "German";
+            case "nl" -> "Dutch";
+            case "pl" -> "Polish";
+            case "ru" -> "Russian";
+            case "ar" -> "Arabic";
+            case "hi" -> "Hindi";
+            case "zh" -> "Chinese";
+            case "ja" -> "Japanese";
+            case "ko" -> "Korean";
+            case "tr" -> "Turkish";
+            default -> "the language with ISO code " + languageCode;
+        };
     }
 
     private String normalizeLanguageCode(String languageCode) {
