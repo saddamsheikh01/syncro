@@ -26,6 +26,8 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+BACKEND_PORT="${SERVER_PORT:-8080}"
+
 kill_port_if_busy() {
   local port="$1"
   local pids
@@ -128,7 +130,7 @@ cleanup() {
   stop_process "frontend" "$FRONTEND_PID"
 
   if [[ "$BACKEND_STARTED" == true ]]; then
-    kill_port_if_busy 8080
+    kill_port_if_busy "$BACKEND_PORT"
     if [[ "${ENABLE_JDWP:-false}" == "true" ]]; then
       kill_port_if_busy 5005
     fi
