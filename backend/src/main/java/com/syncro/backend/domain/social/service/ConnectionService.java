@@ -5,6 +5,8 @@ import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.notifications.service.NotificationService;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.ConnectionResponse;
 import com.syncro.backend.domain.social.dto.SendConnectionRequest;
 import com.syncro.backend.domain.social.entity.Connection;
@@ -24,10 +26,19 @@ public class ConnectionService {
 
     private final UserRepository userRepository;
     private final ConnectionRepository connectionRepository;
+    private final NotificationService notificationService;
+    private final UserProfileRepository profileRepository;
 
-    public ConnectionService(UserRepository userRepository, ConnectionRepository connectionRepository) {
+    public ConnectionService(
+        UserRepository userRepository,
+        ConnectionRepository connectionRepository,
+        NotificationService notificationService,
+        UserProfileRepository profileRepository
+    ) {
         this.userRepository = userRepository;
         this.connectionRepository = connectionRepository;
+        this.notificationService = notificationService;
+        this.profileRepository = profileRepository;
     }
 
     @Transactional
@@ -38,7 +49,7 @@ public class ConnectionService {
         if (fromUser.getId().equals(toUserId)) {
             throw new BadRequestException("Cannot send connection request to yourself");
         }
-        User toUser = userRepository.findById(toUserId)
+        userRepository.findById(toUserId)
             .orElseThrow(() -> new NotFoundException("User not found"));
 
         var existing = connectionRepository.findByFromUserIdAndToUserId(fromUser.getId(), toUserId);
@@ -55,6 +66,13 @@ public class ConnectionService {
                 conn.setStatus(ConnectionStatus.PENDING);
                 conn.setContext(request.context());
                 Connection saved = connectionRepository.save(conn);
+                notificationService.createConnectionRequestReceivedNotification(
+                    saved.getToUserId(),
+                    fromUser.getId(),
+                    resolveActorDisplayName(fromUser),
+                    saved.getId(),
+                    saved.getContext()
+                );
                 return toResponse(saved);
             }
         }
@@ -73,6 +91,13 @@ public class ConnectionService {
         connection.setStatus(ConnectionStatus.PENDING);
         connection.setContext(request.context());
         Connection saved = connectionRepository.save(connection);
+        notificationService.createConnectionRequestReceivedNotification(
+            saved.getToUserId(),
+            fromUser.getId(),
+            resolveActorDisplayName(fromUser),
+            saved.getId(),
+            saved.getContext()
+        );
         return toResponse(saved);
     }
 
@@ -90,6 +115,13 @@ public class ConnectionService {
         }
         connection.setStatus(ConnectionStatus.ACCEPTED);
         Connection saved = connectionRepository.save(connection);
+        notificationService.createConnectionRequestAcceptedNotification(
+            saved.getFromUserId(),
+            user.getId(),
+            resolveActorDisplayName(user),
+            saved.getId(),
+            saved.getContext()
+        );
         return toResponse(saved);
     }
 
@@ -107,6 +139,13 @@ public class ConnectionService {
         }
         connection.setStatus(ConnectionStatus.REJECTED);
         Connection saved = connectionRepository.save(connection);
+        notificationService.createConnectionRequestRejectedNotification(
+            saved.getFromUserId(),
+            user.getId(),
+            resolveActorDisplayName(user),
+            saved.getId(),
+            saved.getContext()
+        );
         return toResponse(saved);
     }
 
@@ -166,5 +205,26 @@ public class ConnectionService {
             c.getCreatedAt(),
             c.getUpdatedAt()
         );
+    }
+
+    private String resolveActorDisplayName(User user) {
+        if (user == null) {
+            return "Un utente";
+        }
+        String fullName = profileRepository.findByUserId(user.getId())
+            .map(profile -> profile.getFullName())
+            .filter(name -> name != null && !name.isBlank())
+            .map(String::trim)
+            .orElse(null);
+        if (fullName != null) {
+            return fullName;
+        }
+        if (user.getUsername() != null && !user.getUsername().isBlank()) {
+            return user.getUsername().trim();
+        }
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            return user.getEmail().trim();
+        }
+        return "Un utente";
     }
 }

@@ -11,6 +11,8 @@ import com.syncro.backend.domain.notifications.entity.NotificationType;
 import com.syncro.backend.domain.notifications.mapper.NotificationMapper;
 import com.syncro.backend.domain.notifications.repository.NotificationRepository;
 import com.syncro.backend.domain.social.entity.ChatMessage;
+import com.syncro.backend.domain.social.entity.ConnectionContext;
+import com.syncro.backend.domain.social.entity.ConnectionStatus;
 import com.syncro.backend.security.UserPrincipal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -170,6 +172,84 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void createConnectionRequestReceivedNotification(
+        UUID recipientUserId,
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID connectionId,
+        ConnectionContext context
+    ) {
+        if (recipientUserId == null || actorUserId == null || connectionId == null) {
+            return;
+        }
+        if (recipientUserId.equals(actorUserId)) {
+            return;
+        }
+        String resolvedActor = resolveActorDisplayName(actorDisplayName);
+        Notification notification = new Notification();
+        notification.setUserId(recipientUserId);
+        notification.setType(NotificationType.CONNECTION_REQUEST_RECEIVED);
+        notification.setTitle("Nuova richiesta di connessione");
+        notification.setBody(resolvedActor + " ti ha inviato una richiesta di connessione.");
+        notification.setData(
+            buildConnectionData(connectionId, actorUserId, resolvedActor, context, ConnectionStatus.PENDING)
+        );
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createConnectionRequestAcceptedNotification(
+        UUID recipientUserId,
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID connectionId,
+        ConnectionContext context
+    ) {
+        if (recipientUserId == null || actorUserId == null || connectionId == null) {
+            return;
+        }
+        if (recipientUserId.equals(actorUserId)) {
+            return;
+        }
+        String resolvedActor = resolveActorDisplayName(actorDisplayName);
+        Notification notification = new Notification();
+        notification.setUserId(recipientUserId);
+        notification.setType(NotificationType.CONNECTION_REQUEST_ACCEPTED);
+        notification.setTitle("Richiesta accettata");
+        notification.setBody(resolvedActor + " ha accettato la tua richiesta di connessione.");
+        notification.setData(
+            buildConnectionData(connectionId, actorUserId, resolvedActor, context, ConnectionStatus.ACCEPTED)
+        );
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createConnectionRequestRejectedNotification(
+        UUID recipientUserId,
+        UUID actorUserId,
+        String actorDisplayName,
+        UUID connectionId,
+        ConnectionContext context
+    ) {
+        if (recipientUserId == null || actorUserId == null || connectionId == null) {
+            return;
+        }
+        if (recipientUserId.equals(actorUserId)) {
+            return;
+        }
+        String resolvedActor = resolveActorDisplayName(actorDisplayName);
+        Notification notification = new Notification();
+        notification.setUserId(recipientUserId);
+        notification.setType(NotificationType.CONNECTION_REQUEST_REJECTED);
+        notification.setTitle("Richiesta rifiutata");
+        notification.setBody(resolvedActor + " ha rifiutato la tua richiesta di connessione.");
+        notification.setData(
+            buildConnectionData(connectionId, actorUserId, resolvedActor, context, ConnectionStatus.REJECTED)
+        );
+        notificationRepository.save(notification);
+    }
+
     private Map<String, Object> buildMessageData(ChatMessage message, UUID conversationId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("conversationId", conversationId);
@@ -201,6 +281,22 @@ public class NotificationService {
         payload.put("commentId", commentId);
         payload.put("actorUserId", actorUserId);
         payload.put("actorDisplayName", resolveActorDisplayName(actorDisplayName));
+        return payload;
+    }
+
+    private Map<String, Object> buildConnectionData(
+        UUID connectionId,
+        UUID actorUserId,
+        String actorDisplayName,
+        ConnectionContext context,
+        ConnectionStatus status
+    ) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("connectionId", connectionId);
+        payload.put("actorUserId", actorUserId);
+        payload.put("actorDisplayName", actorDisplayName);
+        payload.put("context", context);
+        payload.put("status", status);
         return payload;
     }
 

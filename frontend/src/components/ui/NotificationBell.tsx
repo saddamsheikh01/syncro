@@ -20,6 +20,14 @@ const formatNotificationDate = (isoDate: string) => {
   });
 };
 
+const readDataString = (
+  notification: UserNotificationResponse,
+  key: string
+): string | null => {
+  const value = notification.data?.[key];
+  return typeof value === "string" ? value : null;
+};
+
 export const NotificationBell = () => {
   const { t } = useT();
   const router = useRouter();
@@ -90,6 +98,26 @@ export const NotificationBell = () => {
         setOpen(false);
         setSelectedNotification(null);
         router.push(`/chat/${conversationId}`);
+        return;
+      }
+    }
+
+    if (notification.type === "CONNECTION_REQUEST_RECEIVED") {
+      setOpen(false);
+      setSelectedNotification(null);
+      router.push("/connections");
+      return;
+    }
+
+    if (
+      notification.type === "CONNECTION_REQUEST_ACCEPTED" ||
+      notification.type === "CONNECTION_REQUEST_REJECTED"
+    ) {
+      const actorUserId = readDataString(notification, "actorUserId");
+      if (actorUserId) {
+        setOpen(false);
+        setSelectedNotification(null);
+        router.push(`/profile/${actorUserId}`);
         return;
       }
     }
