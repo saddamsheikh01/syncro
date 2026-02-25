@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { ProfileSettings } from "@/features/profile/flows/ProfileSettings";
+import { SettingsOverview } from "@/features/profile/flows/SettingsOverview";
 import { getServerTranslator } from "@/i18n/server";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -13,15 +13,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function SettingsPage() {
-  const { t } = await getServerTranslator();
-
   return (
     <MainLayout>
-      <ProfileSettings
-        title={t("Settings")}
-        subtitle={t("Update your details and main preferences.")}
-        showAccountSection
-      />
+      <SettingsOverview />
     </MainLayout>
   );
 }

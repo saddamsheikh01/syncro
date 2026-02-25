@@ -75,7 +75,9 @@ const DIMENSION_LABELS: Record<string, string> = {
 };
 
 const resolveMatchExplanation = (t: Translator, value?: string | null) => {
-  return t(resolveMatchCopy(value, "Affinity calculated from the profile"));
+  const fallback = "Affinity calculated from the profile";
+  const resolvedCopy = resolveMatchCopy(value, fallback) ?? fallback;
+  return t(resolvedCopy);
 };
 
 const buildMatchSummary = (match: UserMatchResponse, t: Translator): string => {
