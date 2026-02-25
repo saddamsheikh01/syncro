@@ -85,6 +85,34 @@ stop_process() {
   fi
 }
 
+ensure_backend_bytecode_consistency() {
+  if [[ ! -d "$BACKEND_DIR/target/classes" ]]; then
+    return
+  fi
+
+  local stale_count
+  if command -v rg >/dev/null 2>&1; then
+    stale_count="$(
+      rg -a -l "Unresolved compilation problems" "$BACKEND_DIR/target/classes" 2>/dev/null | wc -l
+    )"
+  else
+    stale_count="$(
+      grep -aR -l "Unresolved compilation problems" "$BACKEND_DIR/target/classes" 2>/dev/null | wc -l
+    )"
+  fi
+  stale_count="${stale_count//[[:space:]]/}"
+
+  if [[ "$stale_count" == "0" ]]; then
+    return
+  fi
+
+  echo "Rilevati class file non validi dopo merge ($stale_count). Eseguo clean compile backend..."
+  (
+    cd "$BACKEND_DIR"
+    ./mvnw clean compile -DskipTests
+  )
+}
+
 cleanup() {
   trap - INT TERM EXIT
   set +e
@@ -226,6 +254,7 @@ fi
 start_backend() {
   echo ""
   echo "Avvio backend..."
+  ensure_backend_bytecode_consistency
   (
     cd "$BACKEND_DIR"
     if [[ "${ENABLE_JDWP:-false}" == "true" ]]; then

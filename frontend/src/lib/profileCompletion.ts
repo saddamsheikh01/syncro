@@ -65,6 +65,20 @@ const WEIGHTS = {
 } as const;
 
 const INTEREST_THRESHOLD = 3;
+const REQUIRED_PROFILE_FIELDS = [
+  "fullName",
+  "birthDate",
+  "city",
+  "country",
+  "jobTitle",
+  "companyName",
+  "bio",
+  "traitsText",
+  "lovesText",
+  "dislikesText",
+  "goalsText",
+  "valuesText",
+] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -91,9 +105,14 @@ export const calculateProfileCompletion = (
     input.testsTotal > 0 ? input.testsCompleted / input.testsTotal : 0;
 
   // Profile fields (30%)
-  const fieldValues = Object.values(input.profileFields);
-  const filledCount = fieldValues.filter(isFilled).length;
-  const profileRatio = fieldValues.length > 0 ? filledCount / fieldValues.length : 0;
+  const requiredFieldValues = REQUIRED_PROFILE_FIELDS.map(
+    (key) => input.profileFields[key],
+  );
+  const filledRequiredCount = requiredFieldValues.filter(isFilled).length;
+  const profileRatio =
+    requiredFieldValues.length > 0
+      ? filledRequiredCount / requiredFieldValues.length
+      : 0;
 
   // Interests (15%)
   const interestsRatio = Math.min(input.interestCount / INTEREST_THRESHOLD, 1);
@@ -109,7 +128,9 @@ export const calculateProfileCompletion = (
   const preferencesRatio = filledFilters / 4;
 
   // Location (5%)
-  const locationRatio = input.hasPosition ? 1 : 0;
+  const hasManualLocation =
+    isFilled(input.profileFields.city) && isFilled(input.profileFields.country);
+  const locationRatio = input.hasPosition || hasManualLocation ? 1 : 0;
 
   // Build result
   const categories = {

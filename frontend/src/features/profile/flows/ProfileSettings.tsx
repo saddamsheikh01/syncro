@@ -167,6 +167,14 @@ const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
 };
 
 const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
+const PROFILE_COMPLETION_SUGGESTION_LABELS = {
+  tests: "Complete Insights",
+  profile: "Fill Out Profile",
+  interests: "Select Interests",
+  avatar: "Add a Photo",
+  preferences: "Set Preferences",
+  location: "Enable Location",
+} as const;
 
 export interface ProfileSettingsProps {
   title?: string;
@@ -183,9 +191,6 @@ export const ProfileSettings = ({
   const { t } = useT();
 
   const resolvedTitle = title ? t(title) : t("Profile");
-  const resolvedSubtitle = subtitle
-    ? t(subtitle)
-    : t("One last step to make your matches more focused.");
 
   const profileGenderOptions = useMemo(
     () =>
@@ -269,8 +274,48 @@ export const ProfileSettings = ({
   } = useTags();
   const { hasPosition } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
-  const { percentage: profileCompleteness, loading: profileCompletionLoading } = useProfileCompletion();
+  const {
+    percentage: profileCompleteness,
+    categories: profileCompletionCategories,
+    loading: profileCompletionLoading,
+  } = useProfileCompletion();
   const displayPercentage = Math.min(100, Math.max(0, Math.round(Number(profileCompleteness) || 0)));
+  const profileIsComplete = !profileCompletionLoading && displayPercentage >= 100;
+
+  const completionSuggestions = useMemo(() => {
+    const items = Object.entries(profileCompletionCategories)
+      .filter(([, score]) => score.ratio < 1)
+      .map(([key, score]) => {
+        const labelKey =
+          PROFILE_COMPLETION_SUGGESTION_LABELS[
+            key as keyof typeof PROFILE_COMPLETION_SUGGESTION_LABELS
+          ];
+        if (!labelKey) return null;
+        const potential = Math.round(score.weight - score.points);
+        if (potential <= 0) return null;
+        return {
+          id: key,
+          label: t(labelKey),
+          detail: `+${potential}%`,
+        };
+      })
+      .filter((item): item is { id: string; label: string; detail: string } =>
+        Boolean(item),
+      );
+
+    return items.sort((a, b) => {
+      const aValue = parseInt(a.detail.replace(/[^0-9]/g, ""), 10);
+      const bValue = parseInt(b.detail.replace(/[^0-9]/g, ""), 10);
+      return bValue - aValue;
+    });
+  }, [profileCompletionCategories, t]);
+
+  const topCompletionSuggestion = completionSuggestions[0];
+  const resolvedSubtitle = subtitle
+    ? t(subtitle)
+    : profileIsComplete
+      ? t("All required information has been filled in.")
+      : t("Complete your profile to get more accurate matches.");
 
   const initializedRef = useRef(false);
   const analyticsTrackedRef = useRef(false);
@@ -1245,16 +1290,24 @@ export const ProfileSettings = ({
               />
             </div>
           ) : null}
-          <div className="mt-4 border-t border-border/70 pt-4">
-            <p className="text-sm font-semibold text-foreground">
-              {t("Just one thing left: What are you really looking for?")}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              {t(
-                "This helps Zyra reduce mismatches and show you only people and places that truly fit you."
-              )}
-            </p>
-          </div>
+          {!profileCompletionLoading ? (
+            <div className="mt-4 border-t border-border/70 pt-4">
+              <p className="text-sm font-semibold text-foreground">
+                {profileIsComplete
+                  ? t("Profile completed")
+                  : topCompletionSuggestion
+                    ? `${topCompletionSuggestion.label} ${topCompletionSuggestion.detail}`
+                    : t("Complete your profile to get more accurate matches.")}
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                {profileIsComplete
+                  ? t("All required information has been filled in.")
+                  : t(
+                      "This helps Zyra reduce mismatches and show you only people and places that truly fit you."
+                    )}
+              </p>
+            </div>
+          ) : null}
         </Card>
 
         <Card className="flex flex-col items-center justify-center gap-3 p-5 text-center">
