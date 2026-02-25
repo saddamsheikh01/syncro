@@ -363,7 +363,11 @@ public class UserMatchService {
     }
 
     private void upsertExplanation(UserMatchScore match, String explanation) {
-        if (match.getId() == null || explanation == null) {
+        if (match.getId() == null) {
+            return;
+        }
+        if (explanation == null) {
+            matchExplanationRepository.findByMatchId(match.getId()).ifPresent(matchExplanationRepository::delete);
             return;
         }
         MatchExplanation stored = matchExplanationRepository.findByMatchId(match.getId())
