@@ -12,21 +12,35 @@ export const globalSearch = async (
   params: GlobalSearchParams
 ): Promise<GlobalSearchResponse> => {
   const { q, limit = 5 } = params;
+  const normalizedQuery = q.trim();
 
-  if (!q || q.trim().length < 2) {
+  if (!normalizedQuery || normalizedQuery.length < 2) {
     return { places: [], experiences: [], users: [], posts: [] };
   }
 
-  const [placesResult, usersResult, postsResult] = await Promise.all([
-    getPlaces({ q, size: limit }),
-    searchUsers({ q, size: limit }),
-    searchPosts({ q, size: limit }),
+  const isEmailQuery = normalizedQuery.includes("@");
+
+  if (isEmailQuery) {
+    const usersResult = await searchUsers({ q: normalizedQuery, size: limit });
+    return {
+      places: [],
+      experiences: [],
+      users: usersResult.content,
+      posts: [],
+    };
+  }
+
+  const [placesResult, usersResult, postsResult] = await Promise.allSettled([
+    getPlaces({ q: normalizedQuery, size: limit }),
+    searchUsers({ q: normalizedQuery, size: limit }),
+    searchPosts({ q: normalizedQuery, size: limit }),
   ]);
 
   return {
-    places: placesResult.content,
+    places:
+      placesResult.status === "fulfilled" ? placesResult.value.content : [],
     experiences: [],
-    users: usersResult.content,
-    posts: postsResult.content,
+    users: usersResult.status === "fulfilled" ? usersResult.value.content : [],
+    posts: postsResult.status === "fulfilled" ? postsResult.value.content : [],
   };
 };
