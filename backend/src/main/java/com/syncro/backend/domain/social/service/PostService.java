@@ -193,13 +193,19 @@ public class PostService {
     ) {
         User user = getUser(principal);
         validateCoordinates(latitude, longitude);
-        validateRadius(radiusKm, latitude, longitude);
+        // Only apply radius when we have both coordinates (otherwise feed would be empty)
+        Double effectiveRadius = radiusKm;
+        if (radiusKm != null && (latitude == null || longitude == null)) {
+            effectiveRadius = null;
+        } else if (radiusKm != null && radiusKm <= 0) {
+            throw new BadRequestException("Raggio non valido");
+        }
 
         PageRequest pageable = PageRequest.of(page, size);
         Page<Post> posts = postRepository.findFeed(
             latitude,
             longitude,
-            radiusKm,
+            effectiveRadius,
             scope != null ? scope.name() : null,
             mood != null ? mood.name() : null,
             timeframe != null ? timeframe.name() : null,
@@ -209,7 +215,7 @@ public class PostService {
             maxAge,
             pageable
         );
-        return mapFeed(posts, user.getId(), latitude, longitude, radiusKm, minCompatibility);
+        return mapFeed(posts, user.getId(), latitude, longitude, effectiveRadius, minCompatibility);
     }
 
     @Transactional(readOnly = true)

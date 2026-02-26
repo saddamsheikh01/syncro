@@ -30,6 +30,17 @@ const readNumber = (value: JsonValue | undefined) =>
 const readBoolean = (value: JsonValue | undefined) =>
   typeof value === "boolean" ? value : undefined;
 
+/** Parse radius from preferences (may be stored as number or string). */
+const readRadiusKm = (value: JsonValue | undefined): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0)
+    return value;
+  if (typeof value === "string") {
+    const n = Number.parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+  return undefined;
+};
+
 type Translator = (
   key: string,
   params?: Record<string, string | number>
@@ -58,6 +69,13 @@ const TIMEFRAME_OPTION_KEYS = [
   { labelKey: "Now", value: "ORA" },
   { labelKey: "Today", value: "OGGI" },
 ];
+
+const NEAR_YOU_RADIUS_OPTIONS = [
+  { labelKey: "10 km", value: 10 },
+  { labelKey: "25 km", value: 25 },
+  { labelKey: "50 km", value: 50 },
+  { labelKey: "100 km", value: 100 },
+] as const;
 
 const GENDER_OPTION_KEYS = [
   { labelKey: "All", value: "" },
@@ -183,6 +201,8 @@ export const Feed = () => {
   const [ageMaxFilter, setAgeMaxFilter] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
   const [minCompatibility, setMinCompatibility] = useState("");
+  const [nearYouFilter, setNearYouFilter] = useState(true);
+  const [radiusFilter, setRadiusFilter] = useState<number>(25);
   const [activeFilters, setActiveFilters] = useState({
     scope: "",
     timeframe: "",
@@ -191,6 +211,8 @@ export const Feed = () => {
     maxAge: "",
     gender: "",
     minCompatibility: "",
+    onlyNearby: true,
+    radiusKm: 25,
   });
 
   useEffect(() => {
@@ -206,6 +228,18 @@ export const Feed = () => {
     positionActions.fetchPosition().catch(() => undefined);
   }, [positionActions, status, userActions]);
 
+  const preferencesSyncedRef = useRef(false);
+  useEffect(() => {
+    if (preferencesSyncedRef.current || preferences == null) return;
+    preferencesSyncedRef.current = true;
+    const stored = (preferences.feedPreferences ?? {}) as Record<string, JsonValue>;
+    const onlyNearby = readBoolean(stored.onlyNearby) ?? true;
+    const radius = readRadiusKm(stored.radiusKm) ?? 25;
+    setNearYouFilter(onlyNearby);
+    setRadiusFilter(radius);
+    setActiveFilters((prev) => ({ ...prev, onlyNearby, radiusKm: radius }));
+  }, [preferences]);
+
   const handleApplyFilters = () => {
     setActiveFilters({
       scope: scopeFilter,
@@ -215,6 +249,8 @@ export const Feed = () => {
       maxAge: ageMaxFilter.trim(),
       gender: genderFilter,
       minCompatibility: minCompatibility.trim(),
+      onlyNearby: nearYouFilter,
+      radiusKm: radiusFilter,
     });
   };
 
@@ -226,6 +262,8 @@ export const Feed = () => {
     setAgeMaxFilter("");
     setGenderFilter("");
     setMinCompatibility("");
+    setNearYouFilter(false);
+    setRadiusFilter(25);
     setActiveFilters({
       scope: "",
       timeframe: "",
@@ -234,16 +272,17 @@ export const Feed = () => {
       maxAge: "",
       gender: "",
       minCompatibility: "",
+      onlyNearby: false,
+      radiusKm: 25,
     });
   };
 
   const feedFilters = useMemo(() => {
-    const storedFeed = (preferences?.feedPreferences ?? {}) as Record<
-      string,
-      JsonValue
-    >;
-    const onlyNearby = readBoolean(storedFeed.onlyNearby) ?? true;
-    const radiusKm = readNumber(storedFeed.radiusKm);
+    const onlyNearby = activeFilters.onlyNearby ?? true;
+    const radiusKm =
+      typeof activeFilters.radiusKm === "number" && activeFilters.radiusKm > 0
+        ? activeFilters.radiusKm
+        : 25;
 
     const useCityFilter = activeFilters.city.trim().length > 0;
     const locationFilters =
@@ -251,7 +290,7 @@ export const Feed = () => {
         ? {
             lat: position.latitude ?? undefined,
             lng: position.longitude ?? undefined,
-            radiusKm: radiusKm ?? undefined,
+            radiusKm,
           }
         : {};
 
@@ -276,7 +315,7 @@ export const Feed = () => {
         ? minCompatibilityValue
         : undefined,
     };
-  }, [activeFilters, hasPosition, position, preferences]);
+  }, [activeFilters, hasPosition, position]);
 
   const feedFilterKey = useMemo(
     () => JSON.stringify(feedFilters),
@@ -504,12 +543,11 @@ export const Feed = () => {
 
   const isInitialLoading = loading && items.length === 0;
 
-  const storedFeed = (preferences?.feedPreferences ?? {}) as Record<
-    string,
-    JsonValue
-  >;
-  const onlyNearby = readBoolean(storedFeed.onlyNearby) ?? true;
-  const radiusKm = readNumber(storedFeed.radiusKm);
+  const onlyNearbyApplied = activeFilters.onlyNearby ?? true;
+  const radiusKmApplied =
+    typeof activeFilters.radiusKm === "number" && activeFilters.radiusKm > 0
+      ? activeFilters.radiusKm
+      : undefined;
   const positionLabel =
     hasPosition && position
       ? `${formatCoordinate(position.latitude)}, ${formatCoordinate(
@@ -604,6 +642,42 @@ export const Feed = () => {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              {t("Near you")}
+            </label>
+            <div className="flex h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface px-3 shadow-sm">
+              <span className="text-sm text-subtle">
+                {nearYouFilter
+                  ? t("Show posts near my location")
+                  : t("Show all posts")}
+              </span>
+              <label className="relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={nearYouFilter}
+                  onChange={(e) => setNearYouFilter(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <span className="absolute inset-0 rounded-full bg-border/80 transition peer-checked:bg-accent" />
+                <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-surface shadow-sm transition peer-checked:translate-x-4" />
+              </label>
+            </div>
+          </div>
+          {nearYouFilter ? (
+            <Select
+              label={t("Radius (km)")}
+              options={NEAR_YOU_RADIUS_OPTIONS.map((opt) => ({
+                label: t(opt.labelKey),
+                value: String(opt.value),
+              }))}
+              value={String(radiusFilter)}
+              onValueChange={(value) => {
+                const n = Number.parseInt(value, 10);
+                if (Number.isFinite(n) && n > 0) setRadiusFilter(n);
+              }}
+            />
+          ) : null}
           <Select
             label={t("Scope")}
             options={scopeOptions}
@@ -656,11 +730,14 @@ export const Feed = () => {
 
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <Badge tone="accent" size="sm">
-          {onlyNearby ? t("Nearby only") : t("All posts")}
+          {onlyNearbyApplied ? t("Near you") : t("All posts")}
         </Badge>
         <Badge tone="neutral" size="sm">
           {t("Radius {value}", {
-            value: radiusKm ? `${radiusKm} km` : t("any"),
+            value:
+              onlyNearbyApplied && radiusKmApplied
+                ? `${radiusKmApplied} km`
+                : t("any"),
           })}
         </Badge>
         <Badge tone={hasPosition ? "success" : "warning"} size="sm">
