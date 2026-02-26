@@ -10,6 +10,14 @@ app:
       client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
       token-info-url: ${GOOGLE_OAUTH_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
       timeout-seconds: ${GOOGLE_OAUTH_TIMEOUT_SECONDS:5}
+  brevo:
+    api-key: ${BREVO_API_KEY:}
+    base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}
+    timeout-seconds: ${BREVO_TIMEOUT_SECONDS:10}
+    sender-email: ${BREVO_SENDER_EMAIL:}
+    sender-name: ${BREVO_SENDER_NAME:Syncro}
+    password-reset-template-id: ${BREVO_PASSWORD_RESET_TEMPLATE_ID:0}
+    password-reset-url-base: ${BREVO_PASSWORD_RESET_URL_BASE:https://syncroapp.it/reset-password}
   google-maps:
     api-key: ${GOOGLE_MAPS_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api

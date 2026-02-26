@@ -243,6 +243,14 @@ export const Login = () => {
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
+              <div className="-mt-1 flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-accent hover:underline"
+                >
+                  {t("Forgot password?")}
+                </Link>
+              </div>
 
               {error ? (
                 <div className="rounded-[12px] border border-danger/20 bg-danger/10 px-4 py-2 text-sm text-danger">

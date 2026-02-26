@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -10,10 +9,10 @@ import { Input } from "@/components/elements/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth, useT, useUser } from "@/hooks";
 import {
-  changeCurrentUserPassword,
   checkUsernameAvailability,
   deleteCurrentUser,
 } from "@/services/users";
+import { requestPasswordReset } from "@/services/auth";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
 
 const DELETE_PROFILE_CONFIRMATION_PHRASE = "DELETE MY PROFILE";
@@ -48,12 +47,9 @@ export const SettingsOverview = () => {
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  const [passwordCurrent, setPasswordCurrent] = useState("");
-  const [passwordNew, setPasswordNew] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordResetSending, setPasswordResetSending] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   const [deleteProfileModalOpen, setDeleteProfileModalOpen] = useState(false);
   const [deleteProfileConfirmation, setDeleteProfileConfirmation] = useState("");
@@ -185,40 +181,29 @@ export const SettingsOverview = () => {
     }
   };
 
-  const handleChangePassword = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSendPasswordResetLink = async () => {
     setPasswordError(null);
+    setPasswordSuccess(null);
 
-    if (passwordNew.length < 8) {
-      setPasswordError("New password must be at least 8 characters.");
-      return;
-    }
-    if (passwordNew !== passwordConfirm) {
-      setPasswordError("New password and confirmation do not match.");
-      return;
-    }
-    if (passwordNew === passwordCurrent) {
-      setPasswordError("New password must be different from current password.");
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) {
+      setPasswordError("No email configured on your account.");
       return;
     }
 
-    setPasswordSaving(true);
+    setPasswordResetSending(true);
     try {
-      await changeCurrentUserPassword({
-        currentPassword: passwordCurrent,
-        newPassword: passwordNew,
-      });
-      setPasswordSuccess(true);
-      setPasswordCurrent("");
-      setPasswordNew("");
-      setPasswordConfirm("");
-      await authActions.logout();
-      resetAllStores();
-      router.replace("/login");
+      const response = await requestPasswordReset({ email });
+      setPasswordSuccess(
+        response.message ||
+          "If the email is registered, you will receive reset instructions shortly.",
+      );
     } catch (saveError) {
-      setPasswordError(resolveErrorMessage(saveError, "Unable to update password."));
+      setPasswordError(
+        resolveErrorMessage(saveError, "Unable to request password reset."),
+      );
     } finally {
-      setPasswordSaving(false);
+      setPasswordResetSending(false);
     }
   };
 
@@ -358,61 +343,38 @@ export const SettingsOverview = () => {
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">{t("Password")}</h2>
             <p className="text-sm text-muted">
-              {t("For security, you will be signed out after changing your password.")}
+              {t(
+                "For security, password changes happen through a reset link sent to your email."
+              )}
             </p>
           </div>
-          <form className="space-y-3" onSubmit={handleChangePassword}>
-            <Input
-              label={t("Current password")}
-              type="password"
-              autoComplete="current-password"
-              value={passwordCurrent}
-              onChange={(event) => {
-                setPasswordError(null);
-                setPasswordCurrent(event.target.value);
-              }}
-              placeholder={t("Enter current password")}
-            />
-            <Input
-              label={t("New password")}
-              type="password"
-              autoComplete="new-password"
-              value={passwordNew}
-              onChange={(event) => {
-                setPasswordError(null);
-                setPasswordNew(event.target.value);
-              }}
-              placeholder={t("At least 8 characters")}
-            />
-            <Input
-              label={t("Confirm new password")}
-              type="password"
-              autoComplete="new-password"
-              value={passwordConfirm}
-              onChange={(event) => {
-                setPasswordError(null);
-                setPasswordConfirm(event.target.value);
-              }}
-              placeholder={t("Repeat new password")}
-            />
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              {t("Destination email")}:{" "}
+              <span className="font-medium text-foreground">{user?.email ?? "-"}</span>
+            </p>
             {passwordError ? (
               <p className="text-sm text-danger">{t(passwordError)}</p>
             ) : null}
             {passwordSuccess ? (
-              <p className="text-sm text-success">
-                {t("Password updated. Redirecting to login...")}
+              <p className="text-sm text-success">{t(passwordSuccess)}</p>
+            ) : null}
+            {passwordSuccess ? (
+              <p className="text-xs text-muted">
+                {t("If you don't see the email, check your spam or junk folder.")}
               </p>
             ) : null}
             <Button
-              type="submit"
+              type="button"
               size="sm"
-              loading={passwordSaving}
-              loadingText={t("Saving")}
-              disabled={passwordSaving}
+              loading={passwordResetSending}
+              loadingText={t("Sending...")}
+              disabled={passwordResetSending}
+              onClick={handleSendPasswordResetLink}
             >
-              {t("Save new password")}
+              {t("Send reset link")}
             </Button>
-          </form>
+          </div>
         </Card>
 
         <Card className="space-y-4 border-danger/30 bg-danger/5 p-5">

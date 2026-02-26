@@ -2,6 +2,7 @@ package com.syncro.backend.domain.auth.service;
 
 import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.ConflictException;
+import com.syncro.backend.common.exception.ExternalServiceException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.dto.AuthResponse;
@@ -28,6 +29,7 @@ import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserPasswordResetTokenRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.domain.external.brevo.BrevoMailClient;
 import com.syncro.backend.domain.referrals.service.ReferralService;
 import com.syncro.backend.security.JwtService;
 import com.syncro.backend.security.SubjectType;
@@ -74,6 +76,7 @@ public class AuthService {
     private final ReferralService referralService;
     private final AnalyticsService analyticsService;
     private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
+    private final BrevoMailClient brevoMailClient;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -86,7 +89,8 @@ public class AuthService {
         AuthMapper authMapper,
         ReferralService referralService,
         AnalyticsService analyticsService,
-        GoogleIdTokenVerifierService googleIdTokenVerifierService
+        GoogleIdTokenVerifierService googleIdTokenVerifierService,
+        BrevoMailClient brevoMailClient
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -98,6 +102,7 @@ public class AuthService {
         this.referralService = referralService;
         this.analyticsService = analyticsService;
         this.googleIdTokenVerifierService = googleIdTokenVerifierService;
+        this.brevoMailClient = brevoMailClient;
     }
 
     @Transactional
@@ -282,44 +287,57 @@ public class AuthService {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email).orElse(null);
 
-        if (user == null || user.getStatus() != UserStatus.ACTIVE) {
-            analyticsService.trackServerEventSafe(
+        if (user == null || user.getStatus() != UserStatus.ACTIVE || user.getEmail() == null || user.getEmail().isBlank()) {
+            trackPasswordResetRequested(
                 user != null ? user.getId() : null,
-                "PASSWORD_RESET_REQUESTED",
-                Map.of("result", "USER_NOT_ELIGIBLE")
+                "USER_NOT_ELIGIBLE",
+                "SELF_SERVICE"
             );
             return new PasswordResetRequestResponse(PASSWORD_RESET_GENERIC_MESSAGE);
         }
 
-        UserAuthProvider provider = providerRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL).orElse(null);
-        if (provider == null || provider.getProviderUserId() == null || provider.getProviderUserId().isBlank()) {
-            analyticsService.trackServerEventSafe(
-                user.getId(),
-                "PASSWORD_RESET_REQUESTED",
-                Map.of("result", "EMAIL_PROVIDER_NOT_ELIGIBLE")
-            );
-            return new PasswordResetRequestResponse(PASSWORD_RESET_GENERIC_MESSAGE);
-        }
-
+        ensureEmailProviderForPasswordReset(user);
         Instant now = Instant.now();
-        passwordResetTokenRepository.deleteByUserIdAndUsedAtIsNullAndExpiresAtAfter(user.getId(), now);
-
         String rawToken = generatePasswordResetToken();
-        UserPasswordResetToken resetToken = new UserPasswordResetToken();
-        resetToken.setUser(user);
-        resetToken.setTokenHash(hashPasswordResetToken(rawToken));
-        resetToken.setExpiresAt(now.plus(PASSWORD_RESET_TOKEN_TTL));
-        passwordResetTokenRepository.save(resetToken);
+        UserPasswordResetToken resetToken = createPasswordResetToken(user, now, rawToken);
 
-        // Fallback temporaneo: token su log applicativo finché non viene integrato un provider email.
-        logger.info("Password reset token generato per userId={}: {}", user.getId(), rawToken);
-        analyticsService.trackServerEventSafe(
-            user.getId(),
-            "PASSWORD_RESET_REQUESTED",
-            Map.of("result", "TOKEN_GENERATED")
-        );
+        try {
+            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken);
+            trackPasswordResetRequested(user.getId(), "TOKEN_EMAIL_SENT", "SELF_SERVICE");
+        } catch (Exception ex) {
+            passwordResetTokenRepository.delete(resetToken);
+            logger.warn("Invio email reset password fallito per userId={}", user.getId(), ex);
+            trackPasswordResetRequested(user.getId(), "EMAIL_SEND_FAILED", "SELF_SERVICE");
+        }
 
         return new PasswordResetRequestResponse(PASSWORD_RESET_GENERIC_MESSAGE);
+    }
+
+    @Transactional
+    public void requestPasswordResetByAdmin(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new BadRequestException("Operazione non disponibile per utenti eliminati");
+        }
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new BadRequestException("L'utente non ha un'email valida");
+        }
+
+        ensureEmailProviderForPasswordReset(user);
+        Instant now = Instant.now();
+        String rawToken = generatePasswordResetToken();
+        UserPasswordResetToken resetToken = createPasswordResetToken(user, now, rawToken);
+
+        try {
+            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken);
+            trackPasswordResetRequested(user.getId(), "TOKEN_EMAIL_SENT", "ADMIN_BACKOFFICE");
+        } catch (Exception ex) {
+            passwordResetTokenRepository.delete(resetToken);
+            trackPasswordResetRequested(user.getId(), "EMAIL_SEND_FAILED", "ADMIN_BACKOFFICE");
+            throw new ExternalServiceException("Invio email di reset password non riuscito", ex);
+        }
     }
 
     @Transactional
@@ -443,6 +461,39 @@ public class AuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private UserAuthProvider ensureEmailProviderForPasswordReset(User user) {
+        UserAuthProvider provider = providerRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL)
+            .orElseGet(() -> {
+                UserAuthProvider newProvider = new UserAuthProvider();
+                newProvider.setUser(user);
+                newProvider.setProvider(AuthProvider.EMAIL);
+                return newProvider;
+            });
+
+        if (provider.getProviderUserId() == null || provider.getProviderUserId().isBlank()) {
+            provider.setProviderUserId(passwordEncoder.encode(generatePasswordResetToken()));
+        }
+
+        return providerRepository.save(provider);
+    }
+
+    private UserPasswordResetToken createPasswordResetToken(User user, Instant now, String rawToken) {
+        passwordResetTokenRepository.deleteByUserIdAndUsedAtIsNullAndExpiresAtAfter(user.getId(), now);
+
+        UserPasswordResetToken resetToken = new UserPasswordResetToken();
+        resetToken.setUser(user);
+        resetToken.setTokenHash(hashPasswordResetToken(rawToken));
+        resetToken.setExpiresAt(now.plus(PASSWORD_RESET_TOKEN_TTL));
+        return passwordResetTokenRepository.save(resetToken);
+    }
+
+    private void trackPasswordResetRequested(UUID userId, String result, String source) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("result", result);
+        payload.put("source", source);
+        analyticsService.trackServerEventSafe(userId, "PASSWORD_RESET_REQUESTED", payload);
     }
 
     private String normalizeLanguage(String language) {

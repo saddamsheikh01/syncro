@@ -3,7 +3,6 @@ package com.syncro.backend.domain.auth.controller;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
-import com.syncro.backend.domain.auth.dto.ChangePasswordRequest;
 import com.syncro.backend.domain.auth.dto.DeleteUserRequest;
 import com.syncro.backend.domain.auth.service.UserService;
 import com.syncro.backend.security.UserPrincipal;
@@ -69,16 +68,6 @@ public class UserController {
         @Valid @RequestBody DeleteUserRequest request
     ) {
         userService.deleteMe(principal, request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/me/password")
-    @Operation(summary = "Change current user password")
-    public ResponseEntity<Void> changePassword(
-        @AuthenticationPrincipal UserPrincipal principal,
-        @Valid @RequestBody ChangePasswordRequest request
-    ) {
-        userService.changePassword(principal, request);
         return ResponseEntity.noContent().build();
     }
 }

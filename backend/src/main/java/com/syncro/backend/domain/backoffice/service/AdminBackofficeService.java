@@ -18,6 +18,7 @@ import com.syncro.backend.domain.auth.mapper.AuthMapper;
 import com.syncro.backend.domain.auth.repository.AdminUserRepository;
 import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.auth.service.AuthService;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
@@ -78,6 +79,7 @@ public class AdminBackofficeService {
     private final UserTestSubmissionRepository userTestSubmissionRepository;
     private final MediaObjectRepository mediaObjectRepository;
     private final SupportMessageRepository supportMessageRepository;
+    private final AuthService authService;
 
     public AdminBackofficeService(
         UserRepository userRepository,
@@ -92,7 +94,8 @@ public class AdminBackofficeService {
         UserProfileMapper userProfileMapper,
         UserTestSubmissionRepository userTestSubmissionRepository,
         MediaObjectRepository mediaObjectRepository,
-        SupportMessageRepository supportMessageRepository
+        SupportMessageRepository supportMessageRepository,
+        AuthService authService
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
@@ -107,6 +110,7 @@ public class AdminBackofficeService {
         this.userTestSubmissionRepository = userTestSubmissionRepository;
         this.mediaObjectRepository = mediaObjectRepository;
         this.supportMessageRepository = supportMessageRepository;
+        this.authService = authService;
     }
 
     @Transactional(readOnly = true)
@@ -278,6 +282,12 @@ public class AdminBackofficeService {
 
         provider.setProviderUserId(passwordEncoder.encode(request.newPassword()));
         userAuthProviderRepository.save(provider);
+    }
+
+    @Transactional
+    public void sendUserPasswordResetLink(AdminPrincipal principal, UUID userId) {
+        ensureSuperAdmin(principal);
+        authService.requestPasswordResetByAdmin(userId);
     }
 
     @Transactional

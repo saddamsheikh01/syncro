@@ -122,6 +122,10 @@ export const updateUserPassword = async (
   await apiClient.patch(`/admin/users/${userId}/password`, payload);
 };
 
+export const sendUserPasswordResetLink = async (userId: Uuid): Promise<void> => {
+  await apiClient.post(`/admin/users/${userId}/password/reset-link`);
+};
+
 export const getAdminUsers = async (
   params: AdminAdminsParams = {}
 ): Promise<PageResponse<AdminUserResponse>> => {

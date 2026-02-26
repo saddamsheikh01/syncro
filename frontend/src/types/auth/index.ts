@@ -72,11 +72,6 @@ export type UpdateUserRequest = {
   email?: string | null;
 };
 
-export type ChangePasswordRequest = {
-  currentPassword: string;
-  newPassword: string;
-};
-
 export type UsernameAvailabilityResponse = {
   available: boolean;
 };

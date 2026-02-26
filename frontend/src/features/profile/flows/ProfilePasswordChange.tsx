@@ -2,14 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
-import { Input } from "@/components/elements/Input";
 import { useAuth, useT } from "@/hooks";
-import { changeCurrentUserPassword } from "@/services/users";
-import { resetAllStores } from "@/stores/utils/resetAllStores";
+import { requestPasswordReset } from "@/services/auth";
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === "object" && "message" in error) {
@@ -20,44 +16,38 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export const ProfilePasswordChange = () => {
-  const router = useRouter();
-  const { actions: authActions } = useAuth();
+  const { user } = useAuth();
   const { t } = useT();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSendResetLink = async () => {
     setError(null);
+    setSuccessMessage(null);
 
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("New password and confirmation do not match.");
-      return;
-    }
-    if (newPassword === currentPassword) {
-      setError("New password must be different from current password.");
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) {
+      setError("No email configured on your account. Update your email first.");
       return;
     }
 
-    setSaving(true);
+    setSending(true);
     try {
-      await changeCurrentUserPassword({ currentPassword, newPassword });
-      setSuccessMessage("Password updated. Redirecting to login...");
-      await authActions.logout();
-      resetAllStores();
-      router.replace("/login");
+      const response = await requestPasswordReset({ email });
+      setSuccessMessage(
+        response.message ||
+          "If the email is registered, you will receive reset instructions shortly.",
+      );
     } catch (submitError) {
-      setError(resolveErrorMessage(submitError, "Unable to update password."));
+      setError(
+        resolveErrorMessage(
+          submitError,
+          "Unable to request password reset. Try again.",
+        ),
+      );
     } finally {
-      setSaving(false);
+      setSending(false);
     }
   };
 
@@ -68,55 +58,41 @@ export const ProfilePasswordChange = () => {
           {t("Account security")}
         </p>
         <h1 className="text-2xl font-semibold text-foreground">
-          {t("Change password")}
+          {t("Reset password")}
         </h1>
         <p className="text-sm text-muted">
           {t(
-            "For security reasons, you will be signed out after saving the new password."
+            "We'll send a secure reset link to your account email so you can set a new password."
           )}
         </p>
       </div>
 
       <Card className="p-6">
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <Input
-            label={t("Current password")}
-            type="password"
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(event) => setCurrentPassword(event.target.value)}
-            placeholder={t("Enter current password")}
-            required
-          />
-
-          <Input
-            label={t("New password")}
-            type="password"
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            placeholder={t("At least 8 characters")}
-            required
-          />
-
-          <Input
-            label={t("Confirm new password")}
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder={t("Repeat new password")}
-            required
-          />
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            {t("Destination email")}:{" "}
+            <span className="font-medium text-foreground">{user?.email ?? "-"}</span>
+          </p>
 
           {error ? <p className="text-sm text-danger">{t(error)}</p> : null}
           {successMessage ? (
             <p className="text-sm text-success">{t(successMessage)}</p>
           ) : null}
+          {successMessage ? (
+            <p className="text-xs text-muted">
+              {t("If you don't see the email, check your spam or junk folder.")}
+            </p>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" size="sm" loading={saving} loadingText={t("Saving")}>
-              {t("Save new password")}
+            <Button
+              type="button"
+              size="sm"
+              loading={sending}
+              loadingText={t("Sending...")}
+              onClick={handleSendResetLink}
+            >
+              {t("Send reset link")}
             </Button>
             <Link
               href="/profile"
@@ -125,7 +101,7 @@ export const ProfilePasswordChange = () => {
               {t("Back to profile")}
             </Link>
           </div>
-        </form>
+        </div>
       </Card>
     </div>
   );

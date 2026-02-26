@@ -17,6 +17,7 @@ import {
   deleteUser,
   getUserTestsCount,
   getUsers,
+  sendUserPasswordResetLink,
   updateUser,
   updateUserPassword,
 } from "@/services/admin";
@@ -51,6 +52,8 @@ export const AdminUsersOverview = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [sendingResetEmail, setSendingResetEmail] = useState(false);
+  const [resetEmailSuccess, setResetEmailSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editLanguage, setEditLanguage] = useState("it");
   const [editStatus, setEditStatus] = useState<UserStatus>("ACTIVE");
@@ -135,6 +138,7 @@ export const AdminUsersOverview = () => {
   useEffect(() => {
     if (!selectedUser) {
       setUserTestsCount(null);
+      setResetEmailSuccess(null);
       return;
     }
 
@@ -259,10 +263,30 @@ export const AdminUsersOverview = () => {
         newPassword: newPassword.trim(),
       });
       setNewPassword("");
+      setResetEmailSuccess(null);
     } catch (requestError) {
       setError(requestError as ApiError);
     } finally {
       setResettingPassword(false);
+    }
+  };
+
+  const handleSendResetEmail = async () => {
+    if (!selectedUser) {
+      return;
+    }
+
+    setSendingResetEmail(true);
+    setError(null);
+    setResetEmailSuccess(null);
+
+    try {
+      await sendUserPasswordResetLink(selectedUser.id);
+      setResetEmailSuccess("Reset email sent successfully.");
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setSendingResetEmail(false);
     }
   };
 
@@ -405,7 +429,7 @@ export const AdminUsersOverview = () => {
             </div>
           </form>
 
-          <div className="grid gap-3 lg:grid-cols-[1fr,auto,auto]">
+          <div className="grid gap-3 lg:grid-cols-[1fr,auto,auto,auto]">
             <Input
               label={t("New password")}
               type="password"
@@ -428,6 +452,17 @@ export const AdminUsersOverview = () => {
             <div className="flex items-end">
               <Button
                 size="sm"
+                variant="secondary"
+                onClick={handleSendResetEmail}
+                loading={sendingResetEmail}
+                loadingText={t("Sending...")}
+              >
+                {t("Send reset email")}
+              </Button>
+            </div>
+            <div className="flex items-end">
+              <Button
+                size="sm"
                 variant="danger"
                 onClick={handleDeleteUser}
                 loading={deleting}
@@ -437,6 +472,14 @@ export const AdminUsersOverview = () => {
               </Button>
             </div>
           </div>
+          {resetEmailSuccess ? (
+            <p className="text-sm text-success">{t(resetEmailSuccess)}</p>
+          ) : null}
+          {resetEmailSuccess ? (
+            <p className="text-xs text-muted">
+              {t("If needed, ask the user to check their spam or junk folder.")}
+            </p>
+          ) : null}
 
           <Card className="p-4">
             <p className="text-sm text-muted">

@@ -149,6 +149,16 @@ public class AdminBackofficeController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/users/{userId}/password/reset-link")
+    @Operation(summary = "Invia link reset password a utente app")
+    public ResponseEntity<Void> sendUserPasswordResetLink(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @PathVariable UUID userId
+    ) {
+        adminBackofficeService.sendUserPasswordResetLink(principal, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/users/{userId}")
     @Operation(summary = "Elimina utente app (soft delete)")
     public ResponseEntity<Void> deleteUser(

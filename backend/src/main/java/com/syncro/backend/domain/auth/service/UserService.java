@@ -4,16 +4,12 @@ import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
-import com.syncro.backend.domain.auth.dto.ChangePasswordRequest;
 import com.syncro.backend.domain.auth.dto.DeleteUserRequest;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
-import com.syncro.backend.domain.auth.entity.AuthProvider;
 import com.syncro.backend.domain.auth.entity.User;
-import com.syncro.backend.domain.auth.entity.UserAuthProvider;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
-import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.security.UserPrincipal;
@@ -23,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,21 +33,15 @@ public class UserService {
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
 
     private final UserRepository userRepository;
-    private final UserAuthProviderRepository userAuthProviderRepository;
-    private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
     private final AnalyticsService analyticsService;
 
     public UserService(
         UserRepository userRepository,
-        UserAuthProviderRepository userAuthProviderRepository,
-        PasswordEncoder passwordEncoder,
         AuthMapper authMapper,
         AnalyticsService analyticsService
     ) {
         this.userRepository = userRepository;
-        this.userAuthProviderRepository = userAuthProviderRepository;
-        this.passwordEncoder = passwordEncoder;
         this.authMapper = authMapper;
         this.analyticsService = analyticsService;
     }
@@ -158,39 +147,6 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         userRepository.delete(user);
-    }
-
-    @Transactional
-    public void changePassword(UserPrincipal principal, ChangePasswordRequest request) {
-        if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
-        }
-
-        UUID userId = principal.userId();
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
-
-        UserAuthProvider provider = userAuthProviderRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL)
-            .orElseThrow(() -> new BadRequestException("Operazione non disponibile per questo account"));
-        String currentPasswordHash = provider.getProviderUserId();
-        if (currentPasswordHash == null || currentPasswordHash.isBlank()) {
-            throw new BadRequestException("Operazione non disponibile per questo account");
-        }
-
-        if (!passwordEncoder.matches(request.currentPassword(), currentPasswordHash)) {
-            throw new BadRequestException("Password attuale non corretta");
-        }
-        if (passwordEncoder.matches(request.newPassword(), currentPasswordHash)) {
-            throw new BadRequestException("La nuova password deve essere diversa da quella attuale");
-        }
-
-        provider.setProviderUserId(passwordEncoder.encode(request.newPassword()));
-        userAuthProviderRepository.save(provider);
-        analyticsService.trackServerEventSafe(
-            user.getId(),
-            "PASSWORD_CHANGED",
-            Map.of("authProvider", AuthProvider.EMAIL.name())
-        );
     }
 
     private String normalizeLanguage(String language) {

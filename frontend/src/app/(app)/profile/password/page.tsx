@@ -7,8 +7,8 @@ export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
 
   return {
-    title: t("Change password | Syncro"),
-    description: t("Update your Syncro account password."),
+    title: t("Reset password | Syncro"),
+    description: t("Request a secure password reset link for your Syncro account."),
   };
 };
 
