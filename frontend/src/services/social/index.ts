@@ -56,6 +56,11 @@ export const getFeed = async (
   return data;
 };
 
+export const getPostById = async (postId: Uuid): Promise<PostResponse> => {
+  const { data } = await apiClient.get<PostResponse>(`/posts/${postId}`);
+  return data;
+};
+
 export const createPost = async (
   payload: CreatePostRequest
 ): Promise<PostResponse> => {

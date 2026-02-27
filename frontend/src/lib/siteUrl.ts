@@ -58,3 +58,8 @@ export function getShareableExperienceUrl(experienceId: string): string {
   const base = getShareableBaseUrl();
   return base ? `${base}/experiences/${experienceId}` : `/experiences/${experienceId}`;
 }
+
+export function getShareableMomentUrl(postId: string): string {
+  const base = getShareableBaseUrl();
+  return base ? `${base}/moments/${postId}` : `/moments/${postId}`;
+}

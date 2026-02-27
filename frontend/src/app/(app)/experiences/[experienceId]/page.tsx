@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getServerTranslator } from "@/i18n/server";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { SharedPageLayout } from "@/components/layout/SharedPageLayout";
 import { ExperienceDetail } from "@/features/catalog/flows/ExperienceDetail";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -22,8 +22,8 @@ export default async function ExperienceDetailPage({
   const { experienceId } = await params;
 
   return (
-    <MainLayout>
+    <SharedPageLayout>
       <ExperienceDetail experienceId={experienceId} />
-    </MainLayout>
+    </SharedPageLayout>
   );
 }

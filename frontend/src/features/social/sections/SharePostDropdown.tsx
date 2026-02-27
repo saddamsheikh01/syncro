@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useT } from "@/hooks";
-import { getShareableShareUrl } from "@/lib/siteUrl";
+import { getShareableMomentUrl } from "@/lib/siteUrl";
 import { cx } from "@/lib/classNames";
 
 const SHARE_ICON = (
@@ -73,7 +73,7 @@ export function SharePostDropdown({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const shareUrl = getShareableShareUrl({ ref: "post", id: postId });
+  const shareUrl = getShareableMomentUrl(postId);
   const snippet = (postContent ?? "").trim().slice(0, 100);
   const shareText = [snippet, shareUrl].filter(Boolean).join("\n\n");
 

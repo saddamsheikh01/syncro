@@ -8,6 +8,13 @@ import { useAuth } from "@/hooks";
 
 const PUBLIC_PATHS = ["/login", "/register", "/"];
 
+const isPublicPath = (path: string) =>
+  PUBLIC_PATHS.includes(path) ||
+  /^\/moments(\/[^/]+)?$/.test(path) ||
+  /^\/profile\/[^/]+$/.test(path) ||
+  /^\/places\/[^/]+$/.test(path) ||
+  /^\/experiences\/[^/]+$/.test(path);
+
 export const AuthInitializer = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -21,7 +28,7 @@ export const AuthInitializer = () => {
       // Clear auth session
       actions.clearSession();
       // Redirect to login if not already on a public path
-      if (!PUBLIC_PATHS.includes(pathname)) {
+      if (!isPublicPath(pathname)) {
         router.replace("/login");
       }
     });
