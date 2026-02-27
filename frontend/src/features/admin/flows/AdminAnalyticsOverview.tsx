@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
+import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
 import { AdminStatCard } from "@/features/admin/cards/AdminStatCard";
 import { KpiChartCard } from "@/features/admin/cards/KpiChartCard";
@@ -10,16 +11,25 @@ import { KpiRangeSelector } from "@/features/admin/elements/KpiRangeSelector";
 import { formatDuration, formatNumber } from "@/features/admin/lib/formatters";
 import { buildTrend, lastSeriesValue, sumSeries, toChartPoints } from "@/features/admin/lib/kpis";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
+import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { useT } from "@/hooks";
-import { getKpis, refreshKpis } from "@/services/admin";
+import { getKpis, getUsersFeatureUsage, refreshKpis } from "@/services/admin";
 import type { ApiError } from "@/types/api";
-import type { AnalyticsKpiParams, AnalyticsKpiResponse } from "@/types/analytics";
+import type {
+  AdminUserFeatureUsageResponse,
+  AnalyticsKpiParams,
+  AnalyticsKpiResponse,
+  AnalyticsSegmentCountResponse,
+} from "@/types/analytics";
+import type { PageResponse } from "@/types/shared";
 
 const RANGE_ITEMS = [
   { id: "7d", label: "7 days", days: 7 },
   { id: "30d", label: "30 days", days: 30 },
   { id: "90d", label: "90 days", days: 90 },
 ] as const;
+
+const USER_USAGE_PAGE_SIZE = 20;
 
 const trendToTone = (trend: "up" | "down" | "neutral") => {
   if (trend === "up") return "success" as const;
@@ -40,6 +50,13 @@ const buildRangeParams = (days: number): AnalyticsKpiParams => {
   };
 };
 
+const prettifyLabel = (value: string | null | undefined) => {
+  if (!value) {
+    return "-";
+  }
+  return value.replaceAll("_", " ");
+};
+
 export const AdminAnalyticsOverview = () => {
   const { t } = useT();
 
@@ -49,14 +66,34 @@ export const AdminAnalyticsOverview = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
+  const [usersUsage, setUsersUsage] = useState<PageResponse<AdminUserFeatureUsageResponse> | null>(
+    null
+  );
+  const [usersUsageLoading, setUsersUsageLoading] = useState(true);
+  const [usersUsageError, setUsersUsageError] = useState<ApiError | null>(null);
+  const [usersUsagePage, setUsersUsagePage] = useState(0);
+  const [usersUsageQueryInput, setUsersUsageQueryInput] = useState("");
+  const [usersUsageQuery, setUsersUsageQuery] = useState("");
+
   const selectedRange = useMemo(
     () => RANGE_ITEMS.find((item) => item.id === selectedRangeId) ?? RANGE_ITEMS[1],
     [selectedRangeId]
   );
 
-  const params = useMemo(
-    () => buildRangeParams(selectedRange.days),
-    [selectedRange.days]
+  const params = useMemo(() => buildRangeParams(selectedRange.days), [selectedRange.days]);
+
+  useEffect(() => {
+    setUsersUsagePage(0);
+  }, [params.from, params.to]);
+
+  const usersUsageParams = useMemo(
+    () => ({
+      ...params,
+      q: usersUsageQuery || undefined,
+      page: usersUsagePage,
+      size: USER_USAGE_PAGE_SIZE,
+    }),
+    [params, usersUsagePage, usersUsageQuery]
   );
 
   const loadKpis = useCallback(async () => {
@@ -73,20 +110,45 @@ export const AdminAnalyticsOverview = () => {
     }
   }, [params]);
 
+  const loadUsersUsage = useCallback(async () => {
+    setUsersUsageLoading(true);
+    setUsersUsageError(null);
+
+    try {
+      const response = await getUsersFeatureUsage(usersUsageParams);
+      setUsersUsage(response);
+    } catch (requestError) {
+      setUsersUsageError(requestError as ApiError);
+    } finally {
+      setUsersUsageLoading(false);
+    }
+  }, [usersUsageParams]);
+
   useEffect(() => {
     void loadKpis();
   }, [loadKpis]);
 
+  useEffect(() => {
+    void loadUsersUsage();
+  }, [loadUsersUsage]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setError(null);
+    setUsersUsageError(null);
 
     try {
       await refreshKpis(params);
-      const response = await getKpis(params);
-      setKpis(response);
+      const [kpisResponse, usersUsageResponse] = await Promise.all([
+        getKpis(params),
+        getUsersFeatureUsage(usersUsageParams),
+      ]);
+      setKpis(kpisResponse);
+      setUsersUsage(usersUsageResponse);
     } catch (requestError) {
-      setError(requestError as ApiError);
+      const nextError = requestError as ApiError;
+      setError(nextError);
+      setUsersUsageError(nextError);
     } finally {
       setRefreshing(false);
     }
@@ -121,8 +183,62 @@ export const AdminAnalyticsOverview = () => {
       mapChart: toChartPoints(kpis?.mapOpenedDaily),
       profileChart: toChartPoints(kpis?.profileViewedDaily),
       matchChart: toChartPoints(kpis?.matchSectionOpenedDaily),
+      countryDistribution: kpis?.countryDistribution ?? [],
+      cityDistribution: kpis?.cityDistribution ?? [],
+      genderDistribution: kpis?.genderDistribution ?? [],
+      ageDistribution: kpis?.ageDistribution ?? [],
     };
   }, [kpis]);
+
+  const demographicCards = useMemo(
+    () =>
+      [
+        { key: "country", title: t("Nationality"), items: analytics.countryDistribution },
+        { key: "city", title: t("City"), items: analytics.cityDistribution },
+        { key: "gender", title: t("Gender"), items: analytics.genderDistribution },
+        { key: "age", title: t("Age"), items: analytics.ageDistribution },
+      ] as Array<{ key: string; title: string; items: AnalyticsSegmentCountResponse[] }>,
+    [analytics.ageDistribution, analytics.cityDistribution, analytics.countryDistribution, analytics.genderDistribution, t]
+  );
+
+  const usersUsageRows = useMemo(() => {
+    if (!usersUsage?.content.length) {
+      return [];
+    }
+
+    return usersUsage.content.map((user) => ({
+      id: user.userId,
+      user: (
+        <div className="space-y-0.5">
+          <p className="font-medium text-foreground">
+            {user.fullName ?? user.username ?? user.email ?? "-"}
+          </p>
+          <p className="text-xs text-muted">{user.email ?? "-"}</p>
+        </div>
+      ),
+      location: `${user.city ?? "-"} / ${user.country ?? "-"}`,
+      demographics:
+        user.age != null
+          ? `${prettifyLabel(user.gender)} / ${user.age}`
+          : prettifyLabel(user.gender),
+      onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
+      usage: `Chat ${formatNumber(user.chatUses)} | Map ${formatNumber(
+        user.mapUses
+      )} | Match ${formatNumber(user.matchUses)} | Moments ${formatNumber(user.momentsUses)}`,
+      profile: `${formatNumber(user.profileCompletionPercent)}%`,
+      missing:
+        user.missingSections.length > 0
+          ? user.missingSections.map((section) => prettifyLabel(section)).join(", ")
+          : t("None"),
+    }));
+  }, [t, usersUsage]);
+
+  const usersUsageHasNext = useMemo(() => {
+    if (!usersUsage) {
+      return false;
+    }
+    return usersUsage.number + 1 < usersUsage.totalPages;
+  }, [usersUsage]);
 
   return (
     <div className="space-y-6">
@@ -301,6 +417,131 @@ export const AdminAnalyticsOverview = () => {
               dataPoints={analytics.mapChart}
             />
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {demographicCards.map((card) => (
+              <Card key={card.key} className="space-y-3 p-5">
+                <p className="text-sm font-semibold text-foreground">{card.title}</p>
+                {card.items.length ? (
+                  <ul className="space-y-2">
+                    {card.items.slice(0, 5).map((item) => (
+                      <li
+                        key={`${card.key}-${item.label}`}
+                        className="flex items-center justify-between gap-2 text-sm text-muted"
+                      >
+                        <span className="truncate">{prettifyLabel(item.label)}</span>
+                        <span className="font-semibold text-foreground">
+                          {formatNumber(item.count)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">{t("No data available")}</p>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          <Card className="space-y-4 p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {t("Users feature usage")}
+                </h3>
+                <p className="text-sm text-muted">
+                  {t(
+                    "Usage counts for chat, map, match and moments with profile completion details."
+                  )}
+                </p>
+              </div>
+              <form
+                className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setUsersUsagePage(0);
+                  setUsersUsageQuery(usersUsageQueryInput.trim());
+                }}
+              >
+                <Input
+                  className="sm:w-72"
+                  placeholder={t("Search by email, username or full name")}
+                  value={usersUsageQueryInput}
+                  onChange={(event) => setUsersUsageQueryInput(event.target.value)}
+                />
+                <Button type="submit" size="sm" variant="outline">
+                  {t("Search")}
+                </Button>
+              </form>
+            </div>
+
+            {usersUsageLoading ? (
+              <div className="flex items-center gap-3 p-2">
+                <Loader size="sm" />
+                <p className="text-sm text-muted">{t("Loading users usage...")}</p>
+              </div>
+            ) : null}
+
+            {usersUsageError ? (
+              <Card className="space-y-3 border-danger/30 p-4">
+                <p className="text-sm font-semibold text-danger">
+                  {t("Unable to load users usage")}
+                </p>
+                <p className="text-sm text-muted">{t(usersUsageError.message)}</p>
+                <Button size="sm" variant="outline" onClick={() => void loadUsersUsage()}>
+                  {t("Try again")}
+                </Button>
+              </Card>
+            ) : null}
+
+            {!usersUsageLoading && !usersUsageError ? (
+              <>
+                <AdminTable
+                  columns={[
+                    { key: "user", label: t("User"), width: "22%" },
+                    { key: "location", label: t("Location"), width: "12%" },
+                    { key: "demographics", label: t("Gender/Age"), width: "11%" },
+                    { key: "onboarding", label: t("Onboarding"), width: "10%" },
+                    { key: "usage", label: t("Feature usage"), width: "25%" },
+                    { key: "profile", label: t("Profile completion"), width: "10%" },
+                    { key: "missing", label: t("Missing sections"), width: "10%" },
+                  ]}
+                  rows={usersUsageRows}
+                  emptyLabel={t("No users found")}
+                />
+
+                <div className="flex flex-col gap-3 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+                  <p>
+                    {t("Users: {{count}}", {
+                      count: formatNumber(usersUsage?.totalElements ?? 0),
+                    })}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setUsersUsagePage((current) => Math.max(0, current - 1))}
+                      disabled={usersUsagePage <= 0}
+                    >
+                      {t("Previous")}
+                    </Button>
+                    <span>
+                      {formatNumber((usersUsage?.number ?? 0) + 1)} /{" "}
+                      {formatNumber(Math.max(usersUsage?.totalPages ?? 1, 1))}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setUsersUsagePage((current) => current + 1)}
+                      disabled={!usersUsageHasNext}
+                    >
+                      {t("Next")}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </Card>
         </>
       ) : null}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Card } from "@/components/elements/Card";
@@ -34,6 +35,7 @@ const toneByStatus = (status: UserStatus) => {
 
 export const AdminUsersOverview = () => {
   const { t } = useT();
+  const router = useRouter();
 
   const [query, setQuery] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
@@ -184,16 +186,25 @@ export const AdminUsersOverview = () => {
         onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
         createdAt: formatDateTime(user.createdAt),
         actions: (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setSelectedUserId(user.id)}
-          >
-            {t("Manage")}
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push(`/admin/users/${user.id}/analytics`)}
+            >
+              {t("Analytics")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedUserId(user.id)}
+            >
+              {t("Manage")}
+            </Button>
+          </div>
         ),
       }));
-  }, [response, t]);
+  }, [response, router, t]);
 
   const activeInPage = useMemo(
     () => response?.content.filter((user) => user.status === "ACTIVE").length ?? 0,

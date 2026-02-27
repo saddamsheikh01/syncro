@@ -1,4 +1,4 @@
-import type { IsoDate, IsoDateTime, JsonObject, Uuid } from "../shared";
+import type { IsoDate, IsoDateTime, JsonObject, PageResponse, Uuid } from "../shared";
 
 export type AnalyticsLegacyEventType =
   | "APP_OPEN"
@@ -48,6 +48,11 @@ export type KpiPoint = {
   value: number;
 };
 
+export type AnalyticsSegmentCountResponse = {
+  label: string;
+  count: number;
+};
+
 export type AnalyticsKpiResponse = {
   registrationsDaily: KpiPoint[];
   registrationsWeekly: KpiPoint[];
@@ -60,9 +65,70 @@ export type AnalyticsKpiResponse = {
   profileViewedDaily: KpiPoint[];
   mapOpenedDaily: KpiPoint[];
   averageSessionDurationSeconds: number;
+  countryDistribution: AnalyticsSegmentCountResponse[];
+  cityDistribution: AnalyticsSegmentCountResponse[];
+  genderDistribution: AnalyticsSegmentCountResponse[];
+  ageDistribution: AnalyticsSegmentCountResponse[];
 };
 
 export type AnalyticsKpiParams = {
   from?: IsoDate;
   to?: IsoDate;
+};
+
+export type AdminUserFeatureUsageResponse = {
+  userId: Uuid;
+  email: string | null;
+  username: string | null;
+  fullName: string | null;
+  country: string | null;
+  city: string | null;
+  gender: string | null;
+  age: number | null;
+  onboardingCompleted: boolean;
+  chatUses: number;
+  mapUses: number;
+  matchUses: number;
+  momentsUses: number;
+  interestsCount: number;
+  testsCompleted: number;
+  testsRequired: number;
+  profileCompleted: boolean;
+  profileCompletionPercent: number;
+  missingSections: string[];
+};
+
+export type AdminUsersFeatureUsageParams = AnalyticsKpiParams & {
+  q?: string;
+  page?: number;
+  size?: number;
+};
+
+export type AdminUsersFeatureUsagePageResponse =
+  PageResponse<AdminUserFeatureUsageResponse>;
+
+export type AdminUserAnalyticsResponse = {
+  userId: Uuid;
+  email: string | null;
+  username: string | null;
+  fullName: string | null;
+  onboardingCompleted: boolean;
+  country: string | null;
+  city: string | null;
+  gender: string | null;
+  age: number | null;
+  chatUses: number;
+  mapUses: number;
+  matchUses: number;
+  momentsUses: number;
+  interestsCount: number;
+  testsCompleted: number;
+  testsRequired: number;
+  profileCompleted: boolean;
+  profileCompletionPercent: number;
+  missingSections: string[];
+  chatDaily: KpiPoint[];
+  mapDaily: KpiPoint[];
+  matchDaily: KpiPoint[];
+  momentsDaily: KpiPoint[];
 };

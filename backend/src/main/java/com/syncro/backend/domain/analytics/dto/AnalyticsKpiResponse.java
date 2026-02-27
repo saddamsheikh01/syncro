@@ -13,6 +13,10 @@ public record AnalyticsKpiResponse(
     List<KpiPoint> matchSectionOpenedDaily,
     List<KpiPoint> profileViewedDaily,
     List<KpiPoint> mapOpenedDaily,
-    double averageSessionDurationSeconds
+    double averageSessionDurationSeconds,
+    List<AnalyticsSegmentCountResponse> countryDistribution,
+    List<AnalyticsSegmentCountResponse> cityDistribution,
+    List<AnalyticsSegmentCountResponse> genderDistribution,
+    List<AnalyticsSegmentCountResponse> ageDistribution
 ) {
 }

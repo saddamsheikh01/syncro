@@ -10,6 +10,8 @@ public interface TestDefinitionRepository extends JpaRepository<TestDefinition, 
 
     List<TestDefinition> findByActiveTrueOrderByCreatedAtDesc();
 
+    long countByActiveTrue();
+
     Optional<TestDefinition> findByIdAndActiveTrue(UUID id);
 
     List<TestDefinition> findAllByOrderByCreatedAtDesc();
