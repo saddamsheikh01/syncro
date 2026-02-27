@@ -1,20 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth, useNotifications, useT, useUi } from "@/hooks";
 import { getNotifications } from "@/services/notifications";
+import { getNotificationDisplay } from "@/utils/notificationDisplay";
 import type { UserNotificationResponse } from "@/types/notifications";
 
 const POLLING_INTERVAL_MS = 20_000;
 const NOTIFICATIONS_PAGE_SIZE = 20;
 const MAX_TOASTS_PER_POLL = 3;
 
-const resolveToastMessage = (
-  notification: UserNotificationResponse,
-  fallbackMessage: string
-) => notification.body?.trim() || fallbackMessage;
-
 export const NotificationsTracker = () => {
+  const router = useRouter();
   const { status } = useAuth();
   const { t } = useT();
   const { actions: notificationsActions } = useNotifications();
@@ -66,14 +64,28 @@ export const NotificationsTracker = () => {
           .reverse();
 
         recentNotifications.forEach((notification) => {
+          const { title: displayTitle, body: displayBody } =
+            getNotificationDisplay(notification, t);
+          const conversationId =
+            notification.type === "MESSAGE"
+              ? notification.conversationId ??
+                (typeof notification.data?.conversationId === "string"
+                  ? notification.data.conversationId
+                  : null)
+              : null;
+
           uiActions.pushToast({
-            title: notification.title ?? t("Notification"),
-            message: resolveToastMessage(
-              notification,
-              t("Open the app to see details.")
-            ),
+            title: displayTitle,
+            message: displayBody || t("Open the app to see details."),
             tone: "info",
             durationMs: 5000,
+            ...(conversationId
+              ? {
+                  onClick: () => {
+                    router.push(`/chat/${conversationId}`);
+                  },
+                }
+              : {}),
           });
         });
       } catch {
@@ -90,7 +102,7 @@ export const NotificationsTracker = () => {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [notificationsActions, status, t, uiActions]);
+  }, [notificationsActions, router, status, t, uiActions]);
 
   return null;
 };

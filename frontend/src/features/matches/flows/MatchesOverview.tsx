@@ -58,7 +58,6 @@ const ZODIAC_OPTIONS = [
 const SORT_OPTIONS = [
   { value: "compatibility", labelKey: "Compatibility" },
   { value: "recently_active", labelKey: "Recently active" },
-  { value: "distance", labelKey: "Distance" },
 ];
 
 const CONTEXT_OPTIONS = [
@@ -141,7 +140,10 @@ export const MatchesOverview = () => {
   const [filterContext, setFilterContext] = useState(() => getInitialConfig().context ?? "");
   const [filterMaxDistanceKm, setFilterMaxDistanceKm] = useState(() => getInitialConfig().maxDistanceKm ?? "");
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
-  const [sort, setSort] = useState(() => getInitialConfig().sort ?? "compatibility");
+  const [sort, setSort] = useState(() => {
+    const stored = getInitialConfig().sort ?? "compatibility";
+    return stored === "distance" ? "recently_active" : stored;
+  });
 
   const resolveErrorMessage = useCallback((err: unknown, fallback: string) => {
     if (err && typeof err === "object" && "message" in err) {
@@ -203,7 +205,7 @@ export const MatchesOverview = () => {
         const params: PeopleParams = {
           page: pageNum,
           size: PAGE_SIZE,
-          sort: sort === "distance" ? "distance" : sort === "recently_active" ? "recently_active" : "compatibility",
+          sort: sort === "recently_active" ? "recently_active" : "compatibility",
         };
         const q = filterSearch.trim() || undefined;
         if (q) params.q = q;

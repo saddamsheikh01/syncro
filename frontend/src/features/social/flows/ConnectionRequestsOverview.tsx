@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { Avatar } from "@/components/elements/Avatar";
-import { useT } from "@/hooks";
+import { useChat, useT } from "@/hooks";
 import { getPendingConnections, acceptConnection, rejectConnection } from "@/services/social";
 import { getUserProfile } from "@/services/users";
 import type { ConnectionResponse } from "@/types/social";
@@ -35,10 +36,17 @@ const resolveDisplayName = (profile: UserPublicProfileResponse | null, t: (key: 
 
 export const ConnectionRequestsOverview = () => {
   const { t } = useT();
+  const router = useRouter();
+  const { actions: chatActions } = useChat();
   const [pending, setPending] = useState<PendingWithSender[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [justAccepted, setJustAccepted] = useState<{
+    conversationId: string;
+    name: string;
+    fromUserId: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,18 +77,28 @@ export const ConnectionRequestsOverview = () => {
   }, [load]);
 
   const handleAccept = useCallback(
-    async (connectionId: string) => {
+    async (connectionId: string, fromUserId: string) => {
+      const item = pending.find((c) => c.id === connectionId);
+      const name = item ? resolveDisplayName(item.senderProfile, t) : t("User");
       setActionId(connectionId);
       try {
         await acceptConnection(connectionId);
+        const conversation = await chatActions.createConversation({
+          otherUserId: fromUserId,
+        });
         setPending((prev) => prev.filter((c) => c.id !== connectionId));
+        setJustAccepted({
+          conversationId: conversation.id,
+          name,
+          fromUserId,
+        });
       } catch {
         // Error could be shown via toast
       } finally {
         setActionId(null);
       }
     },
-    []
+    [chatActions, pending, t]
   );
 
   const handleReject = useCallback(
@@ -131,13 +149,42 @@ export const ConnectionRequestsOverview = () => {
         </div>
       )}
 
-      {!loading && !error && pending.length === 0 && (
+      {!loading && !error && pending.length === 0 && !justAccepted && (
         <EmptyState
           title={t("No pending requests")}
           description={t("When someone sends you a connection request, it will appear here.")}
           actionLabel={t("Discover people")}
           actionHref="/matches"
         />
+      )}
+
+      {justAccepted && (
+        <Card className="flex flex-col gap-3 border-accent/30 bg-accent-soft/40 p-4">
+          <p className="text-sm font-medium text-foreground">
+            {t("Connection accepted. You can now chat with {name}.", {
+              name: justAccepted.name,
+            })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                router.push(`/chat/${justAccepted.conversationId}`);
+                setJustAccepted(null);
+              }}
+            >
+              {t("Message")} {justAccepted.name}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setJustAccepted(null)}
+            >
+              {t("Dismiss")}
+            </Button>
+          </div>
+        </Card>
       )}
 
       {!loading && !error && pending.length > 0 && (
@@ -164,7 +211,7 @@ export const ConnectionRequestsOverview = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => handleAccept(item.id)}
+                    onClick={() => handleAccept(item.id, item.fromUserId)}
                     disabled={busy}
                     loading={busy}
                     loadingText={t("Accept")}

@@ -28,7 +28,7 @@ export type PeopleParams = {
   latitude?: number;
   longitude?: number;
   maxDistanceKm?: number;
-  sort?: "compatibility" | "recently_active" | "distance";
+  sort?: "compatibility" | "recently_active";
   page?: number;
   size?: number;
 };

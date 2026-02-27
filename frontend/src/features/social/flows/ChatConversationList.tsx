@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -111,17 +110,9 @@ export const ChatConversationList = () => {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-subtle">
           {t("Messages")}
         </p>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-foreground">
-            {t("Your chats")}
-          </h1>
-          <Link
-            href="/connections"
-            className="text-sm font-medium text-accent underline decoration-accent/60 underline-offset-2 transition hover:decoration-accent"
-          >
-            {t("Connection requests")}
-          </Link>
-        </div>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {t("Your chats")}
+        </h1>
         <p className="text-sm text-muted">
           {t("Chat with people you've met.")}
         </p>

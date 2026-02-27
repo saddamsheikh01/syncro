@@ -12,6 +12,7 @@ export interface NotificationToastProps extends HTMLAttributes<HTMLDivElement> {
   tone?: ToastTone;
   durationMs?: number;
   onClose?: () => void;
+  onClick?: () => void;
 }
 
 const TONE_CLASSES: Record<ToastTone, string> = {
@@ -35,6 +36,7 @@ export const NotificationToast = ({
   tone = "info",
   durationMs,
   onClose,
+  onClick,
   ...props
 }: NotificationToastProps) => {
   const { t } = useT();
@@ -52,6 +54,16 @@ export const NotificationToast = ({
     [closing, onClose]
   );
 
+  const handleClick = useMemo(
+    () => () => {
+      if (onClick) {
+        onClick();
+        handleClose();
+      }
+    },
+    [onClick, handleClose]
+  );
+
   useEffect(() => {
     if (!durationMs || !onClose) return undefined;
     const timeoutId = window.setTimeout(() => handleClose(), durationMs);
@@ -60,34 +72,54 @@ export const NotificationToast = ({
 
   const motionClass = closing ? "notification-out" : "notification-in";
 
+  const content = (
+    <div className="flex items-start gap-3">
+      <span className={cx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", TONE_DOT[tone])} />
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-sm font-semibold text-foreground">{resolvedTitle}</p>
+        <p className="text-xs text-muted">{message}</p>
+      </div>
+      {onClose ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
+          className="text-xs font-semibold text-subtle hover:text-foreground"
+          aria-label={t("Close")}
+        >
+          x
+        </button>
+      ) : null}
+    </div>
+  );
+
   return (
     <div
       className={cx(
         "pointer-events-auto w-full rounded-[var(--radius-lg)] border p-4 shadow-md backdrop-blur-xl",
         TONE_CLASSES[tone],
         motionClass,
+        onClick && "cursor-pointer",
         className
       )}
-      role="status"
+      role={onClick ? "button" : "status"}
+      onClick={onClick ? handleClick : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onClick ? 0 : undefined}
       {...props}
     >
-      <div className="flex items-start gap-3">
-        <span className={cx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", TONE_DOT[tone])} />
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-sm font-semibold text-foreground">{resolvedTitle}</p>
-          <p className="text-xs text-muted">{message}</p>
-        </div>
-        {onClose ? (
-          <button
-            type="button"
-            onClick={handleClose}
-            className="text-xs font-semibold text-subtle hover:text-foreground"
-            aria-label={t("Close")}
-          >
-            x
-          </button>
-        ) : null}
-      </div>
+      {content}
     </div>
   );
 };
