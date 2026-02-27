@@ -31,6 +31,7 @@ import com.syncro.backend.domain.tests.repository.TestDefinitionRepository;
 import com.syncro.backend.security.AdminPrincipal;
 import com.syncro.backend.security.UserPrincipal;
 import java.sql.Timestamp;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -40,6 +41,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.time.temporal.TemporalAdjusters;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -229,72 +232,81 @@ public class AnalyticsService {
 
         boolean hasPreAggregates = analyticsDailyKpiRepository.countInRange(startDate, endDate) > 0;
 
-        List<KpiPoint> registrationsDaily = hasPreAggregates
+        List<KpiPoint> registrationsDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_REGISTRATIONS_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.USER_REGISTERED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> registrationsDaily = fillMissingDailyBuckets(registrationsDailyRaw, startDate, endDate);
 
-        List<KpiPoint> registrationsWeekly = hasPreAggregates
+        List<KpiPoint> registrationsWeeklyRaw = hasPreAggregates
             ? mapBuckets(analyticsDailyKpiRepository.findWeeklySumByKpiName(KPI_REGISTRATIONS_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeWeekly(
                 AnalyticsEventType.USER_REGISTERED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> registrationsWeekly = fillMissingWeeklyBuckets(registrationsWeeklyRaw, startDate, endDate);
 
-        List<KpiPoint> onboardingDaily = hasPreAggregates
+        List<KpiPoint> onboardingDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_ONBOARDING_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.ONBOARDING_COMPLETED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> onboardingDaily = fillMissingDailyBuckets(onboardingDailyRaw, startDate, endDate);
 
-        List<KpiPoint> onboardingWeekly = hasPreAggregates
+        List<KpiPoint> onboardingWeeklyRaw = hasPreAggregates
             ? mapBuckets(analyticsDailyKpiRepository.findWeeklySumByKpiName(KPI_ONBOARDING_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeWeekly(
                 AnalyticsEventType.ONBOARDING_COMPLETED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> onboardingWeekly = fillMissingWeeklyBuckets(onboardingWeeklyRaw, startDate, endDate);
         long onboardingCompletedUsersTotal = userRepository.countByOnboardingCompletedTrue();
 
-        List<KpiPoint> activeUsersDaily = mapBuckets(analyticsEventRepository.countUniqueUsersDaily(
+        List<KpiPoint> activeUsersDailyRaw = mapBuckets(analyticsEventRepository.countUniqueUsersDaily(
             fromInstant,
             toInstant
         ));
+        List<KpiPoint> activeUsersDaily = fillMissingDailyBuckets(activeUsersDailyRaw, startDate, endDate);
 
-        List<KpiPoint> activeUsersWeekly = mapBuckets(analyticsEventRepository.countUniqueUsersWeekly(
+        List<KpiPoint> activeUsersWeeklyRaw = mapBuckets(analyticsEventRepository.countUniqueUsersWeekly(
             fromInstant,
             toInstant
         ));
+        List<KpiPoint> activeUsersWeekly = fillMissingWeeklyBuckets(activeUsersWeeklyRaw, startDate, endDate);
 
-        List<KpiPoint> matchSectionOpenedDaily = hasPreAggregates
+        List<KpiPoint> matchSectionOpenedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_MATCH_SECTION_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.MATCH_SECTION_OPENED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> matchSectionOpenedDaily = fillMissingDailyBuckets(matchSectionOpenedDailyRaw, startDate, endDate);
 
-        List<KpiPoint> profileViewedDaily = hasPreAggregates
+        List<KpiPoint> profileViewedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_PROFILE_VIEWED_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.PROFILE_VIEWED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> profileViewedDaily = fillMissingDailyBuckets(profileViewedDailyRaw, startDate, endDate);
 
-        List<KpiPoint> mapOpenedDaily = hasPreAggregates
+        List<KpiPoint> mapOpenedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_MAP_OPENED_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.MAP_OPENED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> mapOpenedDaily = fillMissingDailyBuckets(mapOpenedDailyRaw, startDate, endDate);
 
         long returningUsers = computeReturningUsers(endDate);
 
@@ -750,10 +762,10 @@ public class AnalyticsService {
             toTimestamp
         );
 
-        List<KpiPoint> chatDaily = List.copyOf(byFeature.get("chat"));
-        List<KpiPoint> mapDaily = List.copyOf(byFeature.get("map"));
-        List<KpiPoint> matchDaily = List.copyOf(byFeature.get("match"));
-        List<KpiPoint> momentsDaily = List.copyOf(byFeature.get("moments"));
+        List<KpiPoint> chatDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("chat")), startDate, endDate);
+        List<KpiPoint> mapDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("map")), startDate, endDate);
+        List<KpiPoint> matchDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("match")), startDate, endDate);
+        List<KpiPoint> momentsDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("moments")), startDate, endDate);
 
         long chatUses = sumKpiValues(chatDaily);
         long mapUses = sumKpiValues(mapDaily);
@@ -948,6 +960,51 @@ public class AnalyticsService {
         return rows.stream()
             .map(row -> new KpiPoint(row.getMetricDate().atStartOfDay(ZoneOffset.UTC).toInstant(), row.getValue().longValue()))
             .toList();
+    }
+
+    private List<KpiPoint> fillMissingDailyBuckets(List<KpiPoint> points, LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Long> byDay = points.stream()
+            .collect(Collectors.toMap(
+                point -> point.bucket().atZone(ZoneOffset.UTC).toLocalDate(),
+                KpiPoint::value,
+                Long::sum,
+                LinkedHashMap::new
+            ));
+
+        List<KpiPoint> filled = new ArrayList<>();
+        LocalDate cursor = startDate;
+        while (!cursor.isAfter(endDate)) {
+            filled.add(new KpiPoint(
+                cursor.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                byDay.getOrDefault(cursor, 0L)
+            ));
+            cursor = cursor.plusDays(1);
+        }
+        return List.copyOf(filled);
+    }
+
+    private List<KpiPoint> fillMissingWeeklyBuckets(List<KpiPoint> points, LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Long> byWeek = points.stream()
+            .collect(Collectors.toMap(
+                point -> point.bucket().atZone(ZoneOffset.UTC).toLocalDate(),
+                KpiPoint::value,
+                Long::sum,
+                LinkedHashMap::new
+            ));
+
+        LocalDate firstWeek = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate lastWeek = endDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        List<KpiPoint> filled = new ArrayList<>();
+        LocalDate cursor = firstWeek;
+        while (!cursor.isAfter(lastWeek)) {
+            filled.add(new KpiPoint(
+                cursor.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                byWeek.getOrDefault(cursor, 0L)
+            ));
+            cursor = cursor.plusWeeks(1);
+        }
+        return List.copyOf(filled);
     }
 
     private TrackingOutcome persistValidatedEvent(

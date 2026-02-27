@@ -425,7 +425,7 @@ export const AdminAnalyticsOverview = () => {
               label={t("Returning users")}
               value={formatNumber(analytics.returningUsers)}
               trend="neutral"
-              trendLabel={t("Latest weekly window")}
+              trendLabel={t("Active in both the latest and previous 7-day windows")}
             />
             <AdminStatCard
               label={t("Match section opened")}
