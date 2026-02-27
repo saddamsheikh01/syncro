@@ -301,6 +301,7 @@
   "Current media": "Current media",
   "Current page": "Current page",
   "Current page count": "Current page count",
+  "Current total": "Current total",
   "Current password": "Current password",
   "Currently in {location}": "Currently in {location}",
   "Custom notification send": "Custom notification send",
@@ -848,8 +849,10 @@
   "Onboarding - Interests | Syncro": "Onboarding - Interests | Syncro",
   "Onboarding - Location | Syncro": "Onboarding - Location | Syncro",
   "Onboarding - Preferences | Syncro": "Onboarding - Preferences | Syncro",
+  "Preferences": "Preferences",
   "Onboarding - Profile | Syncro": "Onboarding - Profile | Syncro",
   "Onboarding completed": "Onboarding completed",
+  "Onboarding completed users": "Onboarding completed users",
   "Onboarding completed (page)": "Onboarding completed (page)",
   "Onboarding: all": "Onboarding: all",
   "Onboarding: {value}": "Onboarding: {value}",
@@ -1229,6 +1232,7 @@
   "Test notification": "Test notification",
   "Test type": "Test type",
   "Tests completed": "Tests completed",
+  "Tests missing": "Tests missing",
   "Text": "Text",
   "Text Search Sync": "Text Search Sync",
   "Text search sync": "Text search sync",
@@ -1619,5 +1623,10 @@
   "example@gmail.com": "example@gmail.com",
   "For security, password changes happen through a reset link sent to your email.": "For security, password changes happen through a reset link sent to your email.",
   "If you don't see the email, check your spam or junk folder.": "If you don't see the email, check your spam or junk folder.",
-  "If needed, ask the user to check their spam or junk folder.": "If needed, ask the user to check their spam or junk folder."
+  "If needed, ask the user to check their spam or junk folder.": "If needed, ask the user to check their spam or junk folder.",
+  "Recalculate onboarding status": "Recalculate onboarding status",
+  "Unable to recalculate onboarding status": "Unable to recalculate onboarding status",
+  "Onboarding backfill completed.": "Onboarding backfill completed.",
+  "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})": "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})",
+  "Running": "Running"
 }

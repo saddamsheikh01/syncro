@@ -6,14 +6,13 @@ import { OnboardingStepHeader } from "@/features/onboarding/sections/OnboardingS
 import { LocationPermissionGate } from "@/features/onboarding/sections/LocationPermissionGate";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
-import { useAuth, useOnboarding, usePosition, useUser, useT } from "@/hooks";
+import { useAuth, useOnboarding, usePosition, useT } from "@/hooks";
 
 export const OnboardingStep4 = () => {
   const router = useRouter();
   const { actions: authActions } = useAuth();
   const { position, hasPosition, loading, error, permission, actions } =
     usePosition();
-  const { actions: userActions } = useUser();
   const { actions: onboardingActions } = useOnboarding();
   const { t } = useT();
   const [localError, setLocalError] = useState<string | null>(null);
@@ -81,7 +80,6 @@ export const OnboardingStep4 = () => {
     setLocalError(null);
 
     try {
-      await userActions.updateUser({ onboardingCompleted: true });
       onboardingActions.completeStep(4);
       router.push("/insights");
     } catch (submitError) {

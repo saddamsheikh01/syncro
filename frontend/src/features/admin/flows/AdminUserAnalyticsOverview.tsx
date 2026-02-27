@@ -44,6 +44,30 @@ const prettifyLabel = (value: string | null | undefined) => {
   return value.replaceAll("_", " ");
 };
 
+const getMissingSectionLabel = (
+  section: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+  testsCompleted: number,
+  testsRequired: number
+) => {
+  switch (section) {
+    case "profile":
+      return t("Profile");
+    case "preferences":
+      return t("Preferences");
+    case "position":
+      return t("Location");
+    case "interests":
+      return t("Interests");
+    case "tests":
+      return `${t("Tests missing")} (${formatNumber(testsCompleted)}/${formatNumber(
+        testsRequired
+      )})`;
+    default:
+      return prettifyLabel(section);
+  }
+};
+
 export interface AdminUserAnalyticsOverviewProps {
   userId: string;
 }
@@ -169,7 +193,16 @@ export const AdminUserAnalyticsOverview = ({ userId }: AdminUserAnalyticsOvervie
               trend="neutral"
               trendLabel={
                 data.missingSections.length
-                  ? data.missingSections.map((section) => prettifyLabel(section)).join(", ")
+                  ? data.missingSections
+                      .map((section) =>
+                        getMissingSectionLabel(
+                          section,
+                          t,
+                          data.testsCompleted,
+                          data.testsRequired
+                        )
+                      )
+                      .join(", ")
                   : t("No missing sections")
               }
             />

@@ -55,12 +55,18 @@ export type AdminCreateUserRequest = {
 
 export type AdminUpdateUserRequest = {
   language?: string | null;
-  onboardingCompleted?: boolean | null;
   status?: UserStatus | null;
 };
 
 export type AdminUpdateUserPasswordRequest = {
   newPassword: string;
+};
+
+export type AdminOnboardingBackfillResponse = {
+  totalUsers: number;
+  completedBefore: number;
+  completedAfter: number;
+  updatedUsers: number;
 };
 
 export type AdminUserPreferencesResponse = {

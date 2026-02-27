@@ -11,9 +11,7 @@ import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
 import com.syncro.backend.domain.auth.repository.UserRepository;
-import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.security.UserPrincipal;
-import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -34,16 +32,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
-    private final AnalyticsService analyticsService;
 
     public UserService(
         UserRepository userRepository,
-        AuthMapper authMapper,
-        AnalyticsService analyticsService
+        AuthMapper authMapper
     ) {
         this.userRepository = userRepository;
         this.authMapper = authMapper;
-        this.analyticsService = analyticsService;
     }
 
     public UserResponse getMe(UserPrincipal principal) {
@@ -64,13 +59,12 @@ public class UserService {
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
-        boolean onboardingWasCompleted = user.isOnboardingCompleted();
 
         if (request.language() != null) {
             user.setLanguage(normalizeLanguage(request.language()));
         }
         if (request.onboardingCompleted() != null) {
-            user.setOnboardingCompleted(request.onboardingCompleted());
+            throw new BadRequestException("onboardingCompleted e gestito automaticamente");
         }
         if (request.username() != null) {
             String normalized = normalizeUsername(request.username());
@@ -100,13 +94,6 @@ public class UserService {
         }
 
         User saved = userRepository.save(user);
-        if (!onboardingWasCompleted && saved.isOnboardingCompleted()) {
-            analyticsService.trackServerEventSafe(
-                saved.getId(),
-                "ONBOARDING_COMPLETED",
-                Map.of("source", "PROFILE_UPDATE")
-            );
-        }
         return authMapper.toUserResponse(saved);
     }
 

@@ -58,6 +58,7 @@ export type AnalyticsKpiResponse = {
   registrationsWeekly: KpiPoint[];
   onboardingCompletedDaily: KpiPoint[];
   onboardingCompletedWeekly: KpiPoint[];
+  onboardingCompletedUsersTotal: number;
   activeUsersDaily: KpiPoint[];
   activeUsersWeekly: KpiPoint[];
   returningUsers: number;

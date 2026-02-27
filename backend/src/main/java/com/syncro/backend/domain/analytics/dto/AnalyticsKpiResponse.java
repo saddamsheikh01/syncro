@@ -7,6 +7,7 @@ public record AnalyticsKpiResponse(
     List<KpiPoint> registrationsWeekly,
     List<KpiPoint> onboardingCompletedDaily,
     List<KpiPoint> onboardingCompletedWeekly,
+    long onboardingCompletedUsersTotal,
     List<KpiPoint> activeUsersDaily,
     List<KpiPoint> activeUsersWeekly,
     long returningUsers,

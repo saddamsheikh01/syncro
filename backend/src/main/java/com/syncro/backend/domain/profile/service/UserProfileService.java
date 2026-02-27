@@ -64,7 +64,8 @@ public class UserProfileService {
             .orElseGet(() -> {
                 UserProfile created = new UserProfile();
                 created.setUser(user);
-                return profileRepository.save(created);
+                created.setVisibility(ProfileVisibility.PUBLIC);
+                return created;
             });
         String avatarUrl = resolveAvatarUrl(user.getId());
         return profileMapper.toResponse(profile, avatarUrl);

@@ -301,6 +301,7 @@
   "Current media": "Media aktuale",
   "Current page": "Faqja aktuale",
   "Current page count": "Numri aktual i faqeve",
+  "Current total": "Totali aktual",
   "Current password": "Fjalëkalimi aktual",
   "Currently in {location}": "Aktualisht në {location}",
   "Custom notification send": "Dërgim i personalizuar i njoftimit",
@@ -824,8 +825,10 @@
   "Onboarding - Interests | Syncro": "Onboarding - Interesat | Syncro",
   "Onboarding - Location | Syncro": "Onboarding - Vendndodhja | Syncro",
   "Onboarding - Preferences | Syncro": "Onboarding - Preferencat | Syncro",
+  "Preferences": "Preferencat",
   "Onboarding - Profile | Syncro": "Onboarding - Profili | Syncro",
   "Onboarding completed": "Onboarding u përfundua",
+  "Onboarding completed users": "Perdorues me onboarding te perfunduar",
   "Onboarding completed (page)": "Onboarding u përfundua (faqe)",
   "Onboarding: all": "Onboarding: të gjitha",
   "Onboarding: {value}": "Onboarding: {value}",
@@ -1199,6 +1202,7 @@
   "Test notification": "Njoftim testi",
   "Test type": "Lloji i testit",
   "Tests completed": "Testet u përfunduan",
+  "Tests missing": "Testet qe mungojne",
   "Text": "Tekst",
   "Text Search Sync": "Sinkronizimi i kërkimit të tekstit",
   "Text search sync": "Sinkronizimi i kërkimit të tekstit",
@@ -1551,5 +1555,10 @@
   "example@gmail.com": "shembull@gmail.com",
   "For security, password changes happen through a reset link sent to your email.": "Për siguri, ndryshimi i fjalëkalimit bëhet përmes një linku rivendosjeje të dërguar në emailin tënd.",
   "If you don't see the email, check your spam or junk folder.": "Nëse nuk e shikon emailin, kontrollo dosjen spam ose junk.",
-  "If needed, ask the user to check their spam or junk folder.": "Nëse duhet, kërkoji përdoruesit të kontrollojë dosjen spam ose junk."
+  "If needed, ask the user to check their spam or junk folder.": "Nëse duhet, kërkoji përdoruesit të kontrolloje dosjen spam ose junk.",
+  "Recalculate onboarding status": "Rillogarit statusin e onboarding",
+  "Unable to recalculate onboarding status": "Nuk mund te rillogaritet statusi i onboarding",
+  "Onboarding backfill completed.": "Backfill i onboarding perfundoi.",
+  "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})": "Perdorues te perditesuar: {{updated}} · Te kompletuar para: {{before}} · Te kompletuar pas: {{after}} (totali: {{total}})",
+  "Running": "Duke u ekzekutuar"
 }

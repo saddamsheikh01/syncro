@@ -13,6 +13,7 @@ import type {
   AdminUserPreferencesResponse,
   AdminRole,
   AdminStatus,
+  AdminOnboardingBackfillResponse,
 } from "../../types/admin";
 import type { UserResponse, UserStatus } from "../../types/auth";
 import type { TestCountResponse } from "../../types/insights";
@@ -124,6 +125,13 @@ export const updateUserPassword = async (
 
 export const sendUserPasswordResetLink = async (userId: Uuid): Promise<void> => {
   await apiClient.post(`/admin/users/${userId}/password/reset-link`);
+};
+
+export const backfillOnboardingStatus = async (): Promise<AdminOnboardingBackfillResponse> => {
+  const { data } = await apiClient.post<AdminOnboardingBackfillResponse>(
+    "/admin/onboarding/backfill"
+  );
+  return data;
 };
 
 export const getAdminUsers = async (

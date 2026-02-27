@@ -31,7 +31,11 @@ export const useOnboarding = () => {
   const userState = useUserStore();
   const tagsState = useTagsStore();
 
-  const hasProfile = Boolean(userState.profile);
+  const hasText = (value?: string | null) => Boolean(value && value.trim().length > 0);
+  const hasProfile =
+    hasText(userState.profile?.fullName)
+    && hasText(userState.profile?.city)
+    && hasText(userState.profile?.country);
   const hasPreferences = Boolean(userState.preferences);
   const hasInterests = Boolean(tagsState.interests?.tags?.length);
 

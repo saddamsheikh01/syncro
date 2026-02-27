@@ -301,6 +301,7 @@
   "Current media": "Medias actuels",
   "Current page": "Page courante",
   "Current page count": "Nombre de la page courante",
+  "Current total": "Total actuel",
   "Current password": "Mot de passe actuel",
   "Currently in {location}": "Actuellement a {location}",
   "Custom notification send": "Envoi de notifications personnalisees",
@@ -826,8 +827,10 @@
   "Onboarding - Interests | Syncro": "Onboarding - Interets | Syncro",
   "Onboarding - Location | Syncro": "Onboarding - Localisation | Syncro",
   "Onboarding - Preferences | Syncro": "Onboarding - Preferences | Syncro",
+  "Preferences": "Preferences",
   "Onboarding - Profile | Syncro": "Onboarding - Profil | Syncro",
   "Onboarding completed": "Onboarding termine",
+  "Onboarding completed users": "Utilisateurs avec onboarding termine",
   "Onboarding completed (page)": "Onboarding termine (page)",
   "Onboarding: all": "Onboarding: tous",
   "Onboarding: {value}": "Onboarding: {value}",
@@ -1200,6 +1203,7 @@
   "Test notification": "Notification de test",
   "Test type": "Type de test",
   "Tests completed": "Tests termines",
+  "Tests missing": "Tests manquants",
   "Text": "Texte",
   "Text Search Sync": "Sync recherche texte",
   "Text search sync": "Sync recherche texte",
@@ -1589,5 +1593,10 @@
   "example@gmail.com": "exemple@gmail.com",
   "For security, password changes happen through a reset link sent to your email.": "Pour des raisons de sécurité, le changement de mot de passe se fait via un lien de réinitialisation envoyé à votre email.",
   "If you don't see the email, check your spam or junk folder.": "Si vous ne voyez pas l'email, vérifiez votre dossier spam ou courrier indésirable.",
-  "If needed, ask the user to check their spam or junk folder.": "Si nécessaire, demandez à l'utilisateur de vérifier son dossier spam ou courrier indésirable."
+  "If needed, ask the user to check their spam or junk folder.": "Si nécessaire, demandez à l'utilisateur de vérifier son dossier spam ou courrier indésirable.",
+  "Recalculate onboarding status": "Recalculer le statut onboarding",
+  "Unable to recalculate onboarding status": "Impossible de recalculer le statut onboarding",
+  "Onboarding backfill completed.": "Backfill onboarding termine.",
+  "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})": "Utilisateurs mis a jour: {{updated}} · Completes avant: {{before}} · Completes apres: {{after}} (total: {{total}})",
+  "Running": "Execution en cours"
 }

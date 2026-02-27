@@ -13,8 +13,9 @@ import { buildTrend, lastSeriesValue, sumSeries, toChartPoints } from "@/feature
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { AdminTable } from "@/features/admin/sections/AdminTable";
 import { useT } from "@/hooks";
-import { getKpis, getUsersFeatureUsage, refreshKpis } from "@/services/admin";
+import { backfillOnboardingStatus, getKpis, getUsersFeatureUsage, refreshKpis } from "@/services/admin";
 import type { ApiError } from "@/types/api";
+import type { AdminOnboardingBackfillResponse } from "@/types/admin";
 import type {
   AdminUserFeatureUsageResponse,
   AnalyticsKpiParams,
@@ -64,7 +65,12 @@ export const AdminAnalyticsOverview = () => {
   const [kpis, setKpis] = useState<AnalyticsKpiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [backfillError, setBackfillError] = useState<ApiError | null>(null);
+  const [backfillResult, setBackfillResult] = useState<AdminOnboardingBackfillResponse | null>(
+    null
+  );
 
   const [usersUsage, setUsersUsage] = useState<PageResponse<AdminUserFeatureUsageResponse> | null>(
     null
@@ -154,6 +160,27 @@ export const AdminAnalyticsOverview = () => {
     }
   };
 
+  const handleBackfillOnboarding = async () => {
+    setBackfilling(true);
+    setBackfillError(null);
+    setBackfillResult(null);
+
+    try {
+      const result = await backfillOnboardingStatus();
+      setBackfillResult(result);
+      const [kpisResponse, usersUsageResponse] = await Promise.all([
+        getKpis(params),
+        getUsersFeatureUsage(usersUsageParams),
+      ]);
+      setKpis(kpisResponse);
+      setUsersUsage(usersUsageResponse);
+    } catch (requestError) {
+      setBackfillError(requestError as ApiError);
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   const analytics = useMemo(() => {
     const registrations = sumSeries(kpis?.registrationsDaily);
     const onboardingCompleted = sumSeries(kpis?.onboardingCompletedDaily);
@@ -164,6 +191,7 @@ export const AdminAnalyticsOverview = () => {
     return {
       registrations,
       onboardingCompleted,
+      onboardingCompletedUsersTotal: kpis?.onboardingCompletedUsersTotal ?? 0,
       mapOpened,
       profileViewed,
       matchOpened,
@@ -206,6 +234,28 @@ export const AdminAnalyticsOverview = () => {
       return [];
     }
 
+    const getMissingSectionLabel = (
+      section: string,
+      user: AdminUserFeatureUsageResponse
+    ) => {
+      switch (section) {
+        case "profile":
+          return t("Profile");
+        case "preferences":
+          return t("Preferences");
+        case "position":
+          return t("Location");
+        case "interests":
+          return t("Interests");
+        case "tests":
+          return `${t("Tests missing")} (${formatNumber(user.testsCompleted)}/${formatNumber(
+            user.testsRequired
+          )})`;
+        default:
+          return prettifyLabel(section);
+      }
+    };
+
     return usersUsage.content.map((user) => ({
       id: user.userId,
       user: (
@@ -228,7 +278,7 @@ export const AdminAnalyticsOverview = () => {
       profile: `${formatNumber(user.profileCompletionPercent)}%`,
       missing:
         user.missingSections.length > 0
-          ? user.missingSections.map((section) => prettifyLabel(section)).join(", ")
+          ? user.missingSections.map((section) => getMissingSectionLabel(section, user)).join(", ")
           : t("None"),
     }));
   }, [t, usersUsage]);
@@ -246,15 +296,26 @@ export const AdminAnalyticsOverview = () => {
         title={t("Analytics overview")}
         subtitle={t("Key KPIs, trends, and usage signals for the selected range.")}
         actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRefresh}
-            loading={refreshing}
-            loadingText={t("Refreshing")}
-          >
-            {t("Refresh KPIs")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackfillOnboarding}
+              loading={backfilling}
+              loadingText={t("Running")}
+            >
+              {t("Recalculate onboarding status")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefresh}
+              loading={refreshing}
+              loadingText={t("Refreshing")}
+            >
+              {t("Refresh KPIs")}
+            </Button>
+          </div>
         }
       />
 
@@ -281,6 +342,37 @@ export const AdminAnalyticsOverview = () => {
         </Card>
       ) : null}
 
+      {backfillError ? (
+        <Card className="space-y-3 border-danger/30 p-5">
+          <p className="text-sm font-semibold text-danger">
+            {t("Unable to recalculate onboarding status")}
+          </p>
+          <p className="text-sm text-muted">{t(backfillError.message)}</p>
+          <Button size="sm" variant="outline" onClick={handleBackfillOnboarding}>
+            {t("Try again")}
+          </Button>
+        </Card>
+      ) : null}
+
+      {backfillResult ? (
+        <Card className="space-y-1 border-success/30 bg-success/10 p-5">
+          <p className="text-sm font-semibold text-success">
+            {t("Onboarding backfill completed.")}
+          </p>
+          <p className="text-sm text-muted">
+            {t(
+              "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})",
+              {
+                updated: formatNumber(backfillResult.updatedUsers),
+                before: formatNumber(backfillResult.completedBefore),
+                after: formatNumber(backfillResult.completedAfter),
+                total: formatNumber(backfillResult.totalUsers),
+              }
+            )}
+          </p>
+        </Card>
+      ) : null}
+
       {!loading && !error ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -301,6 +393,12 @@ export const AdminAnalyticsOverview = () => {
                 analytics.onboardingTrend.labelKey,
                 analytics.onboardingTrend.labelValues
               )}
+            />
+            <AdminStatCard
+              label={t("Onboarding completed users")}
+              value={formatNumber(analytics.onboardingCompletedUsersTotal)}
+              trend="neutral"
+              trendLabel={t("Current total")}
             />
             <AdminStatCard
               label={t("Daily active users")}

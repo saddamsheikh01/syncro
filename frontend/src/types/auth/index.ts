@@ -66,7 +66,6 @@ export type PasswordResetConfirmRequest = {
 
 export type UpdateUserRequest = {
   language?: string | null;
-  onboardingCompleted?: boolean | null;
   username?: string | null;
   phone?: string | null;
   email?: string | null;

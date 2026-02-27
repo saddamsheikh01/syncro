@@ -260,6 +260,7 @@ public class AnalyticsService {
                 fromInstant,
                 toInstant
             ));
+        long onboardingCompletedUsersTotal = userRepository.countByOnboardingCompletedTrue();
 
         List<KpiPoint> activeUsersDaily = mapBuckets(analyticsEventRepository.countUniqueUsersDaily(
             fromInstant,
@@ -310,6 +311,7 @@ public class AnalyticsService {
             registrationsWeekly,
             onboardingDaily,
             onboardingWeekly,
+            onboardingCompletedUsersTotal,
             activeUsersDaily,
             activeUsersWeekly,
             returningUsers,
@@ -386,8 +388,20 @@ public class AnalyticsService {
                         up.city,
                         up.gender,
                         up.birth_date,
-                        up.user_id is not null as has_profile,
-                        pref.user_id is not null as has_preferences,
+                        (
+                            nullif(trim(up.full_name), '') is not null
+                            and nullif(trim(up.city), '') is not null
+                            and nullif(trim(up.country), '') is not null
+                        ) as has_profile,
+                        (
+                            pref.user_id is not null
+                            and (
+                                coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
+                                or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
+                                or coalesce(pref.privacy_policy_accepted, false)
+                                or coalesce(pref.newsletter_consent, false)
+                            )
+                        ) as has_preferences,
                         (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position
                     from users u
                     left join user_profiles up on up.user_id = u.id
@@ -578,8 +592,20 @@ public class AnalyticsService {
                         when up.birth_date is null then null
                         else extract(year from age(current_date, up.birth_date))::int
                     end as age,
-                    up.user_id is not null as has_profile,
-                    pref.user_id is not null as has_preferences,
+                    (
+                        nullif(trim(up.full_name), '') is not null
+                        and nullif(trim(up.city), '') is not null
+                        and nullif(trim(up.country), '') is not null
+                    ) as has_profile,
+                    (
+                        pref.user_id is not null
+                        and (
+                            coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
+                            or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
+                            or coalesce(pref.privacy_policy_accepted, false)
+                            or coalesce(pref.newsletter_consent, false)
+                        )
+                    ) as has_preferences,
                     (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position,
                     coalesce(ic.interests_count, 0) as interests_count,
                     coalesce(tc.tests_completed, 0) as tests_completed
