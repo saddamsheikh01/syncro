@@ -7,18 +7,52 @@ import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.tags.entity.UserInterest;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class UserProfileSearchSpec {
 
     private UserProfileSearchSpec() {}
+
+    private static String normalizeLocationFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String t = value.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        String lower = t.toLowerCase(Locale.ROOT);
+        String nfd = Normalizer.normalize(lower, Normalizer.Form.NFD);
+        return nfd.replaceAll("\\p{M}", "");
+    }
+
+    private static Predicate locationMatchWordBoundary(
+        Expression<String> field,
+        String normalizedTerm,
+        CriteriaBuilder cb
+    ) {
+        String exact = normalizedTerm;
+        String prefix = normalizedTerm + "%";
+        String suffixEnd = "% " + normalizedTerm;
+        String wordMiddle = "% " + normalizedTerm + " %";
+        return cb.or(
+            cb.equal(field, exact),
+            cb.like(field, prefix),
+            cb.like(field, suffixEnd),
+            cb.like(field, wordMiddle)
+        );
+    }
 
     public static Specification<UserProfile> withFilters(
         ProfileVisibility visibility,
@@ -31,12 +65,22 @@ public final class UserProfileSearchSpec {
         Orientation orientation,
         ZodiacSign zodiacSign,
         List<UUID> interestTagIds,
-        String valuesText
+        String valuesText,
+        List<UUID> proximityUserIds,
+        UUID excludeUserId
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             predicates.add(cb.equal(root.get("visibility"), visibility));
+
+            if (excludeUserId != null) {
+                predicates.add(cb.notEqual(root.get("user").get("id"), excludeUserId));
+            }
+
+            if (proximityUserIds != null && !proximityUserIds.isEmpty()) {
+                predicates.add(root.get("user").get("id").in(proximityUserIds));
+            }
 
             if (q != null && !q.isBlank()) {
                 String normalized = q.trim().toLowerCase();
@@ -48,7 +92,6 @@ public final class UserProfileSearchSpec {
                     Join<UserProfile, User> userJoin = root.join("user");
                     predicates.add(cb.or(
                         cb.like(cb.lower(root.get("fullName")), pattern),
-                        cb.like(cb.lower(root.get("city")), pattern),
                         cb.like(cb.lower(userJoin.get("username")), pattern),
                         cb.like(cb.lower(userJoin.get("email")), pattern)
                     ));
@@ -56,13 +99,19 @@ public final class UserProfileSearchSpec {
             }
 
             if (city != null && !city.isBlank()) {
-                String cityPattern = "%" + city.trim().toLowerCase() + "%";
-                predicates.add(cb.like(cb.lower(root.get("city")), cityPattern));
+                String normalized = normalizeLocationFilter(city);
+                if (normalized != null) {
+                    var cityField = cb.lower(cb.coalesce(root.get("city"), cb.literal("")));
+                    predicates.add(locationMatchWordBoundary(cityField, normalized, cb));
+                }
             }
 
             if (country != null && !country.isBlank()) {
-                String countryPattern = "%" + country.trim().toLowerCase() + "%";
-                predicates.add(cb.like(cb.lower(root.get("country")), countryPattern));
+                String normalized = normalizeLocationFilter(country);
+                if (normalized != null) {
+                    var countryField = cb.lower(cb.coalesce(root.get("country"), cb.literal("")));
+                    predicates.add(locationMatchWordBoundary(countryField, normalized, cb));
+                }
             }
 
             LocalDate today = LocalDate.now();
@@ -88,11 +137,16 @@ public final class UserProfileSearchSpec {
             }
 
             if (interestTagIds != null && !interestTagIds.isEmpty()) {
-                Subquery<UUID> sub = query.subquery(UUID.class);
-                var uiRoot = sub.from(UserInterest.class);
-                sub.select(uiRoot.get("userId"));
-                sub.where(uiRoot.get("tagId").in(interestTagIds));
-                predicates.add(root.get("user").get("id").in(sub));
+                long requiredCount = interestTagIds.stream().distinct().count();
+                if (requiredCount > 0) {
+                    Subquery<UUID> sub = query.subquery(UUID.class);
+                    var uiRoot = sub.from(UserInterest.class);
+                    sub.where(uiRoot.get("tagId").in(interestTagIds));
+                    sub.groupBy(uiRoot.get("userId"));
+                    sub.having(cb.equal(cb.countDistinct(uiRoot.get("tagId")), requiredCount));
+                    sub.select(uiRoot.get("userId"));
+                    predicates.add(root.get("user").get("id").in(sub));
+                }
             }
 
             if (valuesText != null && !valuesText.isBlank()) {

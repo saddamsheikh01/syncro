@@ -53,7 +53,7 @@ public class ProfileController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search users with optional filters (location, age, gender, interests, values, zodiac)")
+    @Operation(summary = "Search users with optional filters (location, age, gender, interests, values, zodiac, proximity)")
     public ResponseEntity<Page<UserSummaryResponse>> searchUsers(
         @RequestParam(required = false, defaultValue = "") String q,
         @RequestParam(required = false) String city,
@@ -65,10 +65,13 @@ public class ProfileController {
         @RequestParam(required = false) String zodiacSign,
         @RequestParam(required = false) List<UUID> interestTagIds,
         @RequestParam(required = false) String valuesText,
+        @RequestParam(required = false) Double latitude,
+        @RequestParam(required = false) Double longitude,
+        @RequestParam(required = false) Double maxDistanceKm,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
-        boolean hasFilters = hasAnyFilter(city, country, ageMin, ageMax, gender, orientation, zodiacSign, interestTagIds, valuesText);
+        boolean hasFilters = hasAnyFilter(city, country, ageMin, ageMax, gender, orientation, zodiacSign, interestTagIds, valuesText, latitude, longitude, maxDistanceKm);
         if (!hasFilters) {
             return ResponseEntity.ok(profileService.searchUsers(q, PageRequest.of(page, size)));
         }
@@ -86,6 +89,9 @@ public class ProfileController {
             zodiacEnum,
             interestTagIds,
             valuesText,
+            latitude,
+            longitude,
+            maxDistanceKm,
             PageRequest.of(page, size)
         ));
     }
@@ -99,7 +105,10 @@ public class ProfileController {
         String orientation,
         String zodiacSign,
         List<UUID> interestTagIds,
-        String valuesText
+        String valuesText,
+        Double latitude,
+        Double longitude,
+        Double maxDistanceKm
     ) {
         return (city != null && !city.isBlank())
             || (country != null && !country.isBlank())
@@ -109,7 +118,8 @@ public class ProfileController {
             || (orientation != null && !orientation.isBlank())
             || (zodiacSign != null && !zodiacSign.isBlank())
             || (interestTagIds != null && !interestTagIds.isEmpty())
-            || (valuesText != null && !valuesText.isBlank());
+            || (valuesText != null && !valuesText.isBlank())
+            || (latitude != null && longitude != null && maxDistanceKm != null && maxDistanceKm > 0);
     }
 
     private static Gender parseGender(String value) {
