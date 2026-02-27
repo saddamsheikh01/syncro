@@ -3,23 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/elements/Card";
 import { useT } from "@/hooks";
+import { getShareableBaseUrl, getShareableProfileUrl } from "@/lib/siteUrl";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
-
-const buildShareText = (t: Translator, recap: string) => {
-  const plain = recap
-    .replace(/[#*_~`>[\]()!|-]/g, "")
-    .replace(/\n{2,}/g, "\n")
-    .trim();
-
-  return [
-    t("This is my Zyra profile recap on Syncro:"),
-    "",
-    `"${plain}"`,
-    "",
-    t("Discover yours on Syncro"),
-  ].join("\n");
-};
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
@@ -98,21 +84,41 @@ const SocialButton = ({ icon, label, color, onClick }: SocialButtonProps) => (
 
 export interface ShareZyraRecapCardProps {
   recap: string;
+  /** Current user's ID so the shared link is the public profile URL (e.g. /profile/{userId}) */
+  userId?: string;
 }
 
-export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
+export const ShareZyraRecapCard = ({ recap, userId }: ShareZyraRecapCardProps) => {
   const { t } = useT();
   const [copied, setCopied] = useState(false);
-  const shareText = useMemo(() => buildShareText(t, recap), [t, recap]);
+
+  const shareUrl = useMemo(() => {
+    if (userId) return getShareableProfileUrl(userId);
+    return `${getShareableBaseUrl()}/login`;
+  }, [userId]);
+  const shareTextWithUrl = useMemo(() => {
+    const plain = recap
+      .replace(/[#*_~`>[\]()!|-]/g, "")
+      .replace(/\n{2,}/g, "\n")
+      .trim();
+    return [
+      t("This is my Zyra profile recap on Syncro:"),
+      "",
+      `"${plain}"`,
+      "",
+      t("Discover yours on Syncro"),
+      shareUrl,
+    ].join("\n");
+  }, [recap, shareUrl, t]);
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
     } catch {
       return;
     }
-  }, [shareText]);
+  }, [shareUrl]);
 
   useEffect(() => {
     if (!copied) return;
@@ -121,13 +127,14 @@ export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
   }, [copied]);
 
   const handleFacebook = useCallback(() => {
-    const url = `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`;
-    window.open(url, "_blank", "noopener,noreferrer,width=600,height=400");
-  }, [shareText]);
+    navigator.clipboard.writeText(shareUrl);
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareUrl)}`;
+    window.open(fbUrl, "_blank", "noopener,noreferrer,width=600,height=400");
+  }, [shareUrl]);
 
   const handleInstagram = useCallback(() => {
     navigator.clipboard
-      .writeText(shareText)
+      .writeText(shareTextWithUrl)
       .then(() => {
         setCopied(true);
         window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
@@ -135,12 +142,12 @@ export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
       .catch(() => {
         window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
       });
-  }, [shareText]);
+  }, [shareTextWithUrl]);
 
   const handleWhatsApp = useCallback(() => {
-    const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(shareTextWithUrl)}`;
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [shareText]);
+  }, [shareTextWithUrl]);
 
   return (
     <Card className="relative overflow-hidden p-6">
@@ -188,6 +195,9 @@ export const ShareZyraRecapCard = ({ recap }: ShareZyraRecapCardProps) => {
 
         <p className="text-center text-[11px] text-subtle">
           {t("Only your recap summary is shared.")}
+        </p>
+        <p className="text-center text-[11px] text-subtle">
+          {t("Facebook: full link is copied — paste (Ctrl+V) in the post to show the complete URL.")}
         </p>
       </div>
     </Card>

@@ -1317,7 +1317,7 @@ export const ProfileSettings = ({
         />
         <ZyraProfileRecap onRecapLoaded={handleProfileRecapLoaded} />
         {profileRecapToShare ? (
-          <ShareZyraRecapCard recap={profileRecapToShare} />
+          <ShareZyraRecapCard recap={profileRecapToShare} userId={user?.id} />
         ) : null}
       </section>
 

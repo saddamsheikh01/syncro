@@ -4,21 +4,17 @@ import { cookies } from "next/headers";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { DEFAULT_LOCALE, LOCALE_COOKIE_KEY, normalizeLocale } from "@/i18n/locales";
 import { getServerTranslator } from "@/i18n/server";
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.syncroapp.it";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
+  const baseUrl = getSiteUrl();
   const title = t("Syncro");
   const description = t(
     "People, places and experiences that fit you. Discover matches, explore the catalog, and connect with Zyra.",
   );
-  const canonicalUrl = SITE_URL.replace(/\/+$/, "");
-  const ogImageUrl = `${canonicalUrl}/icon`;
 
-  return {
-    metadataBase: new URL(canonicalUrl),
+  const metadata: Metadata = {
     title: {
       default: title,
       template: `%s | ${title}`,
@@ -28,15 +24,14 @@ export const generateMetadata = async (): Promise<Metadata> => {
     openGraph: {
       type: "website",
       locale: "en_US",
-      url: canonicalUrl,
       siteName: title,
       title,
       description,
       images: [
         {
-          url: ogImageUrl,
-          width: 512,
-          height: 512,
+          url: baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg",
+          width: 1200,
+          height: 630,
           alt: title,
         },
       ],
@@ -45,13 +40,20 @@ export const generateMetadata = async (): Promise<Metadata> => {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImageUrl],
+      images: [baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg"],
     },
     robots: {
       index: true,
       follow: true,
     },
   };
+
+  if (baseUrl) {
+    metadata.metadataBase = new URL(baseUrl);
+    metadata.openGraph = { ...metadata.openGraph, url: baseUrl } as Metadata["openGraph"];
+  }
+
+  return metadata;
 };
 
 export default async function RootLayout({
