@@ -28,11 +28,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                     p.latitude IS NOT NULL
                     AND p.longitude IS NOT NULL
                     AND (
-                        6371 * acos(least(1, greatest(-1,
+                        (6371.0 * acos(least(1.0, greatest(-1.0,
                             cos(radians(:lat)) * cos(radians(p.latitude))
                             * cos(radians(p.longitude) - radians(:lng))
                             + sin(radians(:lat)) * sin(radians(p.latitude))
-                        )))
+                        ))))
                     ) <= :radiusKm
                 )
             )
@@ -76,11 +76,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                     p.latitude IS NOT NULL
                     AND p.longitude IS NOT NULL
                     AND (
-                        6371 * acos(least(1, greatest(-1,
+                        (6371.0 * acos(least(1.0, greatest(-1.0,
                             cos(radians(:lat)) * cos(radians(p.latitude))
                             * cos(radians(p.longitude) - radians(:lng))
                             + sin(radians(:lat)) * sin(radians(p.latitude))
-                        )))
+                        ))))
                     ) <= :radiusKm
                 )
             )
