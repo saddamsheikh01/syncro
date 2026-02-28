@@ -313,10 +313,10 @@ public class AnalyticsService {
         double averageSessionDurationSeconds = hasPreAggregates
             ? resolvePreAggregatedAverage(startDate, endDate)
             : resolveAverageSessionDurationRaw(fromInstant, toInstant);
-        List<AnalyticsSegmentCountResponse> countryDistribution = loadCountryDistribution(fromInstant, toInstant);
-        List<AnalyticsSegmentCountResponse> cityDistribution = loadCityDistribution(fromInstant, toInstant);
-        List<AnalyticsSegmentCountResponse> genderDistribution = loadGenderDistribution(fromInstant, toInstant);
-        List<AnalyticsSegmentCountResponse> ageDistribution = loadAgeDistribution(fromInstant, toInstant);
+        List<AnalyticsSegmentCountResponse> countryDistribution = loadCountryDistribution();
+        List<AnalyticsSegmentCountResponse> cityDistribution = loadCityDistribution();
+        List<AnalyticsSegmentCountResponse> genderDistribution = loadGenderDistribution();
+        List<AnalyticsSegmentCountResponse> ageDistribution = loadAgeDistribution();
 
         return new AnalyticsKpiResponse(
             registrationsDaily,
@@ -846,7 +846,7 @@ public class AnalyticsService {
         return average.doubleValue();
     }
 
-    private List<AnalyticsSegmentCountResponse> loadCountryDistribution(Instant from, Instant to) {
+    private List<AnalyticsSegmentCountResponse> loadCountryDistribution() {
         return jdbcTemplate.query(
             """
                 select
@@ -854,20 +854,16 @@ public class AnalyticsService {
                     count(*) as total
                 from users u
                 left join user_profiles up on up.user_id = u.id
-                where u.created_at >= ?
-                  and u.created_at < ?
                 group by label
                 order by total desc, label asc
                 limit ?
             """,
             (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
-            Timestamp.from(from),
-            Timestamp.from(to),
             DISTRIBUTION_LIMIT
         );
     }
 
-    private List<AnalyticsSegmentCountResponse> loadCityDistribution(Instant from, Instant to) {
+    private List<AnalyticsSegmentCountResponse> loadCityDistribution() {
         return jdbcTemplate.query(
             """
                 select
@@ -875,20 +871,16 @@ public class AnalyticsService {
                     count(*) as total
                 from users u
                 left join user_profiles up on up.user_id = u.id
-                where u.created_at >= ?
-                  and u.created_at < ?
                 group by label
                 order by total desc, label asc
                 limit ?
             """,
             (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
-            Timestamp.from(from),
-            Timestamp.from(to),
             DISTRIBUTION_LIMIT
         );
     }
 
-    private List<AnalyticsSegmentCountResponse> loadGenderDistribution(Instant from, Instant to) {
+    private List<AnalyticsSegmentCountResponse> loadGenderDistribution() {
         return jdbcTemplate.query(
             """
                 select
@@ -896,20 +888,16 @@ public class AnalyticsService {
                     count(*) as total
                 from users u
                 left join user_profiles up on up.user_id = u.id
-                where u.created_at >= ?
-                  and u.created_at < ?
                 group by label
                 order by total desc, label asc
                 limit ?
             """,
             (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
-            Timestamp.from(from),
-            Timestamp.from(to),
             DISTRIBUTION_LIMIT
         );
     }
 
-    private List<AnalyticsSegmentCountResponse> loadAgeDistribution(Instant from, Instant to) {
+    private List<AnalyticsSegmentCountResponse> loadAgeDistribution() {
         return jdbcTemplate.query(
             """
                 select label, count(*) as total
@@ -926,8 +914,6 @@ public class AnalyticsService {
                         end as label
                     from users u
                     left join user_profiles up on up.user_id = u.id
-                    where u.created_at >= ?
-                      and u.created_at < ?
                 ) age_groups
                 group by label
                 order by case label
@@ -940,9 +926,7 @@ public class AnalyticsService {
                     else 7
                 end
             """,
-            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
-            Timestamp.from(from),
-            Timestamp.from(to)
+            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total"))
         );
     }
 
