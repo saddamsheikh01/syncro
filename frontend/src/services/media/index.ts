@@ -3,7 +3,8 @@ import { buildQueryParams } from "../utils/queryParams";
 import type { MediaOwnerType, MediaResponse } from "../../types/media";
 import type { PageResponse, Uuid } from "../../types/shared";
 
-const MEDIA_UPLOAD_TIMEOUT_MS = 180_000;
+/** 10 minutes — large videos need time on slow connections. */
+const MEDIA_UPLOAD_TIMEOUT_MS = 600_000;
 
 export type MediaListParams = {
   ownerType: MediaOwnerType;

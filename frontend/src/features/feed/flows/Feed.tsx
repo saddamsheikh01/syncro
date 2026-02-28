@@ -22,7 +22,8 @@ import type { CreatePostRequest, PostScope, PostTimeframe } from "@/types/social
 import type { UserSummaryResponse } from "@/types/profile";
 
 const DEFAULT_PAGE_SIZE = 10;
-const POST_MEDIA_UPLOAD_RETRIES = 1;
+/** Retries for post media upload (e.g. large videos); total attempts = 1 + this value. */
+const POST_MEDIA_UPLOAD_RETRIES = 2;
 
 const readNumber = (value: JsonValue | undefined) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -115,6 +116,25 @@ const resolveUploadErrorReason = (t: Translator, error: unknown) => {
   }
   return t("Upload failed");
 };
+
+/** Get current browser position; rejects if unavailable or denied. */
+const getBrowserPosition = (): Promise<{ latitude: number; longitude: number; accuracyMeters?: number }> =>
+  new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(new Error("Geolocation not supported"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracyMeters: pos.coords.accuracy,
+        }),
+      reject,
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
 
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -460,6 +480,7 @@ export const Feed = () => {
   const handleOpenComposer = () => {
     setComposerError(null);
     setComposerOpen(true);
+    positionActions.fetchPosition().catch(() => undefined);
   };
 
   const handleCloseComposer = () => {
@@ -481,9 +502,25 @@ export const Feed = () => {
         taggedUserIds: payload.taggedUserIds ?? undefined,
       };
 
-      if (payload.includePosition && hasPosition && position) {
-        request.latitude = position.latitude ?? null;
-        request.longitude = position.longitude ?? null;
+      let positionToUse = payload.includePosition && hasPosition && position ? position : null;
+      if (payload.includePosition && !positionToUse) {
+        try {
+          const browserPos = await getBrowserPosition();
+          const saved = await positionActions.savePosition({
+            latitude: browserPos.latitude,
+            longitude: browserPos.longitude,
+            accuracyMeters: browserPos.accuracyMeters ?? null,
+          });
+          positionToUse = saved;
+        } catch {
+          setComposerError(t("Enable location to use it in posts."));
+          setComposerLoading(false);
+          return;
+        }
+      }
+      if (positionToUse) {
+        request.latitude = positionToUse.latitude ?? null;
+        request.longitude = positionToUse.longitude ?? null;
       }
 
       const created = await createPost(request);
@@ -793,7 +830,7 @@ export const Feed = () => {
           open={composerOpen}
           loading={composerLoading}
           error={composerError}
-          positionAvailable={hasPosition}
+          positionAvailable={true}
           positionLabel={positionLabel}
           onClose={handleCloseComposer}
           onSubmit={handleComposerSubmit}

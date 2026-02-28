@@ -6,6 +6,9 @@ const resolveBackendBaseUrl = () => {
 };
 
 const nextConfig: NextConfig = {
+  experimental: {
+    proxyClientMaxBodySize: "60mb",
+  },
   images: {
     remotePatterns: [
       {
