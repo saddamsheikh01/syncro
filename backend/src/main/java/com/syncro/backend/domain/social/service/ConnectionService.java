@@ -5,6 +5,7 @@ import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.social.dto.ConnectionResponse;
@@ -28,17 +29,20 @@ public class ConnectionService {
     private final ConnectionRepository connectionRepository;
     private final NotificationService notificationService;
     private final UserProfileRepository profileRepository;
+    private final EmailNotificationService emailNotificationService;
 
     public ConnectionService(
         UserRepository userRepository,
         ConnectionRepository connectionRepository,
         NotificationService notificationService,
-        UserProfileRepository profileRepository
+        UserProfileRepository profileRepository,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.connectionRepository = connectionRepository;
         this.notificationService = notificationService;
         this.profileRepository = profileRepository;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Transactional
@@ -98,6 +102,13 @@ public class ConnectionService {
             saved.getId(),
             saved.getContext()
         );
+        try {
+            emailNotificationService.sendConnectionRequestReceived(
+                saved.getToUserId(),
+                resolveActorDisplayName(fromUser),
+                saved.getId()
+            );
+        } catch (Exception ignored) { }
         return toResponse(saved);
     }
 
@@ -122,6 +133,13 @@ public class ConnectionService {
             saved.getId(),
             saved.getContext()
         );
+        try {
+            emailNotificationService.sendConnectionAccepted(
+                saved.getFromUserId(),
+                resolveActorDisplayName(user),
+                saved.getId()
+            );
+        } catch (Exception ignored) { }
         return toResponse(saved);
     }
 

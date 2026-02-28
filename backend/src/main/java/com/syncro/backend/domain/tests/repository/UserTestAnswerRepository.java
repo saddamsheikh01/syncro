@@ -20,6 +20,8 @@ public interface UserTestAnswerRepository extends JpaRepository<UserTestAnswer, 
 
     List<UserTestAnswer> findBySubmission_Id(UUID submissionId);
 
+    long countBySubmission_Id(UUID submissionId);
+
     @Transactional
     @Modifying
     @Query("DELETE FROM UserTestAnswer a WHERE a.submission.id = :submissionId")

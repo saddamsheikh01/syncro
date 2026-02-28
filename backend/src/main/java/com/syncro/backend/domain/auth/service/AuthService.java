@@ -29,6 +29,7 @@ import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserPasswordResetTokenRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.external.brevo.BrevoMailClient;
 import com.syncro.backend.domain.referrals.service.ReferralService;
 import com.syncro.backend.security.JwtService;
@@ -77,6 +78,7 @@ public class AuthService {
     private final AnalyticsService analyticsService;
     private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
     private final BrevoMailClient brevoMailClient;
+    private final EmailNotificationService emailNotificationService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -90,7 +92,8 @@ public class AuthService {
         ReferralService referralService,
         AnalyticsService analyticsService,
         GoogleIdTokenVerifierService googleIdTokenVerifierService,
-        BrevoMailClient brevoMailClient
+        BrevoMailClient brevoMailClient,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -103,6 +106,7 @@ public class AuthService {
         this.analyticsService = analyticsService;
         this.googleIdTokenVerifierService = googleIdTokenVerifierService;
         this.brevoMailClient = brevoMailClient;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Transactional
@@ -133,7 +137,11 @@ public class AuthService {
 
         referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
         analyticsService.trackServerEventSafe(savedUser.getId(), "USER_REGISTERED", buildRegisterPayload(request));
-
+        try {
+            emailNotificationService.sendWelcome(savedUser.getId());
+        } catch (Exception ex) {
+            logger.warn("Welcome email send failed for userId={}", savedUser.getId(), ex);
+        }
         return buildAuthResponse(savedUser);
     }
 
@@ -270,7 +278,6 @@ public class AuthService {
             "LOGIN_SUCCESS",
             Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
         );
-
         return buildAuthResponse(savedUser);
     }
 
@@ -374,6 +381,11 @@ public class AuthService {
             "PASSWORD_RESET_COMPLETED",
             Map.of("authProvider", AuthProvider.EMAIL.name())
         );
+        try {
+            emailNotificationService.sendPasswordChangeNotification(user.getId());
+        } catch (Exception ex) {
+            logger.warn("Password change notification email failed for userId={}", user.getId(), ex);
+        }
     }
 
     public UserResponse getMe(UserPrincipal principal) {

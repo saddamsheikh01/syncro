@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.tests.repository;
 
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -46,4 +47,9 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
     List<UserIdCountProjection> countDistinctTestDefinitionIdsByUserIds(
         @Param("userIds") Collection<UUID> userIds
     );
+
+    List<UserTestSubmission> findBySubmittedAtBefore(Instant before);
+
+    @Query("SELECT DISTINCT s.user.id FROM UserTestSubmission s")
+    List<UUID> findDistinctUserIds();
 }

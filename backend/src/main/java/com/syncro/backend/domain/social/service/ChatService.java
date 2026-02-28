@@ -24,6 +24,7 @@ import com.syncro.backend.domain.social.repository.ChatMessageRepository;
 import com.syncro.backend.domain.social.repository.ChatParticipantRepository;
 import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.domain.social.service.ConnectionService;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,6 +51,7 @@ public class ChatService {
     private final ChatMapper chatMapper;
     private final NotificationService notificationService;
     private final ConnectionService connectionService;
+    private final EmailNotificationService emailNotificationService;
 
     public ChatService(
         UserRepository userRepository,
@@ -60,7 +62,8 @@ public class ChatService {
         ChatMessageRepository messageRepository,
         ChatMapper chatMapper,
         NotificationService notificationService,
-        ConnectionService connectionService
+        ConnectionService connectionService,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
@@ -71,6 +74,7 @@ public class ChatService {
         this.chatMapper = chatMapper;
         this.notificationService = notificationService;
         this.connectionService = connectionService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Transactional
@@ -186,6 +190,16 @@ public class ChatService {
             .filter(userId -> !userId.equals(user.getId()))
             .toList();
         notificationService.createMessageNotifications(conversationId, saved, recipientIds);
+        String senderDisplayName = resolveParticipantInfo(user.getId()).fullName();
+        for (UUID recipientId : recipientIds) {
+            try {
+                emailNotificationService.sendNewMessageWhenOffline(
+                    recipientId,
+                    senderDisplayName != null ? senderDisplayName : user.getUsername(),
+                    conversationId
+                );
+            } catch (Exception ignored) { }
+        }
         return chatMapper.toMessageResponse(saved);
     }
 

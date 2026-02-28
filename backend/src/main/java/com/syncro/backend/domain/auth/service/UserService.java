@@ -12,6 +12,7 @@ import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.mapper.AuthMapper;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Map;
 import java.util.Locale;
@@ -35,15 +36,18 @@ public class UserService {
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
     private final AnalyticsService analyticsService;
+    private final EmailNotificationService emailNotificationService;
 
     public UserService(
         UserRepository userRepository,
         AuthMapper authMapper,
-        AnalyticsService analyticsService
+        AnalyticsService analyticsService,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.authMapper = authMapper;
         this.analyticsService = analyticsService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public UserResponse getMe(UserPrincipal principal) {
@@ -89,6 +93,7 @@ public class UserService {
                 user.setPhone(normalizedPhone);
             }
         }
+        String newEmailAfterSave = null;
         if (request.email() != null && !request.email().isBlank()) {
             String normalizedEmail = normalizeEmail(request.email());
             if (!normalizedEmail.equals(user.getEmail())) {
@@ -96,10 +101,17 @@ public class UserService {
                     throw new ConflictException("Email già in uso");
                 }
                 user.setEmail(normalizedEmail);
+                newEmailAfterSave = normalizedEmail;
             }
         }
 
         User saved = userRepository.save(user);
+        if (newEmailAfterSave != null) {
+            try {
+                emailNotificationService.sendEmailChangeNotification(saved.getId(), newEmailAfterSave);
+            } catch (Exception ignored) {
+            }
+        }
         if (!onboardingWasCompleted && saved.isOnboardingCompleted()) {
             analyticsService.trackServerEventSafe(
                 saved.getId(),

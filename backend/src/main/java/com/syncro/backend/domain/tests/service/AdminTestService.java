@@ -36,6 +36,7 @@ import com.syncro.backend.domain.tests.repository.TestQuestionRepository;
 import com.syncro.backend.domain.tests.repository.TestQuestionTranslationRepository;
 import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.zyra.client.ZyraChatMessage;
 import com.syncro.backend.domain.zyra.client.ZyraClient;
 import com.syncro.backend.domain.zyra.config.PromptLoader;
@@ -64,6 +65,7 @@ public class AdminTestService {
     private final TestAnswerOptionTranslationRepository testAnswerOptionTranslationRepository;
     private final UserTestSubmissionRepository userTestSubmissionRepository;
     private final UserTestAnswerRepository userTestAnswerRepository;
+    private final EmailNotificationService emailNotificationService;
     private final ZyraClient zyraClient;
     private final PromptLoader promptLoader;
     private final TestMapper testMapper;
@@ -77,6 +79,7 @@ public class AdminTestService {
         TestAnswerOptionTranslationRepository testAnswerOptionTranslationRepository,
         UserTestSubmissionRepository userTestSubmissionRepository,
         UserTestAnswerRepository userTestAnswerRepository,
+        EmailNotificationService emailNotificationService,
         ZyraClient zyraClient,
         PromptLoader promptLoader,
         TestMapper testMapper
@@ -89,6 +92,7 @@ public class AdminTestService {
         this.testAnswerOptionTranslationRepository = testAnswerOptionTranslationRepository;
         this.userTestSubmissionRepository = userTestSubmissionRepository;
         this.userTestAnswerRepository = userTestAnswerRepository;
+        this.emailNotificationService = emailNotificationService;
         this.zyraClient = zyraClient;
         this.promptLoader = promptLoader;
         this.testMapper = testMapper;
@@ -434,6 +438,9 @@ public class AdminTestService {
             definition.setConfig(request.config());
         }
         TestDefinition saved = testDefinitionRepository.save(definition);
+        if (saved.isActive()) {
+            notifyUsersNewTestAvailable();
+        }
         return testMapper.toAdminDefinitionResponse(saved);
     }
 
@@ -451,6 +458,7 @@ public class AdminTestService {
         if (request.description() != null) {
             definition.setDescription(normalizeOptional(request.description()));
         }
+        boolean wasActive = definition.isActive();
         if (request.active() != null) {
             definition.setActive(request.active());
         }
@@ -464,7 +472,20 @@ public class AdminTestService {
             definition.setConfig(request.config());
         }
         TestDefinition saved = testDefinitionRepository.save(definition);
+        if (saved.isActive() && !wasActive) {
+            notifyUsersNewTestAvailable();
+        }
         return testMapper.toAdminDefinitionResponse(saved);
+    }
+
+    private void notifyUsersNewTestAvailable() {
+        for (UUID userId : userTestSubmissionRepository.findDistinctUserIds()) {
+            try {
+                emailNotificationService.sendNewTestAvailable(userId);
+            } catch (Exception ignored) {
+                // best-effort per user
+            }
+        }
     }
 
     @Transactional

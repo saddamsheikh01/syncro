@@ -38,6 +38,7 @@ export const SettingsOverview = () => {
   const [accountEmail, setAccountEmail] = useState("");
   const [accountEmailSaving, setAccountEmailSaving] = useState(false);
   const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
+  const [accountEmailSuccess, setAccountEmailSuccess] = useState(false);
 
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
@@ -131,20 +132,28 @@ export const SettingsOverview = () => {
     const trimmed = accountEmail.trim();
     if (!trimmed) {
       setAccountEmailError("Email is required.");
+      setAccountEmailSuccess(false);
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
       setAccountEmailError("Please enter a valid email address.");
+      setAccountEmailSuccess(false);
       return;
     }
-    if (trimmed === (user?.email ?? "").trim()) return;
+    if (trimmed === (user?.email ?? "").trim()) {
+      setAccountEmailError(null);
+      return;
+    }
 
     setAccountEmailSaving(true);
     setAccountEmailError(null);
+    setAccountEmailSuccess(false);
     try {
       await userActions.updateUser({ email: trimmed });
       setAccountEmail(trimmed);
+      setAccountEmailSuccess(true);
+      setTimeout(() => setAccountEmailSuccess(false), 4000);
     } catch (saveError) {
       setAccountEmailError(
         resolveErrorMessage(saveError, "Unable to update email."),
@@ -285,6 +294,7 @@ export const SettingsOverview = () => {
               value={accountEmail}
               onChange={(event) => {
                 setAccountEmailError(null);
+                setAccountEmailSuccess(false);
                 setAccountEmail(event.target.value);
               }}
               error={accountEmailError ? t(accountEmailError) : undefined}
@@ -305,6 +315,11 @@ export const SettingsOverview = () => {
               </Button>
             </div>
           </div>
+          {accountEmailSuccess ? (
+            <p className="text-sm text-success">
+              {t("Email updated successfully.")}
+            </p>
+          ) : null}
         </Card>
 
         <Card className="space-y-4 p-5">

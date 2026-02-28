@@ -2,6 +2,7 @@ package com.syncro.backend.domain.favorites.repository;
 
 import com.syncro.backend.domain.favorites.entity.UserFavorite;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -47,4 +48,6 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, UUID
         @Param("userId") UUID userId,
         @Param("postIds") java.util.List<UUID> postIds
     );
+
+    List<UserFavorite> findByExperienceIdIsNotNull();
 }

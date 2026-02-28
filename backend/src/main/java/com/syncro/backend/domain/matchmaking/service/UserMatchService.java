@@ -15,6 +15,7 @@ import com.syncro.backend.domain.matchmaking.mapper.UserMatchMapper;
 import com.syncro.backend.domain.matchmaking.repository.MatchExplanationRepository;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchCandidateProjection;
 import com.syncro.backend.domain.matchmaking.repository.UserMatchScoreRepository;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
 import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.dto.UserSummaryResponse;
@@ -70,6 +71,7 @@ public class UserMatchService {
     private final DimensionScoreCalculator dimensionScoreCalculator;
     private final DomainScoreCalculator domainScoreCalculator;
     private final MatchExplanationGenerator explanationGenerator;
+    private final EmailNotificationService emailNotificationService;
 
     public UserMatchService(
         UserRepository userRepository,
@@ -84,7 +86,8 @@ public class UserMatchService {
         MediaObjectRepository mediaObjectRepository,
         DimensionScoreCalculator dimensionScoreCalculator,
         DomainScoreCalculator domainScoreCalculator,
-        MatchExplanationGenerator explanationGenerator
+        MatchExplanationGenerator explanationGenerator,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.userInterestRepository = userInterestRepository;
@@ -99,6 +102,7 @@ public class UserMatchService {
         this.dimensionScoreCalculator = dimensionScoreCalculator;
         this.domainScoreCalculator = domainScoreCalculator;
         this.explanationGenerator = explanationGenerator;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Transactional
@@ -293,6 +297,9 @@ public class UserMatchService {
             .findByUserAIdAndUserBId(userAId, userBId)
             .orElseGet(UserMatchScore::new);
 
+        Integer previousScore = match.getScoreTotal();
+        boolean wasNewMatch = match.getId() == null;
+
         match.setUserAId(userAId);
         match.setUserBId(userBId);
         match.setScoreTotal(scoreTotal);
@@ -302,6 +309,30 @@ public class UserMatchService {
         if (saved.getId() != null) {
             upsertExplanation(saved, explanation);
         }
+
+        if (saved.getScoreTotal() != null && saved.getScoreTotal() >= 60) {
+            String matchDisplayNameA = resolveMatchDisplayName(userBId);
+            String matchDisplayNameB = resolveMatchDisplayName(userAId);
+            double percent = saved.getScoreTotal();
+            try {
+                if (wasNewMatch) {
+                    emailNotificationService.sendNewMatch(userAId, matchDisplayNameA, percent, userBId);
+                    emailNotificationService.sendNewMatch(userBId, matchDisplayNameB, percent, userAId);
+                } else if (previousScore != null && saved.getScoreTotal() > previousScore) {
+                    emailNotificationService.sendImprovedMatch(userAId, matchDisplayNameA, previousScore.doubleValue(), percent, userBId);
+                    emailNotificationService.sendImprovedMatch(userBId, matchDisplayNameB, previousScore.doubleValue(), percent, userAId);
+                }
+            } catch (Exception ignored) { }
+        }
+    }
+
+    private String resolveMatchDisplayName(UUID userId) {
+        UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+        if (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank()) {
+            return profile.getFullName().trim();
+        }
+        User user = userRepository.findById(userId).orElse(null);
+        return user != null && user.getUsername() != null && !user.getUsername().isBlank() ? user.getUsername() : "A new match";
     }
 
     /**
