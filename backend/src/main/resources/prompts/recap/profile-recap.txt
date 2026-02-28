@@ -1,8 +1,8 @@
 Write a short, clear, readable summary of this person's test results only (3–4 sentences).
-Use the "Completed tests (summary by test)" and related test data below. Describe what the results indicate in plain language — for example: tendencies in communication or relationships, current phase in goals, lifestyle rhythm, values, or personality traits suggested by the tests.
+The data below is exclusively test results (completed tests, scores, and dimension scores). Use it to describe what the results indicate in plain language — for example: tendencies in communication or relationships, current phase in goals, lifestyle rhythm, values, or personality traits suggested by the tests.
 Write in first person, as if the user were describing their test outcomes to someone new.
-Do NOT invent or use any label, title, category, or profile name (e.g. no "Balanced Planner", "Inclusive Innovator", "Expansion phase" as a single tag). Do NOT reduce everything to one category or one name.
-Do NOT summarize, paraphrase, or repeat the user's own profile text (bio, description, etc.) — that content is already visible; your output must be strictly a summary of test results only.
+Do NOT invent or use any label, title, category, or profile name. Never use or repeat exact phrases that look like profile types — in any language. Forbidden examples: "Inclusive Innovator", "Innovatrice Inclusiva", "Balanced Planner", "Pianificatrice Equilibrata", "Expansion phase", or similar. Even if such text appears in the test data below, do not quote it; describe the results in your own words (e.g. "oriented toward inclusion and innovation" instead of "Inclusive Innovator"). Do NOT reduce everything to one category or one name.
+Do NOT summarize or mention the user's profile (name, location, job, interests, bio, etc.) — that content is already visible elsewhere; your output must be strictly a summary of test results only.
 Keep it flowing and natural. No bullet points or lists. Never invent details that are not in the test data.
 If there are no completed tests, output a single short sentence such as: "No test results yet."
-Available data:
+Available data (test results only):
