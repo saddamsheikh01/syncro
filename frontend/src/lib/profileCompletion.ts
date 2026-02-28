@@ -4,6 +4,8 @@
 
 export interface ProfileCompletionInput {
   profileFields: {
+    username: string | null;
+    email: string | null;
     fullName: string | null;
     birthDate: string | null;
     city: string | null;
@@ -66,6 +68,8 @@ const WEIGHTS = {
 
 const INTEREST_THRESHOLD = 3;
 const REQUIRED_PROFILE_FIELDS = [
+  "username",
+  "email",
   "fullName",
   "birthDate",
   "city",
@@ -147,7 +151,17 @@ export const calculateProfileCompletion = (
     0,
   );
 
-  const rawPercentage = Math.round(totalPoints);
+  let rawPercentage = Math.round(totalPoints);
+  // When all categories are complete, always show 100%
+  const allCategoriesComplete = (Object.values(categories) as CategoryScore[]).every(
+    (c) => c.ratio >= 1,
+  );
+  if (allCategoriesComplete) {
+    rawPercentage = 100;
+  } else if (rawPercentage >= 98 && totalPoints >= 97.0) {
+    // Displayed 98–99%: treat as complete so bar fills and we don't nag for one small missing field
+    rawPercentage = 100;
+  }
   const percentage = Math.min(100, Math.max(0, rawPercentage));
 
   return {
