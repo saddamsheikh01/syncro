@@ -9,8 +9,10 @@ import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Tag } from "@/components/elements/Tag";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
+import { ShareLinkDropdown } from "@/features/catalog/sections/ShareLinkDropdown";
 import { useCatalog, useFavorites, useT } from "@/hooks";
 import { isUuid } from "@/lib/validators";
+import { getShareableExperienceUrl } from "@/lib/siteUrl";
 import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
 export interface ExperienceDetailProps {
@@ -288,19 +290,11 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           >
             {isFavorite ? t("Remove from favorites") : t("Save to favorites")}
           </Button>
-          <Button
+          <ShareLinkDropdown
+            shareUrl={getShareableExperienceUrl(experienceId)}
+            shareText={experienceDetail.name}
             variant="ghost"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: experienceDetail.name,
-                  url: window.location.href,
-                });
-              }
-            }}
-          >
-            {t("Share")}
-          </Button>
+          />
         </div>
       </Card>
 

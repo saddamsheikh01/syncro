@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { useT } from "@/hooks";
 import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
+import { getNotificationDisplay } from "@/utils/notificationDisplay";
 import type { UserNotificationResponse } from "@/types/notifications";
 import { Modal } from "./Modal";
 
@@ -29,6 +30,8 @@ export const NotificationDetailModal = ({
   onClose,
 }: NotificationDetailModalProps) => {
   const { t } = useT();
+  const display =
+    notification != null ? getNotificationDisplay(notification, t) : null;
 
   const description = notification?.createdAt
     ? formatNotificationDate(notification.createdAt)
@@ -42,7 +45,7 @@ export const NotificationDetailModal = ({
   return createPortal(
     <Modal
       open={open}
-      title={notification?.title ?? t("Notifications")}
+      title={display?.title ?? t("Notifications")}
       description={description}
       onClose={onClose}
       primaryAction={{
@@ -54,7 +57,7 @@ export const NotificationDetailModal = ({
       <div className="space-y-4">
         <div className="min-h-[128px] rounded-[var(--radius-lg)] border border-border/70 bg-surface-muted/60 p-5">
           <p className="whitespace-pre-wrap text-[17px] leading-8 text-foreground">
-            {notification?.body?.trim() || t("Open the app to see details.")}
+            {display?.body || t("Open the app to see details.")}
           </p>
         </div>
       </div>

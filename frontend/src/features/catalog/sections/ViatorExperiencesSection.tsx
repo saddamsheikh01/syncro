@@ -32,6 +32,10 @@ const emptyPage: PageInfo = {
   totalElements: 0,
 };
 
+const NON_FUNCTIONING_CATEGORY_NAMES = new Set(
+  ["Culture", "Food", "Nightlife", "Outdoors", "Wellness", "Work"].map((s) => s.toLowerCase())
+);
+
 export interface ViatorExperiencesSectionProps {
   id?: string;
   className?: string;
@@ -42,18 +46,33 @@ export interface ViatorExperiencesSectionProps {
   pageSize?: number;
   maxItems?: number;
   showLoadMore?: boolean;
+  /** When true, do not show section title (e.g. when embedded in All tab). */
+  hideSectionTitle?: boolean;
+  /** When true, filters are provided by parent; show only content. */
+  embedFilters?: boolean;
+  /** City search term from parent (used when embedFilters). */
+  citySearch?: string;
+  /** Near me toggle from parent (used when embedFilters). */
+  nearMe?: boolean;
+  /** Do not show "Provider: Viator" on experience cards. */
+  hideProviderLabel?: boolean;
 }
 
 export const ViatorExperiencesSection = ({
   id,
   className,
   title = "Experiences",
-  subtitle = "Curated activities powered by Viator.",
+  subtitle = "Curated activities.",
   actionLabel,
   actionHref,
   pageSize = DEFAULT_PAGE_SIZE,
   maxItems,
   showLoadMore = true,
+  hideSectionTitle = false,
+  embedFilters = false,
+  citySearch = "",
+  nearMe = false,
+  hideProviderLabel = false,
 }: ViatorExperiencesSectionProps) => {
   const { t, locale } = useT();
   const { position, hasPosition } = usePosition();
@@ -68,6 +87,9 @@ export const ViatorExperiencesSection = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
+  const effectiveSearch = embedFilters ? citySearch : searchApplied;
+  const useNearbyForFetch = embedFilters ? nearMe : scope === "nearby";
+
   useEffect(() => {
     if (!hasPosition && scope === "nearby") {
       setScope("everywhere");
@@ -76,7 +98,13 @@ export const ViatorExperiencesSection = ({
 
   useEffect(() => {
     getCategories({ size: 50 })
-      .then((res) => setCategories(res.content ?? []))
+      .then((res) => {
+        const list = res.content ?? [];
+        const filtered = list.filter(
+          (cat) => !NON_FUNCTIONING_CATEGORY_NAMES.has((cat.name ?? "").toLowerCase())
+        );
+        setCategories(filtered);
+      })
       .catch(() => setCategories([]));
   }, []);
 
@@ -109,7 +137,7 @@ export const ViatorExperiencesSection = ({
 
       try {
         const useNearby =
-          scope === "nearby" &&
+          useNearbyForFetch &&
           hasPosition &&
           position?.latitude != null &&
           position?.longitude != null;
@@ -118,7 +146,7 @@ export const ViatorExperiencesSection = ({
 
         const response = await getExperiences({
           source: "VIATOR",
-          q: searchApplied || undefined,
+          q: effectiveSearch || undefined,
           categoryId: selectedCategoryId || undefined,
           lat: nearbyLat,
           lng: nearbyLng,
@@ -145,7 +173,7 @@ export const ViatorExperiencesSection = ({
         setLoading(false);
       }
     },
-    [hasPosition, maxItems, pageSize, position?.latitude, position?.longitude, scope, searchApplied, selectedCategoryId]
+    [effectiveSearch, hasPosition, maxItems, pageSize, position?.latitude, position?.longitude, selectedCategoryId, useNearbyForFetch]
   );
 
   const handleSearchApply = useCallback(() => {
@@ -158,14 +186,14 @@ export const ViatorExperiencesSection = ({
 
   useEffect(() => {
     const fetchKey =
-      scope === "nearby" && hasPosition && position?.latitude != null && position?.longitude != null
+      useNearbyForFetch && hasPosition && position?.latitude != null && position?.longitude != null
         ? `nearby:${position.latitude}:${position.longitude}`
-        : `${scope}:global`;
-    const key = `${fetchKey}:q:${searchApplied}:cat:${selectedCategoryId ?? "all"}`;
+        : "global";
+    const key = `${fetchKey}:q:${effectiveSearch}:cat:${selectedCategoryId ?? "all"}`;
     if (initializedRef.current === key) return;
     initializedRef.current = key;
     void fetchPage(0, false);
-  }, [fetchPage, hasPosition, position?.latitude, position?.longitude, scope, searchApplied, selectedCategoryId]);
+  }, [effectiveSearch, fetchPage, hasPosition, position?.latitude, position?.longitude, selectedCategoryId, useNearbyForFetch]);
 
   const hasMore = useMemo(() => {
     const pageHasMore = pageInfo.page + 1 < pageInfo.totalPages;
@@ -194,29 +222,32 @@ export const ViatorExperiencesSection = ({
         rating: exp.rating ?? undefined,
         reviewCount: exp.reviewCount ?? undefined,
         durationLabel: formatDuration(exp.durationMinutes),
-        provider: exp.provider ?? "VIATOR",
+        provider: hideProviderLabel ? undefined : (exp.provider ?? "VIATOR"),
       })),
-    [formatDuration, formatPrice, items]
+    [formatDuration, formatPrice, hideProviderLabel, items]
   );
 
   const isInitialLoading = loading && items.length === 0;
 
   return (
     <section id={id} className={cx("space-y-4", className)}>
-      <SectionHeader
-        title={t(title)}
-        subtitle={t(subtitle)}
-        actionLabel={actionLabel ? t(actionLabel) : undefined}
-        actionHref={actionHref}
-      />
+      {!hideSectionTitle && (
+        <SectionHeader
+          title={t(title)}
+          subtitle={t(subtitle)}
+          actionLabel={actionLabel ? t(actionLabel) : undefined}
+          actionHref={actionHref}
+        />
+      )}
 
+      {!embedFilters && (
       <Card className="space-y-3 border-border/70 bg-surface-muted/30 p-4">
         <p className="text-xs font-semibold text-subtle">{t("Filters")}</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
           <div className="flex-1">
             <Input
-              label={t("Search experiences")}
-              placeholder={t("Name or description...")}
+              label={t("Search by city")}
+              placeholder={t("City name...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchApply()}
@@ -287,6 +318,7 @@ export const ViatorExperiencesSection = ({
           </button>
         </div>
       </Card>
+      )}
 
       {isInitialLoading ? (
         <Card className="flex items-center gap-3 p-5">

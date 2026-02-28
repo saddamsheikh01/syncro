@@ -13,8 +13,10 @@ import { PriceLevel } from "@/components/elements/PriceLevel";
 import { OpeningHours } from "@/components/elements/OpeningHours";
 import { PhotoGallery } from "@/components/elements/PhotoGallery";
 import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkBox";
+import { ShareLinkDropdown } from "@/features/catalog/sections/ShareLinkDropdown";
 import { ZyraPlaceRecap } from "@/features/zyra/cards/ZyraPlaceRecap";
 import { useCatalog, useFavorites, usePosition, useT } from "@/hooks";
+import { getShareablePlaceUrl } from "@/lib/siteUrl";
 import { isUuid } from "@/lib/validators";
 import { calculateDistanceKm, formatDistanceKm } from "@/lib/geo";
 
@@ -393,19 +395,11 @@ export const PlaceDetail = ({ placeId }: PlaceDetailProps) => {
           >
             {isFavorite ? t("Remove from favorites") : t("Save to favorites")}
           </Button>
-          <Button
+          <ShareLinkDropdown
+            shareUrl={getShareablePlaceUrl(placeId)}
+            shareText={placeDetail.name}
             variant="ghost"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: placeDetail.name,
-                  url: window.location.href,
-                });
-              }
-            }}
-          >
-            {t("Share")}
-          </Button>
+          />
         </div>
       </Card>
 

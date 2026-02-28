@@ -17,21 +17,14 @@ import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem"
 
 const PAGE_SIZE = 10;
 
-type PlacesExperiencesFilter = "places" | "experiences";
-
-const PLACE_RATING_OPTIONS: { value: number | null; labelKey: string }[] = [
-  { value: null, labelKey: "Any rating" },
-  { value: 3, labelKey: "3+ rating" },
-  { value: 4, labelKey: "4+ rating" },
-];
+type TabFilter = "all" | "places" | "experiences";
 
 export const PlacesOverview = () => {
   const { t } = useT();
-  const [filter, setFilter] = useState<PlacesExperiencesFilter>("places");
-  const [placeSearch, setPlaceSearch] = useState("");
-  const [placeSearchApplied, setPlaceSearchApplied] = useState("");
-  const [placeMinRating, setPlaceMinRating] = useState<number | null>(null);
-  const [placeOpenNow, setPlaceOpenNow] = useState(false);
+  const [filter, setFilter] = useState<TabFilter>("all");
+  const [citySearch, setCitySearch] = useState("");
+  const [citySearchApplied, setCitySearchApplied] = useState("");
+  const [nearMe, setNearMe] = useState(false);
   const {
     places,
     placesPage,
@@ -40,71 +33,91 @@ export const PlacesOverview = () => {
     hasMorePlaces,
     actions,
   } = useCatalog();
-  const { position, hasPosition } = usePosition();
+  const { position, hasPosition, actions: positionActions } = usePosition();
   const bootstrappedRef = useRef(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const placeParams = useMemo(
     () => ({
       source: "GOOGLE" as const,
       size: PAGE_SIZE,
-      q: placeSearchApplied || undefined,
-      minRating: placeMinRating ?? undefined,
-      openNow: placeOpenNow ? true : undefined,
-      lat: hasPosition ? position?.latitude ?? undefined : undefined,
-      lng: hasPosition ? position?.longitude ?? undefined : undefined,
+      q: citySearchApplied || undefined,
+      lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
+      lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
+      radiusKm: nearMe && hasPosition ? 50 : undefined,
     }),
-    [placeSearchApplied, placeMinRating, placeOpenNow, hasPosition, position?.latitude, position?.longitude]
+    [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
   );
 
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
-    actions
-      .fetchPlaces({
-        source: "GOOGLE",
-        size: PAGE_SIZE,
-        lat: hasPosition ? position?.latitude ?? undefined : undefined,
-        lng: hasPosition ? position?.longitude ?? undefined : undefined,
-      })
-      .catch(() => undefined);
-  }, [actions, hasPosition, position?.latitude, position?.longitude]);
-
-  const handlePlacesFilterApply = useCallback(() => {
-    const q = placeSearch.trim() || undefined;
-    setPlaceSearchApplied(q || "");
-    actions.fetchPlaces({ ...placeParams, q, page: 0 }).catch(() => undefined);
-  }, [actions, placeParams, placeSearch]);
-
-  const handlePlaceMinRatingChange = useCallback(
-    (value: number | null) => {
-      setPlaceMinRating(value);
-      actions.fetchPlaces({ ...placeParams, minRating: value ?? undefined, page: 0 }).catch(() => undefined);
-    },
-    [actions, placeParams]
-  );
-
-  const handlePlaceOpenNowChange = useCallback(
-    (open: boolean) => {
-      setPlaceOpenNow(open);
+    if (filter === "places" || filter === "all") {
       actions
         .fetchPlaces({
-          ...placeParams,
-          openNow: open ? true : undefined,
-          page: 0,
+          source: "GOOGLE",
+          size: PAGE_SIZE,
+          q: citySearchApplied || undefined,
+          lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
+          lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
+          radiusKm: nearMe && hasPosition ? 50 : undefined,
         })
         .catch(() => undefined);
-    },
-    [actions, placeParams]
-  );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (filter === "places" || filter === "all") {
+      actions.fetchPlaces(placeParams).catch(() => undefined);
+    }
+  }, [filter, citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]);
+
+  const handleSearchApply = useCallback(() => {
+    setCitySearchApplied(citySearch.trim() || "");
+  }, [citySearch]);
+
+  const handleNearMeClick = useCallback(() => {
+    if (nearMe) {
+      setNearMe(false);
+      return;
+    }
+    if (hasPosition) {
+      setNearMe(true);
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          positionActions.setPermission("granted");
+          await positionActions.savePosition({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracyMeters: pos.coords.accuracy ?? undefined,
+          });
+          setNearMe(true);
+        } catch {
+          // keep nearMe false
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      () => {
+        positionActions.setPermission("denied");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [nearMe, hasPosition, positionActions]);
 
   const handleLoadMore = useCallback(() => {
     if (!hasMorePlaces || loading) return;
     actions
       .fetchPlaces(
-        {
-          ...placeParams,
-          page: placesPage.page + 1,
-        },
+        { ...placeParams, page: placesPage.page + 1 },
         { append: true }
       )
       .catch(() => undefined);
@@ -133,7 +146,7 @@ export const PlacesOverview = () => {
           subtitle: place.description ?? undefined,
           address: place.address ?? undefined,
           category: place.category?.name ?? undefined,
-          metaItems: place.source ? [place.source] : [],
+          metaItems: [],
           href: `/places/${place.id}`,
           distanceKm,
           imageUrl: place.imageUrl ?? undefined,
@@ -156,6 +169,18 @@ export const PlacesOverview = () => {
       <Card className="flex flex-wrap items-center gap-2 border-border/70 bg-surface-muted/50 px-4 py-3 shadow-sm">
         <button
           type="button"
+          onClick={() => setFilter("all")}
+          className={cx(
+            "rounded-full border-2 px-4 py-2 text-sm font-semibold transition",
+            filter === "all"
+              ? "border-accent bg-accent text-accent-foreground"
+              : "border-border bg-surface text-foreground hover:border-accent/50 hover:bg-surface"
+          )}
+        >
+          {t("All")}
+        </button>
+        <button
+          type="button"
           onClick={() => setFilter("places")}
           className={cx(
             "rounded-full border-2 px-4 py-2 text-sm font-semibold transition",
@@ -164,7 +189,7 @@ export const PlacesOverview = () => {
               : "border-border bg-surface text-foreground hover:border-accent/50 hover:bg-surface"
           )}
         >
-          {t("Places")} ({t("Google Maps")})
+          {t("Places")}
         </button>
         <button
           type="button"
@@ -176,127 +201,124 @@ export const PlacesOverview = () => {
               : "border-border bg-surface text-foreground hover:border-accent/50 hover:bg-surface"
           )}
         >
-          {t("Experiences")} ({t("Viator")})
+          {t("Experiences")}
         </button>
       </Card>
 
-      {filter === "places" && (
-      <section className="space-y-4">
-        <SectionHeader title={t("Places")} />
-
-        <div className="flex flex-wrap gap-2">
-          <span
-            className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
-          >
-            {t("Provider")}: {t("Google Maps")}
-          </span>
-        </div>
-
-        <Card className="space-y-3 border-border/70 bg-surface-muted/30 p-4">
-          <p className="text-xs font-semibold text-subtle">{t("Filters")}</p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-            <div className="flex-1">
-              <Input
-                label={t("Search places")}
-                placeholder={t("Name or address...")}
-                value={placeSearch}
-                onChange={(e) => setPlaceSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePlacesFilterApply()}
-              />
-            </div>
-            <Button onClick={handlePlacesFilterApply} disabled={loading}>
-              {t("Search")}
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-subtle">{t("Min. rating")}:</span>
-            {PLACE_RATING_OPTIONS.map(({ value, labelKey }) => (
-              <button
-                key={value ?? "any"}
-                type="button"
-                onClick={() => handlePlaceMinRatingChange(value)}
-                className={cx(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition",
-                  placeMinRating === value
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-surface-muted text-foreground hover:bg-border"
-                )}
-              >
-                {t(labelKey)}
-              </button>
-            ))}
-            <label className="ml-2 flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={placeOpenNow}
-                onChange={(e) => handlePlaceOpenNowChange(e.target.checked)}
-                className="h-4 w-4 rounded border-border accent-accent"
-              />
-              <span className="text-xs font-medium text-foreground">{t("Open now")}</span>
-            </label>
-          </div>
-        </Card>
-
-        {isInitialLoading && (
-          <Card className="flex items-center gap-3 p-5">
-            <Loader size="sm" />
-            <p className="text-sm text-muted">{t("Loading places...")}</p>
-          </Card>
-        )}
-
-        {error && !isInitialLoading && (
-          <ErrorState
-            title={t("Unable to load places")}
-            description={error.message}
-          />
-        )}
-
-        {!isInitialLoading && !error && places.length === 0 && (
-          <EmptyState
-            title={t("No places found")}
-            description={t("Come back later for new suggestions.")}
-          />
-        )}
-
-        {places.length > 0 && (
-          <>
-            <MapPlaceListItem
-              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              items={placeItems}
+      <Card className="space-y-3 border-border/70 bg-surface-muted/30 p-4">
+        <p className="text-xs font-semibold text-subtle">{t("Filters")}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+          <div className="flex-1">
+            <Input
+              label={t("Search by city")}
+              placeholder={t("City name...")}
+              value={citySearch}
+              onChange={(e) => setCitySearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchApply()}
             />
-            {hasMorePlaces && (
-              <div className="flex justify-center">
-                <Button
-                  variant="secondary"
-                  onClick={handleLoadMore}
-                  loading={loading}
-                  loadingText={t("Loading")}
-                >
-                  {t("Load more places")}
-                </Button>
-              </div>
+          </div>
+          <Button onClick={handleSearchApply} disabled={loading}>
+            {t("Search")}
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleNearMeClick}
+            disabled={locationLoading}
+            className={cx(
+              "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+              nearMe
+                ? "border-accent bg-accent text-accent-foreground"
+                : "border-border bg-surface text-foreground hover:bg-border",
+              locationLoading && "cursor-wait opacity-70"
             )}
-          </>
-        )}
+          >
+            {locationLoading ? t("Getting location…") : t("Near me")}
+          </button>
+        </div>
+      </Card>
 
-        {placesPage.totalElements > 0 && (
-          <p className="text-center text-xs text-subtle">
-            {t("{current} of {total} places", {
-              current: places.length,
-              total: placesPage.totalElements,
-            })}
-          </p>
-        )}
-      </section>
+      {filter === "all" && (
+        <section className="space-y-6">
+          <MapPlaceListItem
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            items={placeItems}
+          />
+          <ViatorExperiencesSection
+            id="viator-experiences"
+            pageSize={PAGE_SIZE}
+            showLoadMore
+            hideSectionTitle
+            embedFilters
+            citySearch={citySearchApplied}
+            nearMe={nearMe}
+            hideProviderLabel
+          />
+        </section>
+      )}
+
+      {filter === "places" && (
+        <section className="space-y-4">
+          {isInitialLoading && (
+            <Card className="flex items-center gap-3 p-5">
+              <Loader size="sm" />
+              <p className="text-sm text-muted">{t("Loading places...")}</p>
+            </Card>
+          )}
+          {error && !isInitialLoading && (
+            <ErrorState
+              title={t("Unable to load places")}
+              description={error.message}
+            />
+          )}
+          {!isInitialLoading && !error && places.length === 0 && (
+            <EmptyState
+              title={t("No places found")}
+              description={t("Come back later for new suggestions.")}
+            />
+          )}
+          {places.length > 0 && (
+            <>
+              <MapPlaceListItem
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                items={placeItems}
+              />
+              {hasMorePlaces && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="secondary"
+                    onClick={handleLoadMore}
+                    loading={loading}
+                    loadingText={t("Loading")}
+                  >
+                    {t("Load more places")}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+          {placesPage.totalElements > 0 && (
+            <p className="text-center text-xs text-subtle">
+              {t("{current} of {total} places", {
+                current: places.length,
+                total: placesPage.totalElements,
+              })}
+            </p>
+          )}
+        </section>
       )}
 
       {filter === "experiences" && (
         <ViatorExperiencesSection
           id="viator-experiences"
-          title={t("Experiences")}
-          subtitle={t("Experiences powered by Viator.")}
-          pageSize={8}
+          pageSize={PAGE_SIZE}
           showLoadMore
+          hideSectionTitle
+          embedFilters
+          citySearch={citySearchApplied}
+          nearMe={nearMe}
+          hideProviderLabel
         />
       )}
     </div>

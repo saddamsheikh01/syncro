@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getServerTranslator } from "@/i18n/server";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { SharedPageLayout } from "@/components/layout/SharedPageLayout";
 import { Feed } from "@/features/feed/flows/Feed";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -14,8 +14,8 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 export default function MomentsPage() {
   return (
-    <MainLayout>
+    <SharedPageLayout>
       <Feed />
-    </MainLayout>
+    </SharedPageLayout>
   );
 }

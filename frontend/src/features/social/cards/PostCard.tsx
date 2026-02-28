@@ -7,6 +7,7 @@ import { Loader } from "@/components/elements/Loader";
 import { Badge } from "@/components/elements/Badge";
 import { PostHeader } from "@/features/social/elements/PostHeader";
 import { PostActionBar } from "@/features/social/sections/PostActionBar";
+import { SharePostDropdown } from "@/features/social/sections/SharePostDropdown";
 import { PostCommentSection } from "@/features/social/sections/PostCommentSection";
 import { PostMediaCarousel } from "@/features/social/sections/PostMediaCarousel";
 import type { PostMediaItem } from "@/features/social/lists/MapPostMediaThumbnail";
@@ -755,6 +756,9 @@ export const PostCard = ({
       <PostActionBar
         actions={actions}
         onActionToggle={handleActionToggle}
+        rightSlot={
+          <SharePostDropdown postId={post.id} postContent={post.content} />
+        }
       />
 
       {showComments && (

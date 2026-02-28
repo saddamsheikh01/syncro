@@ -3,6 +3,7 @@ package com.syncro.backend.common.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -105,6 +106,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
         return buildError(HttpStatus.NOT_FOUND, "Risorsa non trovata", request);
+    }
+
+    /**
+     * Client closed the connection while we were streaming (e.g. video).
+     * Do not log as ERROR or try to write JSON — response may already be committed with video/mp4.
+     */
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException ex, HttpServletRequest request) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Client aborted request: {} (e.g. user navigated away or stopped video)", request.getRequestURI());
+        }
     }
 
     private ResponseEntity<ApiError> buildError(HttpStatus status, String message, HttpServletRequest request) {

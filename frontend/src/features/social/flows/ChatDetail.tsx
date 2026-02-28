@@ -72,6 +72,13 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   const otherParticipant = getOtherParticipant(conversation, userId, t);
 
   useEffect(() => {
+    actions.setActiveConversation(conversationId);
+    return () => {
+      actions.setActiveConversation(null);
+    };
+  }, [actions, conversationId]);
+
+  useEffect(() => {
     const loadData = async () => {
       setInitialLoading(true);
       try {
@@ -134,6 +141,8 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
   }
 
   if (error && messages.length === 0) {
+    const isConnectionRequired =
+      error.message?.toLowerCase().includes("connection required") ?? false;
     return (
       <div className="flex h-full flex-col">
         <div className="border-b border-border/70 bg-card px-4 py-3">
@@ -150,9 +159,16 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
             title={t("Unable to load messages")}
             description={error.message}
           />
-          <Button variant="secondary" onClick={handleRetry}>
-            {t("Retry")}
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button variant="secondary" onClick={handleRetry}>
+              {t("Retry")}
+            </Button>
+            {isConnectionRequired && otherParticipant.userId && (
+              <Button variant="primary" onClick={handleProfileOpen}>
+                {t("Send connection request")}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );

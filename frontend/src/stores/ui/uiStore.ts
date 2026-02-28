@@ -9,6 +9,7 @@ export type Toast = {
   message: string;
   tone: ToastTone;
   durationMs?: number;
+  onClick?: () => void;
 };
 
 type ToastInput = {
@@ -16,6 +17,7 @@ type ToastInput = {
   message: string;
   tone?: ToastTone;
   durationMs?: number;
+  onClick?: () => void;
 };
 
 export type ModalState = {
@@ -54,6 +56,7 @@ export const uiActions = {
       message: payload.message,
       tone: payload.tone ?? "info",
       durationMs: payload.durationMs,
+      onClick: payload.onClick,
     };
     uiStore.setState((state) => ({ toasts: [...state.toasts, toast] }));
     return toast;

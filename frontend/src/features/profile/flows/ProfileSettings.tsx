@@ -283,7 +283,8 @@ export const ProfileSettings = ({
   const profileIsComplete = !profileCompletionLoading && displayPercentage >= 100;
 
   const completionSuggestions = useMemo(() => {
-    const items = Object.entries(profileCompletionCategories)
+    const remaining = Math.max(0, 100 - displayPercentage);
+    const rawItems = Object.entries(profileCompletionCategories)
       .filter(([, score]) => score.ratio < 1)
       .map(([key, score]) => {
         const labelKey =
@@ -293,22 +294,24 @@ export const ProfileSettings = ({
         if (!labelKey) return null;
         const potential = Math.round(score.weight - score.points);
         if (potential <= 0) return null;
-        return {
-          id: key,
-          label: t(labelKey),
-          detail: `+${potential}%`,
-        };
+        return { id: key, label: t(labelKey), potential };
       })
-      .filter((item): item is { id: string; label: string; detail: string } =>
-        Boolean(item),
+      .filter(
+        (item): item is { id: string; label: string; potential: number } =>
+          Boolean(item),
       );
 
-    return items.sort((a, b) => {
-      const aValue = parseInt(a.detail.replace(/[^0-9]/g, ""), 10);
-      const bValue = parseInt(b.detail.replace(/[^0-9]/g, ""), 10);
-      return bValue - aValue;
-    });
-  }, [profileCompletionCategories, t]);
+    const sorted = rawItems.sort((a, b) => b.potential - a.potential);
+    let remainingAcc = remaining;
+    const items: { id: string; label: string; detail: string }[] = [];
+    for (const item of sorted) {
+      const displayed = Math.min(item.potential, remainingAcc);
+      if (displayed <= 0) continue;
+      remainingAcc -= displayed;
+      items.push({ id: item.id, label: item.label, detail: `+${displayed}%` });
+    }
+    return items;
+  }, [profileCompletionCategories, displayPercentage, t]);
 
   const topCompletionSuggestion = completionSuggestions[0];
   const resolvedSubtitle = subtitle
@@ -1317,7 +1320,7 @@ export const ProfileSettings = ({
         />
         <ZyraProfileRecap onRecapLoaded={handleProfileRecapLoaded} />
         {profileRecapToShare ? (
-          <ShareZyraRecapCard recap={profileRecapToShare} />
+          <ShareZyraRecapCard recap={profileRecapToShare} userId={user?.id} />
         ) : null}
       </section>
 
@@ -1472,6 +1475,63 @@ export const ProfileSettings = ({
               onClick={handleSaveProfile}
             >
               {t("Save profile")}
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      <section id="preferences" className="space-y-4">
+        <SectionHeader
+          title={t("Matchmaking preferences")}
+          subtitle={t("Define the main filters for your matches.")}
+        />
+        <Card className="p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label={t("Minimum age")}
+              type="number"
+              min={18}
+              value={ageMin}
+              onChange={(event) => setAgeMin(event.target.value)}
+              placeholder="18"
+            />
+            <Input
+              label={t("Maximum age")}
+              type="number"
+              min={18}
+              value={ageMax}
+              onChange={(event) => setAgeMax(event.target.value)}
+              placeholder="45"
+            />
+          </div>
+          <Input
+            label={t("Maximum distance (km)")}
+            type="number"
+            min={1}
+            value={distanceKm}
+            onChange={(event) => setDistanceKm(event.target.value)}
+            placeholder="25"
+            className="mt-4"
+          />
+          <Select
+            label={t("Gender")}
+            options={matchGenderOptions}
+            value={matchGender}
+            onValueChange={setMatchGender}
+            placeholder={t("Any")}
+            className="mt-4"
+          />
+          {preferencesError ? (
+            <p className="mt-3 text-sm text-danger">{preferencesError}</p>
+          ) : null}
+          <div className="mt-4">
+            <Button
+              size="sm"
+              loading={preferencesSaving || isAuthLoading}
+              loadingText={t("Saving")}
+              onClick={handleSavePreferences}
+            >
+              {t("Save preferences")}
             </Button>
           </div>
         </Card>

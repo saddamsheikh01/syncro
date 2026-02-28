@@ -14,6 +14,7 @@ import { OnboardingProgressCard } from "@/features/onboarding/cards/OnboardingPr
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { ViatorExperiencesSection } from "@/features/catalog/sections/ViatorExperiencesSection";
 import { MatchCard } from "@/features/matches/cards/MatchCard";
+import { ConnectButton } from "@/features/matches/elements/ConnectButton";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
@@ -541,9 +542,11 @@ export const HomeOverview = () => {
                         score: Math.round(match.scoreTotal ?? 0),
                       })}
                     </span>
-                    <Link href={`/profile/${match.userId}`} className="text-accent">
-                      {t("Connect")}
-                    </Link>
+                    <ConnectButton
+                      userId={match.userId}
+                      profileHref={`/profile/${match.userId}`}
+                      className="!py-1 !text-[11px]"
+                    />
                   </div>
                 </div>
               ))}

@@ -22,15 +22,16 @@ const SUGGESTION_MAP: Record<
   profile: { labelKey: "Fill Out Profile", href: "/settings#profile" },
   interests: { labelKey: "Select Interests", href: "/settings#interests" },
   avatar: { labelKey: "Add a Photo", href: "/settings#profile" },
-  preferences: { labelKey: "Set Preferences", href: "/onboarding/step-3" },
+  preferences: { labelKey: "Set Preferences", href: "/profile#preferences" },
   location: { labelKey: "Enable Location", href: "/settings" },
 };
 
 const buildSuggestions = (
   t: (key: string, values?: Record<string, string | number>) => string,
   categories: Record<string, CategoryScore>,
+  currentPercentage: number,
 ): Suggestion[] => {
-  const items: Suggestion[] = [];
+  const rawItems: { id: string; label: string; potential: number; href: string }[] = [];
 
   for (const [key, score] of Object.entries(categories)) {
     if (score.ratio >= 1) continue;
@@ -38,21 +39,32 @@ const buildSuggestions = (
     if (!meta) continue;
     const potential = Math.round(score.weight - score.points);
     if (potential <= 0) continue;
-    items.push({
+    rawItems.push({
       id: key,
       label: t(meta.labelKey),
-      detail: `+${potential}%`,
+      potential,
       href: meta.href,
     });
   }
 
-  return items
-    .sort((a, b) => {
-      const aVal = parseInt(a.detail.replace(/[^0-9]/g, ""), 10);
-      const bVal = parseInt(b.detail.replace(/[^0-9]/g, ""), 10);
-      return bVal - aVal;
-    })
+  const sorted = rawItems
+    .sort((a, b) => b.potential - a.potential)
     .slice(0, 3);
+
+  let remaining = Math.max(0, 100 - currentPercentage);
+  const items: Suggestion[] = [];
+  for (const item of sorted) {
+    const displayedPotential = Math.min(item.potential, remaining);
+    if (displayedPotential <= 0) continue;
+    remaining -= displayedPotential;
+    items.push({
+      id: item.id,
+      label: item.label,
+      detail: `+${displayedPotential}%`,
+      href: item.href,
+    });
+  }
+  return items;
 };
 
 export const OnboardingProgressCard = () => {
@@ -63,8 +75,8 @@ export const OnboardingProgressCard = () => {
   const isComplete = percentage >= 100;
 
   const suggestions = useMemo(
-    () => buildSuggestions(t, categories),
-    [categories, t],
+    () => buildSuggestions(t, categories, percentage),
+    [categories, percentage, t],
   );
 
   if (isComplete) {

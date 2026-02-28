@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -125,18 +126,38 @@ public class ZyraController {
     @GetMapping("/profile-recap")
     @Operation(summary = "Genera recap profilo con Zyra")
     public ResponseEntity<ZyraProfileRecapResponse> getProfileRecap(
-        @AuthenticationPrincipal UserPrincipal principal
+        @AuthenticationPrincipal UserPrincipal principal,
+        @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.getProfileRecap(principal));
+        return ResponseEntity.ok(zyraService.getProfileRecap(principal, parseAcceptLanguage(acceptLanguage)));
+    }
+
+    @PostMapping("/profile-recap/regenerate")
+    @Operation(summary = "Force-regenera recap profilo (solo test results, nessun label)")
+    public ResponseEntity<ZyraProfileRecapResponse> regenerateProfileRecap(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
+        return ResponseEntity.ok(zyraService.regenerateProfileRecap(principal, parseAcceptLanguage(acceptLanguage)));
     }
 
     @GetMapping("/profile-recap/{userId}")
     @Operation(summary = "Genera recap profilo utente con Zyra")
     public ResponseEntity<ZyraProfileRecapResponse> getProfileRecapForUser(
         @AuthenticationPrincipal UserPrincipal principal,
-        @PathVariable UUID userId
+        @PathVariable UUID userId,
+        @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.getProfileRecapForUser(principal, userId));
+        return ResponseEntity.ok(zyraService.getProfileRecapForUser(principal, userId, parseAcceptLanguage(acceptLanguage)));
+    }
+
+    private static String parseAcceptLanguage(String acceptLanguage) {
+        if (acceptLanguage == null || acceptLanguage.isBlank()) {
+            return null;
+        }
+        String first = acceptLanguage.split(",")[0].trim().toLowerCase();
+        int dash = first.indexOf('-');
+        return dash > 0 ? first.substring(0, dash) : first;
     }
 
     @GetMapping("/place-recap/{placeId}")

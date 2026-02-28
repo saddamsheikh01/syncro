@@ -16,6 +16,7 @@ import com.syncro.backend.domain.profile.entity.ProfileVisibility;
 import com.syncro.backend.domain.profile.entity.RelationshipStatus;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
+import com.syncro.backend.domain.profile.repository.UserPositionRepository;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.profile.repository.UserProfileSearchSpec;
 import com.syncro.backend.domain.profile.entity.Orientation;
@@ -36,6 +37,7 @@ public class UserProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
+    private final UserPositionRepository userPositionRepository;
     private final UserProfileMapper profileMapper;
     private final MediaObjectRepository mediaObjectRepository;
     private final OnboardingService onboardingService;
@@ -44,6 +46,7 @@ public class UserProfileService {
     public UserProfileService(
         UserRepository userRepository,
         UserProfileRepository profileRepository,
+        UserPositionRepository userPositionRepository,
         UserProfileMapper profileMapper,
         MediaObjectRepository mediaObjectRepository,
         OnboardingService onboardingService,
@@ -51,6 +54,7 @@ public class UserProfileService {
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.userPositionRepository = userPositionRepository;
         this.profileMapper = profileMapper;
         this.mediaObjectRepository = mediaObjectRepository;
         this.onboardingService = onboardingService;
@@ -204,6 +208,9 @@ public class UserProfileService {
             null,
             null,
             null,
+            null,
+            null,
+            null,
             pageable
         );
     }
@@ -220,9 +227,44 @@ public class UserProfileService {
         ZodiacSign zodiacSign,
         List<UUID> interestTagIds,
         String valuesText,
+        Double latitude,
+        Double longitude,
+        Double maxDistanceKm,
+        Pageable pageable
+    ) {
+        return searchUsersWithFilters(
+            null, q, city, country, ageMin, ageMax, gender, orientation, zodiacSign,
+            interestTagIds, valuesText, latitude, longitude, maxDistanceKm, pageable
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserSummaryResponse> searchUsersWithFilters(
+        UUID excludeUserId,
+        String q,
+        String city,
+        String country,
+        Integer ageMin,
+        Integer ageMax,
+        Gender gender,
+        Orientation orientation,
+        ZodiacSign zodiacSign,
+        List<UUID> interestTagIds,
+        String valuesText,
+        Double latitude,
+        Double longitude,
+        Double maxDistanceKm,
         Pageable pageable
     ) {
         String normalizedQ = (q != null && q.trim().length() >= 2) ? q.trim() : null;
+        List<UUID> proximityUserIds = null;
+        if (latitude != null && longitude != null && maxDistanceKm != null && maxDistanceKm > 0) {
+            proximityUserIds = userPositionRepository.findUserIdsWithinRadius(
+                latitude, longitude, maxDistanceKm);
+            if (proximityUserIds.isEmpty()) {
+                return org.springframework.data.domain.Page.empty(pageable);
+            }
+        }
         Specification<UserProfile> spec = UserProfileSearchSpec.withFilters(
             ProfileVisibility.PUBLIC,
             normalizedQ,
@@ -234,7 +276,9 @@ public class UserProfileService {
             orientation,
             zodiacSign,
             interestTagIds != null && !interestTagIds.isEmpty() ? interestTagIds : null,
-            trimToNull(valuesText)
+            trimToNull(valuesText),
+            proximityUserIds,
+            excludeUserId
         );
         return profileRepository.findAll(spec, pageable)
             .map(profile -> {

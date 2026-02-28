@@ -21,9 +21,11 @@ import com.syncro.backend.domain.social.entity.Post;
 import com.syncro.backend.domain.social.repository.PostRepository;
 import com.syncro.backend.security.UserPrincipal;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -207,13 +209,19 @@ public class MediaService {
         throw new BadRequestException("Tipo media non supportato");
     }
 
+    /**
+     * Store file by streaming from the multipart input to disk.
+     * Avoids loading the entire file into memory, so large videos upload reliably.
+     */
     private String storeFile(MediaOwnerType ownerType, MultipartFile file) {
         String filename = buildFilename(file.getOriginalFilename());
         Path ownerDir = storageRoot.resolve(ownerType.getFolderName()).normalize();
         try {
             Files.createDirectories(ownerDir);
             Path target = ownerDir.resolve(filename).normalize();
-            file.transferTo(target);
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException ex) {
             throw new StorageException("Errore durante il salvataggio del media", ex);
         }

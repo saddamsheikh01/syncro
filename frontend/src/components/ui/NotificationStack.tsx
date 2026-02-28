@@ -21,6 +21,7 @@ export const NotificationStack = () => {
           message={toast.message}
           tone={toast.tone}
           durationMs={toast.durationMs}
+          onClick={toast.onClick}
           onClose={() => actions.dismissToast(toast.id)}
         />
       ))}

@@ -45,7 +45,7 @@ export const Leftbar = ({
       className={cx(
         position,
         "left-4 top-4 bottom-4 z-40 flex flex-col rounded-[var(--radius-xl)] border border-border/70 bg-surface shadow-md",
-        collapsed ? "w-20" : "w-64",
+        collapsed ? "w-20" : "w-72",
         className,
       )}
       {...props}

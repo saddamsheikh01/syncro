@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getServerTranslator } from "@/i18n/server";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { SharedPageLayout } from "@/components/layout/SharedPageLayout";
 import { PlaceDetail } from "@/features/catalog/flows/PlaceDetail";
 
 export const generateMetadata = async (): Promise<Metadata> => {
@@ -20,8 +20,8 @@ export default async function PlaceDetailPage({ params }: PlaceDetailPageProps) 
   const { placeId } = await params;
 
   return (
-    <MainLayout>
+    <SharedPageLayout>
       <PlaceDetail placeId={placeId} />
-    </MainLayout>
+    </SharedPageLayout>
   );
 }

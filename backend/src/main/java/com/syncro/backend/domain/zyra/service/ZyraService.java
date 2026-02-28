@@ -285,9 +285,9 @@ public class ZyraService {
     }
 
     @Transactional(readOnly = true)
-    public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal) {
+    public ZyraProfileRecapResponse getProfileRecap(UserPrincipal principal, String requestLanguage) {
         User user = getUser(principal);
-        String preferredLanguage = resolvePreferredLanguage(user);
+        String preferredLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         if (profile != null && isNotBlank(profile.getZyraRecap())) {
             java.time.Instant generatedAt = profile.getUpdatedAt() != null
@@ -304,7 +304,7 @@ public class ZyraService {
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
-                String recap = generateProfileRecap(user);
+                String recap = generateProfileRecap(user, requestLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(user.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
@@ -328,10 +328,33 @@ public class ZyraService {
         }
     }
 
+    /**
+     * Force-regenerate the profile recap (skips stored DB/cache), updates profile.zyraRecap and cache, returns the new recap.
+     * Use this when the user explicitly clicks "Regenerate" so they get a fresh summary without labels.
+     */
+    @Transactional
+    public ZyraProfileRecapResponse regenerateProfileRecap(UserPrincipal principal, String requestLanguage) {
+        User user = getUser(principal);
+        String preferredLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
+        recapCache.invalidateUser(user.getId());
+        String recap = generateProfileRecap(user, requestLanguage);
+        java.time.Instant generatedAt = java.time.Instant.now();
+        recapCache.putProfileRecap(user.getId(), recap, generatedAt);
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile != null) {
+            profile.setZyraRecap(recap != null ? recap.trim() : null);
+            userProfileRepository.save(profile);
+        }
+        return new ZyraProfileRecapResponse(
+            localizeRecap(recap, preferredLanguage),
+            generatedAt
+        );
+    }
+
     @Transactional(readOnly = true)
-    public ZyraProfileRecapResponse getProfileRecapForUser(UserPrincipal principal, UUID userId) {
+    public ZyraProfileRecapResponse getProfileRecapForUser(UserPrincipal principal, UUID userId, String requestLanguage) {
         User requester = getUser(principal);
-        String preferredLanguage = resolvePreferredLanguage(requester);
+        String preferredLanguage = resolvePreferredLanguageForRecap(requester, requestLanguage);
         if (userId == null) {
             throw new NotFoundException("Utente non valido");
         }
@@ -354,7 +377,7 @@ public class ZyraService {
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
-                String recap = generateProfileRecap(target);
+                String recap = generateProfileRecap(target, requestLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(target.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
@@ -390,48 +413,21 @@ public class ZyraService {
     }
 
     private String generateProfileRecap(User user) {
-        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
-        List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
+        return generateProfileRecap(user, null);
+    }
+
+    private String generateProfileRecap(User user, String responseLanguageOverride) {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
 
-        // Profile recap is test-results summary only: no labels, no titles, no summarization of user-written profile text.
+        // Recap must be exclusively test results: no profile fields (name, location, job, interests, astro, etc.)
+        // and no labels (Balanced Planner, etc.) — so we only send test summaries, scores, and sanitized dimensions.
         StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.PROFILE_RECAP));
         prompt.append("\n");
 
-        if (profile != null) {
-            if (profile.getFullName() != null && !profile.getFullName().isBlank()) {
-                prompt.append("- Name: ").append(profile.getFullName()).append("\n");
-            }
-            if (profile.getCity() != null && !profile.getCity().isBlank()) {
-                prompt.append("- City: ").append(profile.getCity()).append("\n");
-            }
-            if (profile.getCountry() != null && !profile.getCountry().isBlank()) {
-                prompt.append("- Country: ").append(profile.getCountry()).append("\n");
-            }
-            if (profile.getBirthDate() != null) {
-                prompt.append("- Age: ").append(formatAge(profile.getBirthDate())).append(" years\n");
-            }
-            // Do not append bio or extended profile text — recap must not summarize user-written content.
-            String jobLabel = buildJobLabel(profile);
-            if (jobLabel != null) {
-                prompt.append("- Job: ").append(jobLabel).append("\n");
-            }
-        }
-
-        if (!interests.isEmpty()) {
-            String interestNames = interests.stream()
-                .map(interest -> interest.getTag() != null ? interest.getTag().getName() : null)
-                .filter(name -> name != null && !name.isBlank())
-                .distinct()
-                .collect(Collectors.joining(", "));
-            if (!interestNames.isBlank()) {
-                prompt.append("- Interests: ").append(interestNames).append("\n");
-            }
-        }
-
-        if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
-            prompt.append("- Psychological profile: ").append(safeJson(psyProfile.getProfile())).append("\n");
+        if (testSummaries != null && !testSummaries.isEmpty()) {
+            prompt.append("- Completed tests (summary by test):\n");
+            testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
         }
 
         // Aggregated scores from tests
@@ -461,39 +457,11 @@ public class ZyraService {
             }
         }
 
-        // Astro signs from profile
-        if (profile != null) {
-            StringBuilder astro = new StringBuilder();
-            if (profile.getZodiacSign() != null) {
-                astro.append("Sign: ").append(formatZodiacSign(profile.getZodiacSign())).append(", ");
+        if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
+            Map<String, Object> sanitized = sanitizeProfileForRecap(psyProfile.getProfile());
+            if (!sanitized.isEmpty()) {
+                prompt.append("- Psychological profile (scores only; no labels): ").append(safeJson(sanitized)).append("\n");
             }
-            if (profile.getSunSign() != null) {
-                astro.append("Sun: ").append(formatZodiacSign(profile.getSunSign())).append(", ");
-            }
-            if (profile.getMoonSign() != null) {
-                astro.append("Moon: ").append(formatZodiacSign(profile.getMoonSign())).append(", ");
-            }
-            if (profile.getAscSign() != null) {
-                astro.append("Ascendant: ").append(formatZodiacSign(profile.getAscSign())).append(", ");
-            }
-            if (profile.getVenusSign() != null) {
-                astro.append("Venus: ").append(formatZodiacSign(profile.getVenusSign())).append(", ");
-            }
-            if (profile.getMarsSign() != null) {
-                astro.append("Mars: ").append(formatZodiacSign(profile.getMarsSign()));
-            }
-            String astroStr = astro.toString().replaceAll(", $", "");
-            if (!astroStr.isBlank()) {
-                prompt.append("- Astrological profile: ").append(astroStr).append("\n");
-            }
-            if (profile.getGender() != null) {
-                prompt.append("- Gender: ").append(formatGender(profile.getGender())).append("\n");
-            }
-        }
-
-        if (testSummaries != null && !testSummaries.isEmpty()) {
-            prompt.append("- Completed tests (summary by test):\n");
-            testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
         }
 
         List<ZyraChatMessage> messages = List.of(
@@ -502,7 +470,9 @@ public class ZyraService {
         );
 
         try {
-            String responseLanguage = resolveResponseLanguage(user);
+            String responseLanguage = (responseLanguageOverride != null && !responseLanguageOverride.isBlank())
+                ? responseLanguageOverride.trim().toLowerCase(Locale.ROOT)
+                : resolveResponseLanguage(user);
             String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             return recap != null ? recap.trim() : "Complete your profile to get a personalized recap.";
         } catch (Exception ex) {
@@ -1075,9 +1045,12 @@ public class ZyraService {
 
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
-            builder.append("- psychological_profile: ")
-                .append(safeJson(psyProfile.getProfile()))
-                .append("\n");
+            Map<String, Object> sanitized = sanitizeProfileForRecap(psyProfile.getProfile());
+            if (!sanitized.isEmpty()) {
+                builder.append("- psychological_profile: ")
+                    .append(safeJson(sanitized))
+                    .append("\n");
+            }
         }
 
         if (psyProfile != null) {
@@ -1382,6 +1355,34 @@ public class ZyraService {
         }
     }
 
+    /**
+     * Returns a copy of the psychological profile suitable for recap generation:
+     * dimension scores and confidence are kept; any "profile" sub-object (label, name, description)
+     * is removed so the model does not receive or repeat invented type names like "Balanced Planner".
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> sanitizeProfileForRecap(Map<String, Object> profile) {
+        if (profile == null || profile.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> out = new HashMap<>();
+        Object dimensionsObj = profile.get("dimensions");
+        if (dimensionsObj instanceof Map<?, ?> dimensionsMap) {
+            Map<String, Object> dimensions = (Map<String, Object>) dimensionsMap;
+            Map<String, Object> sanitizedDimensions = new HashMap<>();
+            for (Map.Entry<String, Object> entry : dimensions.entrySet()) {
+                if (!(entry.getValue() instanceof Map<?, ?> dimMap)) {
+                    continue;
+                }
+                Map<String, Object> dim = new HashMap<>((Map<String, Object>) dimMap);
+                dim.remove("profile");
+                sanitizedDimensions.put(entry.getKey(), dim);
+            }
+            out.put("dimensions", sanitizedDimensions);
+        }
+        return out;
+    }
+
     private String generateSessionTitle(String firstUserMessage, String languageCode) {
         String prompt = promptLoader.getPrompt(PromptType.CHAT_SESSION_TITLE);
         List<ZyraChatMessage> messages = List.of(
@@ -1446,6 +1447,14 @@ public class ZyraService {
 
     private String resolvePreferredLanguage(User user) {
         return user == null ? "en" : normalizeLanguageCode(user.getLanguage());
+    }
+
+    /** When requestLanguage is provided (e.g. from Accept-Language), use it for recap response; else use user's stored language. */
+    private String resolvePreferredLanguageForRecap(User user, String requestLanguage) {
+        if (requestLanguage != null && !requestLanguage.isBlank()) {
+            return normalizeLanguageCode(requestLanguage);
+        }
+        return resolvePreferredLanguage(user);
     }
 
     /**

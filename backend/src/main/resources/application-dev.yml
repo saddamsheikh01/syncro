@@ -1,5 +1,7 @@
 server:
   port: ${SERVER_PORT:8080}
+  tomcat:
+    connection-timeout: 600000
 
 spring:
   config:
@@ -18,6 +20,7 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 60MB
+      file-size-threshold: 2KB
 
 springdoc:
   api-docs:
@@ -36,7 +39,7 @@ app:
   admin:
     bootstrap-secret: ${ADMIN_BOOTSTRAP_SECRET}
   media:
-    storage-dir: ${MEDIA_STORAGE_PATH}
+    storage-dir: ${MEDIA_STORAGE_PATH:./media-storage}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:${SERVER_PORT:8080}}/media}
   google-maps:
     api-key: ${GOOGLE_MAPS_API_KEY:}
@@ -48,6 +51,7 @@ app:
     sync:
       enabled: ${VIATOR_SYNC_ENABLED:false}
       use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}
+      # Comma-separated Viator destination IDs for: Trieste, Malta, Moneglia, Tirana, Lisbon, Valencia, Barcelona, Madrid, Berlin, Amsterdam
       destination-refs: ${VIATOR_SYNC_DESTINATION_REFS:}
       nearby-enabled: ${VIATOR_SYNC_NEARBY_ENABLED:true}
       nearby-max-destinations: ${VIATOR_SYNC_NEARBY_MAX_DESTINATIONS:3}

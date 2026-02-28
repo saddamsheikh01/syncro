@@ -7,6 +7,7 @@ import { NavIcon } from "@/components/ui/NavIcon";
 import { useNotifications, useT } from "@/hooks";
 import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 import { cx } from "@/lib/classNames";
+import { getNotificationDisplay } from "@/utils/notificationDisplay";
 import type { UserNotificationResponse } from "@/types/notifications";
 
 const formatNotificationDate = (isoDate: string) => {
@@ -238,6 +239,8 @@ export const NotificationBell = () => {
 
             {notifications.map((notification) => {
               const unread = notification.readAt === null;
+              const { title: displayTitle, body: displayBody } =
+                getNotificationDisplay(notification, t);
               return (
                 <div
                   key={notification.id}
@@ -255,10 +258,10 @@ export const NotificationBell = () => {
                       className="min-w-0 flex-1 text-left"
                     >
                       <p className="truncate text-sm font-semibold text-foreground">
-                        {notification.title}
+                        {displayTitle}
                       </p>
                       <p className="mt-0.5 line-clamp-2 text-xs text-muted">
-                        {notification.body?.trim() || t("Open the app to see details.")}
+                        {displayBody || t("Open the app to see details.")}
                       </p>
                     </button>
 

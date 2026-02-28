@@ -87,20 +87,41 @@ export const createSuggestion = async (
   return data;
 };
 
-export const getProfileRecap = async (): Promise<ZyraProfileRecapResponse> => {
+export const getProfileRecap = async (
+  language?: string | null
+): Promise<ZyraProfileRecapResponse> => {
+  const headers: Record<string, string> = {};
+  if (language) headers["Accept-Language"] = language;
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     "/zyra/profile-recap",
-    { timeout: CHAT_TIMEOUT_MS }
+    { timeout: CHAT_TIMEOUT_MS, headers }
+  );
+  return data;
+};
+
+/** Force-regenerate profile recap (skips stored recap). Use when user clicks "Regenerate". */
+export const regenerateProfileRecap = async (
+  language?: string | null
+): Promise<ZyraProfileRecapResponse> => {
+  const headers: Record<string, string> = {};
+  if (language) headers["Accept-Language"] = language;
+  const { data } = await apiClient.post<ZyraProfileRecapResponse>(
+    "/zyra/profile-recap/regenerate",
+    {},
+    { timeout: CHAT_TIMEOUT_MS, headers }
   );
   return data;
 };
 
 export const getProfileRecapForUser = async (
-  userId: Uuid
+  userId: Uuid,
+  language?: string | null
 ): Promise<ZyraProfileRecapResponse> => {
+  const headers: Record<string, string> = {};
+  if (language) headers["Accept-Language"] = language;
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     `/zyra/profile-recap/${userId}`,
-    { timeout: CHAT_TIMEOUT_MS }
+    { timeout: CHAT_TIMEOUT_MS, headers }
   );
   return data;
 };

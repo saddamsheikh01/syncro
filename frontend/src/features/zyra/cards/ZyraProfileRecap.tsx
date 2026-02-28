@@ -7,8 +7,8 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/buttons/Button";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { cx } from "@/lib/classNames";
-import { getProfileRecap, getProfileRecapForUser } from "@/services/zyra";
-import { useT, useUser } from "@/hooks";
+import { getProfileRecap, getProfileRecapForUser, regenerateProfileRecap } from "@/services/zyra";
+import { useI18n, useT, useUser } from "@/hooks";
 
 export interface ZyraProfileRecapProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -25,6 +25,7 @@ export const ZyraProfileRecap = ({
   ...props
 }: ZyraProfileRecapProps) => {
   const { t } = useT();
+  const { language } = useI18n();
   const { profile, actions: userActions } = useUser();
   const [recap, setRecap] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,8 +56,8 @@ export const ZyraProfileRecap = ({
     setError(null);
     try {
       const response = userId
-        ? await getProfileRecapForUser(userId)
-        : await getProfileRecap();
+        ? await getProfileRecapForUser(userId, language)
+        : await getProfileRecap(language);
       setRecap(response.recap);
       setEditedRecap(response.recap);
       return response.recap;
@@ -66,7 +67,7 @@ export const ZyraProfileRecap = ({
     } finally {
       setLoading(false);
     }
-  }, [t, userId]);
+  }, [t, userId, language]);
 
   // Forza il fetch dal backend per avere sempre il recap nella lingua corrente.
   useEffect(() => {
@@ -99,14 +100,25 @@ export const ZyraProfileRecap = ({
   };
 
   const handleRegenerate = async () => {
-    const generatedRecap = await fetchRecap();
-    // Salva automaticamente il nuovo recap generato
-    if (!userId && generatedRecap) {
+    if (isOwnProfile) {
+      setLoading(true);
+      setError(null);
       try {
-        await userActions.saveProfile({ zyraRecap: generatedRecap });
+        const response = await regenerateProfileRecap(language);
+        setRecap(response.recap);
+        setEditedRecap(response.recap);
+        try {
+          await userActions.saveProfile({ zyraRecap: response.recap });
+        } catch {
+          // Ignore save errors; backend already updated profile
+        }
       } catch {
-        // Ignora errori di salvataggio durante rigenerazione
+        setError(t("Unable to generate the recap. Try again."));
+      } finally {
+        setLoading(false);
       }
+    } else {
+      await fetchRecap();
     }
   };
 
