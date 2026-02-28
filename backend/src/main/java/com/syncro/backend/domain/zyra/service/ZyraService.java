@@ -296,13 +296,13 @@ public class ZyraService {
                 ? profile.getUpdatedAt()
                 : java.time.Instant.now();
             return new ZyraProfileRecapResponse(
-                localizeRecap(profile.getZyraRecap(), preferredLanguage),
+                localizeRecap(profile.getZyraRecap(), preferredLanguage, user.getLanguage()),
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(user.getId())
             .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage),
+                localizeRecap(entry.recap(), preferredLanguage, user.getLanguage()),
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
@@ -310,7 +310,7 @@ public class ZyraService {
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(user.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage),
+                    localizeRecap(recap, preferredLanguage, preferredLanguage),
                     generatedAt
                 );
             });
@@ -348,7 +348,7 @@ public class ZyraService {
             userProfileRepository.save(profile);
         }
         return new ZyraProfileRecapResponse(
-            localizeRecap(recap, preferredLanguage),
+            localizeRecap(recap, preferredLanguage, preferredLanguage),
             generatedAt
         );
     }
@@ -369,13 +369,13 @@ public class ZyraService {
                 ? targetProfile.getUpdatedAt()
                 : java.time.Instant.now();
             return new ZyraProfileRecapResponse(
-                localizeRecap(targetProfile.getZyraRecap(), preferredLanguage),
+                localizeRecap(targetProfile.getZyraRecap(), preferredLanguage, target.getLanguage()),
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(target.getId())
             .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage),
+                localizeRecap(entry.recap(), preferredLanguage, target.getLanguage()),
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
@@ -383,7 +383,7 @@ public class ZyraService {
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(target.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage),
+                    localizeRecap(recap, preferredLanguage, preferredLanguage),
                     generatedAt
                 );
             });
@@ -769,7 +769,7 @@ public class ZyraService {
         String preferredLanguage = resolvePreferredLanguage(user);
         ZyraChatRecapResponse response = recapCache.getChatRecap(user.getId())
             .orElseGet(() -> buildChatRecap(user));
-        String localizedRecap = localizeRecap(response.recap(), preferredLanguage);
+        String localizedRecap = localizeRecap(response.recap(), preferredLanguage, user.getLanguage());
         if (Objects.equals(localizedRecap, response.recap())) {
             return response;
         }
@@ -794,7 +794,7 @@ public class ZyraService {
             throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
         }
         String recap = generateTestRecap(submission);
-        String localizedRecap = localizeRecap(recap, preferredLanguage);
+        String localizedRecap = localizeRecap(recap, preferredLanguage, user.getLanguage());
         String testTitle = submission.getTestDefinition() != null
             ? submission.getTestDefinition().getTitle()
             : "Test";
@@ -1504,17 +1504,29 @@ public class ZyraService {
     }
 
     /**
-     * Returns the recap in the viewer's language. Always translates when the stored recap
-     * may be in another language (e.g. profile owner's), so the viewer sees it in their own language.
+     * Returns the recap in the viewer's language. Translates only when source and target languages differ;
+     * when they match (e.g. both English), skips the LLM call to reduce latency, cost, and rate-limit risk.
      * Profile-type labels are stripped so they never appear (including in old or translated recaps).
+     *
+     * @param recap recap text (may be in any language)
+     * @param targetLanguageCode viewer's preferred language (e.g. from request or user settings)
+     * @param sourceLanguageCode language the recap is in, or null if unknown (when null, translation is always attempted)
      */
-    private String localizeRecap(String recap, String languageCode) {
+    private String localizeRecap(String recap, String targetLanguageCode, String sourceLanguageCode) {
         if (recap == null || recap.isBlank()) {
             return recap;
         }
-        String normalizedLanguage = normalizeLanguageCode(languageCode);
-        String translated = translateRecap(recap, normalizedLanguage);
+        String targetLang = normalizeLanguageCode(targetLanguageCode);
+        if (sourceLanguageCode != null && !sourceLanguageCode.isBlank()
+            && targetLang.equals(normalizeLanguageCode(sourceLanguageCode))) {
+            return sanitizeRecapFromLabels(recap);
+        }
+        String translated = translateRecap(recap, targetLang);
         return sanitizeRecapFromLabels(translated);
+    }
+
+    private String localizeRecap(String recap, String languageCode) {
+        return localizeRecap(recap, languageCode, null);
     }
 
     /** Straight and curly double quotes so we match "Inclusive Innovator" and "Inclusive Innovator" etc. */
@@ -1552,7 +1564,8 @@ public class ZyraService {
         out = replaceLabel(out, "(?i)\\b(una?\\s+)?Innovatrice Inclusiva\\b", "oriented toward inclusion and innovation");
         out = replaceLabel(out, "(?i)\\b(una?\\s+)?Pianificatrice Equilibrata\\b", "oriented toward balanced planning");
         out = replaceLabel(out, "(?i)\\bExpansion phase\\b", "focused on growth");
-        return out.replaceAll("\\s+", " ").trim();
+        out = out.replaceAll("[ \\t]+", " ").trim();
+        return out;
     }
 
     private static String replaceLabel(String text, String pattern, String replacement) {
