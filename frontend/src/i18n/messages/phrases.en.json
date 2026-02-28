@@ -1629,5 +1629,19 @@
   "Onboarding backfill completed.": "Onboarding backfill completed.",
   "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})": "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})",
   "Active in both the latest and previous 7-day windows": "Active in both the latest and previous 7-day windows",
-  "Running": "Running"
+  "Running": "Running",
+  "Add code": "Add code",
+  "City name (optional)": "City name (optional)",
+  "Configured destinations:": "Configured destinations:",
+  "Delete destination code {code}?": "Delete destination code {code}?",
+  "Destination code": "Destination code",
+  "Destination code is required": "Destination code is required",
+  "Destination codes": "Destination codes",
+  "Disable": "Disable",
+  "Disabled": "Disabled",
+  "Loading destination codes...": "Loading destination codes...",
+  "No city label": "No city label",
+  "No destination codes configured.": "No destination codes configured.",
+  "Sort order": "Sort order",
+  "Sort order:": "Sort order:"
 }

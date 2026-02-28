@@ -1599,5 +1599,19 @@
   "Onboarding backfill completed.": "Backfill onboarding completato.",
   "Users updated: {{updated}} · Completed before: {{before}} · Completed after: {{after}} (total: {{total}})": "Utenti aggiornati: {{updated}} · Completati prima: {{before}} · Completati dopo: {{after}} (totale: {{total}})",
   "Active in both the latest and previous 7-day windows": "Attivi sia negli ultimi 7 giorni che nei 7 giorni precedenti",
-  "Running": "In esecuzione"
+  "Running": "In esecuzione",
+  "Add code": "Aggiungi codice",
+  "City name (optional)": "Nome citta (opzionale)",
+  "Configured destinations:": "Destinazioni configurate:",
+  "Delete destination code {code}?": "Eliminare il codice destinazione {code}?",
+  "Destination code": "Codice destinazione",
+  "Destination code is required": "Il codice destinazione e obbligatorio",
+  "Destination codes": "Codici destinazione",
+  "Disable": "Disabilita",
+  "Disabled": "Disabilitato",
+  "Loading destination codes...": "Caricamento codici destinazione...",
+  "No city label": "Nessuna etichetta citta",
+  "No destination codes configured.": "Nessun codice destinazione configurato.",
+  "Sort order": "Ordine",
+  "Sort order:": "Ordine:"
 }

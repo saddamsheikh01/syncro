@@ -57,11 +57,26 @@ export const ExperienceListItem = ({
   ...props
 }: ExperienceListItemProps) => {
   const { t } = useT();
+  const isViatorProvider = provider?.trim().toUpperCase() === "VIATOR";
+  const trimmedSubtitle = subtitle?.trim();
+  const isLikelyDestinationRef = Boolean(
+    trimmedSubtitle &&
+      !trimmedSubtitle.includes(" ") &&
+      /[0-9]/.test(trimmedSubtitle) &&
+      /^[A-Za-z0-9_-]+$/.test(trimmedSubtitle)
+  );
+  const visibleSubtitle = isViatorProvider ? undefined : subtitle;
+  const locationBadgeLabel = isViatorProvider
+    ? trimmedSubtitle && !isLikelyDestinationRef
+      ? trimmedSubtitle
+      : null
+    : null;
+  const showProvider = Boolean(provider) && !isViatorProvider;
 
   const card = (
     <div
       className={cx(
-        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
+        "group flex h-[304px] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
         className
       )}
       {...props}
@@ -101,8 +116,8 @@ export const ExperienceListItem = ({
         <h4 className="line-clamp-2 text-sm font-semibold text-foreground">
           {title}
         </h4>
-        {subtitle ? (
-          <p className="line-clamp-2 text-xs text-muted">{subtitle}</p>
+        {visibleSubtitle ? (
+          <p className="line-clamp-2 text-xs text-muted">{visibleSubtitle}</p>
         ) : null}
 
         {rating != null ? (
@@ -116,11 +131,18 @@ export const ExperienceListItem = ({
         ) : null}
 
         <div className="space-y-2">
-          {category ? (
-            <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
-              {category}
-            </Badge>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {category ? (
+              <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
+                {category}
+              </Badge>
+            ) : null}
+            {locationBadgeLabel ? (
+              <Badge tone="neutral" className="w-fit bg-accent-soft text-accent">
+                {locationBadgeLabel}
+              </Badge>
+            ) : null}
+          </div>
           <div className="flex items-center justify-between gap-2 text-[11px] text-subtle">
             {durationLabel ? (
               <span className="flex items-center gap-1">
@@ -138,7 +160,7 @@ export const ExperienceListItem = ({
             )}
             <span className="text-accent">{t("View details")}</span>
           </div>
-          {provider ? (
+          {showProvider ? (
             <div className="text-[11px] text-subtle">
               {t("Provider")}: {provider}
             </div>
@@ -150,7 +172,7 @@ export const ExperienceListItem = ({
 
   if (href) {
     return (
-      <Link href={href} className="block snap-start">
+      <Link href={href} className="block h-full snap-start">
         {card}
       </Link>
     );
@@ -158,11 +180,11 @@ export const ExperienceListItem = ({
 
   if (onPress) {
     return (
-      <button type="button" onClick={onPress} className="w-full snap-start text-left">
+      <button type="button" onClick={onPress} className="h-full w-full snap-start text-left">
         {card}
       </button>
     );
   }
 
-  return <div className="snap-start">{card}</div>;
+  return <div className="h-full snap-start">{card}</div>;
 };

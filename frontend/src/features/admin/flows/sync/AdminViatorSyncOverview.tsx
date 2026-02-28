@@ -8,9 +8,20 @@ import { Input } from "@/components/elements/Input";
 import { Loader } from "@/components/elements/Loader";
 import { formatNumber } from "@/features/admin/lib/formatters";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
-import { getViatorSyncStatus, syncViatorProducts } from "@/services/admin";
+import {
+  createViatorDestinationRef,
+  deleteViatorDestinationRef,
+  getViatorSyncStatus,
+  listViatorDestinationRefs,
+  syncViatorProducts,
+  updateViatorDestinationRef,
+} from "@/services/admin";
 import type { ApiError } from "@/types/api";
-import type { ViatorSyncResponse, ViatorSyncStatusResponse } from "@/types/admin";
+import type {
+  ViatorDestinationRefResponse,
+  ViatorSyncResponse,
+  ViatorSyncStatusResponse,
+} from "@/types/admin";
 import { useT } from "@/hooks";
 
 const parseOptionalInteger = (value: string): number | null => {
@@ -60,6 +71,10 @@ export const AdminViatorSyncOverview = () => {
   const [statusLoading, setStatusLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [destinationsLoading, setDestinationsLoading] = useState(true);
+  const [destinationSaving, setDestinationSaving] = useState(false);
+  const [destinationBusyId, setDestinationBusyId] = useState<string | null>(null);
+  const [destinations, setDestinations] = useState<ViatorDestinationRefResponse[]>([]);
 
   const [lastResult, setLastResult] = useState<ViatorSyncResponse | null>(null);
 
@@ -68,6 +83,10 @@ export const AdminViatorSyncOverview = () => {
   const [language, setLanguage] = useState("en-US");
   const [modifiedSince, setModifiedSince] = useState("");
   const [resetCursor, setResetCursor] = useState(false);
+  const [newDestinationRef, setNewDestinationRef] = useState("");
+  const [newCityName, setNewCityName] = useState("");
+  const [newSortOrder, setNewSortOrder] = useState("100");
+  const [newEnabled, setNewEnabled] = useState(true);
 
   const loadStatus = useCallback(async () => {
     setStatusLoading(true);
@@ -83,9 +102,23 @@ export const AdminViatorSyncOverview = () => {
     }
   }, []);
 
+  const loadDestinations = useCallback(async () => {
+    setDestinationsLoading(true);
+    setError(null);
+
+    try {
+      const response = await listViatorDestinationRefs();
+      setDestinations(response);
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setDestinationsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    void loadStatus();
-  }, [loadStatus]);
+    void Promise.all([loadStatus(), loadDestinations()]);
+  }, [loadStatus, loadDestinations]);
 
   const handleSyncProducts = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,6 +140,75 @@ export const AdminViatorSyncOverview = () => {
       setError(requestError as ApiError);
     } finally {
       setRunning(false);
+    }
+  };
+
+  const handleCreateDestination = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const destinationRef = newDestinationRef.trim();
+    if (!destinationRef) {
+      setError({
+        code: "UNKNOWN",
+        status: 400,
+        message: t("Destination code is required"),
+      });
+      return;
+    }
+
+    setDestinationSaving(true);
+    setError(null);
+
+    try {
+      await createViatorDestinationRef({
+        destinationRef,
+        cityName: newCityName.trim() || null,
+        sortOrder: parseOptionalInteger(newSortOrder) ?? 100,
+        enabled: newEnabled,
+      });
+      setNewDestinationRef("");
+      setNewCityName("");
+      setNewSortOrder("100");
+      setNewEnabled(true);
+      await Promise.all([loadDestinations(), loadStatus()]);
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setDestinationSaving(false);
+    }
+  };
+
+  const handleToggleDestination = async (destination: ViatorDestinationRefResponse) => {
+    setDestinationBusyId(destination.id);
+    setError(null);
+
+    try {
+      await updateViatorDestinationRef(destination.id, {
+        enabled: !destination.enabled,
+      });
+      await Promise.all([loadDestinations(), loadStatus()]);
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setDestinationBusyId(null);
+    }
+  };
+
+  const handleDeleteDestination = async (destination: ViatorDestinationRefResponse) => {
+    const confirmed = window.confirm(t("Delete destination code {code}?", { code: destination.destinationRef }));
+    if (!confirmed) {
+      return;
+    }
+
+    setDestinationBusyId(destination.id);
+    setError(null);
+
+    try {
+      await deleteViatorDestinationRef(destination.id);
+      await Promise.all([loadDestinations(), loadStatus()]);
+    } catch (requestError) {
+      setError(requestError as ApiError);
+    } finally {
+      setDestinationBusyId(null);
     }
   };
 
@@ -143,6 +245,112 @@ export const AdminViatorSyncOverview = () => {
             {" · "}
             {status?.message ?? t("N/A")}
           </p>
+        )}
+        {!statusLoading ? (
+          <p className="text-sm text-muted">
+            <span className="font-semibold text-foreground">
+              {t("Configured destinations:")}
+            </span>{" "}
+            {formatNumber(status?.configuredDestinationCount ?? 0)}
+          </p>
+        ) : null}
+      </Card>
+
+      <Card className="space-y-4 p-5">
+        <h2 className="text-base font-semibold text-foreground">
+          {t("Destination codes")}
+        </h2>
+
+        <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleCreateDestination}>
+          <Input
+            label={t("Destination code")}
+            value={newDestinationRef}
+            placeholder="511"
+            onChange={(event) => setNewDestinationRef(event.target.value)}
+          />
+          <Input
+            label={t("City name (optional)")}
+            value={newCityName}
+            placeholder={t("Milan")}
+            onChange={(event) => setNewCityName(event.target.value)}
+          />
+          <Input
+            label={t("Sort order")}
+            value={newSortOrder}
+            onChange={(event) => setNewSortOrder(event.target.value)}
+          />
+          <div className="flex items-end gap-3">
+            <Checkbox
+              label={t("Enabled")}
+              checked={newEnabled}
+              onChange={(event) => setNewEnabled(event.target.checked)}
+            />
+            <Button
+              type="submit"
+              size="sm"
+              loading={destinationSaving}
+              loadingText="Saving"
+            >
+              {t("Add code")}
+            </Button>
+          </div>
+        </form>
+
+        {destinationsLoading ? (
+          <div className="flex items-center gap-3">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">{t("Loading destination codes...")}</p>
+          </div>
+        ) : destinations.length === 0 ? (
+          <p className="text-sm text-muted">{t("No destination codes configured.")}</p>
+        ) : (
+          <div className="space-y-2">
+            {destinations.map((destination) => {
+              const rowBusy = destinationBusyId === destination.id;
+              return (
+                <div
+                  key={destination.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border/70 bg-surface px-4 py-3"
+                >
+                  <div className="flex min-w-[220px] flex-col">
+                    <p className="text-sm font-semibold text-foreground">
+                      {destination.destinationRef}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {destination.cityName ?? t("No city label")}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted">
+                    {t("Sort order:")} {formatNumber(destination.sortOrder)}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {destination.enabled ? t("Enabled") : t("Disabled")}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleToggleDestination(destination)}
+                      loading={rowBusy}
+                      loadingText="Saving"
+                    >
+                      {destination.enabled ? t("Disable") : t("Enable")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() => void handleDeleteDestination(destination)}
+                      disabled={rowBusy}
+                    >
+                      {t("Delete")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </Card>
 
@@ -188,7 +396,7 @@ export const AdminViatorSyncOverview = () => {
               type="submit"
               size="sm"
               loading={running}
-              loadingText={t("Syncing")}
+              loadingText="Syncing"
             >
               {t("Start products sync")}
             </Button>

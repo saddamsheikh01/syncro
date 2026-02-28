@@ -4,6 +4,9 @@ import type {
   GoogleMapsSyncResponse,
   GoogleMapsSyncStatusResponse,
   GoogleMapsTextSearchSyncRequest,
+  ViatorDestinationRefCreateRequest,
+  ViatorDestinationRefResponse,
+  ViatorDestinationRefUpdateRequest,
   ViatorSyncRequest,
   ViatorSyncResponse,
   ViatorSyncStatusResponse,
@@ -60,4 +63,36 @@ export const syncViatorProducts = async (
     payload
   );
   return data;
+};
+
+export const listViatorDestinationRefs = async (): Promise<ViatorDestinationRefResponse[]> => {
+  const { data } = await apiClient.get<ViatorDestinationRefResponse[]>(
+    "/admin/sync/viator/destinations"
+  );
+  return data;
+};
+
+export const createViatorDestinationRef = async (
+  payload: ViatorDestinationRefCreateRequest
+): Promise<ViatorDestinationRefResponse> => {
+  const { data } = await apiClient.post<ViatorDestinationRefResponse>(
+    "/admin/sync/viator/destinations",
+    payload
+  );
+  return data;
+};
+
+export const updateViatorDestinationRef = async (
+  destinationId: string,
+  payload: ViatorDestinationRefUpdateRequest
+): Promise<ViatorDestinationRefResponse> => {
+  const { data } = await apiClient.patch<ViatorDestinationRefResponse>(
+    `/admin/sync/viator/destinations/${encodeURIComponent(destinationId)}`,
+    payload
+  );
+  return data;
+};
+
+export const deleteViatorDestinationRef = async (destinationId: string): Promise<void> => {
+  await apiClient.delete(`/admin/sync/viator/destinations/${encodeURIComponent(destinationId)}`);
 };

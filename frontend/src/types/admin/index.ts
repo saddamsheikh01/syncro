@@ -234,6 +234,7 @@ export type GoogleMapsSyncResponse = {
 export type ViatorSyncStatusResponse = {
   configured: boolean;
   message: string;
+  configuredDestinationCount: number;
 };
 
 export type ViatorSyncRequest = {
@@ -255,4 +256,27 @@ export type ViatorSyncResponse = {
   effectiveModifiedSince: IsoDateTime | null;
   errorMessages: string[];
   message: string;
+};
+
+export type ViatorDestinationRefResponse = {
+  id: Uuid;
+  destinationRef: string;
+  cityName: string | null;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+};
+
+export type ViatorDestinationRefCreateRequest = {
+  destinationRef: string;
+  cityName?: string | null;
+  enabled?: boolean | null;
+  sortOrder?: number | null;
+};
+
+export type ViatorDestinationRefUpdateRequest = {
+  cityName?: string | null;
+  enabled?: boolean | null;
+  sortOrder?: number | null;
 };

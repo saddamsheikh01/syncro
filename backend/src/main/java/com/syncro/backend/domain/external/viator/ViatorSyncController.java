@@ -1,9 +1,18 @@
 package com.syncro.backend.domain.external.viator;
 
+import com.syncro.backend.domain.external.viator.dto.ViatorDestinationRefCreateRequest;
+import com.syncro.backend.domain.external.viator.dto.ViatorDestinationRefResponse;
+import com.syncro.backend.domain.external.viator.dto.ViatorDestinationRefUpdateRequest;
 import com.syncro.backend.domain.external.viator.dto.ViatorSyncRequest;
 import com.syncro.backend.domain.external.viator.dto.ViatorSyncResponse;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,21 +24,26 @@ public class ViatorSyncController {
 
     private final ViatorConfig viatorConfig;
     private final ViatorSyncService viatorSyncService;
+    private final ViatorDestinationRefService viatorDestinationRefService;
 
     public ViatorSyncController(
         ViatorConfig viatorConfig,
-        ViatorSyncService viatorSyncService
+        ViatorSyncService viatorSyncService,
+        ViatorDestinationRefService viatorDestinationRefService
     ) {
         this.viatorConfig = viatorConfig;
         this.viatorSyncService = viatorSyncService;
+        this.viatorDestinationRefService = viatorDestinationRefService;
     }
 
     @PostMapping("/status")
     public ResponseEntity<StatusResponse> status() {
         boolean configured = viatorConfig.isConfigured();
+        int configuredDestinationCount = viatorDestinationRefService.countEnabledDestinationRefs();
         return ResponseEntity.ok(new StatusResponse(
             configured,
-            configured ? "Viator API configurata correttamente" : "VIATOR_API_KEY mancante"
+            configured ? "Viator API configurata correttamente" : "VIATOR_API_KEY mancante",
+            configuredDestinationCount
         ));
     }
 
@@ -55,5 +69,31 @@ public class ViatorSyncController {
             : ResponseEntity.ok(response);
     }
 
-    public record StatusResponse(boolean configured, String message) {}
+    @GetMapping("/destinations")
+    public ResponseEntity<List<ViatorDestinationRefResponse>> listDestinations() {
+        return ResponseEntity.ok(viatorDestinationRefService.listAll());
+    }
+
+    @PostMapping("/destinations")
+    public ResponseEntity<ViatorDestinationRefResponse> createDestination(
+        @Valid @RequestBody ViatorDestinationRefCreateRequest request
+    ) {
+        return ResponseEntity.status(201).body(viatorDestinationRefService.create(request));
+    }
+
+    @PatchMapping("/destinations/{destinationId}")
+    public ResponseEntity<ViatorDestinationRefResponse> updateDestination(
+        @PathVariable UUID destinationId,
+        @Valid @RequestBody ViatorDestinationRefUpdateRequest request
+    ) {
+        return ResponseEntity.ok(viatorDestinationRefService.update(destinationId, request));
+    }
+
+    @DeleteMapping("/destinations/{destinationId}")
+    public ResponseEntity<Void> deleteDestination(@PathVariable UUID destinationId) {
+        viatorDestinationRefService.delete(destinationId);
+        return ResponseEntity.noContent().build();
+    }
+
+    public record StatusResponse(boolean configured, String message, int configuredDestinationCount) {}
 }
