@@ -70,6 +70,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -474,7 +476,10 @@ public class ZyraService {
                 ? responseLanguageOverride.trim().toLowerCase(Locale.ROOT)
                 : resolveResponseLanguage(user);
             String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
-            return recap != null ? recap.trim() : "Complete your profile to get a personalized recap.";
+            if (recap == null || recap.isBlank()) {
+                return "Complete your profile to get a personalized recap.";
+            }
+            return sanitizeRecapFromLabels(recap.trim());
         } catch (Exception ex) {
             return "Complete your profile to get a personalized recap.";
         }
@@ -1498,15 +1503,60 @@ public class ZyraService {
         return SUPPORTED_RECAP_LANGUAGES.contains(normalized) ? normalized : "en";
     }
 
+    /**
+     * Returns the recap in the viewer's language. Always translates when the stored recap
+     * may be in another language (e.g. profile owner's), so the viewer sees it in their own language.
+     * Profile-type labels are stripped so they never appear (including in old or translated recaps).
+     */
     private String localizeRecap(String recap, String languageCode) {
         if (recap == null || recap.isBlank()) {
             return recap;
         }
         String normalizedLanguage = normalizeLanguageCode(languageCode);
-        if ("en".equals(normalizedLanguage)) {
+        String translated = translateRecap(recap, normalizedLanguage);
+        return sanitizeRecapFromLabels(translated);
+    }
+
+    /** Straight and curly double quotes so we match "Inclusive Innovator" and "Inclusive Innovator" etc. */
+    private static final String QUOTES = "[\"\\u201C\\u201D\\u201E\\u201F]";
+
+    /**
+     * Public so the controller can guarantee every API response is sanitized (recap comes from DB, cache, or generation).
+     */
+    public String sanitizeRecapForResponse(String recap) {
+        return sanitizeRecapFromLabels(recap);
+    }
+
+    /**
+     * Removes or replaces known profile-type labels from recap text so they never appear to users.
+     * Recap may come from database (user_profile.zyra_recap), cache, or fresh generation.
+     */
+    private String sanitizeRecapFromLabels(String recap) {
+        if (recap == null || recap.isBlank()) {
             return recap;
         }
-        return translateRecap(recap, normalizedLanguage);
+        String out = recap;
+        // Literal first so we always catch exact phrases from DB/cache (no regex/encoding issues)
+        out = out.replace("\"Inclusive Innovator\"", "oriented toward inclusion and innovation");
+        out = out.replace("\"Balanced Planner\"", "oriented toward balanced planning");
+        out = out.replace("Inclusive Innovator", "oriented toward inclusion and innovation");
+        out = out.replace("Balanced Planner", "oriented toward balanced planning");
+        // Regex for quoted/unquoted and other languages
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(an?\\s+)?Inclusive Innovator\\s*" + QUOTES + "?", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(an?\\s+)?Balanced Planner\\s*" + QUOTES + "?", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(una?\\s+)?Innovatrice Inclusiva\\s*" + QUOTES + "?", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(una?\\s+)?Pianificatrice Equilibrata\\s*" + QUOTES + "?", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*Expansion phase\\s*" + QUOTES + "?", "focused on growth");
+        out = replaceLabel(out, "(?i)\\b(an?\\s+)?Inclusive Innovator\\b", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)\\b(an?\\s+)?Balanced Planner\\b", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)\\b(una?\\s+)?Innovatrice Inclusiva\\b", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)\\b(una?\\s+)?Pianificatrice Equilibrata\\b", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)\\bExpansion phase\\b", "focused on growth");
+        return out.replaceAll("\\s+", " ").trim();
+    }
+
+    private static String replaceLabel(String text, String pattern, String replacement) {
+        return Pattern.compile(pattern).matcher(text).replaceAll(Matcher.quoteReplacement(replacement));
     }
 
     private String translateRecap(String sourceRecap, String targetLanguage) {

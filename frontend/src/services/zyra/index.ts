@@ -87,14 +87,17 @@ export const createSuggestion = async (
   return data;
 };
 
+/** Viewer's language for recap (e.g. "en"). Always send so backend returns recap in viewer's language. */
+const recapLanguageHeader = (language?: string | null) => ({
+  "Accept-Language": language && language.trim() ? language.trim() : "en",
+});
+
 export const getProfileRecap = async (
   language?: string | null
 ): Promise<ZyraProfileRecapResponse> => {
-  const headers: Record<string, string> = {};
-  if (language) headers["Accept-Language"] = language;
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     "/zyra/profile-recap",
-    { timeout: CHAT_TIMEOUT_MS, headers }
+    { timeout: CHAT_TIMEOUT_MS, headers: recapLanguageHeader(language) }
   );
   return data;
 };
@@ -103,12 +106,10 @@ export const getProfileRecap = async (
 export const regenerateProfileRecap = async (
   language?: string | null
 ): Promise<ZyraProfileRecapResponse> => {
-  const headers: Record<string, string> = {};
-  if (language) headers["Accept-Language"] = language;
   const { data } = await apiClient.post<ZyraProfileRecapResponse>(
     "/zyra/profile-recap/regenerate",
     {},
-    { timeout: CHAT_TIMEOUT_MS, headers }
+    { timeout: CHAT_TIMEOUT_MS, headers: recapLanguageHeader(language) }
   );
   return data;
 };
@@ -117,11 +118,9 @@ export const getProfileRecapForUser = async (
   userId: Uuid,
   language?: string | null
 ): Promise<ZyraProfileRecapResponse> => {
-  const headers: Record<string, string> = {};
-  if (language) headers["Accept-Language"] = language;
   const { data } = await apiClient.get<ZyraProfileRecapResponse>(
     `/zyra/profile-recap/${userId}`,
-    { timeout: CHAT_TIMEOUT_MS, headers }
+    { timeout: CHAT_TIMEOUT_MS, headers: recapLanguageHeader(language) }
   );
   return data;
 };

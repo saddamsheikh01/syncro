@@ -129,7 +129,8 @@ public class ZyraController {
         @AuthenticationPrincipal UserPrincipal principal,
         @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.getProfileRecap(principal, parseAcceptLanguage(acceptLanguage)));
+        ZyraProfileRecapResponse resp = zyraService.getProfileRecap(principal, parseAcceptLanguage(acceptLanguage));
+        return ResponseEntity.ok(withSanitizedRecap(resp));
     }
 
     @PostMapping("/profile-recap/regenerate")
@@ -138,7 +139,8 @@ public class ZyraController {
         @AuthenticationPrincipal UserPrincipal principal,
         @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.regenerateProfileRecap(principal, parseAcceptLanguage(acceptLanguage)));
+        ZyraProfileRecapResponse resp = zyraService.regenerateProfileRecap(principal, parseAcceptLanguage(acceptLanguage));
+        return ResponseEntity.ok(withSanitizedRecap(resp));
     }
 
     @GetMapping("/profile-recap/{userId}")
@@ -148,7 +150,17 @@ public class ZyraController {
         @PathVariable UUID userId,
         @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.getProfileRecapForUser(principal, userId, parseAcceptLanguage(acceptLanguage)));
+        ZyraProfileRecapResponse resp = zyraService.getProfileRecapForUser(principal, userId, parseAcceptLanguage(acceptLanguage));
+        return ResponseEntity.ok(withSanitizedRecap(resp));
+    }
+
+    /** Recap is from DB (user_profile.zyra_recap), cache, or generation; always sanitize before response. */
+    private ZyraProfileRecapResponse withSanitizedRecap(ZyraProfileRecapResponse resp) {
+        if (resp == null) return resp;
+        String recap = resp.recap();
+        if (recap == null) return resp;
+        String sanitized = zyraService.sanitizeRecapForResponse(recap);
+        return sanitized.equals(recap) ? resp : new ZyraProfileRecapResponse(sanitized, resp.generatedAt());
     }
 
     private static String parseAcceptLanguage(String acceptLanguage) {
