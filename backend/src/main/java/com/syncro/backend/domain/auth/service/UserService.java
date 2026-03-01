@@ -5,7 +5,10 @@ import com.syncro.backend.common.exception.ConflictException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.dto.DeleteUserRequest;
+import com.syncro.backend.domain.auth.dto.SendEmailChangeOtpRequest;
+import com.syncro.backend.domain.auth.dto.VerifyEmailChangeOtpRequest;
 import com.syncro.backend.domain.auth.dto.UpdateUserRequest;
+import com.syncro.backend.domain.auth.dto.UpdateUserResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
 import com.syncro.backend.domain.auth.dto.UsernameAvailabilityResponse;
 import com.syncro.backend.domain.auth.entity.User;
@@ -38,17 +41,20 @@ public class UserService {
     private final AuthMapper authMapper;
     private final AnalyticsService analyticsService;
     private final EmailNotificationService emailNotificationService;
+    private final EmailVerificationService emailVerificationService;
 
     public UserService(
         UserRepository userRepository,
         AuthMapper authMapper,
         AnalyticsService analyticsService,
-        EmailNotificationService emailNotificationService
+        EmailNotificationService emailNotificationService,
+        EmailVerificationService emailVerificationService
     ) {
         this.userRepository = userRepository;
         this.authMapper = authMapper;
         this.analyticsService = analyticsService;
         this.emailNotificationService = emailNotificationService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     public UserResponse getMe(UserPrincipal principal) {
@@ -71,6 +77,32 @@ public class UserService {
     }
 
     @Transactional
+    public void sendEmailChangeOtp(UserPrincipal principal, SendEmailChangeOtpRequest request) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        String normalizedEmail = normalizeEmail(request.newEmail());
+        if (normalizedEmail == null || normalizedEmail.isBlank()) {
+            throw new BadRequestException("Email non valida");
+        }
+        emailVerificationService.sendOtpForEmailChange(principal.userId(), normalizedEmail);
+    }
+
+    public UserResponse verifyEmailChangeOtp(UserPrincipal principal, VerifyEmailChangeOtpRequest request) {
+        if (principal == null) {
+            throw new UnauthorizedException("Token mancante o non valido");
+        }
+        emailVerificationService.verifyOtpForEmailChange(
+            principal.userId(),
+            request.newEmail(),
+            request.otp()
+        );
+        User user = userRepository.findById(principal.userId())
+            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        return authMapper.toUserResponse(user);
+    }
+
+    @Transactional
     public void recordActivity(UUID userId) {
         if (userId == null) return;
         userRepository.findById(userId).ifPresent(u -> {
@@ -80,7 +112,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateMe(UserPrincipal principal, UpdateUserRequest request) {
+    public UpdateUserResponse updateMe(UserPrincipal principal, UpdateUserRequest request) {
         if (principal == null) {
             throw new UnauthorizedException("Token mancante o non valido");
         }
@@ -113,24 +145,35 @@ public class UserService {
             }
         }
         String newEmailAfterSave = null;
+        boolean emailChangeRequiresVerification = false;
         if (request.email() != null && !request.email().isBlank()) {
             String normalizedEmail = normalizeEmail(request.email());
-            if (!normalizedEmail.equals(user.getEmail())) {
-                if (userRepository.existsByEmail(normalizedEmail)) {
+            String currentEmailNormalized = user.getEmail() != null ? normalizeEmail(user.getEmail()) : null;
+            boolean emailActuallyChanged = currentEmailNormalized == null || !normalizedEmail.equals(currentEmailNormalized);
+            if (emailActuallyChanged) {
+                Optional<User> existingByEmail = userRepository.findByEmail(normalizedEmail);
+                if (existingByEmail.isPresent()) {
                     throw new ConflictException("Email già in uso");
                 }
-                user.setEmail(normalizedEmail);
                 newEmailAfterSave = normalizedEmail;
+                emailChangeRequiresVerification = true;
             }
         }
 
-        User saved = userRepository.save(user);
-        if (newEmailAfterSave != null) {
+        if (newEmailAfterSave != null && emailChangeRequiresVerification) {
+            User saved = userRepository.save(user);
             try {
-                emailNotificationService.sendEmailChangeNotification(saved.getId(), newEmailAfterSave);
-            } catch (Exception ignored) {
+                emailVerificationService.sendOtpForEmailChange(user.getId(), newEmailAfterSave);
+            } catch (Exception ex) {
+                throw ex instanceof com.syncro.backend.common.exception.BadRequestException
+                    || ex instanceof com.syncro.backend.common.exception.ConflictException
+                    ? (RuntimeException) ex
+                    : new com.syncro.backend.common.exception.BadRequestException("Unable to send verification code");
             }
+            return UpdateUserResponse.verification(authMapper.toUserResponse(saved), newEmailAfterSave);
         }
+
+        User saved = userRepository.save(user);
         if (!onboardingWasCompleted && saved.isOnboardingCompleted()) {
             analyticsService.trackServerEventSafe(
                 saved.getId(),
@@ -138,7 +181,7 @@ public class UserService {
                 Map.of("source", "PROFILE_UPDATE")
             );
         }
-        return authMapper.toUserResponse(saved);
+        return UpdateUserResponse.user(authMapper.toUserResponse(saved));
     }
 
     @Transactional(readOnly = true)

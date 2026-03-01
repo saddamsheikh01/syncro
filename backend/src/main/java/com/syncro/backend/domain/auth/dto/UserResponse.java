@@ -10,6 +10,7 @@ public record UserResponse(
     String username,
     String language,
     boolean onboardingCompleted,
+    boolean emailVerified,
     String status,
     Instant createdAt,
     Instant updatedAt

@@ -119,10 +119,10 @@ export const Login = () => {
   }, [actions]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && status !== "loading") {
       router.replace("/home");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, status, router]);
 
   const isSubmitting = status === "loading";
 
@@ -130,8 +130,12 @@ export const Login = () => {
     event.preventDefault();
 
     try {
-      await actions.login({ email, password });
-      router.push("/home");
+      const response = await actions.login({ email, password });
+      if (response.requiresVerification) {
+        router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      } else if (response.authResponse) {
+        router.push("/home");
+      }
     } catch {}
   };
 

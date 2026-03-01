@@ -1,5 +1,9 @@
 import type { ApiError } from "../../types/api";
-import type { UpdateUserRequest, UserResponse } from "../../types/auth";
+import type {
+  UpdateUserRequest,
+  UpdateUserResponse,
+  UserResponse,
+} from "../../types/auth";
 import type {
   UserPreferencesRequest,
   UserPreferencesResponse,
@@ -83,14 +87,16 @@ export const userActions = {
     }
   },
 
-  updateUser: async (payload: UpdateUserRequest): Promise<UserResponse> => {
+  updateUser: async (payload: UpdateUserRequest): Promise<UpdateUserResponse> => {
     userStore.setState({ loading: true, error: null });
 
     try {
-      const user = await updateCurrentUser(payload);
-      applyUserResponse(user);
+      const response = await updateCurrentUser(payload);
+      if (response.user) {
+        applyUserResponse(response.user);
+      }
       userStore.setState({ loading: false });
-      return user;
+      return response;
     } catch (error) {
       userStore.setState({ loading: false, error: error as ApiError });
       throw error;

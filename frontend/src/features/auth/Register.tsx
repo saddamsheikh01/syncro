@@ -130,10 +130,10 @@ export const Register = () => {
   }, [actions]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && status !== "loading") {
       router.replace("/home");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, status, router]);
 
   const isSubmitting = status === "loading";
 
@@ -148,14 +148,18 @@ export const Register = () => {
     }
 
     try {
-      await actions.register({
+      const response = await actions.register({
         email,
         password,
         phone: normalizedPhone || undefined,
         refCode,
         language: locale,
       });
-      router.push("/home");
+      if (response.requiresVerification) {
+        router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      } else if (response.authResponse) {
+        router.push("/home");
+      }
     } catch {}
   };
 

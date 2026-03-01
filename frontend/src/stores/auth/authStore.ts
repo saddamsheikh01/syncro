@@ -3,7 +3,9 @@ import type {
   AuthResponse,
   GoogleAuthRequest,
   LoginRequest,
+  LoginResponse,
   RegisterRequest,
+  RegisterResponse,
   TokenResponse,
   UserResponse,
 } from "../../types/auth";
@@ -17,7 +19,10 @@ import {
   logout,
   refreshToken,
   register,
+  sendEmailVerificationOtp,
+  verifyEmailOtp,
 } from "../../services/auth";
+import { sendEmailChangeOtp, verifyEmailChangeOtp } from "../../services/users";
 
 export type AuthStatus =
   | "idle"
@@ -103,11 +108,45 @@ export const authActions = {
     });
   },
 
-  register: async (payload: RegisterRequest): Promise<AuthResponse> => {
+  register: async (payload: RegisterRequest): Promise<RegisterResponse> => {
     authStore.setState({ status: "loading", error: null });
 
     try {
       const response = await register(payload);
+      if (response.authResponse) {
+        applyAuthResponse(response.authResponse);
+      } else if (response.requiresVerification) {
+        authStore.setState({ status: "unauthenticated" });
+      }
+      return response;
+    } catch (error) {
+      authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      throw error;
+    }
+  },
+
+  login: async (payload: LoginRequest): Promise<LoginResponse> => {
+    authStore.setState({ status: "loading", error: null });
+
+    try {
+      const response = await login(payload);
+      if (response.authResponse) {
+        applyAuthResponse(response.authResponse);
+      } else if (response.requiresVerification) {
+        authStore.setState({ status: "unauthenticated" });
+      }
+      return response;
+    } catch (error) {
+      authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      throw error;
+    }
+  },
+
+  verifyEmail: async (email: string, otp: string): Promise<AuthResponse> => {
+    authStore.setState({ status: "loading", error: null });
+
+    try {
+      const response = await verifyEmailOtp(email, otp);
       applyAuthResponse(response);
       return response;
     } catch (error) {
@@ -116,15 +155,25 @@ export const authActions = {
     }
   },
 
-  login: async (payload: LoginRequest): Promise<AuthResponse> => {
-    authStore.setState({ status: "loading", error: null });
+  resendVerificationOtp: async (email: string): Promise<void> => {
+    authStore.setState({ error: null });
+    await sendEmailVerificationOtp(email);
+  },
 
+  resendEmailChangeOtp: async (newEmail: string): Promise<void> => {
+    authStore.setState({ error: null });
+    await sendEmailChangeOtp(newEmail);
+  },
+
+  verifyEmailChange: async (newEmail: string, otp: string): Promise<UserResponse> => {
+    authStore.setState({ status: "loading", error: null });
     try {
-      const response = await login(payload);
-      applyAuthResponse(response);
-      return response;
+      const user = await verifyEmailChangeOtp(newEmail, otp);
+      authStore.setState({ status: "authenticated", user, error: null });
+      writeStorage(USER_STORAGE_KEY, user);
+      return user;
     } catch (error) {
-      authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      authStore.setState({ status: "authenticated", error: error as ApiError });
       throw error;
     }
   },

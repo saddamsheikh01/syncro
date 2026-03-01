@@ -2,6 +2,7 @@ import { apiClient } from "../axiosConfig";
 import type {
   DeleteCurrentUserRequest,
   UpdateUserRequest,
+  UpdateUserResponse,
   UserResponse,
   UsernameAvailabilityResponse,
 } from "../../types/auth";
@@ -51,8 +52,23 @@ export const recordActivity = async (): Promise<void> => {
 
 export const updateCurrentUser = async (
   payload: UpdateUserRequest
+): Promise<UpdateUserResponse> => {
+  const { data } = await apiClient.patch<UpdateUserResponse>("/users/me", payload);
+  return data;
+};
+
+export const sendEmailChangeOtp = async (newEmail: string): Promise<void> => {
+  await apiClient.post("/users/me/email-change/send-otp", { newEmail });
+};
+
+export const verifyEmailChangeOtp = async (
+  newEmail: string,
+  otp: string
 ): Promise<UserResponse> => {
-  const { data } = await apiClient.patch<UserResponse>("/users/me", payload);
+  const { data } = await apiClient.post<UserResponse>(
+    "/users/me/email-change/verify",
+    { newEmail, otp }
+  );
   return data;
 };
 

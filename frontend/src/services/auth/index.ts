@@ -3,23 +3,40 @@ import type {
   AuthResponse,
   GoogleAuthRequest,
   LoginRequest,
+  LoginResponse,
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   PasswordResetRequestResponse,
   RefreshTokenRequest,
   RegisterRequest,
+  RegisterResponse,
   TokenResponse,
   UserAdminAccessResponse,
   UserResponse,
 } from "../../types/auth";
 
-export const register = async (payload: RegisterRequest): Promise<AuthResponse> => {
-  const { data } = await apiClient.post<AuthResponse>("/auth/register", payload);
+export const register = async (payload: RegisterRequest): Promise<RegisterResponse> => {
+  const { data } = await apiClient.post<RegisterResponse>("/auth/register", payload);
   return data;
 };
 
-export const login = async (payload: LoginRequest): Promise<AuthResponse> => {
-  const { data } = await apiClient.post<AuthResponse>("/auth/login", payload);
+export const login = async (payload: LoginRequest): Promise<LoginResponse> => {
+  const { data } = await apiClient.post<LoginResponse>("/auth/login", payload);
+  return data;
+};
+
+export const sendEmailVerificationOtp = async (email: string): Promise<void> => {
+  await apiClient.post("/auth/email-verification/send-otp", { email });
+};
+
+export const verifyEmailOtp = async (
+  email: string,
+  otp: string
+): Promise<AuthResponse> => {
+  const { data } = await apiClient.post<AuthResponse>(
+    "/auth/email-verification/verify",
+    { email, otp }
+  );
   return data;
 };
 

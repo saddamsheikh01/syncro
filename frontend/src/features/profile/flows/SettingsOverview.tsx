@@ -9,6 +9,7 @@ import { Input } from "@/components/elements/Input";
 import { Switch } from "@/components/elements/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth, useT, useUser } from "@/hooks";
+import { EmailVerificationOtpModal } from "@/features/auth/components/EmailVerificationOtpModal";
 import {
   checkUsernameAvailability,
   deleteCurrentUser,
@@ -65,6 +66,9 @@ export const SettingsOverview = () => {
   const [emailPrefsSaving, setEmailPrefsSaving] = useState(false);
   const [emailPrefsError, setEmailPrefsError] = useState<string | null>(null);
   const [emailPrefsSuccess, setEmailPrefsSuccess] = useState(false);
+
+  const [emailVerificationModalOpen, setEmailVerificationModalOpen] = useState(false);
+  const [emailToVerify, setEmailToVerify] = useState("");
 
   const canConfirmProfileDeletion =
     deleteProfileConfirmation.trim() === DELETE_PROFILE_CONFIRMATION_PHRASE &&
@@ -166,10 +170,15 @@ export const SettingsOverview = () => {
     setAccountEmailError(null);
     setAccountEmailSuccess(false);
     try {
-      await userActions.updateUser({ email: trimmed });
+      const response = await userActions.updateUser({ email: trimmed });
       setAccountEmail(trimmed);
-      setAccountEmailSuccess(true);
-      setTimeout(() => setAccountEmailSuccess(false), 4000);
+      if (response.requiresVerification?.email) {
+        setEmailToVerify(response.requiresVerification.email);
+        setEmailVerificationModalOpen(true);
+      } else if (response.user) {
+        setAccountEmailSuccess(true);
+        setTimeout(() => setAccountEmailSuccess(false), 4000);
+      }
     } catch (saveError) {
       setAccountEmailError(
         resolveErrorMessage(saveError, "Unable to update email."),
@@ -177,6 +186,12 @@ export const SettingsOverview = () => {
     } finally {
       setAccountEmailSaving(false);
     }
+  };
+
+  const handleEmailVerificationSuccess = () => {
+    setAccountEmailSuccess(true);
+    setTimeout(() => setAccountEmailSuccess(false), 4000);
+    setEmailVerificationModalOpen(false);
   };
 
   const handleSaveUsername = async () => {
@@ -639,6 +654,13 @@ export const SettingsOverview = () => {
           ) : null}
         </div>
       </Modal>
+
+      <EmailVerificationOtpModal
+        open={emailVerificationModalOpen}
+        email={emailToVerify}
+        onClose={() => setEmailVerificationModalOpen(false)}
+        onSuccess={handleEmailVerificationSuccess}
+      />
     </>
   );
 };
