@@ -11,5 +11,7 @@ public interface EmailSentLogRepository extends JpaRepository<EmailSentLog, UUID
 
     Optional<EmailSentLog> findTop1ByUserIdAndEmailTypeOrderBySentAtDesc(UUID userId, EmailType type);
 
+    boolean existsByUserIdAndEmailType(UUID userId, EmailType type);
+
     boolean existsByUserIdAndEmailTypeAndSentAtAfter(UUID userId, EmailType type, Instant after);
 }

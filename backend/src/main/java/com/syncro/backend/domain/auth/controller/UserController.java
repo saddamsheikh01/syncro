@@ -41,6 +41,20 @@ public class UserController {
         return ResponseEntity.ok(userService.getMe(principal));
     }
 
+    @PostMapping("/me/dashboard-visit")
+    @Operation(summary = "Record dashboard visit (triggers welcome email on first visit)")
+    public ResponseEntity<Void> recordDashboardVisit(@AuthenticationPrincipal UserPrincipal principal) {
+        userService.recordDashboardVisit(principal);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/activity")
+    @Operation(summary = "Record activity ping (updates lastActiveAt for NEW_MESSAGE_OFFLINE logic)")
+    public ResponseEntity<Void> recordActivity(@AuthenticationPrincipal UserPrincipal principal) {
+        userService.recordActivity(principal.userId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/me")
     @Operation(summary = "Update current user")
     public ResponseEntity<UserResponse> updateMe(

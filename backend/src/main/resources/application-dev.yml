@@ -58,6 +58,15 @@ app:
       nearby-count-per-destination: ${VIATOR_SYNC_NEARBY_COUNT_PER_DESTINATION:20}
       nearby-max-pages: ${VIATOR_SYNC_NEARBY_MAX_PAGES:3}
       nearby-resync-minutes: ${VIATOR_SYNC_NEARBY_RESYNC_MINUTES:30}
+  email:
+    jobs:
+      # Override via env for testing, e.g. EMAIL_NO_CHAT_REMINDER_CRON="0 */5 * * * ?" (every 5 min)
+      no-chat-reminder-cron: ${EMAIL_NO_CHAT_REMINDER_CRON:0 0 10 * * ?}
+      weekly-match-digest-cron: ${EMAIL_WEEKLY_MATCH_DIGEST_CRON:0 0 9 ? * MON}
+      test-not-completed-cron: ${EMAIL_TEST_NOT_COMPLETED_CRON:0 0 11 * * ?}
+      incomplete-profile-cron: ${EMAIL_INCOMPLETE_PROFILE_CRON:0 0 0/3 * * ?}
+      saved-event-reminder-cron: ${EMAIL_SAVED_EVENT_REMINDER_CRON:0 0 8 * * ?}
+      weekly-events-digest-cron: ${EMAIL_WEEKLY_EVENTS_DIGEST_CRON:0 0 9 ? * TUE}
   brevo:
     api-key: ${BREVO_API_KEY:}
     base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}

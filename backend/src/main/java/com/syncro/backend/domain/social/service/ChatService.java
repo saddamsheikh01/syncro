@@ -6,6 +6,7 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.auth.service.UserService;
 import com.syncro.backend.domain.media.entity.MediaOwnerType;
 import com.syncro.backend.domain.media.repository.MediaObjectRepository;
 import com.syncro.backend.domain.profile.entity.UserProfile;
@@ -52,6 +53,7 @@ public class ChatService {
     private final NotificationService notificationService;
     private final ConnectionService connectionService;
     private final EmailNotificationService emailNotificationService;
+    private final UserService userService;
 
     public ChatService(
         UserRepository userRepository,
@@ -63,7 +65,8 @@ public class ChatService {
         ChatMapper chatMapper,
         NotificationService notificationService,
         ConnectionService connectionService,
-        EmailNotificationService emailNotificationService
+        EmailNotificationService emailNotificationService,
+        UserService userService
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
@@ -75,6 +78,7 @@ public class ChatService {
         this.notificationService = notificationService;
         this.connectionService = connectionService;
         this.emailNotificationService = emailNotificationService;
+        this.userService = userService;
     }
 
     @Transactional
@@ -184,6 +188,7 @@ public class ChatService {
         message.setUser(user);
         message.setContent(content);
         ChatMessage saved = messageRepository.save(message);
+        userService.recordActivity(user.getId());
         List<UUID> recipientIds = participantRepository.findAllByConversationId(conversationId)
             .stream()
             .map(ChatParticipant::getUserId)

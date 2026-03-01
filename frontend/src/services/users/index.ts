@@ -41,6 +41,14 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
   return data;
 };
 
+export const recordDashboardVisit = async (): Promise<void> => {
+  await apiClient.post("/users/me/dashboard-visit");
+};
+
+export const recordActivity = async (): Promise<void> => {
+  await apiClient.post("/users/me/activity");
+};
+
 export const updateCurrentUser = async (
   payload: UpdateUserRequest
 ): Promise<UserResponse> => {

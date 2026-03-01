@@ -10,6 +10,7 @@ import com.syncro.backend.domain.email.repository.EmailSentLogRepository;
 import com.syncro.backend.domain.email.repository.UserEmailPreferenceRepository;
 import com.syncro.backend.domain.external.brevo.BrevoConfig;
 import com.syncro.backend.domain.external.brevo.BrevoMailClient;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,19 +31,22 @@ public class EmailNotificationService {
     private final EmailSentLogRepository sentLogRepository;
     private final BrevoConfig brevoConfig;
     private final BrevoMailClient brevoMailClient;
+    private final EntityManager entityManager;
 
     public EmailNotificationService(
         UserRepository userRepository,
         UserEmailPreferenceRepository preferenceRepository,
         EmailSentLogRepository sentLogRepository,
         BrevoConfig brevoConfig,
-        BrevoMailClient brevoMailClient
+        BrevoMailClient brevoMailClient,
+        EntityManager entityManager
     ) {
         this.userRepository = userRepository;
         this.preferenceRepository = preferenceRepository;
         this.sentLogRepository = sentLogRepository;
         this.brevoConfig = brevoConfig;
         this.brevoMailClient = brevoMailClient;
+        this.entityManager = entityManager;
     }
 
     public String buildCtaUrl(String path, String query) {
@@ -58,7 +62,7 @@ public class EmailNotificationService {
 
     @Transactional(readOnly = true)
     public UserEmailPreference getOrCreatePreferences(UUID userId) {
-        return preferenceRepository.findByUserId(userId).orElseGet(() -> {
+        return preferenceRepository.findById(userId).orElseGet(() -> {
             UserEmailPreference p = new UserEmailPreference();
             p.setUserId(userId);
             return p;
@@ -67,14 +71,13 @@ public class EmailNotificationService {
 
     @Transactional
     public UserEmailPreference getOrCreateAndSavePreferences(UUID userId) {
-        Optional<UserEmailPreference> opt = preferenceRepository.findByUserId(userId);
+        Optional<UserEmailPreference> opt = preferenceRepository.findById(userId);
         if (opt.isPresent()) return opt.get();
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return new UserEmailPreference();
+        if (!userRepository.existsById(userId)) return new UserEmailPreference();
         UserEmailPreference p = new UserEmailPreference();
-        p.setUser(user);
-        p.setUserId(userId);
-        return preferenceRepository.save(p);
+        p.setUser(userRepository.getReferenceById(userId));
+        entityManager.persist(p);
+        return p;
     }
 
     private boolean isCategoryEnabled(UserEmailPreference prefs, EmailType type) {
@@ -98,11 +101,26 @@ public class EmailNotificationService {
         return !sentLogRepository.existsByUserIdAndEmailTypeAndSentAtAfter(userId, EmailType.NEW_MESSAGE_OFFLINE, after);
     }
 
+    /** Only send NEW_MESSAGE_OFFLINE if recipient has been inactive for >= chatMinMinutesBetween. */
+    private boolean passesInactivityCheck(UUID recipientUserId, UserEmailPreference prefs) {
+        if (prefs == null) return true;
+        User user = userRepository.findById(recipientUserId).orElse(null);
+        if (user == null) return true;
+        Instant lastActive = user.getLastActiveAt();
+        if (lastActive == null) return true;
+        int minMinutes = Math.max(1, prefs.getChatMinMinutesBetween());
+        Instant threshold = Instant.now().minusSeconds(minMinutes * 60L);
+        return lastActive.isBefore(threshold);
+    }
+
     @Transactional(readOnly = true)
     public boolean shouldSendEmail(UUID userId, EmailType type, UUID referenceId) {
         UserEmailPreference prefs = getOrCreatePreferences(userId);
         if (!isCategoryEnabled(prefs, type)) return false;
-        if (type == EmailType.NEW_MESSAGE_OFFLINE && !passesChatRateLimit(userId, prefs)) return false;
+        if (type == EmailType.NEW_MESSAGE_OFFLINE) {
+            if (!passesChatRateLimit(userId, prefs)) return false;
+            if (!passesInactivityCheck(userId, prefs)) return false;
+        }
         return true;
     }
 
@@ -137,11 +155,18 @@ public class EmailNotificationService {
         sendWithTemplate(userId, EmailType.WELCOME, null, tid, params);
     }
 
+    public void sendWelcomeIfFirstVisit(UUID userId) {
+        if (sentLogRepository.existsByUserIdAndEmailType(userId, EmailType.WELCOME)) {
+            return;
+        }
+        sendWelcome(userId);
+    }
+
     public void sendRegistrationConfirmation(UUID userId, String verificationLink) {
         long tid = brevoConfig.getTemplateId(EmailType.REGISTRATION_CONFIRMATION.name());
         if (tid <= 0) tid = brevoConfig.getTemplateId("EMAIL_VERIFICATION");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("cta_url", verificationLink != null ? verificationLink : buildCtaUrl(DeepLinkPaths.PROFILE, null));
+        params.put("cta_url", verificationLink != null ? verificationLink : buildCtaUrl(DeepLinkPaths.HOME, null));
         sendWithTemplate(userId, EmailType.REGISTRATION_CONFIRMATION, null, tid, params);
     }
 

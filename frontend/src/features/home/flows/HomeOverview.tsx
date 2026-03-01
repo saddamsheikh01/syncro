@@ -33,6 +33,7 @@ import {
   useChat,
   useT,
 } from "@/hooks";
+import { recordDashboardVisit } from "@/services/users";
 import { TutorialModal } from "@/features/tutorial/components/TutorialModal";
 
 const RECO_PAGE_SIZE = 8;
@@ -99,6 +100,7 @@ export const HomeOverview = () => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
 
+    recordDashboardVisit().catch(() => undefined);
     userActions.fetchProfile().catch(() => undefined);
     userActions.fetchPreferences().catch(() => undefined);
     positionActions.fetchPosition().catch(() => undefined);

@@ -79,6 +79,7 @@ public class AuthService {
     private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
     private final BrevoMailClient brevoMailClient;
     private final EmailNotificationService emailNotificationService;
+    private final UserService userService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -93,7 +94,8 @@ public class AuthService {
         AnalyticsService analyticsService,
         GoogleIdTokenVerifierService googleIdTokenVerifierService,
         BrevoMailClient brevoMailClient,
-        EmailNotificationService emailNotificationService
+        EmailNotificationService emailNotificationService,
+        UserService userService
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -107,6 +109,7 @@ public class AuthService {
         this.googleIdTokenVerifierService = googleIdTokenVerifierService;
         this.brevoMailClient = brevoMailClient;
         this.emailNotificationService = emailNotificationService;
+        this.userService = userService;
     }
 
     @Transactional
@@ -138,14 +141,14 @@ public class AuthService {
         referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
         analyticsService.trackServerEventSafe(savedUser.getId(), "USER_REGISTERED", buildRegisterPayload(request));
         try {
-            emailNotificationService.sendWelcome(savedUser.getId());
+            emailNotificationService.sendRegistrationConfirmation(savedUser.getId(), null);
         } catch (Exception ex) {
-            logger.warn("Welcome email send failed for userId={}", savedUser.getId(), ex);
+            logger.warn("Registration email send failed for userId={}", savedUser.getId(), ex);
         }
         return buildAuthResponse(savedUser);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, String ip, String userAgent) {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -185,6 +188,8 @@ public class AuthService {
         }
 
         analyticsService.trackServerEventSafe(user.getId(), "LOGIN_SUCCESS", Map.of("authProvider", AuthProvider.EMAIL.name()));
+        recordLoginDeviceCountryAndNotifyIfNew(user, ip, userAgent);
+        userService.recordActivity(user.getId());
         return buildAuthResponse(user);
     }
 
@@ -207,6 +212,8 @@ public class AuthService {
                 "LOGIN_SUCCESS",
                 Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
             );
+            recordLoginDeviceCountryAndNotifyIfNew(existingGoogleUser, ip, userAgent);
+            userService.recordActivity(existingGoogleUser.getId());
             return buildAuthResponse(existingGoogleUser);
         }
 
@@ -247,6 +254,8 @@ public class AuthService {
                 "LOGIN_SUCCESS",
                 Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", true)
             );
+            recordLoginDeviceCountryAndNotifyIfNew(userByEmail, ip, userAgent);
+            userService.recordActivity(userByEmail.getId());
             return buildAuthResponse(userByEmail);
         }
 
@@ -278,6 +287,13 @@ public class AuthService {
             "LOGIN_SUCCESS",
             Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
         );
+        try {
+            emailNotificationService.sendRegistrationConfirmation(savedUser.getId(), null);
+        } catch (Exception ex) {
+            logger.warn("Registration email send failed for userId={}", savedUser.getId(), ex);
+        }
+        recordLoginDeviceCountryAndNotifyIfNew(savedUser, ip, userAgent);
+        userService.recordActivity(savedUser.getId());
         return buildAuthResponse(savedUser);
     }
 
@@ -556,5 +572,32 @@ public class AuthService {
             throw new BadRequestException("Telefono non valido");
         }
         return normalized;
+    }
+
+    private void recordLoginDeviceCountryAndNotifyIfNew(User user, String ip, String userAgent) {
+        String deviceSummary = (userAgent != null && !userAgent.isBlank())
+            ? (userAgent.length() > 255 ? userAgent.substring(0, 255) : userAgent)
+            : "Unknown";
+        String countrySummary = (ip != null && !ip.isBlank()) ? ip : "Unknown";
+
+        String lastDevice = user.getLastLoginDevice();
+        String lastCountry = user.getLastLoginCountry();
+        boolean hadPrevious = (lastDevice != null && !lastDevice.isBlank())
+            || (lastCountry != null && !lastCountry.isBlank());
+        boolean changed = hadPrevious
+            && (!Objects.equals(deviceSummary, lastDevice) || !Objects.equals(countrySummary, lastCountry));
+
+        if (changed) {
+            try {
+                String description = deviceSummary + ", " + countrySummary;
+                emailNotificationService.sendNewLoginDeviceCountry(user.getId(), description, null);
+            } catch (Exception ex) {
+                logger.warn("New login device/country email failed for userId={}", user.getId(), ex);
+            }
+        }
+
+        user.setLastLoginDevice(deviceSummary);
+        user.setLastLoginCountry(countrySummary);
+        userRepository.save(user);
     }
 }

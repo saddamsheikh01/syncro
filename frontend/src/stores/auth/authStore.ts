@@ -176,7 +176,11 @@ export const authActions = {
       writeStorage(USER_STORAGE_KEY, user);
       return user;
     } catch (error) {
-      authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      // Don't overwrite error if onUnauthorized already cleared session
+      const current = authStore.getState();
+      if (current.status !== "unauthenticated") {
+        authStore.setState({ status: "unauthenticated", error: error as ApiError });
+      }
       throw error;
     }
   },

@@ -27,9 +27,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findAllByStatus(UserStatus status);
 
+    Page<User> findByStatus(UserStatus status, Pageable pageable);
+
+    Page<User> findByOnboardingCompleted(boolean onboardingCompleted, Pageable pageable);
+
     @Query("""
         select u from User u
-        where (:email is null or lower(u.email) like lower(concat('%', :email, '%')))
+        where (:email is null or lower(u.email) like lower(concat('%', coalesce(:email, ''), '%')))
           and (:status is null or u.status = :status)
           and (:onboardingCompleted is null or u.onboardingCompleted = :onboardingCompleted)
         """)

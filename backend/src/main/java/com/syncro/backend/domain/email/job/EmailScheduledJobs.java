@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.email.job;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.catalog.entity.Experience;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -192,21 +194,30 @@ public class EmailScheduledJobs {
         }
     }
 
-    /** Run daily: users with low profile completion (onboarding done but profile &lt; 50%). */
-    @Scheduled(cron = "${app.email.jobs.incomplete-profile-cron:0 0 12 * * ?}")
+    /** Run daily: users with low profile completion (profile &lt; 50%). Sends to all active users with incomplete profiles. */
+    @Scheduled(cron = "${app.email.jobs.incomplete-profile-cron:0 0 0/3 * * ?}")
     public void incompleteProfileReminder() {
-        log.debug("Incomplete profile reminder job running");
-        userRepository.searchUsers(null, null, true, PageRequest.of(0, 500))
-            .getContent()
-            .stream()
-            .filter(u -> computeProfileCompletion(u.getId()) < PROFILE_COMPLETION_THRESHOLD)
-            .forEach(u -> {
+        log.info("Incomplete profile reminder job running");
+        int pageSize = 500;
+        int page = 0;
+        int totalEligible = 0;
+        Page<User> userPage;
+        do {
+            userPage = userRepository.findByStatus(UserStatus.ACTIVE, PageRequest.of(page, pageSize));
+            var eligible = userPage.getContent().stream()
+                .filter(u -> computeProfileCompletion(u.getId()) < PROFILE_COMPLETION_THRESHOLD)
+                .toList();
+            for (var u : eligible) {
                 try {
                     emailNotificationService.sendIncompleteProfileReminder(u.getId());
+                    totalEligible++;
                 } catch (Exception e) {
                     log.warn("Incomplete profile reminder send failed for user {}: {}", u.getId(), e.getMessage());
                 }
-            });
+            }
+            page++;
+        } while (userPage.hasNext());
+        log.info("Incomplete profile job done: {} emails sent to users with profile < 50%", totalEligible);
     }
 
     private double computeProfileCompletion(UUID userId) {

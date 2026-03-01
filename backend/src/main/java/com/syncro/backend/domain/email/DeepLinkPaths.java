@@ -5,6 +5,7 @@ package com.syncro.backend.domain.email;
  */
 public final class DeepLinkPaths {
     public static final String RESET_PASSWORD = "/reset-password";
+    public static final String HOME = "/home";
     public static final String PROFILE = "/profile";
     public static final String CONNECTIONS = "/connections";
     public static final String CHAT = "/chat";

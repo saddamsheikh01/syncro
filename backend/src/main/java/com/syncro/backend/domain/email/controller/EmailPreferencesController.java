@@ -39,7 +39,7 @@ public class EmailPreferencesController {
     @Operation(summary = "Get my email notification preferences")
     public ResponseEntity<UserEmailPreferenceResponse> getMyPreferences(@AuthenticationPrincipal UserPrincipal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
-        UserEmailPreference prefs = emailNotificationService.getOrCreateAndSavePreferences(principal.userId());
+        UserEmailPreference prefs = emailNotificationService.getOrCreatePreferences(principal.userId());
         return ResponseEntity.ok(toResponse(prefs));
     }
 

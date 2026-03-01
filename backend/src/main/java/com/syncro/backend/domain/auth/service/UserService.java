@@ -14,6 +14,7 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.security.UserPrincipal;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
@@ -58,6 +59,24 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         return authMapper.toUserResponse(user);
+    }
+
+    public void recordDashboardVisit(UserPrincipal principal) {
+        if (principal == null) return;
+        recordActivity(principal.userId());
+        try {
+            emailNotificationService.sendWelcomeIfFirstVisit(principal.userId());
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Transactional
+    public void recordActivity(UUID userId) {
+        if (userId == null) return;
+        userRepository.findById(userId).ifPresent(u -> {
+            u.setLastActiveAt(Instant.now());
+            userRepository.save(u);
+        });
     }
 
     @Transactional

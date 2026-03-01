@@ -46,6 +46,15 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "last_login_device", length = 255)
+    private String lastLoginDevice;
+
+    @Column(name = "last_login_country", length = 128)
+    private String lastLoginCountry;
+
+    @Column(name = "last_active_at")
+    private Instant lastActiveAt;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
@@ -134,5 +143,29 @@ public class User {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getLastLoginDevice() {
+        return lastLoginDevice;
+    }
+
+    public void setLastLoginDevice(String lastLoginDevice) {
+        this.lastLoginDevice = lastLoginDevice;
+    }
+
+    public String getLastLoginCountry() {
+        return lastLoginCountry;
+    }
+
+    public void setLastLoginCountry(String lastLoginCountry) {
+        this.lastLoginCountry = lastLoginCountry;
+    }
+
+    public Instant getLastActiveAt() {
+        return lastActiveAt;
+    }
+
+    public void setLastActiveAt(Instant lastActiveAt) {
+        this.lastActiveAt = lastActiveAt;
     }
 }
