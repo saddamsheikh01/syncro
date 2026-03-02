@@ -47,6 +47,12 @@ temp/
 .cache/
 
 #################################
+# Frontend build artifacts
+#################################
+frontend/.next/
+frontend/Desktop/
+
+#################################
 # Swiss Ephemeris data (auto-downloaded)
 #################################
 ephe/
