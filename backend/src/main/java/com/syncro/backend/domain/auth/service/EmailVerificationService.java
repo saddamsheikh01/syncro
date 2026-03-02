@@ -121,6 +121,7 @@ public class EmailVerificationService {
         entity.setUser(user);
         entity.setOtpHash(otpHash);
         entity.setExpiresAt(expiresAt);
+        entity.setTargetEmailHash(hashEmail(normalizedNewEmail));
         otpRepository.save(entity);
 
         sendOtpEmailToAddress(normalizedNewEmail, user.getUsername(), otp);
