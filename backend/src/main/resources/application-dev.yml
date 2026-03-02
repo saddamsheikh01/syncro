@@ -99,6 +99,9 @@ app:
       MENTION_TAG: ${BREVO_TEMPLATE_MENTION:0}
       NEW_LOGIN_DEVICE_COUNTRY: ${BREVO_TEMPLATE_NEW_LOGIN:0}
       EMAIL_VERIFICATION_OTP: ${BREVO_TEMPLATE_EMAIL_VERIFICATION_OTP:0}
+  astrology:
+    # Path to Swiss Ephemeris data files (sepl_*.se1, semo_*.se1). Run scripts/download-ephemeris.sh to populate.
+    ephemeris-path: ${SWISS_EPHEMERIS_PATH:./ephe}
   zyra:
     provider: ${ZYRA_PROVIDER:OLLAMA}
     base-url: ${ZYRA_BASE_URL:http://localhost:11434}

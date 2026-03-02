@@ -41,6 +41,7 @@ export type UserProfileResponse = {
   goalsText: string | null;
   valuesText: string | null;
   zyraRecap: string | null;
+  zyraBirthChartInterpretation: string | null;
   gender: string | null;
   relationshipStatus: string | null;
   orientation: string | null;

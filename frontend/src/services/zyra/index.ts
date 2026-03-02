@@ -1,6 +1,8 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
 import type {
+  ZyraBirthChartInterpretationRequest,
+  ZyraBirthChartInterpretationResponse,
   ZyraChatRecapResponse,
   ZyraChatResponse,
   ZyraMessageRequest,
@@ -152,3 +154,16 @@ export const getTestRecap = async (
   );
   return data;
 };
+/** Ask Zyra to translate birth chart placements into human-readable sentences. No calculations; interpretation only. */
+export const interpretBirthChart = async (
+  payload: ZyraBirthChartInterpretationRequest,
+  language?: string | null
+): Promise<ZyraBirthChartInterpretationResponse> => {
+  const { data } = await apiClient.post<ZyraBirthChartInterpretationResponse>(
+    "/zyra/interpret-birth-chart",
+    payload,
+    { timeout: CHAT_TIMEOUT_MS, headers: recapLanguageHeader(language) }
+  );
+  return data;
+};
+

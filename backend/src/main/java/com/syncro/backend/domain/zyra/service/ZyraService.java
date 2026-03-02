@@ -43,6 +43,8 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
@@ -808,6 +810,50 @@ public class ZyraService {
             localizedRecap,
             java.time.Instant.now()
         );
+    }
+
+    /**
+     * Zyra translates numeric birth chart placements into human-readable sentences. No calculations; interpretation only.
+     */
+    @Transactional(readOnly = true)
+    public ZyraBirthChartInterpretationResponse interpretBirthChart(
+        UserPrincipal principal,
+        ZyraBirthChartInterpretationRequest request,
+        String requestLanguage
+    ) {
+        User user = getUser(principal);
+        String responseLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
+        if (responseLanguage == null || responseLanguage.isBlank()) {
+            responseLanguage = resolveResponseLanguage(user);
+        }
+        String placementsText = buildBirthChartPlacementsText(request);
+        String userPrompt = promptLoader.getPrompt(
+            PromptType.BIRTH_CHART_INTERPRETATION_USER,
+            Map.of("placements", placementsText)
+        );
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.BIRTH_CHART_INTERPRETATION_SYSTEM)),
+            new ZyraChatMessage("user", userPrompt)
+        );
+        try {
+            String interpretation = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
+            String text = interpretation != null ? interpretation.trim() : "";
+            return new ZyraBirthChartInterpretationResponse(text);
+        } catch (Exception ex) {
+            return new ZyraBirthChartInterpretationResponse("");
+        }
+    }
+
+    private static String buildBirthChartPlacementsText(ZyraBirthChartInterpretationRequest req) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sun: ").append(req.sun().sign()).append(" ").append(String.format("%.1f", req.sun().degreeInSign())).append("°\n");
+        sb.append("Moon: ").append(req.moon().sign()).append(" ").append(String.format("%.1f", req.moon().degreeInSign())).append("°\n");
+        if (req.ascendant() != null) {
+            sb.append("Ascendant: ").append(req.ascendant().sign()).append(" ").append(String.format("%.1f", req.ascendant().degreeInSign())).append("°\n");
+        }
+        sb.append("Venus: ").append(req.venus().sign()).append(" ").append(String.format("%.1f", req.venus().degreeInSign())).append("°\n");
+        sb.append("Mars: ").append(req.mars().sign()).append(" ").append(String.format("%.1f", req.mars().degreeInSign())).append("°");
+        return sb.toString();
     }
 
     private String generateTestRecap(UserTestSubmission submission) {

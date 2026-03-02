@@ -9,6 +9,8 @@ import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
 import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
@@ -196,5 +198,20 @@ public class ZyraController {
         @PathVariable UUID submissionId
     ) {
         return ResponseEntity.ok(zyraService.getTestRecap(principal, submissionId));
+    }
+
+    @PostMapping("/interpret-birth-chart")
+    @Operation(summary = "Translate birth chart placements into human-readable explanation (Zyra)")
+    public ResponseEntity<ZyraBirthChartInterpretationResponse> interpretBirthChart(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @Valid @RequestBody ZyraBirthChartInterpretationRequest request,
+        @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
+    ) {
+        ZyraBirthChartInterpretationResponse response = zyraService.interpretBirthChart(
+            principal,
+            request,
+            parseAcceptLanguage(acceptLanguage)
+        );
+        return ResponseEntity.ok(response);
     }
 }

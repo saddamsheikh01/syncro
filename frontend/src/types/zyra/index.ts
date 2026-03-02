@@ -68,3 +68,20 @@ export type ZyraTestRecapResponse = {
   recap: string;
   generatedAt: IsoDateTime;
 };
+export type ZyraBirthChartPlacementInput = {
+  sign: string;
+  degreeInSign: number;
+};
+
+export type ZyraBirthChartInterpretationRequest = {
+  sun: ZyraBirthChartPlacementInput;
+  moon: ZyraBirthChartPlacementInput;
+  ascendant?: ZyraBirthChartPlacementInput | null;
+  venus: ZyraBirthChartPlacementInput;
+  mars: ZyraBirthChartPlacementInput;
+};
+
+export type ZyraBirthChartInterpretationResponse = {
+  interpretation: string;
+};
+
