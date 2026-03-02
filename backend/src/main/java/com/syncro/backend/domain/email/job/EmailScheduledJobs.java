@@ -54,6 +54,7 @@ public class EmailScheduledJobs {
     private static final int TEST_INCOMPLETE_HOURS = 24;
     private static final double PROFILE_COMPLETION_THRESHOLD = 0.5;
     private static final int WEEKLY_DIGEST_DAYS = 7;
+    private static final int PAGE_SIZE = 500;
 
     private final EmailNotificationService emailNotificationService;
     private final ConnectionRepository connectionRepository;
@@ -106,28 +107,32 @@ public class EmailScheduledJobs {
         Instant now = Instant.now();
         Instant from = now.minus(NO_CHAT_WINDOW_HOURS + 1, ChronoUnit.HOURS);
         Instant to = now.minus(NO_CHAT_WINDOW_HOURS, ChronoUnit.HOURS);
-        List<Connection> accepted = connectionRepository.findByStatusAndUpdatedAtBetween(
-            ConnectionStatus.ACCEPTED, from, to
-        );
-        for (Connection c : accepted) {
-            UUID userA = c.getFromUserId();
-            UUID userB = c.getToUserId();
-            UUID convId;
-            try {
-                convId = chatParticipantRepository.findPrivateConversationId(userA, userB);
-            } catch (Exception e) {
-                convId = null;
+        int page = 0;
+        Page<Connection> connectionPage;
+        do {
+            connectionPage = connectionRepository.findByStatusAndUpdatedAtBetween(
+                ConnectionStatus.ACCEPTED, from, to, PageRequest.of(page, PAGE_SIZE)
+            );
+            for (Connection c : connectionPage.getContent()) {
+                UUID userA = c.getFromUserId();
+                UUID userB = c.getToUserId();
+                UUID convId;
+                try {
+                    convId = chatParticipantRepository.findPrivateConversationId(userA, userB);
+                } catch (Exception e) {
+                    convId = null;
+                }
+                if (convId == null) {
+                    sendNoChatReminderToBoth(userA, userB, c.getId());
+                    continue;
+                }
+                long messageCount = chatMessageRepository.countByConversationId(convId);
+                if (messageCount == 0) {
+                    sendNoChatReminderToBoth(userA, userB, c.getId());
+                }
             }
-            if (convId == null) {
-                // No conversation yet → no messages
-                sendNoChatReminderToBoth(userA, userB, c.getId());
-                continue;
-            }
-            long messageCount = chatMessageRepository.countByConversationId(convId);
-            if (messageCount == 0) {
-                sendNoChatReminderToBoth(userA, userB, c.getId());
-            }
-        }
+            page++;
+        } while (connectionPage.hasNext());
     }
 
     private void sendNoChatReminderToBoth(UUID userA, UUID userB, UUID connectionId) {
@@ -149,27 +154,32 @@ public class EmailScheduledJobs {
     @Scheduled(cron = "${app.email.jobs.weekly-match-digest-cron:0 0 9 ? * MON}")
     public void weeklyMatchDigest() {
         log.debug("Weekly match digest job running");
-        List<UserEmailPreference> prefs = userEmailPreferenceRepository.findByDigestEnabledTrue();
-        for (UserEmailPreference p : prefs) {
-            UUID userId = p.getUserId();
-            List<UserMatchScore> top = userMatchScoreRepository.findTopMatchesForUser(
-                userId, PageRequest.of(0, 3)
-            );
-            if (top.isEmpty()) continue;
-            List<String> lines = new ArrayList<>();
-            for (UserMatchScore m : top) {
-                UUID otherId = m.getUserAId().equals(userId) ? m.getUserBId() : m.getUserAId();
-                String name = resolveDisplayName(otherId);
-                int score = m.getScoreTotal() != null ? m.getScoreTotal() : 0;
-                lines.add(String.format("%s (%d%%)", name != null ? name : "Match", score));
+        int page = 0;
+        Page<UserEmailPreference> prefsPage;
+        do {
+            prefsPage = userEmailPreferenceRepository.findByDigestEnabledTrue(PageRequest.of(page, PAGE_SIZE));
+            for (UserEmailPreference p : prefsPage.getContent()) {
+                UUID userId = p.getUserId();
+                List<UserMatchScore> top = userMatchScoreRepository.findTopMatchesForUser(
+                    userId, PageRequest.of(0, 3)
+                );
+                if (top.isEmpty()) continue;
+                List<String> lines = new ArrayList<>();
+                for (UserMatchScore m : top) {
+                    UUID otherId = m.getUserAId().equals(userId) ? m.getUserBId() : m.getUserAId();
+                    String name = resolveDisplayName(otherId);
+                    int score = m.getScoreTotal() != null ? m.getScoreTotal() : 0;
+                    lines.add(String.format("%s (%d%%)", name != null ? name : "Match", score));
+                }
+                String summary = String.join(", ", lines);
+                try {
+                    emailNotificationService.sendWeeklyMatchDigest(userId, summary);
+                } catch (Exception e) {
+                    log.warn("Weekly match digest send failed for user {}: {}", userId, e.getMessage());
+                }
             }
-            String summary = String.join(", ", lines);
-            try {
-                emailNotificationService.sendWeeklyMatchDigest(userId, summary);
-            } catch (Exception e) {
-                log.warn("Weekly match digest send failed for user {}: {}", userId, e.getMessage());
-            }
-        }
+            page++;
+        } while (prefsPage.hasNext());
     }
 
     /** Run daily: users who started a test but did not complete it (submission older than 24h with fewer answers than questions). */
@@ -177,33 +187,37 @@ public class EmailScheduledJobs {
     public void testStartedNotCompleted() {
         log.debug("Test not completed reminder job running");
         Instant cutoff = Instant.now().minus(TEST_INCOMPLETE_HOURS, ChronoUnit.HOURS);
-        List<UserTestSubmission> submissions = userTestSubmissionRepository.findBySubmittedAtBefore(cutoff);
-        for (UserTestSubmission sub : submissions) {
-            TestDefinition test = sub.getTestDefinition();
-            if (test == null) continue;
-            int questionCount = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(test.getId()).size();
-            long answerCount = userTestAnswerRepository.countBySubmission_Id(sub.getId());
-            if (answerCount >= questionCount) continue;
-            String testTitle = test.getTitle();
-            UUID userId = sub.getUser().getId();
-            try {
-                emailNotificationService.sendTestStartedNotCompleted(userId, testTitle);
-            } catch (Exception e) {
-                log.warn("Test not completed reminder send failed for user {}: {}", userId, e.getMessage());
+        int page = 0;
+        Page<UserTestSubmission> submissionsPage;
+        do {
+            submissionsPage = userTestSubmissionRepository.findBySubmittedAtBefore(cutoff, PageRequest.of(page, PAGE_SIZE));
+            for (UserTestSubmission sub : submissionsPage.getContent()) {
+                TestDefinition test = sub.getTestDefinition();
+                if (test == null) continue;
+                int questionCount = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(test.getId()).size();
+                long answerCount = userTestAnswerRepository.countBySubmission_Id(sub.getId());
+                if (answerCount >= questionCount) continue;
+                String testTitle = test.getTitle();
+                UUID userId = sub.getUser().getId();
+                try {
+                    emailNotificationService.sendTestStartedNotCompleted(userId, testTitle);
+                } catch (Exception e) {
+                    log.warn("Test not completed reminder send failed for user {}: {}", userId, e.getMessage());
+                }
             }
-        }
+            page++;
+        } while (submissionsPage.hasNext());
     }
 
     /** Run daily: users with low profile completion (profile &lt; 50%). Sends to all active users with incomplete profiles. */
     @Scheduled(cron = "${app.email.jobs.incomplete-profile-cron:0 0 0/3 * * ?}")
     public void incompleteProfileReminder() {
         log.info("Incomplete profile reminder job running");
-        int pageSize = 500;
         int page = 0;
         int totalEligible = 0;
         Page<User> userPage;
         do {
-            userPage = userRepository.findByStatus(UserStatus.ACTIVE, PageRequest.of(page, pageSize));
+            userPage = userRepository.findByStatus(UserStatus.ACTIVE, PageRequest.of(page, PAGE_SIZE));
             var eligible = userPage.getContent().stream()
                 .filter(u -> computeProfileCompletion(u.getId()) < PROFILE_COMPLETION_THRESHOLD)
                 .toList();
@@ -243,12 +257,16 @@ public class EmailScheduledJobs {
     @Scheduled(cron = "${app.email.jobs.saved-event-reminder-cron:0 0 8 * * ?}")
     public void savedEventReminder() {
         log.debug("Saved event reminder job running");
-        List<UserFavorite> withExperience = userFavoriteRepository.findByExperienceIdIsNotNull();
-        // Group by userId and send at most one per user (first experience)
         java.util.Map<UUID, UserFavorite> onePerUser = new java.util.LinkedHashMap<>();
-        for (UserFavorite uf : withExperience) {
-            onePerUser.putIfAbsent(uf.getUserId(), uf);
-        }
+        int page = 0;
+        Page<UserFavorite> favoritesPage;
+        do {
+            favoritesPage = userFavoriteRepository.findByExperienceIdIsNotNull(PageRequest.of(page, PAGE_SIZE));
+            for (UserFavorite uf : favoritesPage.getContent()) {
+                onePerUser.putIfAbsent(uf.getUserId(), uf);
+            }
+            page++;
+        } while (favoritesPage.hasNext());
         for (UserFavorite uf : onePerUser.values()) {
             UUID experienceId = uf.getExperienceId();
             if (experienceId == null) continue;
@@ -270,27 +288,32 @@ public class EmailScheduledJobs {
     public void weeklyEventsDigest() {
         log.debug("Weekly events digest job running");
         Instant since = Instant.now().minus(WEEKLY_DIGEST_DAYS, ChronoUnit.DAYS);
-        List<UserEmailPreference> prefs = userEmailPreferenceRepository.findByContentWeeklyDigestTrue();
-        for (UserEmailPreference p : prefs) {
-            UUID userId = p.getUserId();
-            Optional<UserProfile> profileOpt = userProfileRepository.findByUserId(userId);
-            String city = profileOpt.map(UserProfile::getCity).orElse(null);
-            if (city == null || city.isBlank()) continue;
-            List<Experience> experiences = experienceRepository.findActiveByCityUpdatedSince(
-                city, since, PageRequest.of(0, 10)
-            );
-            if (experiences.isEmpty()) continue;
-            List<String> lines = new ArrayList<>();
-            for (Experience e : experiences) {
-                lines.add(e.getName() != null ? e.getName() : "Event");
+        int page = 0;
+        Page<UserEmailPreference> prefsPage;
+        do {
+            prefsPage = userEmailPreferenceRepository.findByContentWeeklyDigestTrue(PageRequest.of(page, PAGE_SIZE));
+            for (UserEmailPreference p : prefsPage.getContent()) {
+                UUID userId = p.getUserId();
+                Optional<UserProfile> profileOpt = userProfileRepository.findByUserId(userId);
+                String city = profileOpt.map(UserProfile::getCity).orElse(null);
+                if (city == null || city.isBlank()) continue;
+                List<Experience> experiences = experienceRepository.findActiveByCityUpdatedSince(
+                    city, since, PageRequest.of(0, 10)
+                );
+                if (experiences.isEmpty()) continue;
+                List<String> lines = new ArrayList<>();
+                for (Experience e : experiences) {
+                    lines.add(e.getName() != null ? e.getName() : "Event");
+                }
+                String summary = String.join(", ", lines);
+                try {
+                    emailNotificationService.sendWeeklyEventsDigest(userId, summary);
+                } catch (Exception e) {
+                    log.warn("Weekly events digest send failed for user {}: {}", userId, e.getMessage());
+                }
             }
-            String summary = String.join(", ", lines);
-            try {
-                emailNotificationService.sendWeeklyEventsDigest(userId, summary);
-            } catch (Exception e) {
-                log.warn("Weekly events digest send failed for user {}: {}", userId, e.getMessage());
-            }
-        }
+            page++;
+        } while (prefsPage.hasNext());
     }
 
     private String resolveDisplayName(UUID userId) {

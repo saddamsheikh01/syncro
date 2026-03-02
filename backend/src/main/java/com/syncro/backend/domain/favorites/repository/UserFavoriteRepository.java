@@ -50,4 +50,6 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, UUID
     );
 
     List<UserFavorite> findByExperienceIdIsNotNull();
+
+    Page<UserFavorite> findByExperienceIdIsNotNull(Pageable pageable);
 }

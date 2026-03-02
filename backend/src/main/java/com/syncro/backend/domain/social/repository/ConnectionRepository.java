@@ -50,4 +50,17 @@ public interface ConnectionRepository extends JpaRepository<Connection, UUID> {
         @Param("from") Instant from,
         @Param("to") Instant to
     );
+
+    @Query("""
+        SELECT c FROM Connection c
+        WHERE c.status = :status
+          AND c.updatedAt >= :from
+          AND c.updatedAt < :to
+        """)
+    Page<Connection> findByStatusAndUpdatedAtBetween(
+        @Param("status") ConnectionStatus status,
+        @Param("from") Instant from,
+        @Param("to") Instant to,
+        Pageable pageable
+    );
 }
