@@ -34,6 +34,10 @@ public class EmailVerificationOtp {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /** For email-change OTPs: SHA-256 of normalized target email. Null for initial verification OTPs. */
+    @Column(name = "target_email_hash", length = 64)
+    private String targetEmailHash;
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
@@ -77,5 +81,13 @@ public class EmailVerificationOtp {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getTargetEmailHash() {
+        return targetEmailHash;
+    }
+
+    public void setTargetEmailHash(String targetEmailHash) {
+        this.targetEmailHash = targetEmailHash;
     }
 }

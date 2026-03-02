@@ -13,6 +13,9 @@ public interface EmailVerificationOtpRepository extends JpaRepository<EmailVerif
 
     Optional<EmailVerificationOtp> findFirstByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    /** Initial verification OTPs only (target_email_hash IS NULL). */
+    Optional<EmailVerificationOtp> findFirstByUserIdAndTargetEmailHashIsNullOrderByCreatedAtDesc(UUID userId);
+
     @Modifying
     @Query("DELETE FROM EmailVerificationOtp e WHERE e.expiresAt < :now")
     int deleteExpired(@Param("now") Instant now);

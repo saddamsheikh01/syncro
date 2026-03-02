@@ -60,7 +60,7 @@ public class EmailVerificationService {
             throw new BadRequestException("Email already verified");
         }
 
-        Optional<EmailVerificationOtp> existing = otpRepository.findFirstByUserIdOrderByCreatedAtDesc(user.getId());
+        Optional<EmailVerificationOtp> existing = otpRepository.findFirstByUserIdAndTargetEmailHashIsNullOrderByCreatedAtDesc(user.getId());
         if (existing.isPresent()) {
             Instant cooldownUntil = existing.get().getCreatedAt().plusSeconds(OTP_RESEND_COOLDOWN_MINUTES * 60L);
             if (Instant.now().isBefore(cooldownUntil)) {
@@ -145,6 +145,13 @@ public class EmailVerificationService {
         EmailVerificationOtp otpEntity = otpRepository.findFirstByUserIdOrderByCreatedAtDesc(userId)
             .orElseThrow(() -> new BadRequestException("Invalid or expired verification code"));
 
+        if (otpEntity.getTargetEmailHash() == null || otpEntity.getTargetEmailHash().isEmpty()) {
+            throw new BadRequestException("Invalid or expired verification code");
+        }
+        if (!otpEntity.getTargetEmailHash().equals(hashEmail(normalizedNewEmail))) {
+            throw new BadRequestException("Invalid or expired verification code");
+        }
+
         if (Instant.now().isAfter(otpEntity.getExpiresAt())) {
             otpRepository.delete(otpEntity);
             throw new BadRequestException("Verification code has expired");
@@ -180,7 +187,7 @@ public class EmailVerificationService {
             throw new BadRequestException("Email already verified");
         }
 
-        EmailVerificationOtp otpEntity = otpRepository.findFirstByUserIdOrderByCreatedAtDesc(user.getId())
+        EmailVerificationOtp otpEntity = otpRepository.findFirstByUserIdAndTargetEmailHashIsNullOrderByCreatedAtDesc(user.getId())
             .orElseThrow(() -> new BadRequestException("Invalid or expired verification code"));
 
         if (Instant.now().isAfter(otpEntity.getExpiresAt())) {
@@ -213,9 +220,17 @@ public class EmailVerificationService {
     }
 
     private String hashOtp(String otp) {
+        return hashSha256(otp);
+    }
+
+    private String hashEmail(String email) {
+        return hashSha256(email);
+    }
+
+    private static String hashSha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(otp.getBytes(StandardCharsets.UTF_8));
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
