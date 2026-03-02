@@ -2,6 +2,8 @@ package com.syncro.backend.domain.social.repository;
 
 import com.syncro.backend.domain.social.entity.Connection;
 import com.syncro.backend.domain.social.entity.ConnectionStatus;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -36,4 +38,29 @@ public interface ConnectionRepository extends JpaRepository<Connection, UUID> {
     default boolean hasActiveConnection(UUID userId1, UUID userId2) {
         return findAcceptedConnectionBetween(userId1, userId2).isPresent();
     }
+
+    @Query("""
+        SELECT c FROM Connection c
+        WHERE c.status = :status
+          AND c.updatedAt >= :from
+          AND c.updatedAt < :to
+        """)
+    List<Connection> findByStatusAndUpdatedAtBetween(
+        @Param("status") ConnectionStatus status,
+        @Param("from") Instant from,
+        @Param("to") Instant to
+    );
+
+    @Query("""
+        SELECT c FROM Connection c
+        WHERE c.status = :status
+          AND c.updatedAt >= :from
+          AND c.updatedAt < :to
+        """)
+    Page<Connection> findByStatusAndUpdatedAtBetween(
+        @Param("status") ConnectionStatus status,
+        @Param("from") Instant from,
+        @Param("to") Instant to,
+        Pageable pageable
+    );
 }

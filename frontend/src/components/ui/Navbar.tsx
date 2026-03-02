@@ -19,7 +19,7 @@ import {
 
 const HeaderProfile = () => {
   const { t } = useT();
-  const { user, isAuthenticated, actions: authActions } = useAuth();
+  const { user, isAuthenticated, status, actions: authActions } = useAuth();
   const { profile, actions: userActions } = useUser();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarReloadTick, setAvatarReloadTick] = useState(0);
@@ -29,9 +29,9 @@ const HeaderProfile = () => {
   }, [authActions]);
 
   useEffect(() => {
-    if (!isAuthenticated || profile) return;
+    if (!isAuthenticated || profile || status !== "authenticated") return;
     userActions.fetchProfile().catch(() => undefined);
-  }, [isAuthenticated, profile, userActions]);
+  }, [isAuthenticated, profile, status, userActions]);
 
   useEffect(() => {
     if (!user?.id) return;

@@ -8,10 +8,15 @@ import com.syncro.backend.domain.auth.dto.PasswordResetRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetRequestResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.RegisterRequest;
+import com.syncro.backend.domain.auth.dto.RegisterResponse;
+import com.syncro.backend.domain.auth.dto.LoginResponse;
+import com.syncro.backend.domain.auth.dto.SendEmailVerificationOtpRequest;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
 import com.syncro.backend.domain.auth.dto.UserAdminAccessResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
+import com.syncro.backend.domain.auth.dto.VerifyEmailOtpRequest;
 import com.syncro.backend.domain.auth.service.AuthService;
+import com.syncro.backend.domain.auth.service.EmailVerificationService;
 import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,29 +38,42 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, EmailVerificationService emailVerificationService) {
         this.authService = authService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @PostMapping("/register")
     @Operation(summary = "Register user")
-    public ResponseEntity<AuthResponse> register(
+    public ResponseEntity<RegisterResponse> register(
         @Valid @RequestBody RegisterRequest request,
         HttpServletRequest httpRequest
     ) {
-        AuthResponse response = authService.register(
+        RegisterResponse response = authService.register(
             request,
             httpRequest != null ? httpRequest.getRemoteAddr() : null,
             httpRequest != null ? httpRequest.getHeader("User-Agent") : null
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
     @PostMapping("/login")
     @Operation(summary = "Login user")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<LoginResponse> login(
+        @Valid @RequestBody LoginRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        LoginResponse response = authService.login(
+            request,
+            httpRequest != null ? httpRequest.getRemoteAddr() : null,
+            httpRequest != null ? httpRequest.getHeader("User-Agent") : null
+        );
+        if (response.requiresVerification() != null) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/google")
@@ -96,6 +114,24 @@ public class AuthController {
     @Operation(summary = "Logout user")
     public ResponseEntity<Void> logout() {
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/email-verification/send-otp")
+    @Operation(summary = "Send email verification OTP")
+    public ResponseEntity<Void> sendEmailVerificationOtp(
+        @Valid @RequestBody SendEmailVerificationOtpRequest request
+    ) {
+        emailVerificationService.sendOtp(request.email());
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/email-verification/verify")
+    @Operation(summary = "Verify email with OTP")
+    public ResponseEntity<AuthResponse> verifyEmailOtp(
+        @Valid @RequestBody VerifyEmailOtpRequest request
+    ) {
+        emailVerificationService.verifyOtp(request.email(), request.otp());
+        return ResponseEntity.ok(authService.loginAfterEmailVerification(request.email()));
     }
 
     @GetMapping("/me")

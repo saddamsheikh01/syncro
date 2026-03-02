@@ -23,4 +23,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
     @Query("SELECT m FROM ChatMessage m WHERE m.conversationId IN :conversationIds " +
            "AND m.createdAt = (SELECT MAX(m2.createdAt) FROM ChatMessage m2 WHERE m2.conversationId = m.conversationId)")
     List<ChatMessage> findLastMessagesByConversationIds(@Param("conversationIds") List<UUID> conversationIds);
+
+    long countByConversationId(UUID conversationId);
 }

@@ -46,8 +46,10 @@ import {
   updatePost as updatePostRequest,
   deletePost as deletePostRequest,
 } from "@/services/social";
+import { EmailVerificationOtpModal } from "@/features/auth/components/EmailVerificationOtpModal";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
+import { AstrologyBirthChartCard } from "@/features/profile/cards/AstrologyBirthChartCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { ShareZyraRecapCard } from "@/features/zyra/cards/ShareZyraRecapCard";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
@@ -408,6 +410,8 @@ export const ProfileSettings = ({
   const [accountEmail, setAccountEmail] = useState("");
   const [accountEmailSaving, setAccountEmailSaving] = useState(false);
   const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
+  const [emailVerificationModalOpen, setEmailVerificationModalOpen] = useState(false);
+  const [emailToVerify, setEmailToVerify] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Calcola se ci sono modifiche non salvate
@@ -1105,9 +1109,15 @@ export const ProfileSettings = ({
     setAccountEmailError(null);
     setAccountEmailSaving(true);
     try {
-      const updated = await updateCurrentUser({ email: trimmed });
-      authActions.setUser(updated);
+      const response = await updateCurrentUser({ email: trimmed });
       setAccountEmail(trimmed);
+      if (response.user) {
+        authActions.setUser(response.user);
+      }
+      if (response.requiresVerification?.email) {
+        setEmailToVerify(response.requiresVerification.email);
+        setEmailVerificationModalOpen(true);
+      }
     } catch (err) {
       setAccountEmailError(resolveErrorMessage(err, "Unable to update email."));
     } finally {
@@ -1478,6 +1488,16 @@ export const ProfileSettings = ({
             </Button>
           </div>
         </Card>
+
+        <SectionHeader
+          title={t("Birth chart")}
+          subtitle={t("Used for compatibility. Add place and optional time for better accuracy.")}
+        />
+        <AstrologyBirthChartCard
+          initialBirthDate={profile?.birthDate ?? undefined}
+          initialInterpretation={profile?.zyraBirthChartInterpretation ?? undefined}
+          onSaved={() => userActions.fetchProfile()}
+        />
       </section>
 
       <section id="preferences" className="space-y-4">
@@ -1811,6 +1831,13 @@ export const ProfileSettings = ({
         open={showUnsavedModal}
         onConfirm={confirmNavigation}
         onCancel={cancelNavigation}
+      />
+
+      <EmailVerificationOtpModal
+        open={emailVerificationModalOpen}
+        email={emailToVerify}
+        onClose={() => setEmailVerificationModalOpen(false)}
+        onSuccess={() => setEmailVerificationModalOpen(false)}
       />
     </div>
   );

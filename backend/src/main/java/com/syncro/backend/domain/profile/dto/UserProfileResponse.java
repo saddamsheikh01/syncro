@@ -22,6 +22,7 @@ public record UserProfileResponse(
     String goalsText,
     String valuesText,
     String zyraRecap,
+    String zyraBirthChartInterpretation,
     String gender,
     String relationshipStatus,
     String orientation,

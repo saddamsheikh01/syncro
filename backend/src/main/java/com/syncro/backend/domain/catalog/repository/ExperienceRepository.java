@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.catalog.repository;
 
 import com.syncro.backend.domain.catalog.entity.Experience;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -144,4 +145,19 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
     long countByProvider(String provider);
 
     long countByProviderAndIsActiveTrue(String provider);
+
+    @Query("""
+        SELECT e FROM Experience e
+        LEFT JOIN e.place p
+        WHERE (e.isActive = true OR e.isActive IS NULL)
+          AND e.updatedAt >= :since
+          AND (p.city IS NOT NULL AND LOWER(TRIM(p.city)) = LOWER(TRIM(:city))
+               OR (e.locationName IS NOT NULL AND LOWER(e.locationName) LIKE LOWER(CONCAT('%', :city, '%'))))
+        ORDER BY e.updatedAt DESC
+        """)
+    List<Experience> findActiveByCityUpdatedSince(
+        @Param("city") String city,
+        @Param("since") Instant since,
+        Pageable pageable
+    );
 }

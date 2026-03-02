@@ -64,9 +64,39 @@ public class BrevoMailClient {
                 .retrieve()
                 .toBodilessEntity();
         } catch (RestClientResponseException ex) {
-            throw new ExternalServiceException("Errore Brevo: " + ex.getStatusCode(), ex);
+            String body = ex.getResponseBodyAsString();
+            String msg = "Brevo error: " + ex.getStatusCode() + (body != null && !body.isBlank() ? " " + body : "");
+            throw new ExternalServiceException(msg, ex);
         } catch (RuntimeException ex) {
             throw new ExternalServiceException("Invio email con Brevo non riuscito", ex);
+        }
+    }
+
+    public void sendTransactionalEmail(String recipientEmail, long templateId, Map<String, Object> params) {
+        if (!config.isConfigured() || templateId <= 0) {
+            return;
+        }
+        SendTransactionalEmailRequest request = new SendTransactionalEmailRequest(
+            new Sender(config.getSenderEmail(), config.getSenderName()),
+            List.of(new Recipient(recipientEmail)),
+            templateId,
+            params != null ? params : new LinkedHashMap<>()
+        );
+        try {
+            restClient.post()
+                .uri("/smtp/email")
+                .header("api-key", config.getApiKey())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header("Idempotency-Key", UUID.randomUUID().toString())
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            String body = ex.getResponseBodyAsString();
+            String msg = "Brevo error: " + ex.getStatusCode() + (body != null && !body.isBlank() ? " " + body : "");
+            throw new ExternalServiceException(msg, ex);
+        } catch (RuntimeException ex) {
+            throw new ExternalServiceException("Failed to send email via Brevo", ex);
         }
     }
 

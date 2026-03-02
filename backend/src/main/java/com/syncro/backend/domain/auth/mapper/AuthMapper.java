@@ -15,6 +15,7 @@ public class AuthMapper {
             user.getUsername(),
             user.getLanguage(),
             user.isOnboardingCompleted(),
+            user.isEmailVerified(),
             user.getStatus().name(),
             user.getCreatedAt(),
             user.getUpdatedAt()

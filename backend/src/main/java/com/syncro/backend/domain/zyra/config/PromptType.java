@@ -12,6 +12,8 @@ public enum PromptType {
     TEST_RECAP_SYSTEM("prompts/recap/test-system.txt"),
     CHAT_RECAP("prompts/recap/chat-recap.txt"),
     CHAT_RECAP_SYSTEM("prompts/recap/chat-system.txt"),
+    BIRTH_CHART_INTERPRETATION_SYSTEM("prompts/recap/birth-chart-interpretation-system.txt"),
+    BIRTH_CHART_INTERPRETATION_USER("prompts/recap/birth-chart-interpretation-user.txt"),
     RECAP_TRANSLATE_SYSTEM("prompts/translation/recap-translate-system.txt"),
     RECAP_TRANSLATE_USER("prompts/translation/recap-translate-user.txt"),
     SUGGESTION_BASE("prompts/suggestions/suggestion-base.txt");

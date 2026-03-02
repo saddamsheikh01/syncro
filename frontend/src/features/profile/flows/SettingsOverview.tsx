@@ -6,12 +6,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { Input } from "@/components/elements/Input";
+import { Switch } from "@/components/elements/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth, useT, useUser } from "@/hooks";
+import { EmailVerificationOtpModal } from "@/features/auth/components/EmailVerificationOtpModal";
 import {
   checkUsernameAvailability,
   deleteCurrentUser,
 } from "@/services/users";
+import { getEmailPreferences, updateEmailPreferences } from "@/services/emailPreferences";
+import type { UserEmailPreferenceResponse } from "@/services/emailPreferences";
 import { requestPasswordReset } from "@/services/auth";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
 
@@ -38,6 +42,7 @@ export const SettingsOverview = () => {
   const [accountEmail, setAccountEmail] = useState("");
   const [accountEmailSaving, setAccountEmailSaving] = useState(false);
   const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
+  const [accountEmailSuccess, setAccountEmailSuccess] = useState(false);
 
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
@@ -56,6 +61,15 @@ export const SettingsOverview = () => {
   const [deleteProfileLoading, setDeleteProfileLoading] = useState(false);
   const [deleteProfileError, setDeleteProfileError] = useState<string | null>(null);
 
+  const [emailPrefs, setEmailPrefs] = useState<UserEmailPreferenceResponse | null>(null);
+  const [emailPrefsLoading, setEmailPrefsLoading] = useState(true);
+  const [emailPrefsSaving, setEmailPrefsSaving] = useState(false);
+  const [emailPrefsError, setEmailPrefsError] = useState<string | null>(null);
+  const [emailPrefsSuccess, setEmailPrefsSuccess] = useState(false);
+
+  const [emailVerificationModalOpen, setEmailVerificationModalOpen] = useState(false);
+  const [emailToVerify, setEmailToVerify] = useState("");
+
   const canConfirmProfileDeletion =
     deleteProfileConfirmation.trim() === DELETE_PROFILE_CONFIRMATION_PHRASE &&
     !deleteProfileLoading;
@@ -67,6 +81,13 @@ export const SettingsOverview = () => {
   useEffect(() => {
     setUsername(user?.username ?? "");
   }, [user?.username]);
+
+  useEffect(() => {
+    getEmailPreferences()
+      .then(setEmailPrefs)
+      .catch(() => setEmailPrefs(null))
+      .finally(() => setEmailPrefsLoading(false));
+  }, []);
 
   const normalizedUsername = normalizeUsername(username);
   const currentUsername = normalizeUsername(user?.username ?? "");
@@ -131,20 +152,33 @@ export const SettingsOverview = () => {
     const trimmed = accountEmail.trim();
     if (!trimmed) {
       setAccountEmailError("Email is required.");
+      setAccountEmailSuccess(false);
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
       setAccountEmailError("Please enter a valid email address.");
+      setAccountEmailSuccess(false);
       return;
     }
-    if (trimmed === (user?.email ?? "").trim()) return;
+    if (trimmed === (user?.email ?? "").trim()) {
+      setAccountEmailError(null);
+      return;
+    }
 
     setAccountEmailSaving(true);
     setAccountEmailError(null);
+    setAccountEmailSuccess(false);
     try {
-      await userActions.updateUser({ email: trimmed });
+      const response = await userActions.updateUser({ email: trimmed });
       setAccountEmail(trimmed);
+      if (response.requiresVerification?.email) {
+        setEmailToVerify(response.requiresVerification.email);
+        setEmailVerificationModalOpen(true);
+      } else if (response.user) {
+        setAccountEmailSuccess(true);
+        setTimeout(() => setAccountEmailSuccess(false), 4000);
+      }
     } catch (saveError) {
       setAccountEmailError(
         resolveErrorMessage(saveError, "Unable to update email."),
@@ -152,6 +186,12 @@ export const SettingsOverview = () => {
     } finally {
       setAccountEmailSaving(false);
     }
+  };
+
+  const handleEmailVerificationSuccess = () => {
+    setAccountEmailSuccess(true);
+    setTimeout(() => setAccountEmailSuccess(false), 4000);
+    setEmailVerificationModalOpen(false);
   };
 
   const handleSaveUsername = async () => {
@@ -204,6 +244,34 @@ export const SettingsOverview = () => {
       );
     } finally {
       setPasswordResetSending(false);
+    }
+  };
+
+  const handleSaveEmailPrefs = async () => {
+    if (!emailPrefs) return;
+    setEmailPrefsError(null);
+    setEmailPrefsSuccess(false);
+    setEmailPrefsSaving(true);
+    try {
+      const updated = await updateEmailPreferences({
+        chatEnabled: emailPrefs.chatEnabled,
+        connectionsEnabled: emailPrefs.connectionsEnabled,
+        matchEnabled: emailPrefs.matchEnabled,
+        eventsEnabled: emailPrefs.eventsEnabled,
+        digestEnabled: emailPrefs.digestEnabled,
+        contentWeeklyDigest: emailPrefs.contentWeeklyDigest,
+        chatMinMinutesBetween: emailPrefs.chatMinMinutesBetween,
+        securityEnabled: emailPrefs.securityEnabled,
+        testsProfileEnabled: emailPrefs.testsProfileEnabled,
+        feedMomentsEnabled: emailPrefs.feedMomentsEnabled,
+      });
+      setEmailPrefs(updated);
+      setEmailPrefsSuccess(true);
+      setTimeout(() => setEmailPrefsSuccess(false), 4000);
+    } catch (e) {
+      setEmailPrefsError(resolveErrorMessage(e, "Failed to save preferences."));
+    } finally {
+      setEmailPrefsSaving(false);
     }
   };
 
@@ -285,6 +353,7 @@ export const SettingsOverview = () => {
               value={accountEmail}
               onChange={(event) => {
                 setAccountEmailError(null);
+                setAccountEmailSuccess(false);
                 setAccountEmail(event.target.value);
               }}
               error={accountEmailError ? t(accountEmailError) : undefined}
@@ -305,6 +374,11 @@ export const SettingsOverview = () => {
               </Button>
             </div>
           </div>
+          {accountEmailSuccess ? (
+            <p className="text-sm text-success">
+              {t("Email updated successfully.")}
+            </p>
+          ) : null}
         </Card>
 
         <Card className="space-y-4 p-5">
@@ -377,6 +451,144 @@ export const SettingsOverview = () => {
           </div>
         </Card>
 
+        <Card className="space-y-4 p-5">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">
+              {t("Email notifications")}
+            </h2>
+            <p className="text-sm text-muted">
+              {t("Choose which emails you want to receive.")}
+            </p>
+          </div>
+          {emailPrefsLoading ? (
+            <p className="text-sm text-muted">{t("Loading...")}</p>
+          ) : emailPrefs ? (
+            <div className="space-y-2">
+              <Switch
+                label={t("Chat")}
+                description={t("New messages when you're away")}
+                checked={emailPrefs.chatEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) => (p ? { ...p, chatEnabled: e.target.checked } : p))
+                }
+              />
+              <div className="space-y-2 pl-1">
+                <Input
+                  type="number"
+                  min={1}
+                  max={1440}
+                  label={t("Min minutes between chat emails")}
+                  hint={t("Minimum time between chat notification emails (1–1440 min)")}
+                  value={emailPrefs.chatMinMinutesBetween ?? 15}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(v)) {
+                      const clamped = Math.max(1, Math.min(1440, v));
+                      setEmailPrefs((p) => (p ? { ...p, chatMinMinutesBetween: clamped } : p));
+                    }
+                  }}
+                />
+              </div>
+              <Switch
+                label={t("Connections")}
+                description={t("Connection requests and acceptances")}
+                checked={emailPrefs.connectionsEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, connectionsEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Match")}
+                description={t("New and improved matches")}
+                checked={emailPrefs.matchEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) => (p ? { ...p, matchEnabled: e.target.checked } : p))
+                }
+              />
+              <Switch
+                label={t("Events")}
+                description={t("Events near you and saved event reminders")}
+                checked={emailPrefs.eventsEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, eventsEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Weekly match digest")}
+                description={t("Top matches summary")}
+                checked={emailPrefs.digestEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, digestEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Weekly events digest")}
+                description={t("Updates in your area")}
+                checked={emailPrefs.contentWeeklyDigest}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, contentWeeklyDigest: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Security")}
+                description={t("New login from different device or location")}
+                checked={emailPrefs.securityEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, securityEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Tests & profile")}
+                description={t("New tests, reminders, profile completion")}
+                checked={emailPrefs.testsProfileEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, testsProfileEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              <Switch
+                label={t("Feed & moments")}
+                description={t("Comments, reactions, mentions")}
+                checked={emailPrefs.feedMomentsEnabled}
+                onChange={(e) =>
+                  setEmailPrefs((p) =>
+                    p ? { ...p, feedMomentsEnabled: e.target.checked } : p
+                  )
+                }
+              />
+              {emailPrefsError ? (
+                <p className="text-sm text-danger">{t(emailPrefsError)}</p>
+              ) : null}
+              {emailPrefsSuccess ? (
+                <p className="text-sm text-success">
+                  {t("Preferences saved.")}
+                </p>
+              ) : null}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleSaveEmailPrefs}
+                loading={emailPrefsSaving}
+                loadingText={t("Saving")}
+                disabled={emailPrefsSaving}
+              >
+                {t("Save")}
+              </Button>
+            </div>
+          ) : null}
+        </Card>
+
         <Card className="space-y-4 border-danger/30 bg-danger/5 p-5">
           <h2 className="text-base font-semibold text-danger">{t("Danger zone")}</h2>
           <p className="text-sm text-danger/90">
@@ -442,6 +654,13 @@ export const SettingsOverview = () => {
           ) : null}
         </div>
       </Modal>
+
+      <EmailVerificationOtpModal
+        open={emailVerificationModalOpen}
+        email={emailToVerify}
+        onClose={() => setEmailVerificationModalOpen(false)}
+        onSuccess={handleEmailVerificationSuccess}
+      />
     </>
   );
 };

@@ -49,4 +49,12 @@ public interface UserMatchScoreRepository extends JpaRepository<UserMatchScore, 
         @Param("userId") UUID userId,
         @Param("otherUserId") UUID otherUserId
     );
+
+    @Query("""
+        SELECT m FROM UserMatchScore m
+        WHERE (m.userAId = :userId OR m.userBId = :userId)
+          AND m.scoreTotal >= 60
+        ORDER BY m.scoreTotal DESC
+        """)
+    List<UserMatchScore> findTopMatchesForUser(@Param("userId") UUID userId, Pageable pageable);
 }

@@ -74,8 +74,29 @@ public class UserProfile {
     @Column(name = "birth_place")
     private String birthPlace;
 
+    @Column(name = "birth_latitude")
+    private Double birthLatitude;
+
+    @Column(name = "birth_longitude")
+    private Double birthLongitude;
+
     @Column(name = "birth_time")
     private LocalTime birthTime;
+
+    @Column(name = "sun_degree")
+    private Double sunDegree;
+
+    @Column(name = "moon_degree")
+    private Double moonDegree;
+
+    @Column(name = "asc_degree")
+    private Double ascDegree;
+
+    @Column(name = "venus_degree")
+    private Double venusDegree;
+
+    @Column(name = "mars_degree")
+    private Double marsDegree;
 
     @Column(name = "job_title", length = 120)
     private String jobTitle;
@@ -103,6 +124,9 @@ public class UserProfile {
 
     @Column(name = "zyra_recap", columnDefinition = "TEXT")
     private String zyraRecap;
+
+    @Column(name = "zyra_birth_chart_interpretation", columnDefinition = "TEXT")
+    private String zyraBirthChartInterpretation;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "relationship_status")
@@ -255,12 +279,68 @@ public class UserProfile {
         this.birthPlace = birthPlace;
     }
 
+    public Double getBirthLatitude() {
+        return birthLatitude;
+    }
+
+    public void setBirthLatitude(Double birthLatitude) {
+        this.birthLatitude = birthLatitude;
+    }
+
+    public Double getBirthLongitude() {
+        return birthLongitude;
+    }
+
+    public void setBirthLongitude(Double birthLongitude) {
+        this.birthLongitude = birthLongitude;
+    }
+
     public LocalTime getBirthTime() {
         return birthTime;
     }
 
     public void setBirthTime(LocalTime birthTime) {
         this.birthTime = birthTime;
+    }
+
+    public Double getSunDegree() {
+        return sunDegree;
+    }
+
+    public void setSunDegree(Double sunDegree) {
+        this.sunDegree = sunDegree;
+    }
+
+    public Double getMoonDegree() {
+        return moonDegree;
+    }
+
+    public void setMoonDegree(Double moonDegree) {
+        this.moonDegree = moonDegree;
+    }
+
+    public Double getAscDegree() {
+        return ascDegree;
+    }
+
+    public void setAscDegree(Double ascDegree) {
+        this.ascDegree = ascDegree;
+    }
+
+    public Double getVenusDegree() {
+        return venusDegree;
+    }
+
+    public void setVenusDegree(Double venusDegree) {
+        this.venusDegree = venusDegree;
+    }
+
+    public Double getMarsDegree() {
+        return marsDegree;
+    }
+
+    public void setMarsDegree(Double marsDegree) {
+        this.marsDegree = marsDegree;
     }
 
     public String getJobTitle() {
@@ -333,6 +413,14 @@ public class UserProfile {
 
     public void setZyraRecap(String zyraRecap) {
         this.zyraRecap = zyraRecap;
+    }
+
+    public String getZyraBirthChartInterpretation() {
+        return zyraBirthChartInterpretation;
+    }
+
+    public void setZyraBirthChartInterpretation(String zyraBirthChartInterpretation) {
+        this.zyraBirthChartInterpretation = zyraBirthChartInterpretation;
     }
 
     public RelationshipStatus getRelationshipStatus() {

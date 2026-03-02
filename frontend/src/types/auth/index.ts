@@ -18,6 +18,7 @@ export type UserResponse = {
   username: string | null;
   language: string;
   onboardingCompleted: boolean;
+  emailVerified: boolean;
   status: UserStatus;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
@@ -26,6 +27,26 @@ export type UserResponse = {
 export type AuthResponse = {
   user: UserResponse;
   tokens: TokenResponse;
+};
+
+export type RequiresVerificationResponse = {
+  email: string;
+  requiresVerification: boolean;
+};
+
+export type RegisterResponse = {
+  authResponse: AuthResponse | null;
+  requiresVerification: RequiresVerificationResponse | null;
+};
+
+export type LoginResponse = {
+  authResponse: AuthResponse | null;
+  requiresVerification: RequiresVerificationResponse | null;
+};
+
+export type UpdateUserResponse = {
+  user: UserResponse | null;
+  requiresVerification: RequiresVerificationResponse | null;
 };
 
 export type LoginRequest = {

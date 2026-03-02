@@ -8,11 +8,14 @@ import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.domain.auth.dto.AuthResponse;
 import com.syncro.backend.domain.auth.dto.GoogleAuthRequest;
 import com.syncro.backend.domain.auth.dto.LoginRequest;
+import com.syncro.backend.domain.auth.dto.LoginResponse;
 import com.syncro.backend.domain.auth.dto.PasswordResetConfirmRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetRequest;
 import com.syncro.backend.domain.auth.dto.PasswordResetRequestResponse;
 import com.syncro.backend.domain.auth.dto.RefreshTokenRequest;
 import com.syncro.backend.domain.auth.dto.RegisterRequest;
+import com.syncro.backend.domain.auth.dto.RegisterResponse;
+import com.syncro.backend.domain.auth.dto.RequiresVerificationResponse;
 import com.syncro.backend.domain.auth.dto.TokenResponse;
 import com.syncro.backend.domain.auth.dto.UserAdminAccessResponse;
 import com.syncro.backend.domain.auth.dto.UserResponse;
@@ -29,6 +32,7 @@ import com.syncro.backend.domain.auth.repository.UserAuthProviderRepository;
 import com.syncro.backend.domain.auth.repository.UserPasswordResetTokenRepository;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.external.brevo.BrevoMailClient;
 import com.syncro.backend.domain.referrals.service.ReferralService;
 import com.syncro.backend.security.JwtService;
@@ -45,6 +49,7 @@ import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.security.SecureRandom;
 import java.util.Set;
 import java.util.UUID;
@@ -77,6 +82,9 @@ public class AuthService {
     private final AnalyticsService analyticsService;
     private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
     private final BrevoMailClient brevoMailClient;
+    private final EmailNotificationService emailNotificationService;
+    private final EmailVerificationService emailVerificationService;
+    private final UserService userService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -90,7 +98,10 @@ public class AuthService {
         ReferralService referralService,
         AnalyticsService analyticsService,
         GoogleIdTokenVerifierService googleIdTokenVerifierService,
-        BrevoMailClient brevoMailClient
+        BrevoMailClient brevoMailClient,
+        EmailNotificationService emailNotificationService,
+        EmailVerificationService emailVerificationService,
+        UserService userService
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -103,14 +114,27 @@ public class AuthService {
         this.analyticsService = analyticsService;
         this.googleIdTokenVerifierService = googleIdTokenVerifierService;
         this.brevoMailClient = brevoMailClient;
+        this.emailNotificationService = emailNotificationService;
+        this.emailVerificationService = emailVerificationService;
+        this.userService = userService;
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request, String ip, String userAgent) {
+    public RegisterResponse register(RegisterRequest request, String ip, String userAgent) {
         String email = normalizeEmail(request.email());
         String phone = normalizePhone(request.phone());
-        if (userRepository.existsByEmail(email)) {
-            throw new ConflictException("Email gia registrata");
+        Optional<User> existingByEmail = userRepository.findByEmail(email);
+        if (existingByEmail.isPresent()) {
+            User existing = existingByEmail.get();
+            if (existing.isEmailVerified()) {
+                throw new ConflictException("Email gia registrata");
+            }
+            try {
+                emailVerificationService.sendOtp(email);
+            } catch (Exception ex) {
+                logger.warn("OTP send failed for existing unverified user userId={}", existing.getId(), ex);
+            }
+            return RegisterResponse.verification(email);
         }
         if (phone != null && userRepository.existsByPhone(phone)) {
             throw new ConflictException("Telefono gia registrato");
@@ -121,6 +145,7 @@ public class AuthService {
         user.setPhone(phone);
         user.setLanguage(normalizeLanguage(request.language()));
         user.setOnboardingCompleted(false);
+        user.setEmailVerified(false);
         user.setStatus(UserStatus.ACTIVE);
         User savedUser = userRepository.save(user);
 
@@ -133,11 +158,27 @@ public class AuthService {
 
         referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
         analyticsService.trackServerEventSafe(savedUser.getId(), "USER_REGISTERED", buildRegisterPayload(request));
-
-        return buildAuthResponse(savedUser);
+        try {
+            emailVerificationService.sendOtp(email);
+        } catch (Exception ex) {
+            logger.warn("Email verification OTP send failed for userId={}", savedUser.getId(), ex);
+        }
+        return RegisterResponse.verification(email);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Transactional(readOnly = true)
+    public AuthResponse loginAfterEmailVerification(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
+            .orElseThrow(() -> new UnauthorizedException("User not found"));
+        if (!user.isEmailVerified()) {
+            throw new UnauthorizedException("Email not verified");
+        }
+        ensureUserActive(user);
+        return buildAuthResponse(user);
+    }
+
+    public LoginResponse login(LoginRequest request, String ip, String userAgent) {
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -176,8 +217,24 @@ public class AuthService {
             throw new UnauthorizedException("Credenziali non valide");
         }
 
+        if (!user.isEmailVerified()) {
+            analyticsService.trackServerEventSafe(
+                user.getId(),
+                "LOGIN_REQUIRES_VERIFICATION",
+                buildLoginFailurePayload("EMAIL_NOT_VERIFIED", AuthProvider.EMAIL)
+            );
+            try {
+                emailVerificationService.sendOtp(email);
+            } catch (Exception ex) {
+                logger.warn("OTP send failed for unverified login userId={}", user.getId(), ex);
+            }
+            return LoginResponse.verification(email);
+        }
+
         analyticsService.trackServerEventSafe(user.getId(), "LOGIN_SUCCESS", Map.of("authProvider", AuthProvider.EMAIL.name()));
-        return buildAuthResponse(user);
+        recordLoginDeviceCountryAndNotifyIfNew(user, ip, userAgent);
+        userService.recordActivity(user.getId());
+        return LoginResponse.auth(buildAuthResponse(user));
     }
 
     @Transactional
@@ -194,17 +251,27 @@ public class AuthService {
             User existingGoogleUser = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("Account non valido"));
             ensureUserActive(existingGoogleUser);
+            if (!existingGoogleUser.isEmailVerified()) {
+                existingGoogleUser.setEmailVerified(true);
+                userRepository.save(existingGoogleUser);
+            }
             analyticsService.trackServerEventSafe(
                 existingGoogleUser.getId(),
                 "LOGIN_SUCCESS",
                 Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
             );
+            recordLoginDeviceCountryAndNotifyIfNew(existingGoogleUser, ip, userAgent);
+            userService.recordActivity(existingGoogleUser.getId());
             return buildAuthResponse(existingGoogleUser);
         }
 
         User userByEmail = userRepository.findByEmail(email).orElse(null);
         if (userByEmail != null) {
             ensureUserActive(userByEmail);
+            if (!userByEmail.isEmailVerified()) {
+                userByEmail.setEmailVerified(true);
+                userRepository.save(userByEmail);
+            }
 
             UserAuthProvider existingGoogleLink = providerRepository
                 .findByUserIdAndProvider(userByEmail.getId(), AuthProvider.GOOGLE)
@@ -239,6 +306,8 @@ public class AuthService {
                 "LOGIN_SUCCESS",
                 Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", true)
             );
+            recordLoginDeviceCountryAndNotifyIfNew(userByEmail, ip, userAgent);
+            userService.recordActivity(userByEmail.getId());
             return buildAuthResponse(userByEmail);
         }
 
@@ -246,6 +315,7 @@ public class AuthService {
         newUser.setEmail(email);
         newUser.setLanguage(resolveGoogleLanguage(request.language(), googleIdentity.locale()));
         newUser.setOnboardingCompleted(false);
+        newUser.setEmailVerified(true);
         newUser.setStatus(UserStatus.ACTIVE);
         User savedUser = userRepository.save(newUser);
 
@@ -270,7 +340,13 @@ public class AuthService {
             "LOGIN_SUCCESS",
             Map.of("authProvider", AuthProvider.GOOGLE.name(), "linked", false)
         );
-
+        try {
+            emailNotificationService.sendRegistrationConfirmation(savedUser.getId(), null);
+        } catch (Exception ex) {
+            logger.warn("Registration email send failed for userId={}", savedUser.getId(), ex);
+        }
+        recordLoginDeviceCountryAndNotifyIfNew(savedUser, ip, userAgent);
+        userService.recordActivity(savedUser.getId());
         return buildAuthResponse(savedUser);
     }
 
@@ -374,6 +450,11 @@ public class AuthService {
             "PASSWORD_RESET_COMPLETED",
             Map.of("authProvider", AuthProvider.EMAIL.name())
         );
+        try {
+            emailNotificationService.sendPasswordChangeNotification(user.getId());
+        } catch (Exception ex) {
+            logger.warn("Password change notification email failed for userId={}", user.getId(), ex);
+        }
     }
 
     public UserResponse getMe(UserPrincipal principal) {
@@ -544,5 +625,32 @@ public class AuthService {
             throw new BadRequestException("Telefono non valido");
         }
         return normalized;
+    }
+
+    private void recordLoginDeviceCountryAndNotifyIfNew(User user, String ip, String userAgent) {
+        String deviceSummary = (userAgent != null && !userAgent.isBlank())
+            ? (userAgent.length() > 255 ? userAgent.substring(0, 255) : userAgent)
+            : "Unknown";
+        String countrySummary = (ip != null && !ip.isBlank()) ? ip : "Unknown";
+
+        String lastDevice = user.getLastLoginDevice();
+        String lastCountry = user.getLastLoginCountry();
+        boolean hadPrevious = (lastDevice != null && !lastDevice.isBlank())
+            || (lastCountry != null && !lastCountry.isBlank());
+        boolean changed = hadPrevious
+            && (!Objects.equals(deviceSummary, lastDevice) || !Objects.equals(countrySummary, lastCountry));
+
+        if (changed) {
+            try {
+                String description = deviceSummary + ", " + countrySummary;
+                emailNotificationService.sendNewLoginDeviceCountry(user.getId(), description, null);
+            } catch (Exception ex) {
+                logger.warn("New login device/country email failed for userId={}", user.getId(), ex);
+            }
+        }
+
+        user.setLastLoginDevice(deviceSummary);
+        user.setLastLoginCountry(countrySummary);
+        userRepository.save(user);
     }
 }

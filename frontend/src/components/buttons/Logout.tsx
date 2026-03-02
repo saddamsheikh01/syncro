@@ -19,6 +19,9 @@ export const Logout = ({ className, size = "sm", fullWidth }: LogoutProps) => {
 
   const handleLogout = async () => {
     try {
+      // Clear session first so no components trigger authenticated requests
+      // (e.g. Navbar fetching profile when profile is reset but tokens still set)
+      actions.clearSession();
       resetAllStores();
       await actions.logout();
     } finally {

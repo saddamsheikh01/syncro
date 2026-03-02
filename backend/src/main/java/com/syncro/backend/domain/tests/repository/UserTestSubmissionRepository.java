@@ -1,9 +1,12 @@
 package com.syncro.backend.domain.tests.repository;
 
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,4 +49,11 @@ public interface UserTestSubmissionRepository extends JpaRepository<UserTestSubm
     List<UserIdCountProjection> countDistinctTestDefinitionIdsByUserIds(
         @Param("userIds") Collection<UUID> userIds
     );
+
+    List<UserTestSubmission> findBySubmittedAtBefore(Instant before);
+
+    Page<UserTestSubmission> findBySubmittedAtBefore(Instant before, Pageable pageable);
+
+    @Query("SELECT DISTINCT s.user.id FROM UserTestSubmission s")
+    List<UUID> findDistinctUserIds();
 }

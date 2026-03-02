@@ -34,6 +34,7 @@ import com.syncro.backend.domain.tests.repository.UserPsyProfileRepository;
 import com.syncro.backend.domain.favorites.repository.UserFavoriteRepository;
 import com.syncro.backend.domain.matchmaking.dto.DimensionScores;
 import com.syncro.backend.domain.matchmaking.service.DimensionScoreCalculator;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.notifications.service.NotificationService;
 import com.syncro.backend.domain.social.mapper.PostMapper;
 import com.syncro.backend.domain.social.repository.PostCommentCountProjection;
@@ -73,6 +74,7 @@ public class PostService {
     private final MediaObjectRepository mediaObjectRepository;
     private final PostMapper postMapper;
     private final NotificationService notificationService;
+    private final EmailNotificationService emailNotificationService;
 
     public PostService(
         UserRepository userRepository,
@@ -86,7 +88,8 @@ public class PostService {
         DimensionScoreCalculator dimensionScoreCalculator,
         MediaObjectRepository mediaObjectRepository,
         PostMapper postMapper,
-        NotificationService notificationService
+        NotificationService notificationService,
+        EmailNotificationService emailNotificationService
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
@@ -100,6 +103,7 @@ public class PostService {
         this.mediaObjectRepository = mediaObjectRepository;
         this.postMapper = postMapper;
         this.notificationService = notificationService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     @Transactional
@@ -130,6 +134,16 @@ public class PostService {
                 })
                 .toList();
             postTaggedUserRepository.saveAll(taggedUsers);
+            String authorDisplayName = resolveAuthorDisplayName(user);
+            for (UUID taggedUserId : taggedUserIds) {
+                try {
+                    emailNotificationService.sendMentionTag(
+                        taggedUserId,
+                        authorDisplayName,
+                        saved.getId()
+                    );
+                } catch (Exception ignored) { }
+            }
         }
 
         updatePassiveProfile(user.getId(), saved);
@@ -405,6 +419,24 @@ public class PostService {
             actor.getUsername(),
             post.getId()
         );
+        if (!post.getUserId().equals(actor.getId())) {
+            try {
+                emailNotificationService.sendReactionReceived(
+                    post.getUserId(),
+                    actor.getUsername(),
+                    post.getId()
+                );
+            } catch (Exception ignored) { }
+        }
+    }
+
+    private String resolveAuthorDisplayName(User user) {
+        if (user == null) return "Someone";
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank()) {
+            return profile.getFullName().trim();
+        }
+        return user.getUsername() != null && !user.getUsername().isBlank() ? user.getUsername() : "Someone";
     }
 
     private PostResponse mapPostForUser(Post post, UUID userId) {

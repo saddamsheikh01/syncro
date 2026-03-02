@@ -43,6 +43,8 @@ import com.syncro.backend.domain.zyra.dto.ZyraMessageResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraPlaceRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationRequest;
+import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
@@ -70,6 +72,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -294,13 +298,13 @@ public class ZyraService {
                 ? profile.getUpdatedAt()
                 : java.time.Instant.now();
             return new ZyraProfileRecapResponse(
-                localizeRecap(profile.getZyraRecap(), preferredLanguage),
+                localizeRecap(profile.getZyraRecap(), preferredLanguage, user.getLanguage()),
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(user.getId())
             .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage),
+                localizeRecap(entry.recap(), preferredLanguage, user.getLanguage()),
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
@@ -308,7 +312,7 @@ public class ZyraService {
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(user.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage),
+                    localizeRecap(recap, preferredLanguage, preferredLanguage),
                     generatedAt
                 );
             });
@@ -346,7 +350,7 @@ public class ZyraService {
             userProfileRepository.save(profile);
         }
         return new ZyraProfileRecapResponse(
-            localizeRecap(recap, preferredLanguage),
+            localizeRecap(recap, preferredLanguage, preferredLanguage),
             generatedAt
         );
     }
@@ -367,13 +371,13 @@ public class ZyraService {
                 ? targetProfile.getUpdatedAt()
                 : java.time.Instant.now();
             return new ZyraProfileRecapResponse(
-                localizeRecap(targetProfile.getZyraRecap(), preferredLanguage),
+                localizeRecap(targetProfile.getZyraRecap(), preferredLanguage, target.getLanguage()),
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(target.getId())
             .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage),
+                localizeRecap(entry.recap(), preferredLanguage, target.getLanguage()),
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
@@ -381,7 +385,7 @@ public class ZyraService {
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putProfileRecap(target.getId(), recap, generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage),
+                    localizeRecap(recap, preferredLanguage, preferredLanguage),
                     generatedAt
                 );
             });
@@ -474,7 +478,10 @@ public class ZyraService {
                 ? responseLanguageOverride.trim().toLowerCase(Locale.ROOT)
                 : resolveResponseLanguage(user);
             String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
-            return recap != null ? recap.trim() : "Complete your profile to get a personalized recap.";
+            if (recap == null || recap.isBlank()) {
+                return "Complete your profile to get a personalized recap.";
+            }
+            return sanitizeRecapFromLabels(recap.trim());
         } catch (Exception ex) {
             return "Complete your profile to get a personalized recap.";
         }
@@ -764,7 +771,7 @@ public class ZyraService {
         String preferredLanguage = resolvePreferredLanguage(user);
         ZyraChatRecapResponse response = recapCache.getChatRecap(user.getId())
             .orElseGet(() -> buildChatRecap(user));
-        String localizedRecap = localizeRecap(response.recap(), preferredLanguage);
+        String localizedRecap = localizeRecap(response.recap(), preferredLanguage, user.getLanguage());
         if (Objects.equals(localizedRecap, response.recap())) {
             return response;
         }
@@ -789,7 +796,7 @@ public class ZyraService {
             throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
         }
         String recap = generateTestRecap(submission);
-        String localizedRecap = localizeRecap(recap, preferredLanguage);
+        String localizedRecap = localizeRecap(recap, preferredLanguage, user.getLanguage());
         String testTitle = submission.getTestDefinition() != null
             ? submission.getTestDefinition().getTitle()
             : "Test";
@@ -803,6 +810,50 @@ public class ZyraService {
             localizedRecap,
             java.time.Instant.now()
         );
+    }
+
+    /**
+     * Zyra translates numeric birth chart placements into human-readable sentences. No calculations; interpretation only.
+     */
+    @Transactional(readOnly = true)
+    public ZyraBirthChartInterpretationResponse interpretBirthChart(
+        UserPrincipal principal,
+        ZyraBirthChartInterpretationRequest request,
+        String requestLanguage
+    ) {
+        User user = getUser(principal);
+        String responseLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
+        if (responseLanguage == null || responseLanguage.isBlank()) {
+            responseLanguage = resolveResponseLanguage(user);
+        }
+        String placementsText = buildBirthChartPlacementsText(request);
+        String userPrompt = promptLoader.getPrompt(
+            PromptType.BIRTH_CHART_INTERPRETATION_USER,
+            Map.of("placements", placementsText)
+        );
+        List<ZyraChatMessage> messages = List.of(
+            new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.BIRTH_CHART_INTERPRETATION_SYSTEM)),
+            new ZyraChatMessage("user", userPrompt)
+        );
+        try {
+            String interpretation = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
+            String text = interpretation != null ? interpretation.trim() : "";
+            return new ZyraBirthChartInterpretationResponse(text);
+        } catch (Exception ex) {
+            return new ZyraBirthChartInterpretationResponse("");
+        }
+    }
+
+    private static String buildBirthChartPlacementsText(ZyraBirthChartInterpretationRequest req) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sun: ").append(req.sun().sign()).append(" ").append(String.format("%.1f", req.sun().degreeInSign())).append("°\n");
+        sb.append("Moon: ").append(req.moon().sign()).append(" ").append(String.format("%.1f", req.moon().degreeInSign())).append("°\n");
+        if (req.ascendant() != null) {
+            sb.append("Ascendant: ").append(req.ascendant().sign()).append(" ").append(String.format("%.1f", req.ascendant().degreeInSign())).append("°\n");
+        }
+        sb.append("Venus: ").append(req.venus().sign()).append(" ").append(String.format("%.1f", req.venus().degreeInSign())).append("°\n");
+        sb.append("Mars: ").append(req.mars().sign()).append(" ").append(String.format("%.1f", req.mars().degreeInSign())).append("°");
+        return sb.toString();
     }
 
     private String generateTestRecap(UserTestSubmission submission) {
@@ -1498,15 +1549,73 @@ public class ZyraService {
         return SUPPORTED_RECAP_LANGUAGES.contains(normalized) ? normalized : "en";
     }
 
-    private String localizeRecap(String recap, String languageCode) {
+    /**
+     * Returns the recap in the viewer's language. Translates only when source and target languages differ;
+     * when they match (e.g. both English), skips the LLM call to reduce latency, cost, and rate-limit risk.
+     * Profile-type labels are stripped so they never appear (including in old or translated recaps).
+     *
+     * @param recap recap text (may be in any language)
+     * @param targetLanguageCode viewer's preferred language (e.g. from request or user settings)
+     * @param sourceLanguageCode language the recap is in, or null if unknown (when null, translation is always attempted)
+     */
+    private String localizeRecap(String recap, String targetLanguageCode, String sourceLanguageCode) {
         if (recap == null || recap.isBlank()) {
             return recap;
         }
-        String normalizedLanguage = normalizeLanguageCode(languageCode);
-        if ("en".equals(normalizedLanguage)) {
+        String targetLang = normalizeLanguageCode(targetLanguageCode);
+        if (sourceLanguageCode != null && !sourceLanguageCode.isBlank()
+            && targetLang.equals(normalizeLanguageCode(sourceLanguageCode))) {
+            return sanitizeRecapFromLabels(recap);
+        }
+        String translated = translateRecap(recap, targetLang);
+        return sanitizeRecapFromLabels(translated);
+    }
+
+    private String localizeRecap(String recap, String languageCode) {
+        return localizeRecap(recap, languageCode, null);
+    }
+
+    /** Straight and curly double quotes so we match "Inclusive Innovator" and "Inclusive Innovator" etc. */
+    private static final String QUOTES = "[\"\\u201C\\u201D\\u201E\\u201F]";
+
+    /**
+     * Public so the controller can guarantee every API response is sanitized (recap comes from DB, cache, or generation).
+     */
+    public String sanitizeRecapForResponse(String recap) {
+        return sanitizeRecapFromLabels(recap);
+    }
+
+    /**
+     * Removes or replaces known profile-type labels from recap text so they never appear to users.
+     * Recap may come from database (user_profile.zyra_recap), cache, or fresh generation.
+     */
+    private String sanitizeRecapFromLabels(String recap) {
+        if (recap == null || recap.isBlank()) {
             return recap;
         }
-        return translateRecap(recap, normalizedLanguage);
+        String out = recap;
+        // Literal first so we always catch exact phrases from DB/cache (no regex/encoding issues)
+        out = out.replace("\"Inclusive Innovator\"", "oriented toward inclusion and innovation");
+        out = out.replace("\"Balanced Planner\"", "oriented toward balanced planning");
+        out = out.replace("Inclusive Innovator", "oriented toward inclusion and innovation");
+        out = out.replace("Balanced Planner", "oriented toward balanced planning");
+        // Regex for quoted/unquoted and other languages
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(an?\\s+)?Inclusive Innovator\\s*" + QUOTES + "?", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(an?\\s+)?Balanced Planner\\s*" + QUOTES + "?", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(una?\\s+)?Innovatrice Inclusiva\\s*" + QUOTES + "?", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*(una?\\s+)?Pianificatrice Equilibrata\\s*" + QUOTES + "?", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)" + QUOTES + "?\\s*Expansion phase\\s*" + QUOTES + "?", "focused on growth");
+        out = replaceLabel(out, "(?i)\\b(an?\\s+)?Inclusive Innovator\\b", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)\\b(an?\\s+)?Balanced Planner\\b", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)\\b(una?\\s+)?Innovatrice Inclusiva\\b", "oriented toward inclusion and innovation");
+        out = replaceLabel(out, "(?i)\\b(una?\\s+)?Pianificatrice Equilibrata\\b", "oriented toward balanced planning");
+        out = replaceLabel(out, "(?i)\\bExpansion phase\\b", "focused on growth");
+        out = out.replaceAll("[ \\t]+", " ").trim();
+        return out;
+    }
+
+    private static String replaceLabel(String text, String pattern, String replacement) {
+        return Pattern.compile(pattern).matcher(text).replaceAll(Matcher.quoteReplacement(replacement));
     }
 
     private String translateRecap(String sourceRecap, String targetLanguage) {

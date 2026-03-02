@@ -58,6 +58,50 @@ app:
       nearby-count-per-destination: ${VIATOR_SYNC_NEARBY_COUNT_PER_DESTINATION:20}
       nearby-max-pages: ${VIATOR_SYNC_NEARBY_MAX_PAGES:3}
       nearby-resync-minutes: ${VIATOR_SYNC_NEARBY_RESYNC_MINUTES:30}
+  email:
+    jobs:
+      # Override via env for testing, e.g. EMAIL_NO_CHAT_REMINDER_CRON="0 */5 * * * ?" (every 5 min)
+      no-chat-reminder-cron: ${EMAIL_NO_CHAT_REMINDER_CRON:0 0 10 * * ?}
+      weekly-match-digest-cron: ${EMAIL_WEEKLY_MATCH_DIGEST_CRON:0 0 9 ? * MON}
+      test-not-completed-cron: ${EMAIL_TEST_NOT_COMPLETED_CRON:0 0 11 * * ?}
+      incomplete-profile-cron: ${EMAIL_INCOMPLETE_PROFILE_CRON:0 0 0/3 * * ?}
+      saved-event-reminder-cron: ${EMAIL_SAVED_EVENT_REMINDER_CRON:0 0 8 * * ?}
+      weekly-events-digest-cron: ${EMAIL_WEEKLY_EVENTS_DIGEST_CRON:0 0 9 ? * TUE}
+  brevo:
+    api-key: ${BREVO_API_KEY:}
+    base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}
+    timeout-seconds: ${BREVO_TIMEOUT_SECONDS:10}
+    sender-email: ${BREVO_SENDER_EMAIL:syncro.community@gmail.com}
+    sender-name: ${BREVO_SENDER_NAME:Syncro}
+    password-reset-template-id: ${BREVO_PASSWORD_RESET_TEMPLATE_ID:0}
+    password-reset-url-base: ${BREVO_PASSWORD_RESET_URL_BASE:http://localhost:3000/reset-password}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+    template-ids:
+      WELCOME: ${BREVO_TEMPLATE_WELCOME:0}
+      REGISTRATION_CONFIRMATION: ${BREVO_TEMPLATE_REGISTRATION:0}
+      PASSWORD_CHANGE: ${BREVO_TEMPLATE_PASSWORD_CHANGE:0}
+      EMAIL_CHANGE: ${BREVO_TEMPLATE_EMAIL_CHANGE:0}
+      CONNECTION_REQUEST_RECEIVED: ${BREVO_TEMPLATE_CONNECTION_REQUEST:0}
+      CONNECTION_ACCEPTED: ${BREVO_TEMPLATE_CONNECTION_ACCEPTED:0}
+      NEW_MESSAGE_OFFLINE: ${BREVO_TEMPLATE_NEW_MESSAGE:0}
+      NO_CHAT_REMINDER_24H: ${BREVO_TEMPLATE_NO_CHAT_REMINDER:0}
+      NEW_MATCH: ${BREVO_TEMPLATE_NEW_MATCH:0}
+      IMPROVED_MATCH: ${BREVO_TEMPLATE_IMPROVED_MATCH:0}
+      WEEKLY_MATCH_DIGEST: ${BREVO_TEMPLATE_WEEKLY_MATCH_DIGEST:0}
+      NEW_TEST_AVAILABLE: ${BREVO_TEMPLATE_NEW_TEST:0}
+      TEST_STARTED_NOT_COMPLETED: ${BREVO_TEMPLATE_TEST_NOT_COMPLETED:0}
+      INCOMPLETE_PROFILE_REMINDER: ${BREVO_TEMPLATE_INCOMPLETE_PROFILE:0}
+      NEW_EVENT_NEARBY: ${BREVO_TEMPLATE_NEW_EVENT:0}
+      SAVED_EVENT_REMINDER: ${BREVO_TEMPLATE_SAVED_EVENT:0}
+      WEEKLY_EVENTS_DIGEST: ${BREVO_TEMPLATE_WEEKLY_EVENTS:0}
+      COMMENT_RECEIVED: ${BREVO_TEMPLATE_COMMENT:0}
+      REACTION_RECEIVED: ${BREVO_TEMPLATE_REACTION:0}
+      MENTION_TAG: ${BREVO_TEMPLATE_MENTION:0}
+      NEW_LOGIN_DEVICE_COUNTRY: ${BREVO_TEMPLATE_NEW_LOGIN:0}
+      EMAIL_VERIFICATION_OTP: ${BREVO_TEMPLATE_EMAIL_VERIFICATION_OTP:0}
+  astrology:
+    # Path to Swiss Ephemeris data files (sepl_*.se1, semo_*.se1). Run scripts/download-ephemeris.sh to populate.
+    ephemeris-path: ${SWISS_EPHEMERIS_PATH:./ephe}
   zyra:
     provider: ${ZYRA_PROVIDER:OLLAMA}
     base-url: ${ZYRA_BASE_URL:http://localhost:11434}

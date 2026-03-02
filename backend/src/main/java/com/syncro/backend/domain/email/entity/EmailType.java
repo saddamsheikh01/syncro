@@ -1,0 +1,28 @@
+package com.syncro.backend.domain.email.entity;
+
+/** Types of transactional and notification emails. Used for preferences, rate limiting, and Brevo templates. */
+public enum EmailType {
+    REGISTRATION_CONFIRMATION,
+    EMAIL_VERIFICATION,
+    WELCOME,
+    PASSWORD_RESET,
+    PASSWORD_CHANGE,
+    EMAIL_CHANGE,
+    CONNECTION_REQUEST_RECEIVED,
+    CONNECTION_ACCEPTED,
+    NEW_MESSAGE_OFFLINE,
+    NO_CHAT_REMINDER_24H,
+    NEW_MATCH,
+    IMPROVED_MATCH,
+    WEEKLY_MATCH_DIGEST,
+    NEW_TEST_AVAILABLE,
+    TEST_STARTED_NOT_COMPLETED,
+    INCOMPLETE_PROFILE_REMINDER,
+    NEW_EVENT_NEARBY,
+    SAVED_EVENT_REMINDER,
+    WEEKLY_EVENTS_DIGEST,
+    COMMENT_RECEIVED,
+    REACTION_RECEIVED,
+    MENTION_TAG,
+    NEW_LOGIN_DEVICE_COUNTRY
+}

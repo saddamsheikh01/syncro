@@ -273,7 +273,13 @@ public class DimensionScoreCalculator {
             return null;
         }
 
-        return score / count;
+        int raw = score / count;
+        boolean hasBirthTimeA = profileA.getBirthTime() != null;
+        boolean hasBirthTimeB = profileB.getBirthTime() != null;
+        if (!hasBirthTimeA || !hasBirthTimeB) {
+            raw = (int) Math.round(raw * 0.6);
+        }
+        return raw;
     }
 
     /**

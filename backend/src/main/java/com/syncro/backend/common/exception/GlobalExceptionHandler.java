@@ -100,7 +100,7 @@ public class GlobalExceptionHandler {
         MaxUploadSizeExceededException ex,
         HttpServletRequest request
     ) {
-        return buildError(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", request);
+        return buildError(HttpStatus.valueOf(413), "File troppo grande", request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

@@ -17,6 +17,9 @@ import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.email.service.EmailNotificationService;
+import com.syncro.backend.domain.profile.entity.UserProfile;
+import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.repository.TagRepository;
 import com.syncro.backend.security.AdminPrincipal;
@@ -38,6 +41,8 @@ public class AdminExperienceService {
     private final ExperienceTagRepository experienceTagRepository;
     private final TagRepository tagRepository;
     private final ExperienceService experienceService;
+    private final EmailNotificationService emailNotificationService;
+    private final UserProfileRepository userProfileRepository;
 
     public AdminExperienceService(
         ExperienceRepository experienceRepository,
@@ -45,7 +50,9 @@ public class AdminExperienceService {
         PlaceRepository placeRepository,
         ExperienceTagRepository experienceTagRepository,
         TagRepository tagRepository,
-        ExperienceService experienceService
+        ExperienceService experienceService,
+        EmailNotificationService emailNotificationService,
+        UserProfileRepository userProfileRepository
     ) {
         this.experienceRepository = experienceRepository;
         this.categoryRepository = categoryRepository;
@@ -53,6 +60,8 @@ public class AdminExperienceService {
         this.experienceTagRepository = experienceTagRepository;
         this.tagRepository = tagRepository;
         this.experienceService = experienceService;
+        this.emailNotificationService = emailNotificationService;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -126,6 +135,7 @@ public class AdminExperienceService {
         if (request.tagIds() != null) {
             replaceTags(saved, request.tagIds());
         }
+        notifyUsersNewEventNearby(saved);
         return experienceService.getExperience(saved.getId());
     }
 
@@ -230,7 +240,31 @@ public class AdminExperienceService {
         if (request.tagIds() != null) {
             replaceTags(saved, request.tagIds());
         }
+        notifyUsersNewEventNearby(saved);
         return experienceService.getExperience(saved.getId());
+    }
+
+    private void notifyUsersNewEventNearby(Experience experience) {
+        if (experience == null || !Boolean.TRUE.equals(experience.getIsActive())) return;
+        String city = null;
+        if (experience.getPlace() != null && experience.getPlace().getCity() != null && !experience.getPlace().getCity().isBlank()) {
+            city = experience.getPlace().getCity();
+        }
+        if ((city == null || city.isBlank()) && experience.getLocationName() != null && !experience.getLocationName().isBlank()) {
+            city = experience.getLocationName();
+        }
+        if (city == null || city.isBlank()) return;
+        String eventTitle = experience.getName() != null ? experience.getName() : "New experience";
+        UUID eventId = experience.getId();
+        for (UserProfile profile : userProfileRepository.findByCityIgnoreCase(city)) {
+            UUID userId = profile.getUser() != null ? profile.getUser().getId() : null;
+            if (userId == null) continue;
+            try {
+                emailNotificationService.sendNewEventNearby(userId, eventTitle, city, eventId);
+            } catch (Exception ignored) {
+                // best-effort per user
+            }
+        }
     }
 
     @Transactional

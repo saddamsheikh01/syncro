@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { Button } from "@/components/buttons/Button";
 import { useChat, useT } from "@/hooks";
+import { recordActivity } from "@/services/users";
 import { useAuthStore } from "@/stores/auth/useAuthStore";
 import { ChatHeader } from "../sections/ChatHeader";
 import { MessageList } from "../sections/MessageList";
@@ -73,6 +74,7 @@ export const ChatDetail = ({ conversationId }: ChatDetailProps) => {
 
   useEffect(() => {
     actions.setActiveConversation(conversationId);
+    recordActivity().catch(() => undefined);
     return () => {
       actions.setActiveConversation(null);
     };

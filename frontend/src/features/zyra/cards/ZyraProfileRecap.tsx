@@ -24,9 +24,11 @@ export const ZyraProfileRecap = ({
   onRecapLoaded,
   ...props
 }: ZyraProfileRecapProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
   const { language } = useI18n();
   const { profile, actions: userActions } = useUser();
+  // Use displayed locale (same as language dropdown) so recap is in viewer's language
+  const recapLocale = locale ?? language ?? "en";
   const [recap, setRecap] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +58,8 @@ export const ZyraProfileRecap = ({
     setError(null);
     try {
       const response = userId
-        ? await getProfileRecapForUser(userId, language)
-        : await getProfileRecap(language);
+        ? await getProfileRecapForUser(userId, recapLocale)
+        : await getProfileRecap(recapLocale);
       setRecap(response.recap);
       setEditedRecap(response.recap);
       return response.recap;
@@ -67,7 +69,7 @@ export const ZyraProfileRecap = ({
     } finally {
       setLoading(false);
     }
-  }, [t, userId, language]);
+  }, [t, userId, recapLocale]);
 
   // Forza il fetch dal backend per avere sempre il recap nella lingua corrente.
   useEffect(() => {
@@ -104,7 +106,7 @@ export const ZyraProfileRecap = ({
       setLoading(true);
       setError(null);
       try {
-        const response = await regenerateProfileRecap(language);
+        const response = await regenerateProfileRecap(recapLocale);
         setRecap(response.recap);
         setEditedRecap(response.recap);
         try {
