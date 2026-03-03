@@ -9,10 +9,8 @@ import { Button } from "@/components/buttons/Button";
 import { Input } from "@/components/elements/Input";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPlaceListItem } from "@/features/catalog/lists/MapPlaceListItem";
-import { MapExperienceListItem } from "@/features/catalog/lists/MapExperienceListItem";
 import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
-import { ViatorExperiencesSection } from "@/features/catalog/sections/ViatorExperiencesSection";
 import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import { cx } from "@/lib/classNames";
@@ -49,6 +47,8 @@ export const PlacesOverview = () => {
   const {
     places,
     placesPage,
+    experiences,
+    experiencesPage,
     catalogPlaces,
     catalogExperiences,
     catalogPlacesPage,
@@ -57,6 +57,7 @@ export const PlacesOverview = () => {
     loadingCatalog,
     error,
     hasMorePlaces,
+    hasMoreExperiences,
     hasMoreCatalog,
     actions,
   } = useCatalog();
@@ -87,6 +88,18 @@ export const PlacesOverview = () => {
     [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
   );
 
+  const experienceParams = useMemo(
+    () => ({
+      source: "VIATOR" as const,
+      size: PAGE_SIZE,
+      q: citySearchApplied || undefined,
+      lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
+      lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
+      radiusKm: nearMe && hasPosition ? 50 : undefined,
+    }),
+    [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
+  );
+
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
@@ -94,6 +107,8 @@ export const PlacesOverview = () => {
       actions.fetchCatalog(catalogParams).catch(() => undefined);
     } else if (filter === "places") {
       actions.fetchPlaces(placeParams).catch(() => undefined);
+    } else if (filter === "experiences") {
+      actions.fetchExperiences(experienceParams).catch(() => undefined);
     }
   }, []);
 
@@ -102,8 +117,25 @@ export const PlacesOverview = () => {
       actions.fetchCatalog(catalogParams).catch(() => undefined);
     } else if (filter === "places") {
       actions.fetchPlaces(placeParams).catch(() => undefined);
+    } else if (filter === "experiences") {
+      actions.fetchExperiences(experienceParams).catch(() => undefined);
     }
   }, [filter, citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]);
+
+  const clearFilters = useCallback(() => {
+    setCitySearch("");
+    setCitySearchApplied("");
+    setNearMe(false);
+  }, []);
+
+  const handleTabChange = useCallback(
+    (newFilter: TabFilter) => {
+      if (filter === newFilter) return;
+      clearFilters();
+      setFilter(newFilter);
+    },
+    [clearFilters, filter]
+  );
 
   const handleSearchApply = useCallback(() => {
     setCitySearchApplied(citySearch.trim() || "");
@@ -163,6 +195,16 @@ export const PlacesOverview = () => {
       .fetchCatalog({ ...catalogParams, page: nextPage }, { append: true })
       .catch(() => undefined);
   }, [actions, catalogExperiencesPage.page, catalogParams, catalogPlacesPage.page, hasMoreCatalog, loadingCatalog]);
+
+  const handleLoadMoreExperiences = useCallback(() => {
+    if (!hasMoreExperiences || loading) return;
+    actions
+      .fetchExperiences(
+        { ...experienceParams, page: experiencesPage.page + 1 },
+        { append: true }
+      )
+      .catch(() => undefined);
+  }, [actions, experienceParams, experiencesPage.page, hasMoreExperiences, loading]);
 
   const placeItems: PlaceListItemProps[] = useMemo(
     () =>
@@ -270,8 +312,30 @@ export const PlacesOverview = () => {
     return result;
   }, [catalogPlaceItems, catalogExperienceItems]);
 
+  const experienceItems: ExperienceListItemProps[] = useMemo(
+    () =>
+      experiences.map((exp: ExperienceSummaryResponse) => ({
+        title: exp.name,
+        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
+        category: exp.category?.name ?? undefined,
+        href: `/experiences/${exp.id}`,
+        imageUrl: exp.imageUrl ?? undefined,
+        priceLabel: formatPrice(exp.price, exp.priceCurrency),
+        originalPriceLabel:
+          exp.originalPrice && exp.price && exp.originalPrice > exp.price
+            ? formatPrice(exp.originalPrice, exp.priceCurrency)
+            : undefined,
+        rating: exp.rating ?? undefined,
+        reviewCount: exp.reviewCount ?? undefined,
+        durationLabel: formatDuration(exp.durationMinutes),
+        provider: exp.provider ?? undefined,
+      })),
+    [experiences]
+  );
+
   const isInitialLoading = loading && places.length === 0;
   const isInitialLoadingCatalog = loadingCatalog && catalogPlaces.length === 0 && catalogExperiences.length === 0;
+  const isInitialLoadingExperiences = loading && experiences.length === 0;
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
@@ -283,7 +347,7 @@ export const PlacesOverview = () => {
       <Card className="flex flex-wrap items-center gap-2 border-border/70 bg-surface-muted/50 px-4 py-3 shadow-sm">
         <button
           type="button"
-          onClick={() => setFilter("all")}
+          onClick={() => handleTabChange("all")}
           className={cx(
             "rounded-full border-2 px-4 py-2 text-sm font-semibold transition",
             filter === "all"
@@ -295,7 +359,7 @@ export const PlacesOverview = () => {
         </button>
         <button
           type="button"
-          onClick={() => setFilter("places")}
+          onClick={() => handleTabChange("places")}
           className={cx(
             "rounded-full border-2 px-4 py-2 text-sm font-semibold transition",
             filter === "places"
@@ -307,7 +371,7 @@ export const PlacesOverview = () => {
         </button>
         <button
           type="button"
-          onClick={() => setFilter("experiences")}
+          onClick={() => handleTabChange("experiences")}
           className={cx(
             "rounded-full border-2 px-4 py-2 text-sm font-semibold transition",
             filter === "experiences"
@@ -455,16 +519,57 @@ export const PlacesOverview = () => {
       )}
 
       {filter === "experiences" && (
-        <ViatorExperiencesSection
-          id="viator-experiences"
-          pageSize={PAGE_SIZE}
-          showLoadMore
-          hideSectionTitle
-          embedFilters
-          citySearch={citySearchApplied}
-          nearMe={nearMe}
-          hideProviderLabel
-        />
+        <section className="space-y-4">
+          {isInitialLoadingExperiences && (
+            <Card className="flex items-center gap-3 p-5">
+              <Loader size="sm" />
+              <p className="text-sm text-muted">{t("Loading experiences...")}</p>
+            </Card>
+          )}
+          {error && !isInitialLoadingExperiences && (
+            <ErrorState
+              title={t("Unable to load experiences")}
+              description={error.message}
+            />
+          )}
+          {!isInitialLoadingExperiences && !error && experiences.length === 0 && (
+            <EmptyState
+              title={t("No experiences found")}
+              description={t("Try a different search or filter.")}
+            />
+          )}
+          {experiences.length > 0 && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {experienceItems.map((item, index) => (
+                  <div key={`exp-${item.href ?? index}`} className="flex h-full min-h-0 flex-col">
+                    <ExperienceListItem {...item} />
+                  </div>
+                ))}
+              </div>
+              {hasMoreExperiences && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="secondary"
+                    onClick={handleLoadMoreExperiences}
+                    loading={loading}
+                    loadingText={t("Loading")}
+                  >
+                    {t("Load more experiences")}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+          {experiencesPage.totalElements > 0 && (
+            <p className="text-center text-xs text-subtle">
+              {t("{current} of {total} experiences", {
+                current: experiences.length,
+                total: experiencesPage.totalElements,
+              })}
+            </p>
+          )}
+        </section>
       )}
     </div>
   );
