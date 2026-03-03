@@ -382,15 +382,15 @@ public class TestService {
     public void resetMySubmissions(UserPrincipal principal) {
         User user = getUser(principal);
         List<UserTestSubmission> submissions = userTestSubmissionRepository.findByUser_Id(user.getId());
-        if (submissions.isEmpty()) {
-            return;
+        if (!submissions.isEmpty()) {
+            List<UUID> submissionIds = submissions.stream()
+                .map(UserTestSubmission::getId)
+                .toList();
+            List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_IdIn(submissionIds);
+            userTestAnswerRepository.deleteAll(answers);
+            userTestSubmissionRepository.deleteAll(submissions);
         }
-        List<UUID> submissionIds = submissions.stream()
-            .map(UserTestSubmission::getId)
-            .toList();
-        List<UserTestAnswer> answers = userTestAnswerRepository.findBySubmission_IdIn(submissionIds);
-        userTestAnswerRepository.deleteAll(answers);
-        userTestSubmissionRepository.deleteAll(submissions);
+        clearBirthChartFromProfile(user.getId());
         recapCache.invalidateUser(user.getId());
     }
 
@@ -1327,5 +1327,29 @@ public class TestService {
         if (updated) {
             userProfileRepository.save(userProfile);
         }
+    }
+
+    private void clearBirthChartFromProfile(UUID userId) {
+        UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null) {
+            return;
+        }
+        profile.setSunSign(null);
+        profile.setMoonSign(null);
+        profile.setAscSign(null);
+        profile.setVenusSign(null);
+        profile.setMarsSign(null);
+        profile.setSunDegree(null);
+        profile.setMoonDegree(null);
+        profile.setAscDegree(null);
+        profile.setVenusDegree(null);
+        profile.setMarsDegree(null);
+        profile.setBirthPlace(null);
+        profile.setBirthLatitude(null);
+        profile.setBirthLongitude(null);
+        profile.setBirthTime(null);
+        profile.setZodiacSign(null);
+        profile.setZyraBirthChartInterpretation(null);
+        userProfileRepository.save(profile);
     }
 }

@@ -24,7 +24,7 @@ export const TestsOverview = () => {
   const { t, locale } = useT();
   const { tests, loading, error, completedCount, countLoading, actions } =
     useTests();
-  const { profile } = useUser();
+  const { profile, actions: userActions } = useUser();
   const { actions: analyticsActions } = useAnalytics();
   const loadedLocaleRef = useRef<string | null>(null);
   const analyticsTrackedRef = useRef(false);
@@ -53,8 +53,11 @@ export const TestsOverview = () => {
     setResetting(true);
     try {
       await actions.resetSubmissions();
-      await actions.fetchTests();
-      await actions.fetchCompletedCount();
+      await Promise.all([
+        actions.fetchTests(),
+        actions.fetchCompletedCount(),
+        userActions.fetchProfile(),
+      ]);
       void analyticsActions.trackEvent({
         eventName: "INSIGHTS_RESET_ALL_SUBMISSIONS",
       });
