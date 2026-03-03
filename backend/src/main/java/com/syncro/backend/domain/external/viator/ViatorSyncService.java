@@ -33,12 +33,12 @@ public class ViatorSyncService {
     private static final String SCOPE = "products";
     private static final int BULK_SIZE = 50;
     private static final int MAX_ERROR_MESSAGES = 50;
-    private static final int MAX_DESTINATION_FALLBACK = 12;
     private static final String LOCATION_KEY_SEPARATOR = ":";
 
     private final ViatorClient viatorClient;
     private final ViatorConfig viatorConfig;
     private final ViatorNearbyDestinationResolver nearbyDestinationResolver;
+    private final ViatorDestinationRefService viatorDestinationRefService;
     private final ViatorProductMapper productMapper;
     private final ExperienceRepository experienceRepository;
     private final AffiliationLinkRepository affiliationLinkRepository;
@@ -50,6 +50,7 @@ public class ViatorSyncService {
         ViatorClient viatorClient,
         ViatorConfig viatorConfig,
         ViatorNearbyDestinationResolver nearbyDestinationResolver,
+        ViatorDestinationRefService viatorDestinationRefService,
         ViatorProductMapper productMapper,
         ExperienceRepository experienceRepository,
         AffiliationLinkRepository affiliationLinkRepository,
@@ -58,6 +59,7 @@ public class ViatorSyncService {
         this.viatorClient = viatorClient;
         this.viatorConfig = viatorConfig;
         this.nearbyDestinationResolver = nearbyDestinationResolver;
+        this.viatorDestinationRefService = viatorDestinationRefService;
         this.productMapper = productMapper;
         this.experienceRepository = experienceRepository;
         this.affiliationLinkRepository = affiliationLinkRepository;
@@ -395,7 +397,7 @@ public class ViatorSyncService {
             maxPages,
             requestedCount,
             language,
-            resolveDestinationIds(language)
+            resolveDestinationIds()
         );
     }
 
@@ -415,7 +417,7 @@ public class ViatorSyncService {
 
         if (destinationIds.isEmpty()) {
             errors++;
-            addError(errorMessages, "Fallback search non disponibile: nessuna destination trovata");
+            addError(errorMessages, "Fallback search non disponibile: nessuna destination configurata nel backoffice");
             return new FallbackSyncResult(
                 pagesProcessed,
                 productsSeen,
@@ -498,21 +500,8 @@ public class ViatorSyncService {
         );
     }
 
-    private List<String> resolveDestinationIds(String language) {
-        String configuredRefs = normalize(viatorConfig.getSync().getDestinationRefs());
-        if (configuredRefs != null) {
-            List<String> refs = new ArrayList<>();
-            for (String item : configuredRefs.split(",")) {
-                String ref = normalize(item);
-                if (ref != null) {
-                    refs.add(ref);
-                }
-            }
-            if (!refs.isEmpty()) {
-                return refs;
-            }
-        }
-        return viatorClient.getDestinationIds(language, MAX_DESTINATION_FALLBACK);
+    private List<String> resolveDestinationIds() {
+        return viatorDestinationRefService.listEnabledDestinationRefs();
     }
 
     private List<String> resolveNearbyDestinationRefs(double latitude, double longitude, String language) {
@@ -536,7 +525,7 @@ public class ViatorSyncService {
         );
 
         if (refs.isEmpty()) {
-            refs = resolveDestinationIds(language)
+            refs = resolveDestinationIds()
                 .stream()
                 .limit(Math.max(viatorConfig.getSync().getNearbyMaxDestinations(), 1))
                 .toList();
@@ -597,6 +586,7 @@ public class ViatorSyncService {
         Experience experience = existingOpt.orElseGet(Experience::new);
 
         productMapper.updateExperience(experience, product, syncedAt);
+        applyDestinationCityLabel(experience);
         Experience saved = experienceRepository.save(experience);
         upsertAffiliationLink(saved, saved.getBookingUrl());
 
@@ -631,6 +621,17 @@ public class ViatorSyncService {
         link.setProvider(PROVIDER);
         link.setUrl(url.trim());
         affiliationLinkRepository.save(link);
+    }
+
+    private void applyDestinationCityLabel(Experience experience) {
+        String destinationRef = normalize(experience.getLocationName());
+        if (destinationRef == null) {
+            return;
+        }
+        String cityName = viatorDestinationRefService.resolveCityNameForRef(destinationRef);
+        if (isNotBlank(cityName)) {
+            experience.setLocationName(cityName);
+        }
     }
 
     private ExternalSyncState loadOrCreateState() {

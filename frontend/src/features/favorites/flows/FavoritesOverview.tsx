@@ -312,7 +312,7 @@ export const FavoritesOverview = () => {
         const cardProps: ExperienceListItemProps = {
           title: experience?.name ?? t("Experience"),
           subtitle:
-            experience?.locationName ?? experience?.place?.name ?? undefined,
+            experience?.place?.name ?? experience?.locationName ?? undefined,
           category: experience?.category?.name ?? undefined,
           href: experience ? `/experiences/${experience.id}` : undefined,
           imageUrl: experience?.imageUrl ?? undefined,

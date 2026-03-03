@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -102,26 +102,22 @@ export const ExperiencesOverview = () => {
     }).format(price);
   };
 
-  const experienceItems: ExperienceListItemProps[] = useMemo(
-    () =>
-      experiences.map((exp) => ({
-        title: exp.name,
-        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
-        category: exp.category?.name ?? undefined,
-        href: `/experiences/${exp.id}`,
-        imageUrl: exp.imageUrl ?? undefined,
-        priceLabel: formatPrice(exp.price, exp.priceCurrency),
-        originalPriceLabel:
-          exp.originalPrice && exp.price && exp.originalPrice > exp.price
-            ? formatPrice(exp.originalPrice, exp.priceCurrency)
-            : undefined,
-        rating: exp.rating ?? undefined,
-        reviewCount: exp.reviewCount ?? undefined,
-        durationLabel: formatDuration(exp.durationMinutes),
-        provider: exp.provider ?? undefined,
-      })),
-    [experiences]
-  );
+  const experienceItems: ExperienceListItemProps[] = experiences.map((exp) => ({
+    title: exp.name,
+    subtitle: exp.place?.name ?? exp.locationName ?? undefined,
+    category: exp.category?.name ?? undefined,
+    href: `/experiences/${exp.id}`,
+    imageUrl: exp.imageUrl ?? undefined,
+    priceLabel: formatPrice(exp.price, exp.priceCurrency),
+    originalPriceLabel:
+      exp.originalPrice && exp.price && exp.originalPrice > exp.price
+        ? formatPrice(exp.originalPrice, exp.priceCurrency)
+        : undefined,
+    rating: exp.rating ?? undefined,
+    reviewCount: exp.reviewCount ?? undefined,
+    durationLabel: formatDuration(exp.durationMinutes),
+    provider: exp.provider ?? undefined,
+  }));
 
   const isInitialLoading = loading && experiences.length === 0;
 

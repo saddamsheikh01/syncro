@@ -25,6 +25,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByIdAndStatus(UUID id, UserStatus status);
 
+    long countByOnboardingCompletedTrue();
+
     List<User> findAllByStatus(UserStatus status);
 
     Page<User> findByStatus(UserStatus status, Pageable pageable);

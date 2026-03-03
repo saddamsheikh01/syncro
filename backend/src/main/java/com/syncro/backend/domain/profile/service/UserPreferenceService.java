@@ -44,7 +44,9 @@ public class UserPreferenceService {
             .orElseGet(() -> {
                 UserPreference created = new UserPreference();
                 created.setUser(user);
-                return preferenceRepository.save(created);
+                created.setMatchmakingFilters(new LinkedHashMap<>());
+                created.setFeedPreferences(new LinkedHashMap<>());
+                return created;
             });
         preferences.setMatchmakingFilters(enforceAlwaysOnFlags(preferences.getMatchmakingFilters()));
         return preferenceMapper.toResponse(preferences);

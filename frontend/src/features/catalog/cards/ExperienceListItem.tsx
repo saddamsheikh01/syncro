@@ -57,6 +57,21 @@ export const ExperienceListItem = ({
   ...props
 }: ExperienceListItemProps) => {
   const { t } = useT();
+  const isViatorProvider = provider?.trim().toUpperCase() === "VIATOR";
+  const trimmedSubtitle = subtitle?.trim();
+  const isLikelyDestinationRef = Boolean(
+    trimmedSubtitle &&
+      !trimmedSubtitle.includes(" ") &&
+      /[0-9]/.test(trimmedSubtitle) &&
+      /^[A-Za-z0-9_-]+$/.test(trimmedSubtitle)
+  );
+  const visibleSubtitle = isViatorProvider ? undefined : subtitle;
+  const locationBadgeLabel = isViatorProvider
+    ? trimmedSubtitle && !isLikelyDestinationRef
+      ? trimmedSubtitle
+      : null
+    : null;
+  const showProvider = Boolean(provider) && !isViatorProvider;
 
   const card = (
     <div
@@ -101,8 +116,8 @@ export const ExperienceListItem = ({
         <h4 className="line-clamp-2 text-sm font-semibold text-foreground">
           {title}
         </h4>
-        {subtitle ? (
-          <p className="line-clamp-2 text-xs text-muted">{subtitle}</p>
+        {visibleSubtitle ? (
+          <p className="line-clamp-2 text-xs text-muted">{visibleSubtitle}</p>
         ) : null}
 
         {rating != null ? (
@@ -116,11 +131,18 @@ export const ExperienceListItem = ({
         ) : null}
 
         <div className="space-y-2">
-          {category ? (
-            <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
-              {category}
-            </Badge>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {category ? (
+              <Badge tone="neutral" className="w-fit bg-surface-muted text-muted">
+                {category}
+              </Badge>
+            ) : null}
+            {locationBadgeLabel ? (
+              <Badge tone="neutral" className="w-fit bg-accent-soft text-accent">
+                {locationBadgeLabel}
+              </Badge>
+            ) : null}
+          </div>
           <div className="flex items-center justify-between gap-2 text-[11px] text-subtle">
             {durationLabel ? (
               <span className="flex items-center gap-1">
@@ -138,7 +160,7 @@ export const ExperienceListItem = ({
             )}
             <span className="text-accent">{t("View details")}</span>
           </div>
-          {provider ? (
+          {showProvider ? (
             <div className="text-[11px] text-subtle">
               {t("Provider")}: {provider}
             </div>

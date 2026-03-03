@@ -35,7 +35,6 @@ app:
     sync:
       enabled: ${VIATOR_SYNC_ENABLED:false}
       use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}
-      destination-refs: ${VIATOR_SYNC_DESTINATION_REFS:}
       cron: ${VIATOR_SYNC_CRON:0 */30 * * * *}
       zone: ${VIATOR_SYNC_ZONE:UTC}
       default-count: ${VIATOR_SYNC_DEFAULT_COUNT:100}

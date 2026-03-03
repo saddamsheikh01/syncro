@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Badge } from "@/components/elements/Badge";
 import { Card } from "@/components/elements/Card";
@@ -34,6 +35,7 @@ const toneByStatus = (status: UserStatus) => {
 
 export const AdminUsersOverview = () => {
   const { t } = useT();
+  const router = useRouter();
 
   const [query, setQuery] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
@@ -57,7 +59,6 @@ export const AdminUsersOverview = () => {
   const [deleting, setDeleting] = useState(false);
   const [editLanguage, setEditLanguage] = useState("it");
   const [editStatus, setEditStatus] = useState<UserStatus>("ACTIVE");
-  const [editOnboarding, setEditOnboarding] = useState("false");
   const [newPassword, setNewPassword] = useState("");
   const [userTestsCount, setUserTestsCount] = useState<number | null>(null);
   const [loadingUserTestsCount, setLoadingUserTestsCount] = useState(false);
@@ -86,14 +87,6 @@ export const AdminUsersOverview = () => {
       { value: "ACTIVE", label: t("ACTIVE") },
       { value: "SUSPENDED", label: t("SUSPENDED") },
       { value: "DELETED", label: t("DELETED") },
-    ],
-    [t]
-  );
-
-  const editOnboardingOptions = useMemo(
-    () => [
-      { value: "true", label: t("Completed") },
-      { value: "false", label: t("Not completed") },
     ],
     [t]
   );
@@ -144,7 +137,6 @@ export const AdminUsersOverview = () => {
 
     setEditLanguage(selectedUser.language || "it");
     setEditStatus(selectedUser.status);
-    setEditOnboarding(selectedUser.onboardingCompleted ? "true" : "false");
 
     let isCancelled = false;
 
@@ -176,14 +168,22 @@ export const AdminUsersOverview = () => {
       return [];
     }
 
-      return response.content.map((user) => ({
-        id: user.id,
-        email: user.email ?? "-",
-        username: user.username ?? "-",
-        status: <Badge tone={toneByStatus(user.status)}>{t(user.status)}</Badge>,
-        onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
-        createdAt: formatDateTime(user.createdAt),
-        actions: (
+    return response.content.map((user) => ({
+      id: user.id,
+      email: user.email ?? "-",
+      username: user.username ?? "-",
+      status: <Badge tone={toneByStatus(user.status)}>{t(user.status)}</Badge>,
+      onboarding: user.onboardingCompleted ? t("Completed") : t("In progress"),
+      createdAt: formatDateTime(user.createdAt),
+      actions: (
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/admin/users/${user.id}/analytics`)}
+          >
+            {t("Analytics")}
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -191,9 +191,10 @@ export const AdminUsersOverview = () => {
           >
             {t("Manage")}
           </Button>
-        ),
-      }));
-  }, [response, t]);
+        </div>
+      ),
+    }));
+  }, [response, router, t]);
 
   const activeInPage = useMemo(
     () => response?.content.filter((user) => user.status === "ACTIVE").length ?? 0,
@@ -240,7 +241,6 @@ export const AdminUsersOverview = () => {
       await updateUser(selectedUser.id, {
         language: editLanguage.trim() || "it",
         status: editStatus,
-        onboardingCompleted: editOnboarding === "true",
       });
       await loadUsers();
     } catch (requestError) {
@@ -403,7 +403,7 @@ export const AdminUsersOverview = () => {
             </Button>
           </div>
 
-          <form className="grid gap-3 lg:grid-cols-4" onSubmit={handleUpdateSelectedUser}>
+          <form className="grid gap-3 lg:grid-cols-3" onSubmit={handleUpdateSelectedUser}>
             <Input
               label={t("Language")}
               value={editLanguage}
@@ -415,12 +415,6 @@ export const AdminUsersOverview = () => {
               value={editStatus}
               options={editStatusOptions}
               onValueChange={(value) => setEditStatus(value as UserStatus)}
-            />
-            <Select
-              label={t("Onboarding")}
-              value={editOnboarding}
-              options={editOnboardingOptions}
-              onValueChange={setEditOnboarding}
             />
             <div className="flex items-end">
               <Button type="submit" size="sm" loading={updating} loadingText={t("Saving")}>

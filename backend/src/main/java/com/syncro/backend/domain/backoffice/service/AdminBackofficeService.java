@@ -21,6 +21,7 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.auth.service.AuthService;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminOnboardingBackfillResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
@@ -51,6 +52,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,6 +82,7 @@ public class AdminBackofficeService {
     private final MediaObjectRepository mediaObjectRepository;
     private final SupportMessageRepository supportMessageRepository;
     private final AuthService authService;
+    private final JdbcTemplate jdbcTemplate;
 
     public AdminBackofficeService(
         UserRepository userRepository,
@@ -95,7 +98,8 @@ public class AdminBackofficeService {
         UserTestSubmissionRepository userTestSubmissionRepository,
         MediaObjectRepository mediaObjectRepository,
         SupportMessageRepository supportMessageRepository,
-        AuthService authService
+        AuthService authService,
+        JdbcTemplate jdbcTemplate
     ) {
         this.userRepository = userRepository;
         this.userAuthProviderRepository = userAuthProviderRepository;
@@ -111,6 +115,7 @@ public class AdminBackofficeService {
         this.mediaObjectRepository = mediaObjectRepository;
         this.supportMessageRepository = supportMessageRepository;
         this.authService = authService;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -248,7 +253,7 @@ public class AdminBackofficeService {
             user.setLanguage(request.language());
         }
         if (request.onboardingCompleted() != null) {
-            user.setOnboardingCompleted(request.onboardingCompleted());
+            throw new BadRequestException("onboardingCompleted e gestito automaticamente");
         }
         if (request.status() != null) {
             user.setStatus(request.status());
@@ -297,6 +302,44 @@ public class AdminBackofficeService {
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         user.setStatus(UserStatus.DELETED);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public AdminOnboardingBackfillResponse backfillOnboardingStatus(AdminPrincipal principal) {
+        ensureSuperAdmin(principal);
+
+        long totalUsers = userRepository.count();
+        long completedBefore = userRepository.countByOnboardingCompletedTrue();
+
+        int updatedUsers = jdbcTemplate.update(
+            """
+                update users u
+                set onboarding_completed = computed.completed
+                from (
+                    select
+                        u2.id,
+                        exists (
+                            select 1
+                            from user_profiles up
+                            where up.user_id = u2.id
+                              and nullif(trim(up.full_name), '') is not null
+                              and nullif(trim(up.city), '') is not null
+                              and nullif(trim(up.country), '') is not null
+                        ) as completed
+                    from users u2
+                ) computed
+                where u.id = computed.id
+                  and u.onboarding_completed is distinct from computed.completed
+                """
+        );
+
+        long completedAfter = userRepository.countByOnboardingCompletedTrue();
+        return new AdminOnboardingBackfillResponse(
+            totalUsers,
+            completedBefore,
+            completedAfter,
+            updatedUsers
+        );
     }
 
     @Transactional(readOnly = true)

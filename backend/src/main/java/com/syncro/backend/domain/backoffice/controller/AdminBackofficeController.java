@@ -7,6 +7,7 @@ import com.syncro.backend.domain.auth.entity.AdminStatus;
 import com.syncro.backend.domain.auth.entity.UserStatus;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
+import com.syncro.backend.domain.backoffice.dto.AdminOnboardingBackfillResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
@@ -167,6 +168,14 @@ public class AdminBackofficeController {
     ) {
         adminBackofficeService.deleteUser(principal, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/onboarding/backfill")
+    @Operation(summary = "Ricalcola onboardingCompleted per tutti gli utenti")
+    public ResponseEntity<AdminOnboardingBackfillResponse> backfillOnboardingStatus(
+        @AuthenticationPrincipal AdminPrincipal principal
+    ) {
+        return ResponseEntity.ok(adminBackofficeService.backfillOnboardingStatus(principal));
     }
 
     @GetMapping("/admin-users")

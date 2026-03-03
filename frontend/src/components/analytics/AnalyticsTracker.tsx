@@ -47,6 +47,12 @@ export const AnalyticsTracker = () => {
   useEffect(() => {
     if (status !== "authenticated") return;
 
+    const ensureSessionStart = () => {
+      const existing = window.sessionStorage.getItem(SESSION_START_KEY);
+      if (existing) return;
+      window.sessionStorage.setItem(SESSION_START_KEY, String(Date.now()));
+    };
+
     const sendSessionDuration = () => {
       const rawStart = window.sessionStorage.getItem(SESSION_START_KEY);
       if (!rawStart) return;
@@ -69,6 +75,10 @@ export const AnalyticsTracker = () => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         sendSessionDuration();
+        return;
+      }
+      if (document.visibilityState === "visible") {
+        ensureSessionStart();
       }
     };
 
@@ -76,6 +86,7 @@ export const AnalyticsTracker = () => {
       sendSessionDuration();
     };
 
+    ensureSessionStart();
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
 

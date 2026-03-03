@@ -22,7 +22,6 @@ public class ViatorConfig {
 
         private boolean enabled = false;
         private boolean useSearchOnly = false;
-        private String destinationRefs;
         private String cron = "0 */30 * * * *";
         private String zone = "UTC";
         private int defaultCount = 100;
@@ -56,14 +55,6 @@ public class ViatorConfig {
 
         public void setUseSearchOnly(boolean useSearchOnly) {
             this.useSearchOnly = useSearchOnly;
-        }
-
-        public String getDestinationRefs() {
-            return destinationRefs;
-        }
-
-        public void setDestinationRefs(String destinationRefs) {
-            this.destinationRefs = destinationRefs;
         }
 
         public String getZone() {

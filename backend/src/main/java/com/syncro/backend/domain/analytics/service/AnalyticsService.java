@@ -8,6 +8,9 @@ import com.syncro.backend.domain.analytics.dto.AnalyticsBatchRequest;
 import com.syncro.backend.domain.analytics.dto.AnalyticsBatchResponse;
 import com.syncro.backend.domain.analytics.dto.AnalyticsEventRequest;
 import com.syncro.backend.domain.analytics.dto.AnalyticsKpiResponse;
+import com.syncro.backend.domain.analytics.dto.AnalyticsSegmentCountResponse;
+import com.syncro.backend.domain.analytics.dto.AdminUserAnalyticsResponse;
+import com.syncro.backend.domain.analytics.dto.AdminUserFeatureUsageResponse;
 import com.syncro.backend.domain.analytics.dto.KpiPoint;
 import com.syncro.backend.domain.analytics.entity.AnalyticsEvent;
 import com.syncro.backend.domain.analytics.entity.AnalyticsEventDefinition;
@@ -24,15 +27,25 @@ import com.syncro.backend.domain.analytics.entity.AnalyticsSession;
 import com.syncro.backend.domain.auth.entity.AdminRole;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.tests.repository.TestDefinitionRepository;
 import com.syncro.backend.security.AdminPrincipal;
 import com.syncro.backend.security.UserPrincipal;
+import java.sql.Timestamp;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.time.temporal.TemporalAdjusters;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -57,6 +70,9 @@ public class AnalyticsService {
     private static final String KPI_PROFILE_VIEWED_DAILY = "profile_viewed_daily";
     private static final String KPI_MAP_OPENED_DAILY = "map_opened_daily";
     private static final String KPI_AVG_SESSION_DAILY = "avg_session_duration_seconds_daily";
+    private static final int MAX_USERS_PAGE_SIZE = 100;
+    private static final int DISTRIBUTION_LIMIT = 10;
+    private static final int PROFILE_COMPLETION_SECTIONS = 5;
 
     private final AnalyticsEventRepository analyticsEventRepository;
     private final AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository;
@@ -64,6 +80,7 @@ public class AnalyticsService {
     private final AnalyticsSessionRepository analyticsSessionRepository;
     private final AnalyticsDailyKpiRepository analyticsDailyKpiRepository;
     private final UserRepository userRepository;
+    private final TestDefinitionRepository testDefinitionRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public AnalyticsService(
@@ -73,6 +90,7 @@ public class AnalyticsService {
         AnalyticsSessionRepository analyticsSessionRepository,
         AnalyticsDailyKpiRepository analyticsDailyKpiRepository,
         UserRepository userRepository,
+        TestDefinitionRepository testDefinitionRepository,
         JdbcTemplate jdbcTemplate
     ) {
         this.analyticsEventRepository = analyticsEventRepository;
@@ -81,6 +99,7 @@ public class AnalyticsService {
         this.analyticsSessionRepository = analyticsSessionRepository;
         this.analyticsDailyKpiRepository = analyticsDailyKpiRepository;
         this.userRepository = userRepository;
+        this.testDefinitionRepository = testDefinitionRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -213,90 +232,570 @@ public class AnalyticsService {
 
         boolean hasPreAggregates = analyticsDailyKpiRepository.countInRange(startDate, endDate) > 0;
 
-        List<KpiPoint> registrationsDaily = hasPreAggregates
+        List<KpiPoint> registrationsDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_REGISTRATIONS_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.USER_REGISTERED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> registrationsDaily = fillMissingDailyBuckets(registrationsDailyRaw, startDate, endDate);
 
-        List<KpiPoint> registrationsWeekly = hasPreAggregates
+        List<KpiPoint> registrationsWeeklyRaw = hasPreAggregates
             ? mapBuckets(analyticsDailyKpiRepository.findWeeklySumByKpiName(KPI_REGISTRATIONS_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeWeekly(
                 AnalyticsEventType.USER_REGISTERED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> registrationsWeekly = fillMissingWeeklyBuckets(registrationsWeeklyRaw, startDate, endDate);
 
-        List<KpiPoint> onboardingDaily = hasPreAggregates
+        List<KpiPoint> onboardingDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_ONBOARDING_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.ONBOARDING_COMPLETED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> onboardingDaily = fillMissingDailyBuckets(onboardingDailyRaw, startDate, endDate);
 
-        List<KpiPoint> onboardingWeekly = hasPreAggregates
+        List<KpiPoint> onboardingWeeklyRaw = hasPreAggregates
             ? mapBuckets(analyticsDailyKpiRepository.findWeeklySumByKpiName(KPI_ONBOARDING_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeWeekly(
                 AnalyticsEventType.ONBOARDING_COMPLETED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> onboardingWeekly = fillMissingWeeklyBuckets(onboardingWeeklyRaw, startDate, endDate);
+        long onboardingCompletedUsersTotal = userRepository.countByOnboardingCompletedTrue();
 
-        List<KpiPoint> activeUsersDaily = mapBuckets(analyticsEventRepository.countUniqueUsersDaily(
+        List<KpiPoint> activeUsersDailyRaw = mapBuckets(analyticsEventRepository.countUniqueUsersDaily(
             fromInstant,
             toInstant
         ));
+        List<KpiPoint> activeUsersDaily = fillMissingDailyBuckets(activeUsersDailyRaw, startDate, endDate);
 
-        List<KpiPoint> activeUsersWeekly = mapBuckets(analyticsEventRepository.countUniqueUsersWeekly(
+        List<KpiPoint> activeUsersWeeklyRaw = mapBuckets(analyticsEventRepository.countUniqueUsersWeekly(
             fromInstant,
             toInstant
         ));
+        List<KpiPoint> activeUsersWeekly = fillMissingWeeklyBuckets(activeUsersWeeklyRaw, startDate, endDate);
 
-        List<KpiPoint> matchSectionOpenedDaily = hasPreAggregates
+        List<KpiPoint> matchSectionOpenedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_MATCH_SECTION_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.MATCH_SECTION_OPENED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> matchSectionOpenedDaily = fillMissingDailyBuckets(matchSectionOpenedDailyRaw, startDate, endDate);
 
-        List<KpiPoint> profileViewedDaily = hasPreAggregates
+        List<KpiPoint> profileViewedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_PROFILE_VIEWED_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.PROFILE_VIEWED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> profileViewedDaily = fillMissingDailyBuckets(profileViewedDailyRaw, startDate, endDate);
 
-        List<KpiPoint> mapOpenedDaily = hasPreAggregates
+        List<KpiPoint> mapOpenedDailyRaw = hasPreAggregates
             ? mapDailyRows(analyticsDailyKpiRepository.findDailyByKpiName(KPI_MAP_OPENED_DAILY, startDate, endDate))
             : mapBuckets(analyticsEventRepository.countEventsByTypeDaily(
                 AnalyticsEventType.MAP_OPENED.name(),
                 fromInstant,
                 toInstant
             ));
+        List<KpiPoint> mapOpenedDaily = fillMissingDailyBuckets(mapOpenedDailyRaw, startDate, endDate);
 
         long returningUsers = computeReturningUsers(endDate);
 
         double averageSessionDurationSeconds = hasPreAggregates
             ? resolvePreAggregatedAverage(startDate, endDate)
             : resolveAverageSessionDurationRaw(fromInstant, toInstant);
+        List<AnalyticsSegmentCountResponse> countryDistribution = loadCountryDistribution();
+        List<AnalyticsSegmentCountResponse> cityDistribution = loadCityDistribution();
+        List<AnalyticsSegmentCountResponse> genderDistribution = loadGenderDistribution();
+        List<AnalyticsSegmentCountResponse> ageDistribution = loadAgeDistribution();
 
         return new AnalyticsKpiResponse(
             registrationsDaily,
             registrationsWeekly,
             onboardingDaily,
             onboardingWeekly,
+            onboardingCompletedUsersTotal,
             activeUsersDaily,
             activeUsersWeekly,
             returningUsers,
             matchSectionOpenedDaily,
             profileViewedDaily,
             mapOpenedDaily,
-            averageSessionDurationSeconds
+            averageSessionDurationSeconds,
+            countryDistribution,
+            cityDistribution,
+            genderDistribution,
+            ageDistribution
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserFeatureUsageResponse> getUsersFeatureUsage(
+        AdminPrincipal principal,
+        LocalDate from,
+        LocalDate to,
+        String q,
+        int page,
+        int size
+    ) {
+        ensureAdmin(principal);
+        LocalDate endDate = to != null ? to : LocalDate.now(ZoneOffset.UTC);
+        LocalDate startDate = from != null ? from : endDate.minusDays(DEFAULT_RANGE_DAYS);
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("Intervallo date non valido");
+        }
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_USERS_PAGE_SIZE));
+        Instant fromInstant = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant toInstant = endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Timestamp fromTimestamp = Timestamp.from(fromInstant);
+        Timestamp toTimestamp = Timestamp.from(toInstant);
+        String normalizedQuery = normalizeSearchQuery(q);
+        String likeQuery = normalizedQuery == null ? null : "%" + normalizedQuery + "%";
+
+        Long totalElements = jdbcTemplate.queryForObject(
+            """
+                select count(*)
+                from users u
+                left join user_profiles up on up.user_id = u.id
+                where (?::text is null
+                  or lower(coalesce(u.email, '')) like ?
+                  or lower(coalesce(u.username, '')) like ?
+                  or lower(coalesce(up.full_name, '')) like ?)
+                """,
+            Long.class,
+            normalizedQuery,
+            likeQuery,
+            likeQuery,
+            likeQuery
+        );
+        long total = totalElements != null ? totalElements : 0L;
+        if (total == 0L) {
+            return Page.empty(PageRequest.of(safePage, safeSize));
+        }
+
+        long testsRequired = Math.max(testDefinitionRepository.countByActiveTrue(), 0L);
+
+        List<AdminUserFeatureUsageResponse> rows = jdbcTemplate.query(
+            """
+                with filtered_users as (
+                    select
+                        u.id,
+                        u.email,
+                        u.username,
+                        u.onboarding_completed,
+                        u.created_at,
+                        up.full_name,
+                        up.country,
+                        up.city,
+                        up.gender,
+                        up.birth_date,
+                        (
+                            nullif(trim(up.full_name), '') is not null
+                            and nullif(trim(up.city), '') is not null
+                            and nullif(trim(up.country), '') is not null
+                        ) as has_profile,
+                        (
+                            pref.user_id is not null
+                            and (
+                                coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
+                                or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
+                                or coalesce(pref.privacy_policy_accepted, false)
+                                or coalesce(pref.newsletter_consent, false)
+                            )
+                        ) as has_preferences,
+                        (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position
+                    from users u
+                    left join user_profiles up on up.user_id = u.id
+                    left join user_preferences pref on pref.user_id = u.id
+                    left join user_positions pos on pos.user_id = u.id
+                    where (?::text is null
+                      or lower(coalesce(u.email, '')) like ?
+                      or lower(coalesce(u.username, '')) like ?
+                      or lower(coalesce(up.full_name, '')) like ?)
+                ),
+                event_counts as (
+                    select
+                        e.user_id,
+                        count(*) filter (where e.event_type = 'CHAT_MESSAGE_SENT') as chat_uses,
+                        count(*) filter (
+                            where e.event_type in (
+                                'MAP_OPENED',
+                                'MAP_SEARCH_LOCATION_SELECTED',
+                                'MAP_PLACE_SELECTED',
+                                'MAP_DIRECTIONS_OPENED',
+                                'MAP_FILTER_TOGGLED'
+                            )
+                        ) as map_uses,
+                        count(*) filter (where e.event_type in ('MATCH_SECTION_OPENED', 'MATCH_CARD_OPENED')) as match_uses,
+                        count(*) filter (where e.event_type = 'POST_CREATED') as moments_uses
+                    from analytics_events e
+                    where e.user_id is not null
+                      and e.occurred_at >= ?
+                      and e.occurred_at < ?
+                      and e.event_type in (
+                          'CHAT_MESSAGE_SENT',
+                          'MAP_OPENED',
+                          'MAP_SEARCH_LOCATION_SELECTED',
+                          'MAP_PLACE_SELECTED',
+                          'MAP_DIRECTIONS_OPENED',
+                          'MAP_FILTER_TOGGLED',
+                          'MATCH_SECTION_OPENED',
+                          'MATCH_CARD_OPENED',
+                          'POST_CREATED'
+                      )
+                    group by e.user_id
+                ),
+                interests_counts as (
+                    select ui.user_id, count(*) as interests_count
+                    from user_interests ui
+                    group by ui.user_id
+                ),
+                tests_counts as (
+                    select uts.user_id, count(distinct uts.test_id) as tests_completed
+                    from user_test_submissions uts
+                    group by uts.user_id
+                )
+                select
+                    fu.id,
+                    fu.email,
+                    fu.username,
+                    fu.full_name,
+                    fu.country,
+                    fu.city,
+                    fu.gender,
+                    case
+                        when fu.birth_date is null then null
+                        else extract(year from age(current_date, fu.birth_date))::int
+                    end as age,
+                    fu.onboarding_completed,
+                    fu.has_profile,
+                    fu.has_preferences,
+                    fu.has_position,
+                    coalesce(ec.chat_uses, 0) as chat_uses,
+                    coalesce(ec.map_uses, 0) as map_uses,
+                    coalesce(ec.match_uses, 0) as match_uses,
+                    coalesce(ec.moments_uses, 0) as moments_uses,
+                    coalesce(ic.interests_count, 0) as interests_count,
+                    coalesce(tc.tests_completed, 0) as tests_completed
+                from filtered_users fu
+                left join event_counts ec on ec.user_id = fu.id
+                left join interests_counts ic on ic.user_id = fu.id
+                left join tests_counts tc on tc.user_id = fu.id
+                order by fu.created_at desc, fu.id desc
+                limit ? offset ?
+                """,
+            (rs, rowNum) -> {
+                boolean hasProfile = rs.getBoolean("has_profile");
+                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasPosition = rs.getBoolean("has_position");
+                long interestsCount = rs.getLong("interests_count");
+                long testsCompleted = rs.getLong("tests_completed");
+                boolean hasInterests = interestsCount > 0;
+                boolean hasTests = testsRequired == 0L || testsCompleted >= testsRequired;
+
+                List<String> missingSections = new ArrayList<>();
+                if (!hasProfile) {
+                    missingSections.add("profile");
+                }
+                if (!hasPreferences) {
+                    missingSections.add("preferences");
+                }
+                if (!hasPosition) {
+                    missingSections.add("position");
+                }
+                if (!hasInterests) {
+                    missingSections.add("interests");
+                }
+                if (!hasTests) {
+                    missingSections.add("tests");
+                }
+
+                int completedSections = PROFILE_COMPLETION_SECTIONS - missingSections.size();
+                int profileCompletionPercent = (int) Math.round((completedSections * 100.0) / PROFILE_COMPLETION_SECTIONS);
+                Integer age = (Integer) rs.getObject("age");
+                if (age != null && age < 0) {
+                    age = null;
+                }
+                String username = normalizeBlank(rs.getString("username"));
+                String fullName = normalizeBlank(rs.getString("full_name"));
+
+                return new AdminUserFeatureUsageResponse(
+                    rs.getObject("id", UUID.class),
+                    normalizeBlank(rs.getString("email")),
+                    username,
+                    fullName != null ? fullName : username,
+                    normalizeBlank(rs.getString("country")),
+                    normalizeBlank(rs.getString("city")),
+                    normalizeBlank(rs.getString("gender")),
+                    age,
+                    rs.getBoolean("onboarding_completed"),
+                    rs.getLong("chat_uses"),
+                    rs.getLong("map_uses"),
+                    rs.getLong("match_uses"),
+                    rs.getLong("moments_uses"),
+                    interestsCount,
+                    testsCompleted,
+                    testsRequired,
+                    missingSections.isEmpty(),
+                    profileCompletionPercent,
+                    List.copyOf(missingSections)
+                );
+            },
+            normalizedQuery,
+            likeQuery,
+            likeQuery,
+            likeQuery,
+            fromTimestamp,
+            toTimestamp,
+            safeSize,
+            (long) safePage * safeSize
+        );
+
+        return new PageImpl<>(rows, PageRequest.of(safePage, safeSize), total);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserAnalyticsResponse getUserAnalytics(
+        AdminPrincipal principal,
+        UUID userId,
+        LocalDate from,
+        LocalDate to
+    ) {
+        ensureAdmin(principal);
+        if (userId == null) {
+            throw new BadRequestException("Utente non valido");
+        }
+
+        LocalDate endDate = to != null ? to : LocalDate.now(ZoneOffset.UTC);
+        LocalDate startDate = from != null ? from : endDate.minusDays(DEFAULT_RANGE_DAYS);
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("Intervallo date non valido");
+        }
+
+        Instant fromInstant = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant toInstant = endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Timestamp fromTimestamp = Timestamp.from(fromInstant);
+        Timestamp toTimestamp = Timestamp.from(toInstant);
+        long testsRequired = Math.max(testDefinitionRepository.countByActiveTrue(), 0L);
+
+        List<AdminUserAnalyticsResponse> rows = jdbcTemplate.query(
+            """
+                select
+                    u.id,
+                    u.email,
+                    u.username,
+                    u.onboarding_completed,
+                    up.full_name,
+                    up.country,
+                    up.city,
+                    up.gender,
+                    case
+                        when up.birth_date is null then null
+                        else extract(year from age(current_date, up.birth_date))::int
+                    end as age,
+                    (
+                        nullif(trim(up.full_name), '') is not null
+                        and nullif(trim(up.city), '') is not null
+                        and nullif(trim(up.country), '') is not null
+                    ) as has_profile,
+                    (
+                        pref.user_id is not null
+                        and (
+                            coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
+                            or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
+                            or coalesce(pref.privacy_policy_accepted, false)
+                            or coalesce(pref.newsletter_consent, false)
+                        )
+                    ) as has_preferences,
+                    (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position,
+                    coalesce(ic.interests_count, 0) as interests_count,
+                    coalesce(tc.tests_completed, 0) as tests_completed
+                from users u
+                left join user_profiles up on up.user_id = u.id
+                left join user_preferences pref on pref.user_id = u.id
+                left join user_positions pos on pos.user_id = u.id
+                left join (
+                    select ui.user_id, count(*) as interests_count
+                    from user_interests ui
+                    group by ui.user_id
+                ) ic on ic.user_id = u.id
+                left join (
+                    select uts.user_id, count(distinct uts.test_id) as tests_completed
+                    from user_test_submissions uts
+                    group by uts.user_id
+                ) tc on tc.user_id = u.id
+                where u.id = ?
+                """,
+            (rs, rowNum) -> {
+                boolean hasProfile = rs.getBoolean("has_profile");
+                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasPosition = rs.getBoolean("has_position");
+                long interestsCount = rs.getLong("interests_count");
+                long testsCompleted = rs.getLong("tests_completed");
+                boolean hasInterests = interestsCount > 0;
+                boolean hasTests = testsRequired == 0L || testsCompleted >= testsRequired;
+
+                List<String> missingSections = new ArrayList<>();
+                if (!hasProfile) {
+                    missingSections.add("profile");
+                }
+                if (!hasPreferences) {
+                    missingSections.add("preferences");
+                }
+                if (!hasPosition) {
+                    missingSections.add("position");
+                }
+                if (!hasInterests) {
+                    missingSections.add("interests");
+                }
+                if (!hasTests) {
+                    missingSections.add("tests");
+                }
+
+                int completedSections = PROFILE_COMPLETION_SECTIONS - missingSections.size();
+                int profileCompletionPercent = (int) Math.round((completedSections * 100.0) / PROFILE_COMPLETION_SECTIONS);
+                Integer age = (Integer) rs.getObject("age");
+                if (age != null && age < 0) {
+                    age = null;
+                }
+                String username = normalizeBlank(rs.getString("username"));
+                String fullName = normalizeBlank(rs.getString("full_name"));
+
+                return new AdminUserAnalyticsResponse(
+                    rs.getObject("id", UUID.class),
+                    normalizeBlank(rs.getString("email")),
+                    username,
+                    fullName != null ? fullName : username,
+                    rs.getBoolean("onboarding_completed"),
+                    normalizeBlank(rs.getString("country")),
+                    normalizeBlank(rs.getString("city")),
+                    normalizeBlank(rs.getString("gender")),
+                    age,
+                    0L,
+                    0L,
+                    0L,
+                    0L,
+                    interestsCount,
+                    testsCompleted,
+                    testsRequired,
+                    missingSections.isEmpty(),
+                    profileCompletionPercent,
+                    List.copyOf(missingSections),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of()
+                );
+            },
+            userId
+        );
+
+        if (rows.isEmpty()) {
+            throw new NotFoundException("Utente non trovato");
+        }
+
+        AdminUserAnalyticsResponse base = rows.getFirst();
+        Map<String, List<KpiPoint>> byFeature = new LinkedHashMap<>();
+        byFeature.put("chat", new ArrayList<>());
+        byFeature.put("map", new ArrayList<>());
+        byFeature.put("match", new ArrayList<>());
+        byFeature.put("moments", new ArrayList<>());
+
+        jdbcTemplate.query(
+            """
+                select
+                    date_trunc('day', occurred_at) as bucket,
+                    case
+                        when event_type = 'CHAT_MESSAGE_SENT' then 'chat'
+                        when event_type in (
+                            'MAP_OPENED',
+                            'MAP_SEARCH_LOCATION_SELECTED',
+                            'MAP_PLACE_SELECTED',
+                            'MAP_DIRECTIONS_OPENED',
+                            'MAP_FILTER_TOGGLED'
+                        ) then 'map'
+                        when event_type in ('MATCH_SECTION_OPENED', 'MATCH_CARD_OPENED') then 'match'
+                        when event_type = 'POST_CREATED' then 'moments'
+                        else null
+                    end as feature,
+                    count(*) as total
+                from analytics_events
+                where user_id = ?
+                  and occurred_at >= ?
+                  and occurred_at < ?
+                  and event_type in (
+                      'CHAT_MESSAGE_SENT',
+                      'MAP_OPENED',
+                      'MAP_SEARCH_LOCATION_SELECTED',
+                      'MAP_PLACE_SELECTED',
+                      'MAP_DIRECTIONS_OPENED',
+                      'MAP_FILTER_TOGGLED',
+                      'MATCH_SECTION_OPENED',
+                      'MATCH_CARD_OPENED',
+                      'POST_CREATED'
+                  )
+                group by bucket, feature
+                order by bucket asc
+                """,
+            rs -> {
+                String feature = rs.getString("feature");
+                if (feature == null || !byFeature.containsKey(feature)) {
+                    return;
+                }
+                Instant bucket = rs.getTimestamp("bucket").toInstant();
+                long total = rs.getLong("total");
+                byFeature.get(feature).add(new KpiPoint(bucket, total));
+            },
+            userId,
+            fromTimestamp,
+            toTimestamp
+        );
+
+        List<KpiPoint> chatDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("chat")), startDate, endDate);
+        List<KpiPoint> mapDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("map")), startDate, endDate);
+        List<KpiPoint> matchDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("match")), startDate, endDate);
+        List<KpiPoint> momentsDaily = fillMissingDailyBuckets(List.copyOf(byFeature.get("moments")), startDate, endDate);
+
+        long chatUses = sumKpiValues(chatDaily);
+        long mapUses = sumKpiValues(mapDaily);
+        long matchUses = sumKpiValues(matchDaily);
+        long momentsUses = sumKpiValues(momentsDaily);
+
+        return new AdminUserAnalyticsResponse(
+            base.userId(),
+            base.email(),
+            base.username(),
+            base.fullName(),
+            base.onboardingCompleted(),
+            base.country(),
+            base.city(),
+            base.gender(),
+            base.age(),
+            chatUses,
+            mapUses,
+            matchUses,
+            momentsUses,
+            base.interestsCount(),
+            base.testsCompleted(),
+            base.testsRequired(),
+            base.profileCompleted(),
+            base.profileCompletionPercent(),
+            base.missingSections(),
+            chatDaily,
+            mapDaily,
+            matchDaily,
+            momentsDaily
         );
     }
 
@@ -347,6 +846,94 @@ public class AnalyticsService {
         return average.doubleValue();
     }
 
+    private List<AnalyticsSegmentCountResponse> loadCountryDistribution() {
+        return jdbcTemplate.query(
+            """
+                select
+                    coalesce(nullif(trim(up.country), ''), 'Unknown') as label,
+                    count(*) as total
+                from users u
+                left join user_profiles up on up.user_id = u.id
+                group by label
+                order by total desc, label asc
+                limit ?
+            """,
+            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
+            DISTRIBUTION_LIMIT
+        );
+    }
+
+    private List<AnalyticsSegmentCountResponse> loadCityDistribution() {
+        return jdbcTemplate.query(
+            """
+                select
+                    coalesce(nullif(trim(up.city), ''), 'Unknown') as label,
+                    count(*) as total
+                from users u
+                left join user_profiles up on up.user_id = u.id
+                group by label
+                order by total desc, label asc
+                limit ?
+            """,
+            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
+            DISTRIBUTION_LIMIT
+        );
+    }
+
+    private List<AnalyticsSegmentCountResponse> loadGenderDistribution() {
+        return jdbcTemplate.query(
+            """
+                select
+                    coalesce(nullif(trim(up.gender), ''), 'UNKNOWN') as label,
+                    count(*) as total
+                from users u
+                left join user_profiles up on up.user_id = u.id
+                group by label
+                order by total desc, label asc
+                limit ?
+            """,
+            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total")),
+            DISTRIBUTION_LIMIT
+        );
+    }
+
+    private List<AnalyticsSegmentCountResponse> loadAgeDistribution() {
+        return jdbcTemplate.query(
+            """
+                select label, count(*) as total
+                from (
+                    select
+                        case
+                            when up.birth_date is null then 'Unknown'
+                            when extract(year from age(current_date, up.birth_date)) < 18 then '<18'
+                            when extract(year from age(current_date, up.birth_date)) between 18 and 24 then '18-24'
+                            when extract(year from age(current_date, up.birth_date)) between 25 and 34 then '25-34'
+                            when extract(year from age(current_date, up.birth_date)) between 35 and 44 then '35-44'
+                            when extract(year from age(current_date, up.birth_date)) between 45 and 54 then '45-54'
+                            else '55+'
+                        end as label
+                    from users u
+                    left join user_profiles up on up.user_id = u.id
+                ) age_groups
+                group by label
+                order by case label
+                    when '<18' then 1
+                    when '18-24' then 2
+                    when '25-34' then 3
+                    when '35-44' then 4
+                    when '45-54' then 5
+                    when '55+' then 6
+                    else 7
+                end
+            """,
+            (rs, rowNum) -> new AnalyticsSegmentCountResponse(rs.getString("label"), rs.getLong("total"))
+        );
+    }
+
+    private long sumKpiValues(List<KpiPoint> points) {
+        return points.stream().mapToLong(KpiPoint::value).sum();
+    }
+
     private List<KpiPoint> mapBuckets(List<AnalyticsBucketCountProjection> rows) {
         return rows.stream()
             .map(row -> new KpiPoint(row.getBucket(), row.getTotal()))
@@ -357,6 +944,51 @@ public class AnalyticsService {
         return rows.stream()
             .map(row -> new KpiPoint(row.getMetricDate().atStartOfDay(ZoneOffset.UTC).toInstant(), row.getValue().longValue()))
             .toList();
+    }
+
+    private List<KpiPoint> fillMissingDailyBuckets(List<KpiPoint> points, LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Long> byDay = points.stream()
+            .collect(Collectors.toMap(
+                point -> point.bucket().atZone(ZoneOffset.UTC).toLocalDate(),
+                KpiPoint::value,
+                Long::sum,
+                LinkedHashMap::new
+            ));
+
+        List<KpiPoint> filled = new ArrayList<>();
+        LocalDate cursor = startDate;
+        while (!cursor.isAfter(endDate)) {
+            filled.add(new KpiPoint(
+                cursor.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                byDay.getOrDefault(cursor, 0L)
+            ));
+            cursor = cursor.plusDays(1);
+        }
+        return List.copyOf(filled);
+    }
+
+    private List<KpiPoint> fillMissingWeeklyBuckets(List<KpiPoint> points, LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Long> byWeek = points.stream()
+            .collect(Collectors.toMap(
+                point -> point.bucket().atZone(ZoneOffset.UTC).toLocalDate(),
+                KpiPoint::value,
+                Long::sum,
+                LinkedHashMap::new
+            ));
+
+        LocalDate firstWeek = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate lastWeek = endDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        List<KpiPoint> filled = new ArrayList<>();
+        LocalDate cursor = firstWeek;
+        while (!cursor.isAfter(lastWeek)) {
+            filled.add(new KpiPoint(
+                cursor.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                byWeek.getOrDefault(cursor, 0L)
+            ));
+            cursor = cursor.plusWeeks(1);
+        }
+        return List.copyOf(filled);
     }
 
     private TrackingOutcome persistValidatedEvent(
@@ -546,6 +1178,11 @@ public class AnalyticsService {
             return null;
         }
         return trimmed;
+    }
+
+    private String normalizeSearchQuery(String value) {
+        String normalized = normalizeBlank(value);
+        return normalized == null ? null : normalized.toLowerCase();
     }
 
     private User getUser(UserPrincipal principal) {

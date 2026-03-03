@@ -1,6 +1,13 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
-import type { AnalyticsKpiParams, AnalyticsKpiResponse } from "../../types/analytics";
+import type {
+  AdminUserAnalyticsResponse,
+  AdminUsersFeatureUsagePageResponse,
+  AdminUsersFeatureUsageParams,
+  AnalyticsKpiParams,
+  AnalyticsKpiResponse,
+} from "../../types/analytics";
+import type { Uuid } from "../../types/shared";
 
 export const getKpis = async (
   params: AnalyticsKpiParams = {}
@@ -18,4 +25,25 @@ export const refreshKpis = async (
   await apiClient.post("/admin/analytics/refresh", null, {
     params: buildQueryParams(params),
   });
+};
+
+export const getUsersFeatureUsage = async (
+  params: AdminUsersFeatureUsageParams = {}
+): Promise<AdminUsersFeatureUsagePageResponse> => {
+  const { data } = await apiClient.get<AdminUsersFeatureUsagePageResponse>(
+    "/admin/analytics/users",
+    { params: buildQueryParams(params) }
+  );
+  return data;
+};
+
+export const getUserAnalytics = async (
+  userId: Uuid,
+  params: AnalyticsKpiParams = {}
+): Promise<AdminUserAnalyticsResponse> => {
+  const { data } = await apiClient.get<AdminUserAnalyticsResponse>(
+    `/admin/analytics/users/${userId}`,
+    { params: buildQueryParams(params) }
+  );
+  return data;
 };

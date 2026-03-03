@@ -13,7 +13,7 @@ import { Select } from "@/components/elements/Select";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import type { PostComposerPayload } from "@/features/social/sections/PostComposerModal";
 import { PostComposerModal } from "@/features/social/sections/PostComposerModal";
-import { useAuth, useFeed, usePosition, useT, useUser } from "@/hooks";
+import { useAnalytics, useAuth, useFeed, usePosition, useT, useUser } from "@/hooks";
 import { uploadPostMedia } from "@/services/media";
 import { createPost, deletePost as deletePostRequest } from "@/services/social";
 import { getUserSummary } from "@/services/users";
@@ -189,6 +189,7 @@ const formatUploadFailureError = (
 export const Feed = () => {
   const router = useRouter();
   const { t } = useT();
+  const { actions: analyticsActions } = useAnalytics();
   const { status, user, actions: authActions } = useAuth();
   const { preferences, profile, language, actions: userActions } = useUser();
   const {
@@ -564,6 +565,11 @@ export const Feed = () => {
           throw new Error(uploadErrorMessage);
         }
       }
+
+      void analyticsActions.trackEvent({
+        eventName: "POST_CREATED",
+        payload: { post_id: created.id },
+      });
 
       setComposerOpen(false);
       feedActions

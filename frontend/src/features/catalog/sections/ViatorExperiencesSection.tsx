@@ -210,7 +210,7 @@ export const ViatorExperiencesSection = ({
     () =>
       items.map((exp) => ({
         title: exp.name,
-        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
+        subtitle: exp.place?.name ?? exp.locationName ?? undefined,
         category: exp.category?.name ?? undefined,
         href: `/experiences/${exp.id}`,
         imageUrl: exp.imageUrl ?? undefined,
