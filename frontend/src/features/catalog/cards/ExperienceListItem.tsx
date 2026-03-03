@@ -61,12 +61,12 @@ export const ExperienceListItem = ({
   const card = (
     <div
       className={cx(
-        "group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
+        "group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border/70 bg-card shadow-sm transition-all duration-300 hover:border-border-strong hover:shadow-md",
         className
       )}
       {...props}
     >
-      <div className="relative h-36 w-full overflow-hidden bg-surface-muted">
+      <div className="relative h-36 w-full shrink-0 overflow-hidden bg-surface-muted">
         {media ?? (imageUrl ? (
           <img
             src={imageUrl}
@@ -97,7 +97,7 @@ export const ExperienceListItem = ({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
         <h4 className="line-clamp-2 text-sm font-semibold text-foreground">
           {title}
         </h4>
@@ -150,7 +150,7 @@ export const ExperienceListItem = ({
 
   if (href) {
     return (
-      <Link href={href} className="block snap-start">
+      <Link href={href} className="block h-full snap-start">
         {card}
       </Link>
     );
@@ -158,11 +158,11 @@ export const ExperienceListItem = ({
 
   if (onPress) {
     return (
-      <button type="button" onClick={onPress} className="w-full snap-start text-left">
+      <button type="button" onClick={onPress} className="flex h-full w-full snap-start flex-col text-left">
         {card}
       </button>
     );
   }
 
-  return <div className="snap-start">{card}</div>;
+  return <div className="flex h-full snap-start flex-col">{card}</div>;
 };

@@ -1,6 +1,7 @@
 import { apiClient } from "../axiosConfig";
 import { buildQueryParams } from "../utils/queryParams";
 import type {
+  CatalogResponse,
   CategoryResponse,
   ExperienceDetailResponse,
   ExperienceSummaryResponse,
@@ -40,6 +41,16 @@ export const getCategories = async (
       params: buildQueryParams(params),
     }
   );
+  return data;
+};
+
+/** Unified catalog: places and experiences in one request (All tab). */
+export const getCatalog = async (
+  params: CatalogSearchParams = {}
+): Promise<CatalogResponse> => {
+  const { data } = await apiClient.get<CatalogResponse>("/catalog", {
+    params: buildQueryParams(params),
+  });
   return data;
 };
 

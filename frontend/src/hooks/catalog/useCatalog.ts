@@ -10,6 +10,7 @@ export const useCatalog = () => {
   const actions = useMemo(
     () => ({
       setFilters: catalogActions.setFilters,
+      fetchCatalog: catalogActions.fetchCatalog,
       fetchCategories: catalogActions.fetchCategories,
       fetchPlaces: catalogActions.fetchPlaces,
       fetchPlace: catalogActions.fetchPlace,
@@ -23,11 +24,15 @@ export const useCatalog = () => {
   const hasMorePlaces = state.placesPage.page + 1 < state.placesPage.totalPages;
   const hasMoreExperiences =
     state.experiencesPage.page + 1 < state.experiencesPage.totalPages;
+  const hasMoreCatalog =
+    state.catalogPlacesPage.page + 1 < state.catalogPlacesPage.totalPages ||
+    state.catalogExperiencesPage.page + 1 < state.catalogExperiencesPage.totalPages;
 
   return {
     ...state,
     hasMorePlaces,
     hasMoreExperiences,
+    hasMoreCatalog,
     actions,
   };
 };
