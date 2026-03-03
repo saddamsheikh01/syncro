@@ -49,7 +49,6 @@ import {
 import { EmailVerificationOtpModal } from "@/features/auth/components/EmailVerificationOtpModal";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
-import { AstrologyBirthChartCard } from "@/features/profile/cards/AstrologyBirthChartCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { ShareZyraRecapCard } from "@/features/zyra/cards/ShareZyraRecapCard";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
@@ -1489,15 +1488,6 @@ export const ProfileSettings = ({
           </div>
         </Card>
 
-        <SectionHeader
-          title={t("Birth chart")}
-          subtitle={t("Used for compatibility. Add place and optional time for better accuracy.")}
-        />
-        <AstrologyBirthChartCard
-          initialBirthDate={profile?.birthDate ?? undefined}
-          initialInterpretation={profile?.zyraBirthChartInterpretation ?? undefined}
-          onSaved={() => userActions.fetchProfile()}
-        />
       </section>
 
       <section id="preferences" className="space-y-4">

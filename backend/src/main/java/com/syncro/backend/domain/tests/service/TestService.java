@@ -212,6 +212,9 @@ public class TestService {
     public TestCountResponse getMyCompletedTestsCount(UserPrincipal principal) {
         User user = getUser(principal);
         long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(user.getId());
+        if (hasCompletedBirthChart(user.getId())) {
+            count += 1;
+        }
         return new TestCountResponse(count);
     }
 
@@ -230,7 +233,23 @@ public class TestService {
         }
         userRepository.findById(userId).orElseThrow(() -> new NotFoundException("Utente non trovato"));
         long count = userTestSubmissionRepository.countDistinctTestDefinitionIdByUserId(userId);
+        if (hasCompletedBirthChart(userId)) {
+            count += 1;
+        }
         return new TestCountResponse(count);
+    }
+
+    /**
+     * Birth chart is considered completed when the user has saved a chart via Profile/Insights
+     * (date + place and optional time, with calculation saved to profile).
+     */
+    private boolean hasCompletedBirthChart(UUID userId) {
+        return userProfileRepository.findByUserId(userId)
+            .filter(p -> p.getBirthDate() != null && (
+                (p.getZyraBirthChartInterpretation() != null && !p.getZyraBirthChartInterpretation().isBlank())
+                || p.getSunSign() != null
+            ))
+            .isPresent();
     }
 
     @Transactional
