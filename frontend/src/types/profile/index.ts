@@ -42,6 +42,8 @@ export type UserProfileResponse = {
   valuesText: string | null;
   zyraRecap: string | null;
   zyraBirthChartInterpretation: string | null;
+  /** True when birth chart is completed (birthDate + interpretation or sunSign). Matches backend hasCompletedBirthChart. */
+  hasBirthChart?: boolean;
   gender: string | null;
   relationshipStatus: string | null;
   orientation: string | null;

@@ -33,6 +33,7 @@ public class UserProfileMapper {
             profile.getValuesText(),
             profile.getZyraRecap(),
             profile.getZyraBirthChartInterpretation(),
+            hasBirthChart(profile),
             profile.getGender() != null ? profile.getGender().name() : null,
             profile.getRelationshipStatus() != null ? profile.getRelationshipStatus().name() : null,
             profile.getOrientation() != null ? profile.getOrientation().name() : null,
@@ -118,6 +119,19 @@ public class UserProfileMapper {
             avatarUrl,
             profile.getVisibility() != null ? profile.getVisibility().name() : null
         );
+    }
+
+    /**
+     * Matches TestService.hasCompletedBirthChart: birthDate set and
+     * (interpretation not blank or sunSign set).
+     */
+    private static boolean hasBirthChart(UserProfile profile) {
+        if (profile.getBirthDate() == null) return false;
+        if (profile.getZyraBirthChartInterpretation() != null
+                && !profile.getZyraBirthChartInterpretation().isBlank()) {
+            return true;
+        }
+        return profile.getSunSign() != null;
     }
 
     private Integer calculateAge(LocalDate birthDate) {

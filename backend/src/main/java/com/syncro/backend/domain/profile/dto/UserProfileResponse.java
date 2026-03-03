@@ -23,6 +23,7 @@ public record UserProfileResponse(
     String valuesText,
     String zyraRecap,
     String zyraBirthChartInterpretation,
+    boolean hasBirthChart,
     String gender,
     String relationshipStatus,
     String orientation,
