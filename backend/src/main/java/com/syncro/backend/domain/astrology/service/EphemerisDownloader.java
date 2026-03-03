@@ -68,15 +68,8 @@ public class EphemerisDownloader {
         if (!Files.isDirectory(targetDir)) {
             return false;
         }
-        boolean hasPlanet = false;
-        boolean hasMoon = false;
-        for (String name : REQUIRED_FILES) {
-            if (Files.isRegularFile(targetDir.resolve(name))) {
-                if (name.startsWith("sepl_")) hasPlanet = true;
-                if (name.startsWith("semo_")) hasMoon = true;
-            }
-        }
-        return hasPlanet && hasMoon;
+        return REQUIRED_FILES.stream()
+            .allMatch(name -> Files.isRegularFile(targetDir.resolve(name)));
     }
 
     private boolean downloadFile(String fileName) {

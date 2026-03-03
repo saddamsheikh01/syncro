@@ -132,9 +132,30 @@ public class AstrologyCalculationService {
     private PlacementDTO calcPlanet(SwissEph sw, double tjdUt, int ipl, int iflag, double[] xx, StringBuilder serr) {
         int ret = sw.swe_calc_ut(tjdUt, ipl, iflag, xx, serr);
         if (ret < 0) {
-            String errMsg = serr != null ? serr.toString() : "";
-            log.warn("Swiss Ephemeris calc failed for planet {} (ret={}): {}", ipl, ret, errMsg);
-            return new PlacementDTO(ZodiacSign.UNKNOWN, 0);
+            int primaryRet = ret;
+            String primaryErr = serr != null ? serr.toString() : "";
+            if (serr != null) {
+                serr.setLength(0);
+            }
+            int fallbackFlag = SweConst.SEFLG_MOSEPH;
+            ret = sw.swe_calc_ut(tjdUt, ipl, fallbackFlag, xx, serr);
+            if (ret < 0) {
+                String fallbackErr = serr != null ? serr.toString() : "";
+                log.warn(
+                    "Swiss Ephemeris calc failed for planet {} (ret={}): {}. Moshier fallback failed (ret={}): {}",
+                    ipl,
+                    primaryRet,
+                    primaryErr,
+                    ret,
+                    fallbackErr
+                );
+                return new PlacementDTO(ZodiacSign.UNKNOWN, 0);
+            }
+            log.warn(
+                "Swiss Ephemeris data unavailable for planet {}. Using Moshier fallback. Original error: {}",
+                ipl,
+                primaryErr
+            );
         }
         double longitude = sw.swe_degnorm(xx[0]);
         return longitudeToPlacement(longitude);

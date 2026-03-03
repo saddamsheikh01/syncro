@@ -93,7 +93,7 @@ app:
       NEW_LOGIN_DEVICE_COUNTRY: ${BREVO_TEMPLATE_NEW_LOGIN:0}
       EMAIL_VERIFICATION_OTP: ${BREVO_TEMPLATE_EMAIL_VERIFICATION_OTP:0}
   astrology:
-    ephemeris-path: ${SWISS_EPHEMERIS_PATH:/var/syncro/ephe}
+    ephemeris-path: /opt/apps/syncro/ephe
   zyra:
     provider: ${ZYRA_PROVIDER:OPENAI}
     base-url: ${ZYRA_BASE_URL:https://api.openai.com/v1}
