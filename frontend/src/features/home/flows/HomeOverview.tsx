@@ -44,7 +44,7 @@ export const HomeOverview = () => {
   const router = useRouter();
   const { t } = useT();
   const { status, user, actions: authActions } = useAuth();
-  const { actions: userActions } = useUser();
+  const { profile, actions: userActions } = useUser();
   const {
     position,
     hasPosition,
@@ -300,15 +300,17 @@ export const HomeOverview = () => {
     return items;
   }, [recommendationPlaces, places, hasPosition, position]);
 
+  const astrologyCompleted =
+    profile?.hasBirthChart ?? Boolean(profile?.zyraBirthChartInterpretation);
+
   const testItems = useMemo(
-    () =>
-      tests.slice(0, 5).map((test) => {
+    () => {
+      const fromApi = tests.slice(0, 5).map((test) => {
         const localized = resolveTestCopy({
           title: test.title,
           description: test.description,
           testType: test.testType,
         });
-
         return {
           testType: test.testType,
           title: localized.title,
@@ -317,8 +319,18 @@ export const HomeOverview = () => {
           actionLabel: t("View Insights"),
           completed: test.completed,
         };
-      }),
-    [tests, t]
+      });
+      const birthChartItem = {
+        testType: "ASTRO" as const,
+        title: t("Birth chart"),
+        description: t("Used for compatibility. Add place and optional time for better accuracy."),
+        href: "/insights/astrology",
+        actionLabel: t("View Insights"),
+        completed: astrologyCompleted,
+      };
+      return [...fromApi, birthChartItem];
+    },
+    [tests, t, astrologyCompleted]
   );
 
   const conversationItems = useMemo(() => {

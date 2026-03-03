@@ -123,6 +123,20 @@ export type ExperienceSummaryResponse = {
   isActive: boolean;
 };
 
+/** Unified catalog response: places and experiences in one API call (All tab). */
+export type CatalogResponse = {
+  places: PlaceSummaryResponse[];
+  placesTotalElements: number;
+  placesTotalPages: number;
+  placesPage: number;
+  placesSize: number;
+  experiences: ExperienceSummaryResponse[];
+  experiencesTotalElements: number;
+  experiencesTotalPages: number;
+  experiencesPage: number;
+  experiencesSize: number;
+};
+
 export type ExperienceDetailResponse = {
   id: Uuid;
   name: string;

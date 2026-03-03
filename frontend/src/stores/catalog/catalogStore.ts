@@ -1,5 +1,6 @@
 import type { ApiError } from "../../types/api";
 import type {
+  CatalogResponse,
   CategoryResponse,
   ExperienceDetailResponse,
   ExperienceSummaryResponse,
@@ -9,6 +10,7 @@ import type {
 import type { PageResponse, Uuid } from "../../types/shared";
 import type { CatalogSearchParams, CategoryListParams } from "../../services/catalog";
 import {
+  getCatalog,
   getCategories,
   getExperience,
   getExperiences,
@@ -38,10 +40,18 @@ export type CatalogState = {
   placesPage: PageInfo;
   experiences: ExperienceSummaryResponse[];
   experiencesPage: PageInfo;
+  /** Unified "All" tab: places from GET /catalog */
+  catalogPlaces: PlaceSummaryResponse[];
+  /** Unified "All" tab: experiences from GET /catalog */
+  catalogExperiences: ExperienceSummaryResponse[];
+  catalogPlacesPage: PageInfo;
+  catalogExperiencesPage: PageInfo;
   placeDetail: PlaceDetailResponse | null;
   experienceDetail: ExperienceDetailResponse | null;
   filters: CatalogSearchParams;
   loading: boolean;
+  /** True while unified catalog (All) is loading */
+  loadingCatalog: boolean;
   error: ApiError | null;
 };
 
@@ -52,10 +62,15 @@ const initialState: CatalogState = {
   placesPage: emptyPage,
   experiences: [],
   experiencesPage: emptyPage,
+  catalogPlaces: [],
+  catalogExperiences: [],
+  catalogPlacesPage: emptyPage,
+  catalogExperiencesPage: emptyPage,
   placeDetail: null,
   experienceDetail: null,
   filters: {},
   loading: false,
+  loadingCatalog: false,
   error: null,
 };
 
@@ -91,6 +106,44 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      throw error;
+    }
+  },
+
+  fetchCatalog: async (
+    params: CatalogSearchParams = {},
+    options: { append?: boolean } = {}
+  ): Promise<CatalogResponse> => {
+    catalogStore.setState({ loadingCatalog: true, error: null, filters: params });
+
+    try {
+      const response = await getCatalog(params);
+      const placesPageInfo: PageInfo = {
+        page: response.placesPage,
+        size: response.placesSize,
+        totalPages: response.placesTotalPages,
+        totalElements: response.placesTotalElements,
+      };
+      const experiencesPageInfo: PageInfo = {
+        page: response.experiencesPage,
+        size: response.experiencesSize,
+        totalPages: response.experiencesTotalPages,
+        totalElements: response.experiencesTotalElements,
+      };
+      catalogStore.setState((state) => ({
+        catalogPlaces: options.append
+          ? [...state.catalogPlaces, ...response.places]
+          : response.places,
+        catalogExperiences: options.append
+          ? [...state.catalogExperiences, ...response.experiences]
+          : response.experiences,
+        catalogPlacesPage: placesPageInfo,
+        catalogExperiencesPage: experiencesPageInfo,
+        loadingCatalog: false,
+      }));
+      return response;
+    } catch (error) {
+      catalogStore.setState({ loadingCatalog: false, error: error as ApiError });
       throw error;
     }
   },
