@@ -300,8 +300,7 @@ export const HomeOverview = () => {
     return items;
   }, [recommendationPlaces, places, hasPosition, position]);
 
-  const astrologyCompleted =
-    profile?.hasBirthChart ?? Boolean(profile?.zyraBirthChartInterpretation);
+  const astrologyCompleted = profile?.hasBirthChart === true;
 
   const testItems = useMemo(
     () => {

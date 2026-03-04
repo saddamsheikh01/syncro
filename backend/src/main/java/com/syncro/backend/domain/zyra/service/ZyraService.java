@@ -422,7 +422,15 @@ public class ZyraService {
 
     private String generateProfileRecap(User user, String responseLanguageOverride) {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        UserProfile userProfile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
+
+        // Add birth chart summary when completed (birth chart is stored in UserProfile, not as a test submission)
+        String birthChartSummary = buildBirthChartSummary(userProfile);
+        if (birthChartSummary != null) {
+            testSummaries = new ArrayList<>(testSummaries != null ? testSummaries : List.of());
+            testSummaries.add(birthChartSummary);
+        }
 
         // Recap must be exclusively test results: no profile fields (name, location, job, interests, astro, etc.)
         // and no labels (Balanced Planner, etc.) — so we only send test summaries, scores, and sanitized dimensions.
@@ -548,6 +556,37 @@ public class ZyraService {
         if (answersSummary != null) {
             summary.append(": ");
             summary.append("Key answers: ").append(answersSummary);
+        }
+        return summary.toString();
+    }
+
+    /**
+     * Builds a birth chart summary for the profile recap when completed.
+     * Matches UserProfileMapper.hasBirthChart: birthDate set and (interpretation not blank or sunSign set).
+     */
+    private String buildBirthChartSummary(UserProfile profile) {
+        if (profile == null || profile.getBirthDate() == null) {
+            return null;
+        }
+        boolean hasInterpretation = profile.getZyraBirthChartInterpretation() != null
+            && !profile.getZyraBirthChartInterpretation().isBlank();
+        boolean hasSunSign = profile.getSunSign() != null;
+        if (!hasInterpretation && !hasSunSign) {
+            return null;
+        }
+        StringBuilder summary = new StringBuilder("Birth chart: ");
+        if (profile.getSunSign() != null) {
+            summary.append("Sun sign ").append(formatZodiacSign(profile.getSunSign()));
+        }
+        if (hasInterpretation) {
+            String interpretation = profile.getZyraBirthChartInterpretation().trim();
+            if (interpretation.length() > 300) {
+                interpretation = interpretation.substring(0, 297) + "...";
+            }
+            if (profile.getSunSign() != null) {
+                summary.append("; ");
+            }
+            summary.append("Interpretation: ").append(interpretation);
         }
         return summary.toString();
     }
