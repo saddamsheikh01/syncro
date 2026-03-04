@@ -394,10 +394,10 @@ public class ZyraService {
     @Transactional(readOnly = true)
     public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId, String requestLanguage) {
         User user = getUser(principal);
-        String preferredLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
-        if (preferredLanguage == null || preferredLanguage.isBlank()) {
-            preferredLanguage = resolvePreferredLanguage(user);
-        }
+        String fromRequest = resolvePreferredLanguageForRecap(user, requestLanguage);
+        final String preferredLanguage = (fromRequest != null && !fromRequest.isBlank())
+            ? fromRequest
+            : resolvePreferredLanguage(user);
         if (placeId == null) {
             throw new NotFoundException("Luogo non valido");
         }
