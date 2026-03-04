@@ -13,7 +13,8 @@ public final class DeepLinkPaths {
     public static final String EVENTS = "/experiences";
     public static final String MOMENTS = "/moments";
     public static final String TESTS = "/profile#insights";
-    public static final String SETTINGS_NOTIFICATIONS = "/settings/notifications";
+    /** Settings page (email notifications section); /settings/notifications does not exist. */
+    public static final String SETTINGS_NOTIFICATIONS = "/settings";
 
     private DeepLinkPaths() {}
 }

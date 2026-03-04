@@ -27,9 +27,10 @@ export const AuthInitializer = () => {
       resetAllStores();
       // Clear auth session
       actions.clearSession();
-      // Redirect to login if not already on a public path
+      // Redirect to login if not already on a public path; preserve intended destination
       if (!isPublicPath(pathname)) {
-        router.replace("/login");
+        const redirect = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : "/login";
+        router.replace(redirect);
       }
     });
 
