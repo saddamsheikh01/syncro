@@ -83,7 +83,7 @@ export const PlacesOverview = () => {
       q: citySearchApplied || undefined,
       lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
       lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
-      radiusKm: nearMe && hasPosition ? 50 : undefined,
+      radiusKm: nearMe && hasPosition ? 150 : undefined,
     }),
     [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
   );
@@ -95,7 +95,7 @@ export const PlacesOverview = () => {
       q: citySearchApplied || undefined,
       lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
       lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
-      radiusKm: nearMe && hasPosition ? 50 : undefined,
+      radiusKm: nearMe && hasPosition ? 150 : undefined,
     }),
     [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
   );

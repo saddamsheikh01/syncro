@@ -243,18 +243,6 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
             )}
           </div>
 
-          {/* Provider badge */}
-          {experienceDetail.provider && (
-            <span
-              className={`inline-block rounded-full px-2 py-0.5 text-xs ${
-                isViatorExperience
-                  ? "bg-[#00a3c8]/12 text-[#007c9a]"
-                  : "bg-surface-muted text-subtle"
-              }`}
-            >
-              {t("by {provider}", { provider: experienceDetail.provider })}
-            </span>
-          )}
         </div>
 
         {experienceDetail.description && (

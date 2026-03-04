@@ -392,9 +392,12 @@ public class ZyraService {
     }
 
     @Transactional(readOnly = true)
-    public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId) {
+    public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId, String requestLanguage) {
         User user = getUser(principal);
-        String preferredLanguage = resolvePreferredLanguage(user);
+        String preferredLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
+        if (preferredLanguage == null || preferredLanguage.isBlank()) {
+            preferredLanguage = resolvePreferredLanguage(user);
+        }
         if (placeId == null) {
             throw new NotFoundException("Luogo non valido");
         }
@@ -406,7 +409,10 @@ public class ZyraService {
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
-                String recap = generatePlaceRecap(user, place);
+                String responseLanguage = (requestLanguage != null && !requestLanguage.isBlank())
+                    ? normalizeLanguageCode(requestLanguage)
+                    : resolveResponseLanguage(user);
+                String recap = generatePlaceRecap(user, place, responseLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putPlaceRecap(user.getId(), placeId, recap, generatedAt);
                 return new ZyraPlaceRecapResponse(
@@ -685,6 +691,10 @@ public class ZyraService {
     }
 
     private String generatePlaceRecap(User user, Place place) {
+        return generatePlaceRecap(user, place, resolveResponseLanguage(user));
+    }
+
+    private String generatePlaceRecap(User user, Place place, String responseLanguage) {
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
@@ -796,8 +806,10 @@ public class ZyraService {
         );
 
         try {
-            String responseLanguage = resolveResponseLanguage(user);
-            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
+            String effectiveLanguage = (responseLanguage != null && !responseLanguage.isBlank())
+                ? responseLanguage.trim().toLowerCase(Locale.ROOT)
+                : resolveResponseLanguage(user);
+            String recap = zyraClient.chat(withLanguageGuard(messages, effectiveLanguage));
             return recap != null ? recap.trim() : "Interesting place: update your profile for a more accurate match.";
         } catch (Exception ex) {
             return "Interesting place: update your profile for a more accurate match.";

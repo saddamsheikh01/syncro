@@ -178,9 +178,10 @@ public class ZyraController {
     @Operation(summary = "Genera recap luogo con Zyra")
     public ResponseEntity<ZyraPlaceRecapResponse> getPlaceRecap(
         @AuthenticationPrincipal UserPrincipal principal,
-        @PathVariable UUID placeId
+        @PathVariable UUID placeId,
+        @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage
     ) {
-        return ResponseEntity.ok(zyraService.getPlaceRecap(principal, placeId));
+        return ResponseEntity.ok(zyraService.getPlaceRecap(principal, placeId, parseAcceptLanguage(acceptLanguage)));
     }
 
     @GetMapping("/chat-recap")

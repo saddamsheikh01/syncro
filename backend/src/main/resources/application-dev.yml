@@ -52,9 +52,9 @@ app:
       enabled: ${VIATOR_SYNC_ENABLED:false}
       use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}
       nearby-enabled: ${VIATOR_SYNC_NEARBY_ENABLED:true}
-      nearby-max-destinations: ${VIATOR_SYNC_NEARBY_MAX_DESTINATIONS:3}
-      nearby-count-per-destination: ${VIATOR_SYNC_NEARBY_COUNT_PER_DESTINATION:20}
-      nearby-max-pages: ${VIATOR_SYNC_NEARBY_MAX_PAGES:3}
+      nearby-max-destinations: ${VIATOR_SYNC_NEARBY_MAX_DESTINATIONS:6}
+      nearby-count-per-destination: ${VIATOR_SYNC_NEARBY_COUNT_PER_DESTINATION:50}
+      nearby-max-pages: ${VIATOR_SYNC_NEARBY_MAX_PAGES:5}
       nearby-resync-minutes: ${VIATOR_SYNC_NEARBY_RESYNC_MINUTES:30}
   email:
     jobs:
