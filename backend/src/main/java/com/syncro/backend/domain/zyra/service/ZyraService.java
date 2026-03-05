@@ -392,9 +392,12 @@ public class ZyraService {
     }
 
     @Transactional(readOnly = true)
-    public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId) {
+    public ZyraPlaceRecapResponse getPlaceRecap(UserPrincipal principal, UUID placeId, String requestLanguage) {
         User user = getUser(principal);
-        String preferredLanguage = resolvePreferredLanguage(user);
+        String fromRequest = resolvePreferredLanguageForRecap(user, requestLanguage);
+        final String preferredLanguage = (fromRequest != null && !fromRequest.isBlank())
+            ? fromRequest
+            : resolvePreferredLanguage(user);
         if (placeId == null) {
             throw new NotFoundException("Luogo non valido");
         }
@@ -406,7 +409,10 @@ public class ZyraService {
                 entry.generatedAt()
             ))
             .orElseGet(() -> {
-                String recap = generatePlaceRecap(user, place);
+                String responseLanguage = (requestLanguage != null && !requestLanguage.isBlank())
+                    ? normalizeLanguageCode(requestLanguage)
+                    : resolveResponseLanguage(user);
+                String recap = generatePlaceRecap(user, place, responseLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
                 recapCache.putPlaceRecap(user.getId(), placeId, recap, generatedAt);
                 return new ZyraPlaceRecapResponse(
@@ -422,7 +428,15 @@ public class ZyraService {
 
     private String generateProfileRecap(User user, String responseLanguageOverride) {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        UserProfile userProfile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
+
+        // Add birth chart summary when completed (birth chart is stored in UserProfile, not as a test submission)
+        String birthChartSummary = buildBirthChartSummary(userProfile);
+        if (birthChartSummary != null) {
+            testSummaries = new ArrayList<>(testSummaries != null ? testSummaries : List.of());
+            testSummaries.add(birthChartSummary);
+        }
 
         // Recap must be exclusively test results: no profile fields (name, location, job, interests, astro, etc.)
         // and no labels (Balanced Planner, etc.) — so we only send test summaries, scores, and sanitized dimensions.
@@ -552,6 +566,37 @@ public class ZyraService {
         return summary.toString();
     }
 
+    /**
+     * Builds a birth chart summary for the profile recap when completed.
+     * Matches UserProfileMapper.hasBirthChart: birthDate set and (interpretation not blank or sunSign set).
+     */
+    private String buildBirthChartSummary(UserProfile profile) {
+        if (profile == null || profile.getBirthDate() == null) {
+            return null;
+        }
+        boolean hasInterpretation = profile.getZyraBirthChartInterpretation() != null
+            && !profile.getZyraBirthChartInterpretation().isBlank();
+        boolean hasSunSign = profile.getSunSign() != null;
+        if (!hasInterpretation && !hasSunSign) {
+            return null;
+        }
+        StringBuilder summary = new StringBuilder("Birth chart: ");
+        if (profile.getSunSign() != null) {
+            summary.append("Sun sign ").append(formatZodiacSign(profile.getSunSign()));
+        }
+        if (hasInterpretation) {
+            String interpretation = profile.getZyraBirthChartInterpretation().trim();
+            if (interpretation.length() > 300) {
+                interpretation = interpretation.substring(0, 297) + "...";
+            }
+            if (profile.getSunSign() != null) {
+                summary.append("; ");
+            }
+            summary.append("Interpretation: ").append(interpretation);
+        }
+        return summary.toString();
+    }
+
     private String buildAnswersSummary(List<UserTestAnswer> answers) {
         if (answers == null || answers.isEmpty()) {
             return null;
@@ -646,6 +691,10 @@ public class ZyraService {
     }
 
     private String generatePlaceRecap(User user, Place place) {
+        return generatePlaceRecap(user, place, resolveResponseLanguage(user));
+    }
+
+    private String generatePlaceRecap(User user, Place place, String responseLanguage) {
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<UserInterest> interests = userInterestRepository.findAllByUserId(user.getId());
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
@@ -757,8 +806,10 @@ public class ZyraService {
         );
 
         try {
-            String responseLanguage = resolveResponseLanguage(user);
-            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
+            String effectiveLanguage = (responseLanguage != null && !responseLanguage.isBlank())
+                ? responseLanguage.trim().toLowerCase(Locale.ROOT)
+                : resolveResponseLanguage(user);
+            String recap = zyraClient.chat(withLanguageGuard(messages, effectiveLanguage));
             return recap != null ? recap.trim() : "Interesting place: update your profile for a more accurate match.";
         } catch (Exception ex) {
             return "Interesting place: update your profile for a more accurate match.";

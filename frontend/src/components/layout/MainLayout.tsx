@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Navbar } from "@/components/ui/Navbar";
 import { Leftbar } from "@/components/ui/Leftbar";
 import { Rightbar } from "@/components/ui/Rightbar";
@@ -27,6 +27,7 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
   const isPreview = mode === "preview";
   const position = isPreview ? "absolute" : "fixed";
   const router = useRouter();
+  const pathname = usePathname();
   const { status, tokens, actions: authActions } = useAuth();
 
   useEffect(() => {
@@ -35,9 +36,10 @@ export const MainLayout = ({ children, mode = "default" }: MainLayoutProps) => {
       return;
     }
     if (status === "unauthenticated") {
-      router.replace("/login");
+      const redirect = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : "/login";
+      router.replace(redirect);
     }
-  }, [status, authActions, router]);
+  }, [status, authActions, router, pathname]);
 
   const isAuthed =
     status === "authenticated" || (status === "loading" && Boolean(tokens));

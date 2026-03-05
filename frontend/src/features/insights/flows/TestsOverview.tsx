@@ -68,8 +68,7 @@ export const TestsOverview = () => {
     }
   };
 
-  const astrologyCompleted =
-    profile?.hasBirthChart ?? Boolean(profile?.zyraBirthChartInterpretation);
+  const astrologyCompleted = profile?.hasBirthChart === true;
 
   const testItems = useMemo(
     () => {

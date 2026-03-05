@@ -44,6 +44,8 @@ public class ExperienceService {
 
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private static final String DUMMY_LOCATION_REF = "__NO_LOCATION_REF__";
+    /** Default radius when lat/lng provided but radiusKm null (e.g. Viator fallback to DB by distance). */
+    private static final double DEFAULT_NEARBY_RADIUS_KM = 150.0;
 
     private final ExperienceRepository experienceRepository;
     private final CategoryRepository categoryRepository;
@@ -123,6 +125,8 @@ public class ExperienceService {
                 effectiveLatitude = null;
                 effectiveLongitude = null;
                 effectiveRadiusKm = null;
+            } else if (effectiveRadiusKm == null) {
+                effectiveRadiusKm = DEFAULT_NEARBY_RADIUS_KM;
             }
         }
 

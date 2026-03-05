@@ -208,7 +208,8 @@ public class EmailNotificationService {
         long tid = brevoConfig.getTemplateId(EmailType.NEW_MESSAGE_OFFLINE.name());
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("sender_display_name", senderDisplayName != null ? senderDisplayName : "Someone");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.CHAT, conversationId != null ? "id=" + conversationId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.CHAT + (conversationId != null ? "/" + conversationId : ""), null));
         sendWithTemplate(recipientUserId, EmailType.NEW_MESSAGE_OFFLINE, conversationId, tid, params);
     }
 
@@ -276,7 +277,8 @@ public class EmailNotificationService {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("event_title", eventTitle != null ? eventTitle : "An event");
         params.put("city", city != null ? city : "your area");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.EVENTS, eventId != null ? "id=" + eventId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.EVENTS + (eventId != null ? "/" + eventId : ""), null));
         sendWithTemplate(userId, EmailType.NEW_EVENT_NEARBY, eventId, tid, params);
     }
 
@@ -285,7 +287,8 @@ public class EmailNotificationService {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("event_title", eventTitle != null ? eventTitle : "Saved event");
         params.put("event_date", eventDate != null ? eventDate : "");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.EVENTS, eventId != null ? "id=" + eventId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.EVENTS + (eventId != null ? "/" + eventId : ""), null));
         sendWithTemplate(userId, EmailType.SAVED_EVENT_REMINDER, eventId, tid, params);
     }
 
@@ -303,7 +306,8 @@ public class EmailNotificationService {
         long tid = brevoConfig.getTemplateId(EmailType.COMMENT_RECEIVED.name());
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.MOMENTS, postId != null ? "post=" + postId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.MOMENTS + (postId != null ? "/" + postId : ""), null));
         sendWithTemplate(recipientUserId, EmailType.COMMENT_RECEIVED, postId, tid, params);
     }
 
@@ -311,7 +315,8 @@ public class EmailNotificationService {
         long tid = brevoConfig.getTemplateId(EmailType.REACTION_RECEIVED.name());
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.MOMENTS, postId != null ? "post=" + postId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.MOMENTS + (postId != null ? "/" + postId : ""), null));
         sendWithTemplate(recipientUserId, EmailType.REACTION_RECEIVED, postId, tid, params);
     }
 
@@ -319,7 +324,8 @@ public class EmailNotificationService {
         long tid = brevoConfig.getTemplateId(EmailType.MENTION_TAG.name());
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
-        params.put("cta_url", buildCtaUrl(DeepLinkPaths.MOMENTS, postId != null ? "post=" + postId : null));
+        params.put("cta_url", buildCtaUrl(
+            DeepLinkPaths.MOMENTS + (postId != null ? "/" + postId : ""), null));
         sendWithTemplate(recipientUserId, EmailType.MENTION_TAG, postId, tid, params);
     }
 

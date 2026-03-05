@@ -4,6 +4,7 @@ import com.syncro.backend.domain.astrology.dto.AstrologyCalculationRequest;
 import com.syncro.backend.domain.astrology.dto.AstrologyCalculationResponse;
 import com.syncro.backend.domain.astrology.dto.PlacementDTO;
 import com.syncro.backend.domain.astrology.service.AstrologyCalculationService;
+import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
@@ -101,6 +102,11 @@ public class AstrologyController {
         }
         profile.setZyraBirthChartInterpretation(interpretation != null && !interpretation.isBlank() ? interpretation : null);
         userProfileRepository.save(profile);
+
+        User user = userRepository.findById(principal.userId()).orElse(null);
+        if (user != null) {
+            zyraService.refreshProfileRecap(user);
+        }
 
         AstrologyCalculationResponse responseWithInterpretation = new AstrologyCalculationResponse(
             response.sun(),

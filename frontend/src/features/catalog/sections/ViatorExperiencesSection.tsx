@@ -150,6 +150,7 @@ export const ViatorExperiencesSection = ({
           categoryId: selectedCategoryId || undefined,
           lat: nearbyLat,
           lng: nearbyLng,
+          radiusKm: useNearby ? 150 : undefined,
           page,
           size: pageSize,
         });

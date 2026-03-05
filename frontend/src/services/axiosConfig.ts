@@ -1,5 +1,6 @@
 import axios, { AxiosHeaders } from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { getLocaleCookie } from "@/i18n/cookies";
 import type { ApiError, ApiErrorResponse } from "../types/api";
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -99,15 +100,21 @@ export const normalizeApiError = (error: unknown): ApiError => {
 };
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const headers =
+    config.headers instanceof AxiosHeaders
+      ? config.headers
+      : new AxiosHeaders(config.headers);
+
   if (accessToken) {
-    const headers =
-      config.headers instanceof AxiosHeaders
-        ? config.headers
-        : new AxiosHeaders(config.headers);
     headers.set("Authorization", `Bearer ${accessToken}`);
-    config.headers = headers;
   }
 
+  const locale = getLocaleCookie();
+  if (locale && locale.trim()) {
+    headers.set("Accept-Language", locale.trim());
+  }
+
+  config.headers = headers;
   return config;
 });
 

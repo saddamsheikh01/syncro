@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
@@ -101,8 +101,18 @@ const isLocalhost = (): boolean => {
   return hostname === "localhost" || hostname === "127.0.0.1";
 };
 
+/** Allowed redirect paths: app routes only, no external URLs. */
+const isSafeRedirect = (path: string | null): path is string =>
+  typeof path === "string" &&
+  path.startsWith("/") &&
+  !path.startsWith("//") &&
+  path.length < 500;
+
 export const Login = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
+  const safeRedirect = isSafeRedirect(redirectTo) ? redirectTo : null;
   const { status, error, isAuthenticated, user, actions } = useAuth();
   const { t } = useT();
   const [email, setEmail] = useState(() =>
@@ -120,9 +130,9 @@ export const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated && status !== "loading") {
-      router.replace("/home");
+      router.replace(safeRedirect ?? "/home");
     }
-  }, [isAuthenticated, status, router]);
+  }, [isAuthenticated, status, router, safeRedirect]);
 
   const isSubmitting = status === "loading";
 
@@ -134,7 +144,7 @@ export const Login = () => {
       if (response.requiresVerification) {
         router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
       } else if (response.authResponse) {
-        router.push("/home");
+        router.push(safeRedirect ?? "/home");
       }
     } catch {}
   };
@@ -143,7 +153,7 @@ export const Login = () => {
     setGoogleError(null);
     try {
       await actions.loginWithGoogle({ idToken });
-      router.push("/home");
+      router.push(safeRedirect ?? "/home");
     } catch (requestError) {
       const message =
         requestError &&
