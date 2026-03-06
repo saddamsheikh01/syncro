@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -39,6 +40,7 @@ export const AstrologyBirthChartCard = ({
   initialInterpretation = null,
   onSaved,
 }: AstrologyBirthChartCardProps) => {
+  const router = useRouter();
   const { t } = useT();
   const degreeFormatter = useMemo(
     () =>
@@ -237,7 +239,7 @@ export const AstrologyBirthChartCard = ({
         </div>
       ) : null}
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap gap-3">
         <Button
           size="sm"
           loading={loading}
@@ -246,6 +248,13 @@ export const AstrologyBirthChartCard = ({
           disabled={loading}
         >
           {t("Calculate & save birth chart")}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => router.push("/profile")}
+        >
+          {t("Go to profile")}
         </Button>
       </div>
     </Card>

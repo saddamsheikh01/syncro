@@ -94,6 +94,16 @@ const recapLanguageHeader = (language?: string | null) => ({
   "Accept-Language": language && language.trim() ? language.trim() : "en",
 });
 
+/** True when user has taken a test and recap should be regenerated once on profile visit. */
+export const getProfileRecapPending = async (): Promise<{
+  pendingRefresh: boolean;
+}> => {
+  const { data } = await apiClient.get<{ pendingRefresh: boolean }>(
+    "/zyra/profile-recap/pending"
+  );
+  return data;
+};
+
 export const getProfileRecap = async (
   language?: string | null
 ): Promise<ZyraProfileRecapResponse> => {

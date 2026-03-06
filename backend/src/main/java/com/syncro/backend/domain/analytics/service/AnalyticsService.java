@@ -77,6 +77,7 @@ public class AnalyticsService {
     private final AnalyticsEventRepository analyticsEventRepository;
     private final AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository;
     private final AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository;
+    private final AnalyticsIngestionErrorRecorder ingestionErrorRecorder;
     private final AnalyticsSessionRepository analyticsSessionRepository;
     private final AnalyticsDailyKpiRepository analyticsDailyKpiRepository;
     private final UserRepository userRepository;
@@ -87,6 +88,7 @@ public class AnalyticsService {
         AnalyticsEventRepository analyticsEventRepository,
         AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository,
         AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository,
+        AnalyticsIngestionErrorRecorder ingestionErrorRecorder,
         AnalyticsSessionRepository analyticsSessionRepository,
         AnalyticsDailyKpiRepository analyticsDailyKpiRepository,
         UserRepository userRepository,
@@ -96,6 +98,7 @@ public class AnalyticsService {
         this.analyticsEventRepository = analyticsEventRepository;
         this.analyticsEventDefinitionRepository = analyticsEventDefinitionRepository;
         this.analyticsIngestionErrorRepository = analyticsIngestionErrorRepository;
+        this.ingestionErrorRecorder = ingestionErrorRecorder;
         this.analyticsSessionRepository = analyticsSessionRepository;
         this.analyticsDailyKpiRepository = analyticsDailyKpiRepository;
         this.userRepository = userRepository;
@@ -1015,6 +1018,9 @@ public class AnalyticsService {
         if (normalizedIdempotencyKey != null && analyticsEventRepository.existsByIdempotencyKey(normalizedIdempotencyKey)) {
             return TrackingOutcome.DUPLICATE;
         }
+        if (eventId != null && analyticsEventRepository.existsByEventId(eventId)) {
+            return TrackingOutcome.DUPLICATE;
+        }
 
         AnalyticsEventDefinition definition = resolveDefinition(normalizedEventName, normalizedVersion, enforceDefinition);
         Map<String, Object> normalizedPayload = normalizePayload(normalizedEventName, payload);
@@ -1144,13 +1150,17 @@ public class AnalyticsService {
         String errorCode,
         String errorMessage
     ) {
-        AnalyticsIngestionError ingestionError = new AnalyticsIngestionError();
-        ingestionError.setUserId(userId);
-        ingestionError.setIdempotencyKey(normalizeBlank(idempotencyKey));
-        ingestionError.setRawEvent(rawEvent);
-        ingestionError.setErrorCode(errorCode);
-        ingestionError.setErrorMessage(errorMessage == null ? "Errore sconosciuto" : errorMessage);
-        analyticsIngestionErrorRepository.save(ingestionError);
+        try {
+            ingestionErrorRecorder.record(
+                userId,
+                normalizeBlank(idempotencyKey),
+                rawEvent,
+                errorCode,
+                errorMessage == null ? "Errore sconosciuto" : errorMessage
+            );
+        } catch (Exception e) {
+            logger.warn("Failed to record analytics ingestion error", e);
+        }
     }
 
     private String normalizeEventName(String eventName) {

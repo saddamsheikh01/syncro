@@ -46,6 +46,7 @@ export type ZyraSuggestionResponse = {
 
 export type ZyraProfileRecapResponse = {
   recap: string;
+  highlights?: string[];
   generatedAt: IsoDateTime;
 };
 

@@ -40,6 +40,7 @@ import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
+import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -73,6 +75,7 @@ public class TestService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final ZyraRecapCache recapCache;
+    private final ZyraService zyraService;
     private final TestMapper testMapper;
 
     public TestService(
@@ -88,6 +91,7 @@ public class TestService {
         UserRepository userRepository,
         UserProfileRepository userProfileRepository,
         ZyraRecapCache recapCache,
+        ZyraService zyraService,
         TestMapper testMapper
     ) {
         this.testDefinitionRepository = testDefinitionRepository;
@@ -102,6 +106,7 @@ public class TestService {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.recapCache = recapCache;
+        this.zyraService = zyraService;
         this.testMapper = testMapper;
     }
 
@@ -371,6 +376,7 @@ public class TestService {
         updateAggregatedScore(profile, definition, scorePayload);
         userPsyProfileRepository.save(profile);
         recapCache.invalidateUser(user.getId());
+        zyraService.setPendingRecapRefresh(user.getId());
         return new TestSubmissionResponse(
             savedSubmission.getId(),
             definition.getId(),

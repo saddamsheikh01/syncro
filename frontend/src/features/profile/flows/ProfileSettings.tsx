@@ -51,6 +51,10 @@ import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { ShareZyraRecapCard } from "@/features/zyra/cards/ShareZyraRecapCard";
+import {
+  getProfileRecapPending,
+  regenerateProfileRecap,
+} from "@/services/zyra";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
@@ -189,7 +193,7 @@ export const ProfileSettings = ({
   subtitle,
   showAccountSection = false,
 }: ProfileSettingsProps) => {
-  const { t } = useT();
+  const { t, locale } = useT();
 
   const resolvedTitle = title ? t(title) : t("Profile");
 
@@ -330,6 +334,28 @@ export const ProfileSettings = ({
   const momentsInitializedRef = useRef(false);
   const usernameInitializedRef = useRef(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { pendingRefresh } = await getProfileRecapPending();
+        if (cancelled || !pendingRefresh) return;
+        setRecapRegenerating(true);
+        try {
+          await regenerateProfileRecap(locale ?? undefined);
+          if (!cancelled) setRecapRefreshTrigger((prev) => prev + 1);
+        } finally {
+          if (!cancelled) setRecapRegenerating(false);
+        }
+      } catch {
+        // ignore: recap will still load from cache/DB
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
@@ -349,6 +375,8 @@ export const ProfileSettings = ({
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [recapRefreshTrigger, setRecapRefreshTrigger] = useState(0);
+  const [recapRegenerating, setRecapRegenerating] = useState(false);
 
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
@@ -1327,7 +1355,11 @@ export const ProfileSettings = ({
           title={t("Zyra recap")}
           subtitle={t("Review and edit how Zyra describes you.")}
         />
-        <ZyraProfileRecap onRecapLoaded={handleProfileRecapLoaded} />
+        <ZyraProfileRecap
+          onRecapLoaded={handleProfileRecapLoaded}
+          recapRefreshTrigger={recapRefreshTrigger}
+          regenerating={recapRegenerating}
+        />
         {profileRecapToShare ? (
           <ShareZyraRecapCard recap={profileRecapToShare} userId={user?.id} />
         ) : null}
