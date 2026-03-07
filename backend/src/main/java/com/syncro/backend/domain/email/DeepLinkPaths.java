@@ -12,7 +12,8 @@ public final class DeepLinkPaths {
     public static final String MATCHES = "/matches";
     public static final String EVENTS = "/experiences";
     public static final String MOMENTS = "/moments";
-    public static final String TESTS = "/profile#insights";
+    /** Profile page (insights section lives there); use clean URL without hash. */
+    public static final String TESTS = "/profile";
     /** Settings page (email notifications section); /settings/notifications does not exist. */
     public static final String SETTINGS_NOTIFICATIONS = "/settings";
 

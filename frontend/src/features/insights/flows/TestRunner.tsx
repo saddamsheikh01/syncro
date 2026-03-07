@@ -535,7 +535,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 eventName: "INSIGHT_BACK_TO_LIST",
                 payload: { testId },
               });
-              router.push("/profile#insights");
+              router.push("/profile");
             }}
           >
             {t("Back to profile")}
@@ -546,7 +546,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 eventName: "INSIGHT_NAVIGATED_TO_PROFILE",
                 payload: { testId },
               });
-              router.push("/profile#insights");
+              router.push("/profile");
             }}
           >
             {t("Go to profile")}
