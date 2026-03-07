@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/elements/ErrorState";
 import { Loader } from "@/components/elements/Loader";
 import { useFavorites, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
+import { getExperienceDetailPath } from "@/lib/siteUrl";
 import { getPostMedia } from "@/services/media";
 import type { MediaResponse } from "@/types/media";
 import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
@@ -314,7 +315,7 @@ export const FavoritesOverview = () => {
           subtitle:
             experience?.place?.name ?? experience?.locationName ?? undefined,
           category: experience?.category?.name ?? undefined,
-          href: experience ? `/experiences/${experience.id}` : undefined,
+          href: experience ? getExperienceDetailPath(experience) : undefined,
           imageUrl: experience?.imageUrl ?? undefined,
           priceLabel: formatPrice(experience?.price ?? null, experience?.priceCurrency ?? null),
           originalPriceLabel:

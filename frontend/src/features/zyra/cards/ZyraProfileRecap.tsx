@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HTMLAttributes } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -41,6 +41,7 @@ export const ZyraProfileRecap = ({
   const [editedRecap, setEditedRecap] = useState("");
   const [saving, setSaving] = useState(false);
   const [fullAnalysisExpanded, setFullAnalysisExpanded] = useState(false);
+  const localeChangeRef = useRef(false);
 
   const isOwnProfile = !userId;
   const savedRecap = isOwnProfile ? profile?.zyraRecap : null;
@@ -64,11 +65,10 @@ export const ZyraProfileRecap = ({
   }, []);
 
   useEffect(() => {
-    if (isOwnProfile && savedRecap && !recap) {
-      setRecap(savedRecap);
-      setEditedRecap(savedRecap);
-      setHighlights(deriveHighlightsFromRecap(savedRecap));
-    }
+    if (localeChangeRef.current || !isOwnProfile || !savedRecap || recap) return;
+    setRecap(savedRecap);
+    setEditedRecap(savedRecap);
+    setHighlights(deriveHighlightsFromRecap(savedRecap));
   }, [isOwnProfile, savedRecap, recap, deriveHighlightsFromRecap]);
 
   useEffect(() => {
@@ -83,24 +83,29 @@ export const ZyraProfileRecap = ({
       const response = userId
         ? await getProfileRecapForUser(userId, recapLocale)
         : await getProfileRecap(recapLocale);
-      setRecap(response.recap);
-      setEditedRecap(response.recap);
-      const fromApi = response.highlights ?? [];
-      setHighlights(
-        fromApi.length > 0 ? fromApi : deriveHighlightsFromRecap(response.recap ?? "")
-      );
+      const localizedRecap = response.recap ?? "";
+      setRecap(localizedRecap);
+      setEditedRecap(localizedRecap);
+      setHighlights(deriveHighlightsFromRecap(localizedRecap));
       return response.recap;
     } catch {
       setError(t("Unable to generate the recap. Try again."));
       return null;
     } finally {
       setLoading(false);
+      localeChangeRef.current = false;
     }
   }, [t, userId, recapLocale, deriveHighlightsFromRecap]);
 
   useEffect(() => {
     void fetchRecap();
   }, [fetchRecap]);
+
+  useEffect(() => {
+    localeChangeRef.current = true;
+    setRecap(null);
+    setHighlights([]);
+  }, [recapLocale]);
 
   useEffect(() => {
     if ((recapRefreshTrigger ?? 0) > 0) {

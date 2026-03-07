@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syncro.backend.domain.external.viator.dto.ViatorDestinationResult;
+import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchByTermResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorFetchResult;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchPage;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductsPage;
@@ -201,6 +202,181 @@ public class ViatorClient {
         }
     }
 
+    /**
+     * Search for products via Viator API when a search term (e.g. city name) is provided.
+     * Chains: searchDestinationsByTerm(q) → searchProductsByDestination for each destination.
+     *
+     * @param searchTerm e.g. "Italy", "Rome"
+     * @param page zero-based page index (only page 0 is supported for API search)
+     * @param size page size
+     * @param currency e.g. "EUR"
+     * @param acceptLanguage e.g. "en"
+     * @return product search result with products and total count
+     */
+    public ViatorProductSearchByTermResult searchProductsBySearchTerm(
+        String searchTerm,
+        int page,
+        int size,
+        String currency,
+        String acceptLanguage
+    ) {
+        if (!config.isConfigured() || !isNotBlank(searchTerm)) {
+            return new ViatorProductSearchByTermResult(List.of(), 0);
+        }
+
+        List<ViatorDestinationResult> destinations = searchDestinationsByTerm(
+            searchTerm, acceptLanguage, 10
+        );
+        if (destinations.isEmpty()) {
+            return new ViatorProductSearchByTermResult(List.of(), 0);
+        }
+
+        String searchLower = searchTerm.trim().toLowerCase();
+        List<ViatorDestinationResult> matchingDestinations = destinations.stream()
+            .filter(d -> matchesSearchTerm(d, searchLower))
+            .toList();
+        if (matchingDestinations.isEmpty() && !destinations.isEmpty()) {
+            matchingDestinations = destinations;
+        }
+        if (matchingDestinations.isEmpty()) {
+            return new ViatorProductSearchByTermResult(List.of(), 0);
+        }
+
+        java.util.Set<String> allowedDestinationRefs = matchingDestinations.stream()
+            .map(ViatorDestinationResult::id)
+            .filter(id -> isNotBlank(id))
+            .collect(java.util.stream.Collectors.toSet());
+
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int perDestination = Math.max((safeSize * 2) / Math.max(matchingDestinations.size(), 1), 10);
+        perDestination = Math.min(perDestination, 50);
+
+        List<JsonNode> allProducts = new ArrayList<>();
+        java.util.Set<String> seenCodes = new java.util.LinkedHashSet<>();
+
+        boolean singleDestination = matchingDestinations.size() == 1;
+        for (ViatorDestinationResult dest : matchingDestinations) {
+            if (allProducts.size() >= safeSize * 3) {
+                break;
+            }
+            Optional<ViatorProductSearchPage> pageOpt = searchProductsByDestination(
+                dest.id(),
+                1,
+                perDestination,
+                currency,
+                acceptLanguage
+            );
+            if (pageOpt.isEmpty()) {
+                continue;
+            }
+            List<JsonNode> products = pageOpt.get().products() != null
+                ? pageOpt.get().products()
+                : List.of();
+            for (JsonNode product : products) {
+                String code = text(product, "productCode");
+                if (!isNotBlank(code) || seenCodes.contains(code)) {
+                    continue;
+                }
+                if (!singleDestination) {
+                    String primaryRef = extractPrimaryDestinationRef(product);
+                    if (primaryRef != null && !allowedDestinationRefs.contains(primaryRef)) {
+                        continue;
+                    }
+                }
+                seenCodes.add(code);
+                allProducts.add(product);
+            }
+        }
+
+        int fromIndex = page * safeSize;
+        int toIndex = Math.min(fromIndex + safeSize, allProducts.size());
+        List<JsonNode> paged = fromIndex < allProducts.size()
+            ? allProducts.subList(fromIndex, toIndex)
+            : List.of();
+
+        Map<String, String> destinationIdToName = new java.util.LinkedHashMap<>();
+        for (ViatorDestinationResult d : matchingDestinations) {
+            if (isNotBlank(d.id())) {
+                String display = isNotBlank(d.name()) ? d.name() : d.id();
+                if (isNotBlank(d.parentDestinationName())) {
+                    display = display + ", " + d.parentDestinationName();
+                }
+                destinationIdToName.putIfAbsent(d.id(), display);
+            }
+        }
+        return new ViatorProductSearchByTermResult(paged, allProducts.size(), destinationIdToName);
+    }
+
+    /**
+     * Search for products via Viator API for nearby coordinates.
+     * Chains: destination refs (from caller) → searchProductsByDestination for each.
+     *
+     * @param destinationRefs destination IDs from reverse-geocode (e.g. ViatorNearbyDestinationResolver)
+     * @param page zero-based page index
+     * @param size page size
+     * @param currency e.g. "EUR"
+     * @param acceptLanguage e.g. "en"
+     * @return product search result with products and total count
+     */
+    public ViatorProductSearchByTermResult searchProductsByCoordinates(
+        List<String> destinationRefs,
+        int page,
+        int size,
+        String currency,
+        String acceptLanguage
+    ) {
+        if (!config.isConfigured() || destinationRefs == null || destinationRefs.isEmpty()) {
+            return new ViatorProductSearchByTermResult(List.of(), 0);
+        }
+
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int perDestination = Math.max((safeSize * 2) / Math.max(destinationRefs.size(), 1), 10);
+        perDestination = Math.min(perDestination, 50);
+
+        List<JsonNode> allProducts = new ArrayList<>();
+        java.util.Set<String> seenCodes = new java.util.LinkedHashSet<>();
+
+        for (String destRef : destinationRefs) {
+            if (allProducts.size() >= safeSize * 3) {
+                break;
+            }
+            Optional<ViatorProductSearchPage> pageOpt = searchProductsByDestination(
+                destRef,
+                1,
+                perDestination,
+                currency,
+                acceptLanguage
+            );
+            if (pageOpt.isEmpty()) {
+                continue;
+            }
+            List<JsonNode> products = pageOpt.get().products() != null
+                ? pageOpt.get().products()
+                : List.of();
+            java.util.Set<String> allowedRefs = new java.util.HashSet<>(destinationRefs);
+            for (JsonNode product : products) {
+                String code = text(product, "productCode");
+                if (!isNotBlank(code) || seenCodes.contains(code)) {
+                    continue;
+                }
+                String primaryRef = extractPrimaryDestinationRef(product);
+                if (primaryRef != null && !allowedRefs.contains(primaryRef)) {
+                    continue;
+                }
+                seenCodes.add(code);
+                allProducts.add(product);
+            }
+        }
+
+        int fromIndex = page * safeSize;
+        int toIndex = Math.min(fromIndex + safeSize, allProducts.size());
+        List<JsonNode> paged = fromIndex < allProducts.size()
+            ? allProducts.subList(fromIndex, toIndex)
+            : List.of();
+
+        return new ViatorProductSearchByTermResult(paged, allProducts.size());
+    }
+
     public List<ViatorDestinationResult> searchDestinationsByTerm(
         String searchTerm,
         String acceptLanguage,
@@ -238,21 +414,7 @@ public class ViatorClient {
                 return List.of();
             }
 
-            List<ViatorDestinationResult> destinations = new ArrayList<>();
-            JsonNode results = body.path("destinations").path("results");
-            if (results.isArray()) {
-                for (JsonNode item : results) {
-                    String id = firstNonBlank(text(item, "id"), text(item, "destinationId"));
-                    if (!isNotBlank(id)) {
-                        continue;
-                    }
-                    destinations.add(new ViatorDestinationResult(
-                        id,
-                        text(item, "name"),
-                        text(item, "parentDestinationName")
-                    ));
-                }
-            }
+            List<ViatorDestinationResult> destinations = parseDestinationsFromFreetextResponse(body);
             return destinations;
         } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator search/freetext destinations: {}", ex.getMessage());
@@ -300,6 +462,38 @@ public class ViatorClient {
         } catch (RuntimeException ex) {
             log.error("Errore chiamata Viator bulk: {}", ex.getMessage());
             return List.of();
+        }
+    }
+
+    /**
+     * Fetch a single product by product code via GET /products/{productCode}.
+     * Fallback when bulk endpoint returns empty or is not available.
+     */
+    public Optional<JsonNode> getProduct(String productCode, String acceptLanguage) {
+        if (!config.isConfigured() || !isNotBlank(productCode)) {
+            return Optional.empty();
+        }
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(config.getBaseUrl())
+            .path("/products/{code}");
+        applyOptionalQueryParams(builder);
+        String fullUrl = builder.buildAndExpand(productCode).encode().toUriString();
+        HttpEntity<Void> requestEntity = new HttpEntity<>(buildHeaders(acceptLanguage, false));
+
+        try {
+            ResponseEntity<String> response = executeWithRetry(
+                () -> restTemplate.exchange(fullUrl, HttpMethod.GET, requestEntity, String.class),
+                "GET /products/" + productCode
+            );
+            JsonNode body = parseBody(response.getBody(), "GET /products/" + productCode);
+            if (body == null || !body.isObject()) {
+                return Optional.empty();
+            }
+            return Optional.of(body);
+        } catch (HttpClientErrorException.NotFound ex) {
+            return Optional.empty();
+        } catch (RuntimeException ex) {
+            log.warn("Errore chiamata Viator GET /products/{}: {}", productCode, ex.getMessage());
+            return Optional.empty();
         }
     }
 
@@ -402,6 +596,115 @@ public class ViatorClient {
         return value != null && !value.isBlank();
     }
 
+    /**
+     * Keep only destinations that meaningfully match the search term so that e.g. "Italy"
+     * returns only destinations in Italy (parent = Italy or name = Italy). For single-word
+     * terms we require parent or exact name match only; no substring-in-name matches.
+     */
+    /**
+     * Parse destination list from freetext response. Tries partner-API shape (destinations.results)
+     * then legacy shape (data array with searchType DESTINATION and nested data).
+     */
+    /**
+     * Read destination id as string from a freetext result node. API may return "id" as number (e.g. 57);
+     * products/search expects "destination" as string (e.g. "57").
+     */
+    private String destinationIdFromNode(JsonNode item) {
+        String id = firstNonBlank(text(item, "id"), text(item, "destinationId"));
+        if (isNotBlank(id)) {
+            return id;
+        }
+        JsonNode idNode = item.path("id");
+        if (!idNode.isMissingNode() && !idNode.isNull() && idNode.isNumber()) {
+            return String.valueOf(idNode.asInt());
+        }
+        JsonNode destIdNode = item.path("destinationId");
+        if (!destIdNode.isMissingNode() && !destIdNode.isNull() && destIdNode.isNumber()) {
+            return String.valueOf(destIdNode.asInt());
+        }
+        return null;
+    }
+
+    private List<ViatorDestinationResult> parseDestinationsFromFreetextResponse(JsonNode body) {
+        List<ViatorDestinationResult> out = new ArrayList<>();
+        JsonNode results = body.path("destinations").path("results");
+        if (results.isArray()) {
+            for (JsonNode item : results) {
+                String id = destinationIdFromNode(item);
+                if (!isNotBlank(id)) {
+                    continue;
+                }
+                out.add(new ViatorDestinationResult(
+                    id,
+                    text(item, "name"),
+                    text(item, "parentDestinationName")
+                ));
+            }
+        }
+        if (!out.isEmpty()) {
+            return out;
+        }
+        JsonNode data = body.path("data");
+        if (data.isArray()) {
+            for (JsonNode item : data) {
+                String type = text(item, "searchType");
+                JsonNode d = item.has("data") ? item.path("data") : item;
+                if (!d.isObject()) {
+                    continue;
+                }
+                if ("DESTINATION".equals(type) || d.has("destinationId") || (d.has("name") && (d.has("id") || d.has("destinationId")))) {
+                    String id = destinationIdFromNode(d);
+                    if (!isNotBlank(id)) {
+                        continue;
+                    }
+                    out.add(new ViatorDestinationResult(
+                        id,
+                        text(d, "name"),
+                        firstNonBlank(text(d, "parentDestinationName"), text(d, "parentName"))
+                    ));
+                }
+            }
+        }
+        return out;
+    }
+
+    private boolean matchesSearchTerm(ViatorDestinationResult dest, String searchLower) {
+        if (searchLower == null || searchLower.isBlank()) {
+            return false;
+        }
+        String name = dest.name();
+        String parent = dest.parentDestinationName();
+        String nameLower = name != null ? name.toLowerCase().trim() : "";
+        String parentLower = parent != null ? parent.toLowerCase().trim() : "";
+
+        boolean singleWord = !searchLower.contains(" ");
+        if (singleWord) {
+            boolean parentEquals = parentLower.equals(searchLower);
+            boolean parentContainsWord = containsWholeWord(parentLower, searchLower);
+            boolean nameEquals = nameLower.equals(searchLower);
+            boolean nameContains = nameLower.contains(searchLower);
+            boolean parentContains = parentLower.contains(searchLower);
+            return nameEquals || parentEquals || parentContainsWord || nameContains || parentContains;
+        }
+        return nameLower.contains(searchLower) || parentLower.contains(searchLower);
+    }
+
+    private boolean containsWholeWord(String text, String word) {
+        if (text == null || word == null || word.isEmpty()) {
+            return false;
+        }
+        int i = text.indexOf(word);
+        while (i >= 0) {
+            boolean startOk = i == 0 || !Character.isLetter(text.charAt(i - 1));
+            boolean endOk = i + word.length() >= text.length() || !Character.isLetter(text.charAt(i + word.length()));
+            if (startOk && endOk) {
+                return true;
+            }
+            i = text.indexOf(word, i + 1);
+        }
+        return false;
+    }
+
     private JsonNode parseBody(String rawBody, String operation) {
         if (!isNotBlank(rawBody)) {
             return null;
@@ -423,6 +726,20 @@ public class ViatorClient {
         }
         String text = value.asText();
         return text != null && !text.isBlank() ? text : null;
+    }
+
+    private String extractPrimaryDestinationRef(JsonNode product) {
+        JsonNode destinations = product.path("destinations");
+        if (!destinations.isArray()) {
+            return null;
+        }
+        for (JsonNode dest : destinations) {
+            String ref = text(dest, "ref");
+            if (isNotBlank(ref)) {
+                return ref;
+            }
+        }
+        return null;
     }
 
     private String firstNonBlank(String... values) {

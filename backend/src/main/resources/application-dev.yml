@@ -43,11 +43,14 @@ app:
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:${SERVER_PORT:8080}}/media}
   google-maps:
     api-key: ${GOOGLE_MAPS_API_KEY:}
+    base-url: https://maps.googleapis.com/maps/api
+    timeout-seconds: ${GOOGLE_MAPS_TIMEOUT_SECONDS:60}
   viator:
     api-key: ${VIATOR_API_KEY:}
     base-url: ${VIATOR_BASE_URL:https://api.sandbox.viator.com/partner}
     accept-version: ${VIATOR_ACCEPT_VERSION:application/json;version=2.0}
     default-language: ${VIATOR_ACCEPT_LANGUAGE:en-US}
+    timeout-seconds: ${VIATOR_TIMEOUT_SECONDS:60}
     sync:
       enabled: ${VIATOR_SYNC_ENABLED:false}
       use-search-only: ${VIATOR_SYNC_USE_SEARCH_ONLY:false}

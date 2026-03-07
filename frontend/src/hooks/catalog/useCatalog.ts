@@ -10,6 +10,7 @@ export const useCatalog = () => {
   const actions = useMemo(
     () => ({
       setFilters: catalogActions.setFilters,
+      setLoading: catalogActions.setLoading,
       fetchCatalog: catalogActions.fetchCatalog,
       fetchCategories: catalogActions.fetchCategories,
       fetchPlaces: catalogActions.fetchPlaces,

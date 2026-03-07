@@ -12,6 +12,13 @@ import { AffiliationLinkBox } from "@/features/catalog/sections/AffiliationLinkB
 import { ShareLinkDropdown } from "@/features/catalog/sections/ShareLinkDropdown";
 import { useCatalog, useFavorites, useT } from "@/hooks";
 import { isUuid } from "@/lib/validators";
+
+/** Valid: UUID or viator-{productCode} for Viator live products. */
+function isValidExperienceId(id: string | null | undefined): id is string {
+  if (typeof id !== "string" || !id.trim()) return false;
+  if (id.startsWith("viator-") && id.length > 7) return true;
+  return isUuid(id);
+}
 import { getShareableExperienceUrl } from "@/lib/siteUrl";
 import { getRuntimeBcp47 } from "@/i18n/runtimeLocale";
 
@@ -24,9 +31,8 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
   const { t } = useT();
   const { experienceDetail, loading, error, actions } = useCatalog();
   const { items: favorites, actions: favoritesActions } = useFavorites();
-  const bootstrappedRef = useRef(false);
   const favoritesBootstrappedRef = useRef(false);
-  const isValidId = isUuid(experienceId);
+  const isValidId = isValidExperienceId(experienceId);
   const [savingFavorite, setSavingFavorite] = useState(false);
 
   const isFavorite = useMemo(
@@ -55,8 +61,6 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
       actions.clearDetails();
       return;
     }
-    if (bootstrappedRef.current) return;
-    bootstrappedRef.current = true;
     actions.fetchExperience(experienceId).catch(() => undefined);
     return () => actions.clearDetails();
   }, [actions, experienceId, isValidId]);
@@ -76,7 +80,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
             "The requested experience does not exist or is unavailable."
           )}
           actionLabel={t("Back to experiences")}
-          actionHref="/experiences"
+          actionHref="/places?filter=experiences"
         />
       </div>
     );
@@ -102,7 +106,7 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           title={t("Unable to load experience")}
           description={error.message}
           actionLabel={t("Back to experiences")}
-          actionHref="/experiences"
+          actionHref="/places?filter=experiences"
         />
       </div>
     );
@@ -285,60 +289,6 @@ export const ExperienceDetail = ({ experienceId }: ExperienceDetailProps) => {
           />
         </div>
       </Card>
-
-      {/* Highlights */}
-      {experienceDetail.highlights && experienceDetail.highlights.length > 0 && (
-        <Card className="space-y-3 p-5">
-          <h3 className="text-base font-semibold text-foreground">
-            {t("Highlights")}
-          </h3>
-          <ul className="space-y-2">
-            {experienceDetail.highlights.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-sm text-muted">
-                <span className="text-accent">✓</span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {/* Cosa è incluso / escluso */}
-      {((experienceDetail.inclusions && experienceDetail.inclusions.length > 0) ||
-        (experienceDetail.exclusions && experienceDetail.exclusions.length > 0)) && (
-        <Card className="space-y-4 p-5">
-          {experienceDetail.inclusions && experienceDetail.inclusions.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold text-foreground">
-                {t("What's included")}
-              </h3>
-              <ul className="space-y-1">
-                {experienceDetail.inclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-muted">
-                    <span className="text-green-500">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {experienceDetail.exclusions && experienceDetail.exclusions.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold text-foreground">
-                {t("What's not included")}
-              </h3>
-              <ul className="space-y-1">
-                {experienceDetail.exclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-muted">
-                    <span className="text-red-400">✗</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Informazioni aggiuntive */}
       {(experienceDetail.languages?.length ||

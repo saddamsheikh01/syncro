@@ -165,7 +165,7 @@ export const AstrologyBirthChartCard = ({
           label={t("Date of birth")}
           value={birthDate}
           onValueChange={setBirthDate}
-          placeholder="YYYY-MM-DD"
+          placeholder={t("DD / MM / YYYY")}
           maxYear={new Date().getFullYear()}
         />
         <TimePicker

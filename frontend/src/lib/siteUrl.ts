@@ -54,6 +54,19 @@ export function getShareablePlaceUrl(placeId: string): string {
   return base ? `${base}/places/${placeId}` : `/places/${placeId}`;
 }
 
+/** Experience detail path: UUID for DB experiences, viator-{productCode} for Viator live. */
+export function getExperienceDetailPath(exp: {
+  id: string;
+  source?: string | null;
+  provider?: string | null;
+  externalId?: string | null;
+}): string {
+  if ((exp.source === "VIATOR" || exp.provider === "VIATOR") && exp.externalId) {
+    return `/experiences/viator-${exp.externalId}`;
+  }
+  return `/experiences/${exp.id}`;
+}
+
 export function getShareableExperienceUrl(experienceId: string): string {
   const base = getShareableBaseUrl();
   return base ? `${base}/experiences/${experienceId}` : `/experiences/${experienceId}`;

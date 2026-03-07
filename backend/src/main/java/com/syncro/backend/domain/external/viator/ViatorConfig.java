@@ -11,7 +11,7 @@ public class ViatorConfig {
     private String baseUrl = "https://api.sandbox.viator.com/partner";
     private String acceptVersion = "application/json;version=2.0";
     private String defaultLanguage = "en-US";
-    private int timeoutSeconds = 30;
+    private int timeoutSeconds = 60;
     private int maxRetries = 3;
     private long retryBackoffMillis = 1000;
     private String campaignValue;

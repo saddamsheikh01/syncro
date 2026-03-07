@@ -20,6 +20,7 @@ public class ExperienceMapper {
     ) {
         return new ExperienceSummaryResponse(
             experience.getId(),
+            experience.getExternalId(),
             experience.getName(),
             experience.getDescription(),
             category,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
 import { ErrorState } from "@/components/elements/ErrorState";
@@ -13,6 +14,7 @@ import { PlaceListItem } from "@/features/catalog/cards/PlaceListItem";
 import { ExperienceListItem } from "@/features/catalog/cards/ExperienceListItem";
 import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
+import { getExperienceDetailPath } from "@/lib/siteUrl";
 import { cx } from "@/lib/classNames";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
 import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
@@ -40,9 +42,22 @@ type TabFilter = "all" | "places" | "experiences";
 
 export const PlacesOverview = () => {
   const { t } = useT();
-  const [filter, setFilter] = useState<TabFilter>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filterParam = searchParams.get("filter");
+  const initialFilter: TabFilter =
+    filterParam === "places" || filterParam === "experiences" ? filterParam : "all";
+  const [filter, setFilter] = useState<TabFilter>(initialFilter);
+
+  useEffect(() => {
+    if (filterParam === "places" || filterParam === "experiences") {
+      setFilter(filterParam);
+    }
+  }, [filterParam]);
   const [citySearch, setCitySearch] = useState("");
   const [citySearchApplied, setCitySearchApplied] = useState("");
+  const [searchTrigger, setSearchTrigger] = useState(0);
   const [nearMe, setNearMe] = useState(false);
   const {
     places,
@@ -62,30 +77,30 @@ export const PlacesOverview = () => {
     actions,
   } = useCatalog();
   const { position, hasPosition, actions: positionActions } = usePosition();
-  const bootstrappedRef = useRef(false);
   const [locationLoading, setLocationLoading] = useState(false);
 
+  const hasLatLng = nearMe && hasPosition && position?.latitude != null && position?.longitude != null;
   const placeParams = useMemo(
     () => ({
       source: "GOOGLE" as const,
       size: PAGE_SIZE,
       q: citySearchApplied || undefined,
-      lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
-      lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
-      radiusKm: nearMe && hasPosition ? 50 : undefined,
+      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
+      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
+      radiusKm: hasLatLng ? 100 : undefined,
     }),
-    [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
   );
 
   const catalogParams = useMemo(
     () => ({
       size: PAGE_SIZE,
       q: citySearchApplied || undefined,
-      lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
-      lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
-      radiusKm: nearMe && hasPosition ? 150 : undefined,
+      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
+      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
+      radiusKm: hasLatLng ? 100 : undefined,
     }),
-    [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
   );
 
   const experienceParams = useMemo(
@@ -93,25 +108,16 @@ export const PlacesOverview = () => {
       source: "VIATOR" as const,
       size: PAGE_SIZE,
       q: citySearchApplied || undefined,
-      lat: nearMe && hasPosition ? position?.latitude ?? undefined : undefined,
-      lng: nearMe && hasPosition ? position?.longitude ?? undefined : undefined,
-      radiusKm: nearMe && hasPosition ? 150 : undefined,
+      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
+      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
+      radiusKm: hasLatLng ? 100 : undefined,
     }),
-    [citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
   );
 
-  useEffect(() => {
-    if (bootstrappedRef.current) return;
-    bootstrappedRef.current = true;
-    if (filter === "all") {
-      actions.fetchCatalog(catalogParams).catch(() => undefined);
-    } else if (filter === "places") {
-      actions.fetchPlaces(placeParams).catch(() => undefined);
-    } else if (filter === "experiences") {
-      actions.fetchExperiences(experienceParams).catch(() => undefined);
-    }
-  }, []);
-
+  // Fetch by tab: only one of catalog, places, or experiences. Note: other components
+  // (e.g. NearbyHighlight in the sidebar) also react to position and may call fetchPlaces
+  // or fetchExperiences; they share the same global loading state.
   useEffect(() => {
     if (filter === "all") {
       actions.fetchCatalog(catalogParams).catch(() => undefined);
@@ -120,7 +126,7 @@ export const PlacesOverview = () => {
     } else if (filter === "experiences") {
       actions.fetchExperiences(experienceParams).catch(() => undefined);
     }
-  }, [filter, citySearchApplied, nearMe, hasPosition, position?.latitude, position?.longitude]);
+  }, [filter, citySearchApplied, hasLatLng, position?.latitude, position?.longitude, searchTrigger]);
 
   const clearFilters = useCallback(() => {
     setCitySearch("");
@@ -133,12 +139,20 @@ export const PlacesOverview = () => {
       if (filter === newFilter) return;
       clearFilters();
       setFilter(newFilter);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newFilter === "all") params.delete("filter");
+      else params.set("filter", newFilter);
+      const q = params.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname);
     },
-    [clearFilters, filter]
+    [clearFilters, filter, pathname, router, searchParams]
   );
 
   const handleSearchApply = useCallback(() => {
-    setCitySearchApplied(citySearch.trim() || "");
+    const applied = citySearch.trim() || "";
+    setCitySearchApplied(applied);
+    if (applied) setNearMe(false);
+    setSearchTrigger((t) => t + 1);
   }, [citySearch]);
 
   const handleNearMeClick = useCallback(() => {
@@ -147,6 +161,9 @@ export const PlacesOverview = () => {
       return;
     }
     if (hasPosition) {
+      setCitySearch("");
+      setCitySearchApplied("");
+      if (filter === "experiences") actions.setLoading(true);
       setNearMe(true);
       return;
     }
@@ -176,7 +193,7 @@ export const PlacesOverview = () => {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [nearMe, hasPosition, positionActions]);
+  }, [filter, nearMe, hasPosition, positionActions, actions]);
 
   const handleLoadMore = useCallback(() => {
     if (!hasMorePlaces || loading) return;
@@ -280,7 +297,7 @@ export const PlacesOverview = () => {
         title: exp.name,
         subtitle: exp.locationName ?? exp.place?.name ?? undefined,
         category: exp.category?.name ?? undefined,
-        href: `/experiences/${exp.id}`,
+        href: getExperienceDetailPath(exp),
         imageUrl: exp.imageUrl ?? undefined,
         priceLabel: formatPrice(exp.price, exp.priceCurrency),
         originalPriceLabel:
@@ -318,7 +335,7 @@ export const PlacesOverview = () => {
         title: exp.name,
         subtitle: exp.locationName ?? exp.place?.name ?? undefined,
         category: exp.category?.name ?? undefined,
-        href: `/experiences/${exp.id}`,
+        href: getExperienceDetailPath(exp),
         imageUrl: exp.imageUrl ?? undefined,
         priceLabel: formatPrice(exp.price, exp.priceCurrency),
         originalPriceLabel:
@@ -403,16 +420,20 @@ export const PlacesOverview = () => {
           <button
             type="button"
             onClick={handleNearMeClick}
-            disabled={locationLoading}
+            disabled={locationLoading || (nearMe && (loading || loadingCatalog))}
             className={cx(
               "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
               nearMe
                 ? "border-accent bg-accent text-accent-foreground"
                 : "border-border bg-surface text-foreground hover:bg-border",
-              locationLoading && "cursor-wait opacity-70"
+              (locationLoading || (nearMe && (loading || loadingCatalog))) && "cursor-wait opacity-70"
             )}
           >
-            {locationLoading ? t("Getting location…") : t("Near me")}
+            {locationLoading
+              ? t("Getting location…")
+              : nearMe && (loading || loadingCatalog)
+                ? t("Loading…")
+                : t("Near me")}
           </button>
         </div>
       </Card>
@@ -519,26 +540,26 @@ export const PlacesOverview = () => {
       )}
 
       {filter === "experiences" && (
-        <section className="space-y-4">
-          {isInitialLoadingExperiences && (
+        <section className="space-y-4 relative">
+          {(loading || loadingCatalog) && (
             <Card className="flex items-center gap-3 p-5">
               <Loader size="sm" />
               <p className="text-sm text-muted">{t("Loading experiences...")}</p>
             </Card>
           )}
-          {error && !isInitialLoadingExperiences && (
+          {error && !loading && !loadingCatalog && (
             <ErrorState
               title={t("Unable to load experiences")}
               description={error.message}
             />
           )}
-          {!isInitialLoadingExperiences && !error && experiences.length === 0 && (
+          {!loading && !loadingCatalog && !error && experiences.length === 0 && (
             <EmptyState
               title={t("No experiences found")}
               description={t("Try a different search or filter.")}
             />
           )}
-          {experiences.length > 0 && (
+          {!(loading || loadingCatalog) && experiences.length > 0 && (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {experienceItems.map((item, index) => (
@@ -561,7 +582,7 @@ export const PlacesOverview = () => {
               )}
             </>
           )}
-          {experiencesPage.totalElements > 0 && (
+          {!(loading || loadingCatalog) && experiencesPage.totalElements > 0 && (
             <p className="text-center text-xs text-subtle">
               {t("{current} of {total} experiences", {
                 current: experiences.length,

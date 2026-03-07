@@ -84,7 +84,7 @@ export const getExperiences = async (
 };
 
 export const getExperience = async (
-  experienceId: Uuid
+  experienceId: string
 ): Promise<ExperienceDetailResponse> => {
   const { data } = await apiClient.get<ExperienceDetailResponse>(
     `/experiences/${experienceId}`

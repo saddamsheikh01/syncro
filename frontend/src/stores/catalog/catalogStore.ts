@@ -76,6 +76,17 @@ const initialState: CatalogState = {
 
 export const catalogStore = createStore<CatalogState>(initialState);
 
+const ERROR_AUTO_DISMISS_MS = 5000;
+let errorDismissTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const scheduleErrorDismiss = () => {
+  if (errorDismissTimeoutId) clearTimeout(errorDismissTimeoutId);
+  errorDismissTimeoutId = setTimeout(() => {
+    errorDismissTimeoutId = null;
+    catalogStore.setState({ error: null });
+  }, ERROR_AUTO_DISMISS_MS);
+};
+
 const mapPageInfo = (response: PageResponse<unknown>): PageInfo => ({
   page: response.number,
   size: response.size,
@@ -86,6 +97,11 @@ const mapPageInfo = (response: PageResponse<unknown>): PageInfo => ({
 export const catalogActions = {
   setFilters: (filters: CatalogSearchParams) => {
     catalogStore.setState({ filters });
+  },
+
+  /** Set loading explicitly (e.g. so Experiences tab shows loader immediately on "Near me" click). */
+  setLoading: (loading: boolean) => {
+    catalogStore.setState({ loading });
   },
 
   fetchCategories: async (
@@ -106,6 +122,7 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },
@@ -144,6 +161,7 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loadingCatalog: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },
@@ -166,6 +184,7 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },
@@ -179,6 +198,7 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },
@@ -201,12 +221,13 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },
 
   fetchExperience: async (
-    experienceId: Uuid
+    experienceId: string
   ): Promise<ExperienceDetailResponse> => {
     catalogStore.setState({ loading: true, error: null });
 
@@ -216,6 +237,7 @@ export const catalogActions = {
       return response;
     } catch (error) {
       catalogStore.setState({ loading: false, error: error as ApiError });
+      scheduleErrorDismiss();
       throw error;
     }
   },

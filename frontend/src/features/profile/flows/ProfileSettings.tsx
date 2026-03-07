@@ -55,6 +55,7 @@ import {
   getProfileRecapPending,
   regenerateProfileRecap,
 } from "@/services/zyra";
+import { toInterestTranslationKey } from "@/lib/interestEmoji";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
 import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
@@ -719,10 +720,10 @@ export const ProfileSettings = ({
     () =>
       tags.map((tag) => ({
         id: tag.id,
-        label: tag.name,
+        label: t(toInterestTranslationKey(tag.name)),
         selected: selectedTagIds.includes(tag.id),
       })),
-    [tags, selectedTagIds],
+    [tags, selectedTagIds, t],
   );
 
   const selectedTags = useMemo(() => {
@@ -736,13 +737,13 @@ export const ProfileSettings = ({
       .map((id) => {
         const name =
           tagById.get(id) ?? fallbackTags.find((tag) => tag.id === id)?.name;
-        return name ? { id, label: name, tone: "accent" as const } : null;
+        return name ? { id, label: t(toInterestTranslationKey(name)), tone: "accent" as const } : null;
       })
       .filter(
         (item): item is { id: string; label: string; tone: "accent" } =>
           item !== null,
       );
-  }, [interests, selectedTagIds, tags]);
+  }, [interests, selectedTagIds, tags, t]);
 
   const displayFirstName = useMemo(() => {
     const first = displayName.trim().split(" ")[0];

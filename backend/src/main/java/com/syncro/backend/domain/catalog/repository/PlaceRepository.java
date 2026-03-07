@@ -24,6 +24,8 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
                   :q IS NULL
                   OR p.name ILIKE CONCAT('%', :q, '%')
                   OR p.description ILIKE CONCAT('%', :q, '%')
+                  OR p.city ILIKE CONCAT('%', :q, '%')
+                  OR p.address ILIKE CONCAT('%', :q, '%')
               )
               AND (
                   :tagFilter = false
@@ -94,6 +96,8 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
                   :q IS NULL
                   OR p.name ILIKE CONCAT('%', :q, '%')
                   OR p.description ILIKE CONCAT('%', :q, '%')
+                  OR p.city ILIKE CONCAT('%', :q, '%')
+                  OR p.address ILIKE CONCAT('%', :q, '%')
               )
               AND (
                   :tagFilter = false

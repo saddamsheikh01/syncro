@@ -44,6 +44,38 @@ const DEFAULT_EN_COPY: Record<TestType, TestCopy> = {
   },
 };
 
+/** Translation keys for insight titles and descriptions (use with t() for localized copy). */
+export const INSIGHT_COPY_KEYS: Record<TestType, { titleKey: string; descriptionKey: string }> = {
+  INTERESTS: {
+    titleKey: DEFAULT_EN_COPY.INTERESTS.title,
+    descriptionKey: DEFAULT_EN_COPY.INTERESTS.description!,
+  },
+  LIFESTYLE: {
+    titleKey: DEFAULT_EN_COPY.LIFESTYLE.title,
+    descriptionKey: DEFAULT_EN_COPY.LIFESTYLE.description!,
+  },
+  VALUES: {
+    titleKey: DEFAULT_EN_COPY.VALUES.title,
+    descriptionKey: DEFAULT_EN_COPY.VALUES.description!,
+  },
+  OBJECTIVES: {
+    titleKey: DEFAULT_EN_COPY.OBJECTIVES.title,
+    descriptionKey: DEFAULT_EN_COPY.OBJECTIVES.description!,
+  },
+  PSY: {
+    titleKey: DEFAULT_EN_COPY.PSY.title,
+    descriptionKey: DEFAULT_EN_COPY.PSY.description!,
+  },
+  ASTRO: {
+    titleKey: DEFAULT_EN_COPY.ASTRO.title,
+    descriptionKey: DEFAULT_EN_COPY.ASTRO.description!,
+  },
+  OTHER: {
+    titleKey: DEFAULT_EN_COPY.OTHER.title,
+    descriptionKey: DEFAULT_EN_COPY.OTHER.description!,
+  },
+};
+
 const ITALIAN_TITLE_MAP: Record<string, TestCopy> = {
   "test interessi": DEFAULT_EN_COPY.INTERESTS,
   "test valori": DEFAULT_EN_COPY.VALUES,

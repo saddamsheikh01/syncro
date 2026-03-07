@@ -18,7 +18,7 @@ import { ConnectButton } from "@/features/matches/elements/ConnectButton";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
-import { resolveTestCopy } from "@/lib/insightsCopy";
+import { INSIGHT_COPY_KEYS, resolveTestCopy } from "@/lib/insightsCopy";
 import { getDomainFilterItems, getMatchDomainMeta } from "@/lib/matchDomains";
 import type { DomainFilter } from "@/lib/matchDomains";
 import type { UserMatchResponse } from "@/types/matches";
@@ -305,15 +305,26 @@ export const HomeOverview = () => {
   const testItems = useMemo(
     () => {
       const fromApi = tests.slice(0, 5).map((test) => {
-        const localized = resolveTestCopy({
-          title: test.title,
-          description: test.description,
-          testType: test.testType,
-        });
+        const copyKeys =
+          test.testType != null ? INSIGHT_COPY_KEYS[test.testType] : null;
+        const title = copyKeys
+          ? t(copyKeys.titleKey)
+          : resolveTestCopy({
+              title: test.title,
+              description: test.description,
+              testType: test.testType,
+            }).title;
+        const description = copyKeys?.descriptionKey
+          ? t(copyKeys.descriptionKey)
+          : resolveTestCopy({
+              title: test.title,
+              description: test.description,
+              testType: test.testType,
+            }).description;
         return {
           testType: test.testType,
-          title: localized.title,
-          description: localized.description,
+          title,
+          description,
           href: `/insights/${test.id}`,
           actionLabel: t("View Insights"),
           completed: test.completed,

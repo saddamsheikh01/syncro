@@ -39,11 +39,10 @@ const GoogleMapContainer = dynamic(
 const PAGE_SIZE = 50;
 
 const DISTANCE_OPTIONS: SelectOption[] = [
-  { label: "1 km", value: "1" },
-  { label: "5 km", value: "5" },
   { label: "10 km", value: "10" },
   { label: "25 km", value: "25" },
   { label: "50 km", value: "50" },
+  { label: "100 km", value: "100" },
 ];
 
 const LEGEND_ITEMS: LegendItemData[] = [
@@ -80,7 +79,7 @@ export const MapOverview = () => {
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<RecommendationResponse | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedDistance, setSelectedDistance] = useState<string>("25");
+  const [selectedDistance, setSelectedDistance] = useState<string>("100");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchLocation, setSearchLocation] = useState<{
     latitude: number;
@@ -148,20 +147,17 @@ export const MapOverview = () => {
       currentPosition?.latitude !== null &&
       currentPosition?.longitude !== null;
 
-    // Applica filtro distanza:
-    // - se ho una location da autocomplete
-    // - oppure se non sto facendo una ricerca testuale
+    // Applica filtro distanza solo quando abbiamo coordinate (evita errore radiusKm senza lat/lng)
     const shouldUseRadius = hasSearchLocation || !searchQuery;
-
-    if (shouldUseRadius) {
+    if (hasSearchLocation) {
+      params.lat = searchLocation?.latitude;
+      params.lng = searchLocation?.longitude;
+    } else if (canUseUserPosition && currentPosition) {
+      params.lat = currentPosition.latitude;
+      params.lng = currentPosition.longitude;
+    }
+    if (shouldUseRadius && params.lat != null && params.lng != null) {
       params.radiusKm = selectedDistance ? Number(selectedDistance) : undefined;
-      if (hasSearchLocation) {
-        params.lat = searchLocation?.latitude;
-        params.lng = searchLocation?.longitude;
-      } else if (canUseUserPosition && currentPosition) {
-        params.lat = currentPosition.latitude;
-        params.lng = currentPosition.longitude;
-      }
     }
 
     catalogActions.fetchPlaces(params).catch(() => undefined);

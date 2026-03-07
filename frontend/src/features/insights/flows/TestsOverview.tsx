@@ -11,6 +11,7 @@ import { TestsHelperCard } from "@/features/insights/cards/TestsHelperCard";
 import { InsightsDbLanguageDisclaimer } from "@/features/insights/elements/InsightsDbLanguageDisclaimer";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
+import { INSIGHT_COPY_KEYS } from "@/lib/insightsCopy";
 import { useAnalytics, useT, useTests, useUser } from "@/hooks";
 
 const isLocalhost = () =>
@@ -72,11 +73,15 @@ export const TestsOverview = () => {
 
   const testItems = useMemo(
     () => {
-      const fromApi = tests.map((test) => ({
-        testType: test.testType,
-        title: test.title,
-        description: test.description ?? undefined,
-        href: `/insights/${test.id}`,
+      const fromApi = tests.map((test) => {
+        const copyKeys = test.testType ? INSIGHT_COPY_KEYS[test.testType] : null;
+        const title = copyKeys ? t(copyKeys.titleKey) : test.title;
+        const description = copyKeys ? t(copyKeys.descriptionKey) : (test.description ?? undefined);
+        return {
+          testType: test.testType,
+          title,
+          description,
+          href: `/insights/${test.id}`,
         onOpen: () => {
           void analyticsActions.trackEvent({
             eventName: "INSIGHT_OPENED_FROM_LIST",
@@ -89,7 +94,8 @@ export const TestsOverview = () => {
         },
         actionLabel: t("View Insights"),
         completed: test.completed,
-      }));
+        };
+      });
       const birthChartItem = {
         testType: "ASTRO" as const,
         title: t("Birth chart"),

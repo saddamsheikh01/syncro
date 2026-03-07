@@ -66,6 +66,7 @@ public class ViatorNearbyDestinationResolver {
         }
 
         Map<String, Integer> scoreByDestination = new LinkedHashMap<>();
+        GeoContext geo = geoContext.get();
         for (String term : searchTerms) {
             List<ViatorDestinationResult> results = viatorClient.searchDestinationsByTerm(
                 term,
@@ -74,11 +75,14 @@ public class ViatorNearbyDestinationResolver {
             );
             for (int i = 0; i < results.size(); i++) {
                 ViatorDestinationResult result = results.get(i);
+                if (!matchesGeoContext(result, geo)) {
+                    continue;
+                }
                 String destinationId = normalize(result.id());
                 if (destinationId == null) {
                     continue;
                 }
-                int score = scoreDestination(result, geoContext.get(), term, i);
+                int score = scoreDestination(result, geo, term, i);
                 scoreByDestination.merge(destinationId, score, Math::max);
             }
         }
@@ -201,6 +205,40 @@ public class ViatorNearbyDestinationResolver {
             terms.add(geoContext.countryCode);
         }
         return new ArrayList<>(terms);
+    }
+
+    /**
+     * Filter out destinations that don't match the user's geo (e.g. Korea when in Pakistan).
+     * When country/countryCode are unknown, require city/region match to avoid geographic pollution.
+     */
+    private boolean matchesGeoContext(ViatorDestinationResult result, GeoContext geo) {
+        String normalizedCountry = normalizeForMatch(geo.country());
+        String normalizedCountryCode = normalizeForMatch(geo.countryCode());
+        String normalizedParent = normalizeForMatch(result.parentDestinationName());
+        String normalizedName = normalizeForMatch(result.name());
+        String normalizedCity = normalizeForMatch(geo.city());
+        String normalizedRegion = normalizeForMatch(geo.region());
+
+        if (normalizedCountry != null || normalizedCountryCode != null) {
+            boolean parentMatches = normalizedParent != null
+                && (normalizedCountry != null && normalizedParent.contains(normalizedCountry)
+                    || normalizedCountryCode != null && normalizedParent.contains(normalizedCountryCode));
+            boolean nameMatches = normalizedName != null
+                && (normalizedCountry != null && normalizedName.contains(normalizedCountry)
+                    || normalizedCountryCode != null && normalizedName.contains(normalizedCountryCode));
+            if (parentMatches || nameMatches) {
+                return true;
+            }
+        }
+
+        if (normalizedCity == null && normalizedRegion == null) {
+            return false;
+        }
+        boolean cityRegionMatch = (normalizedCity != null && normalizedName != null && normalizedName.contains(normalizedCity))
+            || (normalizedRegion != null && normalizedName != null && normalizedName.contains(normalizedRegion))
+            || (normalizedCity != null && normalizedParent != null && normalizedParent.contains(normalizedCity))
+            || (normalizedRegion != null && normalizedParent != null && normalizedParent.contains(normalizedRegion));
+        return cityRegionMatch;
     }
 
     private int scoreDestination(ViatorDestinationResult result, GeoContext geoContext, String term, int index) {
