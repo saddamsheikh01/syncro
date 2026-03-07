@@ -4,8 +4,6 @@
 
 export interface ProfileCompletionInput {
   profileFields: {
-    username: string | null;
-    email: string | null;
     fullName: string | null;
     birthDate: string | null;
     city: string | null;
@@ -24,15 +22,13 @@ export interface ProfileCompletionInput {
   };
   hasAvatar: boolean;
   interestCount: number;
-  matchmakingFilterValues: {
-    ageMin: number | null;
-    ageMax: number | null;
-    distanceKm: number | null;
-    gender: string | null;
-  };
   hasPosition: boolean;
+  /** Completed insight tests (from API). */
   testsCompleted: number;
+  /** Total insight tests (from API). Does not include birth chart. */
   testsTotal: number;
+  /** Whether the user has completed the birth chart (astrology) insight. */
+  hasBirthChart: boolean;
 }
 
 export interface CategoryScore {
@@ -43,53 +39,27 @@ export interface CategoryScore {
 
 export interface ProfileCompletionResult {
   percentage: number;
+  /** Only insight categories (tests + birth chart); profile/interests/avatar/location are excluded. */
   categories: {
     tests: CategoryScore;
-    profile: CategoryScore;
-    interests: CategoryScore;
-    avatar: CategoryScore;
-    preferences: CategoryScore;
-    location: CategoryScore;
+    astrology: CategoryScore;
   };
 }
-
-/* ------------------------------------------------------------------ */
-/*  Weights                                                            */
-/* ------------------------------------------------------------------ */
-
-const WEIGHTS = {
-  tests: 30,
-  profile: 30,
-  interests: 15,
-  avatar: 10,
-  preferences: 10,
-  location: 5,
-} as const;
-
-const INTEREST_THRESHOLD = 3;
-const REQUIRED_PROFILE_FIELDS = [
-  "username",
-  "email",
-  "fullName",
-  "birthDate",
-  "city",
-  "country",
-  "jobTitle",
-  "companyName",
-  "bio",
-  "traitsText",
-  "lovesText",
-  "dislikesText",
-  "goalsText",
-  "valuesText",
-] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const isFilled = (value: string | null | undefined): boolean =>
-  typeof value === "string" && value.trim().length > 0;
+/** Total insight items = API tests + birth chart. */
+const totalInsightItems = (testsTotal: number) => testsTotal + 1;
+
+/** Weight for tests category so tests + astrology weights sum to 100. */
+const testsWeight = (testsTotal: number) =>
+  testsTotal > 0 ? (100 * testsTotal) / totalInsightItems(testsTotal) : 0;
+
+/** Weight for birth chart category. */
+const astrologyWeight = (testsTotal: number) =>
+  100 / Math.max(1, totalInsightItems(testsTotal));
 
 const makeCategory = (weight: number, ratio: number): CategoryScore => ({
   weight,
@@ -104,65 +74,27 @@ const makeCategory = (weight: number, ratio: number): CategoryScore => ({
 export const calculateProfileCompletion = (
   input: ProfileCompletionInput,
 ): ProfileCompletionResult => {
-  // Tests (30%)
+  const total = totalInsightItems(input.testsTotal);
+  const wTests = testsWeight(input.testsTotal);
+  const wAstrology = astrologyWeight(input.testsTotal);
+
   const testsRatio =
     input.testsTotal > 0 ? input.testsCompleted / input.testsTotal : 0;
+  const astrologyRatio = input.hasBirthChart ? 1 : 0;
 
-  // Profile fields (30%)
-  const requiredFieldValues = REQUIRED_PROFILE_FIELDS.map(
-    (key) => input.profileFields[key],
-  );
-  const filledRequiredCount = requiredFieldValues.filter(isFilled).length;
-  const profileRatio =
-    requiredFieldValues.length > 0
-      ? filledRequiredCount / requiredFieldValues.length
-      : 0;
-
-  // Interests (15%)
-  const interestsRatio = Math.min(input.interestCount / INTEREST_THRESHOLD, 1);
-
-  // Avatar (10%)
-  const avatarRatio = input.hasAvatar ? 1 : 0;
-
-  // Preferences (10%)
-  const filterValues = input.matchmakingFilterValues;
-  const filledFilters = (
-    ["ageMin", "ageMax", "distanceKm", "gender"] as const
-  ).filter((key) => filterValues[key] !== null && filterValues[key] !== undefined).length;
-  const preferencesRatio = filledFilters / 4;
-
-  // Location (5%)
-  const hasManualLocation =
-    isFilled(input.profileFields.city) && isFilled(input.profileFields.country);
-  const locationRatio = input.hasPosition || hasManualLocation ? 1 : 0;
-
-  // Build result
   const categories = {
-    tests: makeCategory(WEIGHTS.tests, testsRatio),
-    profile: makeCategory(WEIGHTS.profile, profileRatio),
-    interests: makeCategory(WEIGHTS.interests, interestsRatio),
-    avatar: makeCategory(WEIGHTS.avatar, avatarRatio),
-    preferences: makeCategory(WEIGHTS.preferences, preferencesRatio),
-    location: makeCategory(WEIGHTS.location, locationRatio),
+    tests: makeCategory(wTests, testsRatio),
+    astrology: makeCategory(wAstrology, astrologyRatio),
   };
 
-  const totalPoints = Object.values(categories).reduce(
-    (sum, cat) => sum + cat.points,
-    0,
+  const totalPoints = categories.tests.points + categories.astrology.points;
+  const rawPercentage = Math.round(totalPoints);
+  const allComplete =
+    (input.testsTotal === 0 || testsRatio >= 1) && astrologyRatio >= 1;
+  const percentage = Math.min(
+    100,
+    Math.max(0, allComplete ? 100 : rawPercentage),
   );
-
-  let rawPercentage = Math.round(totalPoints);
-  // When all categories are complete, always show 100%
-  const allCategoriesComplete = (Object.values(categories) as CategoryScore[]).every(
-    (c) => c.ratio >= 1,
-  );
-  if (allCategoriesComplete) {
-    rawPercentage = 100;
-  } else if (rawPercentage >= 98 && totalPoints >= 97.0) {
-    // Displayed 98–99%: treat as complete so bar fills and we don't nag for one small missing field
-    rawPercentage = 100;
-  }
-  const percentage = Math.min(100, Math.max(0, rawPercentage));
 
   return {
     percentage,

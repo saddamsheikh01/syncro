@@ -409,18 +409,15 @@ public class AnalyticsService {
                             and nullif(trim(up.country), '') is not null
                         ) as has_profile,
                         (
-                            pref.user_id is not null
+                            up.birth_date is not null
                             and (
-                                coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
-                                or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
-                                or coalesce(pref.privacy_policy_accepted, false)
-                                or coalesce(pref.newsletter_consent, false)
+                                nullif(trim(up.zyra_birth_chart_interpretation), '') is not null
+                                or up.sun_sign is not null
                             )
-                        ) as has_preferences,
+                        ) as has_birth_chart,
                         (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position
                     from users u
                     left join user_profiles up on up.user_id = u.id
-                    left join user_preferences pref on pref.user_id = u.id
                     left join user_positions pos on pos.user_id = u.id
                     where (?::text is null
                       or lower(coalesce(u.email, '')) like ?
@@ -483,7 +480,7 @@ public class AnalyticsService {
                     end as age,
                     fu.onboarding_completed,
                     fu.has_profile,
-                    fu.has_preferences,
+                    fu.has_birth_chart,
                     fu.has_position,
                     coalesce(ec.chat_uses, 0) as chat_uses,
                     coalesce(ec.map_uses, 0) as map_uses,
@@ -500,7 +497,7 @@ public class AnalyticsService {
                 """,
             (rs, rowNum) -> {
                 boolean hasProfile = rs.getBoolean("has_profile");
-                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasBirthChart = rs.getBoolean("has_birth_chart");
                 boolean hasPosition = rs.getBoolean("has_position");
                 long interestsCount = rs.getLong("interests_count");
                 long testsCompleted = rs.getLong("tests_completed");
@@ -511,8 +508,8 @@ public class AnalyticsService {
                 if (!hasProfile) {
                     missingSections.add("profile");
                 }
-                if (!hasPreferences) {
-                    missingSections.add("preferences");
+                if (!hasBirthChart) {
+                    missingSections.add("birth_chart");
                 }
                 if (!hasPosition) {
                     missingSections.add("position");
@@ -613,20 +610,17 @@ public class AnalyticsService {
                         and nullif(trim(up.country), '') is not null
                     ) as has_profile,
                     (
-                        pref.user_id is not null
+                        up.birth_date is not null
                         and (
-                            coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
-                            or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
-                            or coalesce(pref.privacy_policy_accepted, false)
-                            or coalesce(pref.newsletter_consent, false)
+                            nullif(trim(up.zyra_birth_chart_interpretation), '') is not null
+                            or up.sun_sign is not null
                         )
-                    ) as has_preferences,
+                    ) as has_birth_chart,
                     (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position,
                     coalesce(ic.interests_count, 0) as interests_count,
                     coalesce(tc.tests_completed, 0) as tests_completed
                 from users u
                 left join user_profiles up on up.user_id = u.id
-                left join user_preferences pref on pref.user_id = u.id
                 left join user_positions pos on pos.user_id = u.id
                 left join (
                     select ui.user_id, count(*) as interests_count
@@ -642,7 +636,7 @@ public class AnalyticsService {
                 """,
             (rs, rowNum) -> {
                 boolean hasProfile = rs.getBoolean("has_profile");
-                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasBirthChart = rs.getBoolean("has_birth_chart");
                 boolean hasPosition = rs.getBoolean("has_position");
                 long interestsCount = rs.getLong("interests_count");
                 long testsCompleted = rs.getLong("tests_completed");
@@ -653,8 +647,8 @@ public class AnalyticsService {
                 if (!hasProfile) {
                     missingSections.add("profile");
                 }
-                if (!hasPreferences) {
-                    missingSections.add("preferences");
+                if (!hasBirthChart) {
+                    missingSections.add("birth_chart");
                 }
                 if (!hasPosition) {
                     missingSections.add("position");

@@ -11,29 +11,11 @@ import {
   type ProfileCompletionResult,
 } from "@/lib/profileCompletion";
 import { getMediaByOwner } from "@/services/media";
-import type { JsonValue } from "@/types/shared";
-
-function readNumber(value: JsonValue): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const n = Number(value);
-    if (Number.isFinite(n)) return n;
-  }
-  return null;
-}
-
-/** Returns non-empty string, or "ANY" when key exists but value is empty (user chose "Any"). */
-function readGender(value: JsonValue, keyExists: boolean): string | null {
-  if (typeof value === "string" && value.trim().length > 0) return value.trim();
-  if (keyExists) return "ANY"; // "Any" preference counts as set
-  return null;
-}
-
 export const useProfileCompletion = (): ProfileCompletionResult & {
   loading: boolean;
 } => {
   const { user } = useAuth();
-  const { profile, preferences, actions: userActions } = useUser();
+  const { profile, actions: userActions } = useUser();
   const { interests, actions: tagsActions } = useTags();
   const { hasPosition, actions: positionActions } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
@@ -72,17 +54,8 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
   const loading = !profile && tests.length === 0 && completedCount === null;
 
   const result = useMemo(() => {
-    const storedFilters = (preferences?.matchmakingFilters ?? {}) as Record<
-      string,
-      JsonValue
-    >;
-    // Count gender as "set" if the key exists (user has saved preferences), even when value is empty/"Any"/null
-    const genderKeyExists = "gender" in storedFilters;
-
     return calculateProfileCompletion({
       profileFields: {
-        username: user?.username?.trim() ? user.username.trim() : null,
-        email: user?.email?.trim() ? user.email.trim() : null,
         fullName: profile?.fullName ?? null,
         birthDate: profile?.birthDate ?? null,
         city: profile?.city ?? null,
@@ -101,17 +74,12 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
       },
       hasAvatar: Boolean(profile?.avatarUrl) || hasAvatarMedia,
       interestCount: interests?.tags?.length ?? 0,
-      matchmakingFilterValues: {
-        ageMin: readNumber(storedFilters.ageMin),
-        ageMax: readNumber(storedFilters.ageMax),
-        distanceKm: readNumber(storedFilters.distanceKm),
-        gender: readGender(storedFilters.gender, genderKeyExists),
-      },
       hasPosition,
       testsCompleted: completedCount ?? 0,
       testsTotal: tests.length,
+      hasBirthChart: profile?.hasBirthChart === true,
     });
-  }, [user?.username, user?.email, profile, preferences, interests, hasPosition, tests, completedCount, hasAvatarMedia]);
+  }, [profile, interests, hasPosition, tests.length, completedCount, hasAvatarMedia]);
 
   return { ...result, loading };
 };

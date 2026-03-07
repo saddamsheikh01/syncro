@@ -185,10 +185,10 @@ const DEFAULT_ACTIVE_DOMAINS: DomainFlags = {
 const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS) as MatchDomainKey[];
 const PROFILE_COMPLETION_SUGGESTION_LABELS = {
   tests: "Complete Insights",
+  astrology: "Complete Birth chart",
   profile: "Fill Out Profile",
   interests: "Select Interests",
   avatar: "Add a Photo",
-  preferences: "Set Preferences",
   location: "Enable Location",
 } as const;
 

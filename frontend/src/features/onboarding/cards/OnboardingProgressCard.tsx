@@ -19,10 +19,10 @@ const SUGGESTION_MAP: Record<
   { labelKey: string; href: string }
 > = {
   tests: { labelKey: "Complete Insights", href: "/profile#insights" },
+  astrology: { labelKey: "Complete Birth chart", href: "/profile#insights" },
   profile: { labelKey: "Fill Out Profile", href: "/settings#profile" },
   interests: { labelKey: "Select Interests", href: "/settings#interests" },
   avatar: { labelKey: "Add a Photo", href: "/settings#profile" },
-  preferences: { labelKey: "Set Preferences", href: "/profile#preferences" },
   location: { labelKey: "Enable Location", href: "/settings" },
 };
 
