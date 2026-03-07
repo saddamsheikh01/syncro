@@ -378,7 +378,7 @@ public class AuthService {
         UserPasswordResetToken resetToken = createPasswordResetToken(user, now, rawToken);
 
         try {
-            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken);
+            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken, user.getLanguage());
             trackPasswordResetRequested(user.getId(), "TOKEN_EMAIL_SENT", "SELF_SERVICE");
         } catch (Exception ex) {
             passwordResetTokenRepository.delete(resetToken);
@@ -407,7 +407,7 @@ public class AuthService {
         UserPasswordResetToken resetToken = createPasswordResetToken(user, now, rawToken);
 
         try {
-            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken);
+            brevoMailClient.sendPasswordResetEmail(user.getEmail(), user.getUsername(), rawToken, user.getLanguage());
             trackPasswordResetRequested(user.getId(), "TOKEN_EMAIL_SENT", "ADMIN_BACKOFFICE");
         } catch (Exception ex) {
             passwordResetTokenRepository.delete(resetToken);
