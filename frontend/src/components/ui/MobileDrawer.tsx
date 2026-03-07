@@ -8,7 +8,7 @@ import { Menu, MENU_ITEMS } from "@/components/ui/Menu";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useT } from "@/hooks";
 
-const MOBILE_MENU_IDS = new Set(["home", "people", "insights", "profile"]);
+const MOBILE_MENU_IDS = new Set(["home", "people", "profile"]);
 
 export interface MobileDrawerProps {
   open: boolean;

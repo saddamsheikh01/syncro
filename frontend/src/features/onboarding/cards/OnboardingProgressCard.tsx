@@ -18,7 +18,7 @@ const SUGGESTION_MAP: Record<
   string,
   { labelKey: string; href: string }
 > = {
-  tests: { labelKey: "Complete Insights", href: "/insights" },
+  tests: { labelKey: "Complete Insights", href: "/profile#insights" },
   profile: { labelKey: "Fill Out Profile", href: "/settings#profile" },
   interests: { labelKey: "Select Interests", href: "/settings#interests" },
   avatar: { labelKey: "Add a Photo", href: "/settings#profile" },
@@ -104,7 +104,7 @@ export const OnboardingProgressCard = () => {
               {t("All required information has been filled in.")}
             </p>
           </div>
-          <Link href="/insights">
+          <Link href="/profile#insights">
             <Button size="sm">{t("Profile Insights")}</Button>
           </Link>
         </div>
@@ -141,7 +141,7 @@ export const OnboardingProgressCard = () => {
             {t("Complete your profile to get more accurate matches.")}
           </p>
         </div>
-        <Link href="/insights">
+        <Link href="/profile#insights">
           <Button size="sm">{t("Profile Insights")}</Button>
         </Link>
       </div>

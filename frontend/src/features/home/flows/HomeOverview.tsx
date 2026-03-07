@@ -735,7 +735,7 @@ export const HomeOverview = () => {
           title={t("Insights")}
           subtitle={t("Insights that help improve accuracy and alignment.")}
           actionLabel={t("Explore Insights")}
-          actionHref="/insights"
+          actionHref="/profile#insights"
         />
 
         <Card className="space-y-4 bg-surface-muted/60 p-5">
@@ -758,7 +758,7 @@ export const HomeOverview = () => {
             <>
               <MapTestListItem items={testItems} />
               <div className="flex justify-center">
-                <Link href="/insights">
+                <Link href="/profile#insights">
                   <Button size="sm">{t("Explore Insights")}</Button>
                 </Link>
               </div>

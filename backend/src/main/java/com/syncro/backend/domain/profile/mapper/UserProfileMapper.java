@@ -23,6 +23,7 @@ public class UserProfileMapper {
             age,
             profile.getCity(),
             profile.getCountry(),
+            profile.getBirthPlace(),
             profile.getJobTitle(),
             profile.getCompanyName(),
             profile.getBio(),

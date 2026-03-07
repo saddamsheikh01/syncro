@@ -24,10 +24,10 @@ export const AstrologyInsightRunner = () => {
 
       <div className="flex items-center gap-2 text-sm">
         <Link
-          href="/insights"
+          href="/profile#insights"
           className="text-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          ← {t("Back to insights")}
+          ← {t("Back to profile")}
         </Link>
       </div>
 

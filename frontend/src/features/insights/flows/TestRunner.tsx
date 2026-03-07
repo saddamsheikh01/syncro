@@ -535,10 +535,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 eventName: "INSIGHT_BACK_TO_LIST",
                 payload: { testId },
               });
-              router.push("/insights");
+              router.push("/profile#insights");
             }}
           >
-            {t("Back to insights")}
+            {t("Back to profile")}
           </Button>
           <Button
             onClick={() => {
@@ -546,7 +546,7 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 eventName: "INSIGHT_NAVIGATED_TO_PROFILE",
                 payload: { testId },
               });
-              router.push("/profile");
+              router.push("/profile#insights");
             }}
           >
             {t("Go to profile")}

@@ -11,6 +11,10 @@ export interface PlaceResult {
   address: string;
   latitude: number;
   longitude: number;
+  /** City/locality when fetchAddressComponents is used */
+  city?: string;
+  /** Country when fetchAddressComponents is used */
+  country?: string;
   types?: string[];
 }
 
@@ -25,6 +29,31 @@ export interface PlacesAutocompleteProps {
   types?: string[]; // es. ["restaurant", "cafe"]
   componentRestrictions?: { country: string | string[] };
   locationBias?: { lat: number; lng: number; radius: number };
+  /** If true, fetches place details for address_components and sets city/country on PlaceResult */
+  fetchAddressComponents?: boolean;
+  /** Controlled value for display (e.g. "City, Country"); when set, input shows this instead of internal state */
+  value?: string;
+  /** Called when the user types in the input (e.g. to clear city/country when editing) */
+  onInputChange?: (value: string) => void;
+}
+
+interface AddressComponent {
+  long_name: string;
+  types: string[];
+}
+
+function parseAddressComponents(
+  components: AddressComponent[] | undefined
+): { city: string; country: string } {
+  let city = "";
+  let country = "";
+  if (!components?.length) return { city, country };
+  for (const c of components) {
+    if (c.types.includes("locality")) city = c.long_name;
+    else if (c.types.includes("administrative_area_level_1") && !city) city = c.long_name;
+    else if (c.types.includes("country")) country = c.long_name;
+  }
+  return { city, country };
 }
 
 export const PlacesAutocomplete = ({
@@ -37,12 +66,20 @@ export const PlacesAutocomplete = ({
   types,
   componentRestrictions,
   locationBias,
+  fetchAddressComponents = false,
+  value,
+  onInputChange,
 }: PlacesAutocompleteProps) => {
   const { t } = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const placesServiceRef = useRef<unknown>(null);
+  const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const valueRef = useRef(value);
+  valueRef.current = value;
   const { isLoaded, error } = useGoogleMapsScript();
   const [inputValue, setInputValue] = useState(defaultValue);
+  const displayValue = value !== undefined ? value : inputValue;
   const effectivePlaceholder = placeholder ?? t("Search for a place...");
 
   const initAutocomplete = useCallback(() => {
@@ -81,7 +118,7 @@ export const PlacesAutocomplete = ({
         return;
       }
 
-      const result: PlaceResult = {
+      const baseResult: PlaceResult = {
         placeId: place.place_id,
         name: place.name || "",
         address: place.formatted_address || "",
@@ -90,22 +127,58 @@ export const PlacesAutocomplete = ({
         types: place.types,
       };
 
-      setInputValue(place.name || place.formatted_address || "");
-      onPlaceSelect?.(result);
+      if (valueRef.current === undefined) {
+        setInputValue(place.name || place.formatted_address || "");
+      }
+
+      if (fetchAddressComponents && placesServiceRef.current) {
+        const service = placesServiceRef.current as {
+          getDetails(
+            req: { placeId: string; fields: string[] },
+            cb: (place: { address_components?: AddressComponent[] } | null, status: string) => void
+          ): void;
+        };
+        service.getDetails(
+          {
+            placeId: place.place_id,
+            fields: ["address_components", "formatted_address"],
+          },
+          (detailPlace: { address_components?: AddressComponent[] } | null, status: string) => {
+            if (status !== "OK" || !detailPlace) {
+              onPlaceSelect?.(baseResult);
+              return;
+            }
+            const { city, country } = parseAddressComponents(detailPlace.address_components);
+            onPlaceSelect?.({ ...baseResult, city, country });
+          }
+        );
+      } else {
+        onPlaceSelect?.(baseResult);
+      }
     });
-  }, [types, componentRestrictions, locationBias, onPlaceSelect]);
+  }, [types, componentRestrictions, locationBias, fetchAddressComponents, onPlaceSelect]);
 
   useEffect(() => {
-    if (isLoaded) {
-      initAutocomplete();
+    if (value !== undefined) setInputValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (fetchAddressComponents && mapDivRef.current && window.google?.maps?.places) {
+      const g = (window as Window & { google?: { maps?: { places?: { PlacesService?: new (div: HTMLDivElement) => unknown } } } }).google;
+      if (g?.maps?.places?.PlacesService && mapDivRef.current) {
+        placesServiceRef.current = new g.maps.places.PlacesService(mapDivRef.current);
+      }
     }
+    initAutocomplete();
 
     return () => {
       if (autocompleteRef.current) {
         window.google?.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
+      placesServiceRef.current = null;
     };
-  }, [isLoaded, initAutocomplete]);
+  }, [isLoaded, fetchAddressComponents, initAutocomplete]);
 
   const handleClear = () => {
     setInputValue("");
@@ -132,6 +205,7 @@ export const PlacesAutocomplete = ({
 
   return (
     <div className={cx("relative", className)}>
+      {fetchAddressComponents && <div ref={mapDivRef} className="sr-only" aria-hidden />}
       <div className="relative">
         <svg
           width="18"
@@ -152,15 +226,19 @@ export const PlacesAutocomplete = ({
           type="text"
           placeholder={effectivePlaceholder}
           disabled={disabled || !isLoaded}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          value={displayValue}
+          onChange={(e) => {
+            const v = e.target.value;
+            setInputValue(v);
+            onInputChange?.(v);
+          }}
           className={cx(
             "w-full rounded-[var(--radius-md)] border border-border/70 bg-surface py-2.5 pl-10 pr-10 text-sm text-foreground placeholder-subtle outline-none transition",
             "focus:border-accent/40 focus:ring-2 focus:ring-accent/20",
             disabled && "cursor-not-allowed opacity-60"
           )}
         />
-        {inputValue && (
+        {displayValue && (
           <button
             type="button"
             onClick={handleClear}

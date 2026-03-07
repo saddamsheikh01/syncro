@@ -48,7 +48,7 @@ export const TestsEncouragementCard = () => {
           size="sm"
           variant="secondary"
           fullWidth
-          onClick={() => router.push("/insights")}
+          onClick={() => router.push("/profile#insights")}
         >
           {resolveCtaLabel(t, completedCount)}
         </Button>

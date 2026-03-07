@@ -10,6 +10,10 @@ import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { DatePicker } from "@/components/elements/DatePicker";
 import { Input } from "@/components/elements/Input";
+import {
+  PlacesAutocomplete,
+  type PlaceResult,
+} from "@/components/elements/PlacesAutocomplete";
 import { Select } from "@/components/elements/Select";
 import { Loader } from "@/components/elements/Loader";
 import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGrid";
@@ -49,6 +53,13 @@ import {
 import { EmailVerificationOtpModal } from "@/features/auth/components/EmailVerificationOtpModal";
 import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { MapPostCard } from "@/features/social/lists/MapPostCard";
+import { EmptyState } from "@/components/elements/EmptyState";
+import { ErrorState } from "@/components/elements/ErrorState";
+import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
+import { TestsHelperCard } from "@/features/insights/cards/TestsHelperCard";
+import { InsightsDbLanguageDisclaimer } from "@/features/insights/elements/InsightsDbLanguageDisclaimer";
+import { INSIGHT_COPY_KEYS } from "@/lib/insightsCopy";
+import { ZyraMark } from "@/features/zyra/elements/ZyraMark";
 import { ZyraProfileRecap } from "@/features/zyra/cards/ZyraProfileRecap";
 import { ShareZyraRecapCard } from "@/features/zyra/cards/ShareZyraRecapCard";
 import {
@@ -57,7 +68,6 @@ import {
 } from "@/services/zyra";
 import { toInterestTranslationKey } from "@/lib/interestEmoji";
 import { dispatchProfileAvatarUpdated } from "@/lib/mediaEvents";
-import { ZYRA_AVATAR_SRC } from "@/lib/zyraAvatar";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
 import type { MediaResponse } from "@/types/media";
 import type { ProfileVisibility, UserProfileRequest } from "@/types/profile";
@@ -279,7 +289,14 @@ export const ProfileSettings = ({
     actions: tagsActions,
   } = useTags();
   const { hasPosition } = usePosition();
-  const { tests, completedCount, actions: testsActions } = useTests();
+  const {
+    tests,
+    completedCount,
+    loading: testsLoading,
+    error: testsError,
+    countLoading,
+    actions: testsActions,
+  } = useTests();
   const {
     percentage: profileCompleteness,
     categories: profileCompletionCategories,
@@ -320,6 +337,45 @@ export const ProfileSettings = ({
   }, [profileCompletionCategories, displayPercentage, t]);
 
   const topCompletionSuggestion = completionSuggestions[0];
+  const astrologyCompleted = profile?.hasBirthChart === true;
+  const insightTestItems = useMemo(() => {
+    const ASTRO_SLUG = "astrology";
+    const fromApi = tests.map((test) => {
+      const copyKeys = test.testType ? INSIGHT_COPY_KEYS[test.testType] : null;
+      const title = copyKeys ? t(copyKeys.titleKey) : test.title;
+      const description = copyKeys ? t(copyKeys.descriptionKey) : (test.description ?? undefined);
+      return {
+        testType: test.testType,
+        title,
+        description,
+        href: `/insights/${test.id}`,
+        onOpen: () => {
+          void analyticsActions.trackEvent({
+            eventName: "INSIGHT_OPENED_FROM_LIST",
+            payload: { testId: test.id, testType: test.testType, completed: test.completed },
+          });
+        },
+        actionLabel: t("View Insights"),
+        completed: test.completed,
+      };
+    });
+    const birthChartItem = {
+      testType: "ASTRO" as const,
+      title: t("Birth chart"),
+      description: t("Used for compatibility. Add place and optional time for better accuracy."),
+      href: `/insights/${ASTRO_SLUG}`,
+      onOpen: () => {
+        void analyticsActions.trackEvent({
+          eventName: "INSIGHT_OPENED_FROM_LIST",
+          payload: { testId: ASTRO_SLUG, testType: "ASTRO", completed: astrologyCompleted },
+        });
+      },
+      actionLabel: t("View Insights"),
+      completed: astrologyCompleted,
+    };
+    return [...fromApi, birthChartItem];
+  }, [analyticsActions, astrologyCompleted, profile?.hasBirthChart, t, tests]);
+  const totalInsightTests = tests.length + 1;
   const resolvedSubtitle = subtitle
     ? t(subtitle)
     : profileIsComplete
@@ -361,6 +417,7 @@ export const ProfileSettings = ({
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [bio, setBio] = useState("");
@@ -455,6 +512,7 @@ export const ProfileSettings = ({
       birthDate !== (profile?.birthDate ?? "") ||
       city !== (profile?.city ?? "") ||
       country !== (profile?.country ?? "") ||
+      birthPlace !== (profile?.birthPlace ?? "") ||
       jobTitle !== (profile?.jobTitle ?? "") ||
       companyName !== (profile?.companyName ?? "") ||
       bio !== (profile?.bio ?? "") ||
@@ -507,6 +565,7 @@ export const ProfileSettings = ({
     birthDate,
     city,
     country,
+    birthPlace,
     jobTitle,
     companyName,
     bio,
@@ -572,6 +631,7 @@ export const ProfileSettings = ({
     setBirthDate(profile.birthDate ?? "");
     setCity(profile.city ?? "");
     setCountry(profile.country ?? "");
+    setBirthPlace(profile.birthPlace ?? "");
     setJobTitle(profile.jobTitle ?? "");
     setCompanyName(profile.companyName ?? "");
     setBio(profile.bio ?? "");
@@ -820,6 +880,7 @@ export const ProfileSettings = ({
       birthDate: birthDate || null,
       city: trimmedCity,
       country: trimmedCountry,
+      birthPlace: birthPlace.trim() ? birthPlace.trim() : "",
       jobTitle: trimmedJobTitle,
       companyName: trimmedCompanyName,
       bio: trimmedBio || null,
@@ -843,6 +904,8 @@ export const ProfileSettings = ({
       setCountry(trimmedCountry);
       setJobTitle(trimmedJobTitle);
       setCompanyName(trimmedCompanyName);
+      // Ensure global profile (e.g. navbar display name) is updated
+      await userActions.fetchProfile().catch(() => undefined);
     } catch (saveError) {
       setProfileError(resolveErrorMessage(saveError, "Error while saving."));
     } finally {
@@ -1336,19 +1399,6 @@ export const ProfileSettings = ({
             </div>
           ) : null}
         </Card>
-
-        <Card className="flex flex-col items-center justify-center gap-3 p-5 text-center">
-          <Avatar
-            name={t("Zyra")}
-            src={ZYRA_AVATAR_SRC}
-            size="xl"
-            className="border-2 border-white shadow-sm"
-          />
-          <p className="text-sm font-semibold text-foreground">
-            &apos;{t("Define what you're looking for.")}&apos;
-          </p>
-          <p className="text-xs text-accent">{t("- Zyra")}</p>
-        </Card>
       </div>
 
       <section className="space-y-4">
@@ -1418,18 +1468,49 @@ export const ProfileSettings = ({
                 placeholder={t("E.g. Marco / Mark / M")}
                 required
               />
-              <Input
-                label={t("Lives in")}
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-                placeholder={t("City, Country")}
-              />
-              <Input
-                label={t("Born in")}
-                value={country}
-                onChange={(event) => setCountry(event.target.value)}
-                placeholder={t("City, Country")}
-              />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  {t("Lives in")}
+                </label>
+                <PlacesAutocomplete
+                  placeholder={t("City, Country")}
+                  types={["(cities)"]}
+                  fetchAddressComponents
+                  value={[city, country].filter(Boolean).join(", ")}
+                  onPlaceSelect={(place: PlaceResult) => {
+                    if (place.city !== undefined && place.country !== undefined) {
+                      setCity(place.city);
+                      setCountry(place.country);
+                    } else {
+                      setCity(place.address || place.name);
+                      setCountry("");
+                    }
+                  }}
+                  onClear={() => {
+                    setCity("");
+                    setCountry("");
+                  }}
+                  onInputChange={(v) => {
+                    setCity(v);
+                    setCountry("");
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  {t("Born in")}
+                </label>
+                <PlacesAutocomplete
+                  placeholder={t("City, Country")}
+                  types={["(cities)"]}
+                  value={birthPlace}
+                  onPlaceSelect={(place: PlaceResult) => {
+                    setBirthPlace(place.address || place.name);
+                  }}
+                  onClear={() => setBirthPlace("")}
+                  onInputChange={setBirthPlace}
+                />
+              </div>
               <DatePicker
                 label={t("Date of birth")}
                 value={birthDate}
@@ -1613,6 +1694,61 @@ export const ProfileSettings = ({
             {t("Save interests")}
           </Button>
         </div>
+      </section>
+
+      <section id="insights" className="space-y-4">
+        <SectionHeader
+          title={t("Improve Your Matches")}
+          subtitle={t("Your progress drives more precise results.")}
+        />
+        <div className="grid gap-4 lg:grid-cols-[1.6fr,1fr]">
+          <TestsHelperCard
+            completedCount={completedCount}
+            totalTests={totalInsightTests}
+            loading={countLoading && completedCount == null}
+          />
+          <Card className="flex flex-col justify-between gap-4 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zyra-glow/40">
+                <ZyraMark size="sm" glow={false} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Zyra</p>
+                <p className="text-xs text-muted">
+                  {t("Clear signals lead to better matches.")}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-muted">
+              {t("The more you answer, the fewer mismatches you get.")}
+            </p>
+            <p className="text-xs text-subtle">{t("— Zyra")}</p>
+          </Card>
+        </div>
+        <InsightsDbLanguageDisclaimer />
+        {testsLoading && tests.length === 0 ? (
+          <Card className="flex items-center gap-3 p-5">
+            <Loader size="sm" />
+            <p className="text-sm text-muted">{t("Loading insights...")}</p>
+          </Card>
+        ) : null}
+        {testsError ? (
+          <ErrorState
+            title={t("Unable to load insights")}
+            description={testsError.message}
+          />
+        ) : null}
+        {!testsLoading && !testsError && insightTestItems.length === 0 ? (
+          <EmptyState
+            title={t("No insights available")}
+            description={t("Check back later for new profiling insights.")}
+          />
+        ) : null}
+        {insightTestItems.length > 0 ? (
+          <Card className="p-5">
+            <MapTestListItem items={insightTestItems} />
+          </Card>
+        ) : null}
       </section>
 
       <Card className="space-y-3 p-5">

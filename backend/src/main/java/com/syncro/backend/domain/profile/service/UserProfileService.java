@@ -97,6 +97,9 @@ public class UserProfileService {
         if (request.country() != null) {
             profile.setCountry(normalizeText(request.country()));
         }
+        if (request.birthPlace() != null) {
+            profile.setBirthPlace(normalizeOptionalText(request.birthPlace()));
+        }
         if (request.jobTitle() != null) {
             profile.setJobTitle(normalizeOptionalText(request.jobTitle()));
         }
