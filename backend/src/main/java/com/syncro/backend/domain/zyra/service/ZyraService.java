@@ -87,7 +87,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ZyraService {
 
     /** Max distinct tests to include in profile recap (covers all standard insight types with headroom). */
-    private static final int MAX_TEST_RECAPS = 30;
+    private static final int MAX_TEST_RECAPS = 8;
 
     /** Default recap when user has no completed tests and no birth chart (no LLM call). */
     private static final String DEFAULT_RECAP_NO_TESTS = "Complete your profile and take insight tests to see your personalized recap here.";
@@ -385,7 +385,7 @@ public class ZyraService {
     /** Called when user completes a test; frontend will call regenerate on next profile visit when this is true. */
     @Transactional
     public void setPendingRecapRefresh(UUID userId) {
-        ProfileRecapPendingRefresh row = profileRecapPendingRefreshRepository.findByUserId(userId)
+        ProfileRecapPendingRefresh row = profileRecapPendingRefreshRepository.findById(userId)
             .orElseGet(() -> {
                 ProfileRecapPendingRefresh e = new ProfileRecapPendingRefresh();
                 e.setUserId(userId);
@@ -397,15 +397,35 @@ public class ZyraService {
 
     @Transactional(readOnly = true)
     public boolean isPendingRecapRefresh(UUID userId) {
-        return profileRecapPendingRefreshRepository.existsByUserIdAndPendingRefreshTrue(userId);
+        return profileRecapPendingRefreshRepository.findById(userId)
+            .map(ProfileRecapPendingRefresh::isPendingRefresh)
+            .orElse(false);
     }
 
     @Transactional
     public void clearPendingRecapRefresh(UUID userId) {
-        profileRecapPendingRefreshRepository.findByUserId(userId).ifPresent(row -> {
+        profileRecapPendingRefreshRepository.findById(userId).ifPresent(row -> {
             row.setPendingRefresh(false);
             profileRecapPendingRefreshRepository.save(row);
         });
+    }
+
+    /**
+     * Clears stored profile recap (cache + DB) so the next request regenerates from current data.
+     * Call when the user resets insights so they do not keep seeing the old recap.
+     */
+    @Transactional
+    public void clearProfileRecapForUser(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        recapCache.invalidateUser(user.getId());
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile != null) {
+            profile.setZyraRecap(null);
+            profile.setZyraRecapHighlights(null);
+            userProfileRepository.save(profile);
+        }
     }
 
     @Transactional(readOnly = true)

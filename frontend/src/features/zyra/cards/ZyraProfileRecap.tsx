@@ -245,70 +245,72 @@ export const ZyraProfileRecap = ({
                       </li>
                     ))}
                   </ul>
-                  {/* View Full Analysis: expandable detailed recap */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setFullAnalysisExpanded((e) => !e)}
-                      className="flex items-center gap-1.5 text-xs font-medium text-zyra-text hover:underline"
-                    >
-                      <span>
-                        {fullAnalysisExpanded
-                          ? t("Hide full analysis")
-                          : t("View full analysis")}
-                      </span>
-                      <svg
-                        className={cx(
-                          "h-3.5 w-3.5 transition-transform",
-                          fullAnalysisExpanded && "rotate-180"
-                        )}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden
+                  {/* View Full Analysis: only when user has real recap (e.g. taken tests), not the single placeholder */}
+                  {highlights.length >= 2 ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setFullAnalysisExpanded((e) => !e)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-zyra-text hover:underline"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {fullAnalysisExpanded ? (
-                      <div className="mt-3 space-y-2 text-sm leading-relaxed text-foreground">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            p: (props) => <p className="text-inherit" {...props} />,
-                            ul: (props) => (
-                              <ul className="list-disc space-y-1 pl-4 text-inherit" {...props} />
-                            ),
-                            ol: (props) => (
-                              <ol className="list-decimal space-y-1 pl-4 text-inherit" {...props} />
-                            ),
-                            li: (props) => <li className="text-inherit" {...props} />,
-                            a: (props) => (
-                              <a
-                                {...props}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline decoration-current/40 transition hover:decoration-current"
-                              />
-                            ),
-                            strong: (props) => <strong className="font-semibold" {...props} />,
-                            em: (props) => <em className="italic" {...props} />,
-                            blockquote: (props) => (
-                              <blockquote className="border-l-2 border-border-strong pl-3 text-inherit" {...props} />
-                            ),
-                            code: (props) => (
-                              <code className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[12px]" {...props} />
-                            ),
-                            pre: (props) => (
-                              <pre className="overflow-x-auto rounded-[var(--radius-md)] bg-surface-muted p-3 text-[12px]" {...props} />
-                            ),
-                          }}
+                        <span>
+                          {fullAnalysisExpanded
+                            ? t("Hide full analysis")
+                            : t("View full analysis")}
+                        </span>
+                        <svg
+                          className={cx(
+                            "h-3.5 w-3.5 transition-transform",
+                            fullAnalysisExpanded && "rotate-180"
+                          )}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden
                         >
-                          {displayRecap}
-                        </ReactMarkdown>
-                      </div>
-                    ) : null}
-                  </div>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {fullAnalysisExpanded ? (
+                        <div className="mt-3 space-y-2 text-sm leading-relaxed text-foreground">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: (props) => <p className="text-inherit" {...props} />,
+                              ul: (props) => (
+                                <ul className="list-disc space-y-1 pl-4 text-inherit" {...props} />
+                              ),
+                              ol: (props) => (
+                                <ol className="list-decimal space-y-1 pl-4 text-inherit" {...props} />
+                              ),
+                              li: (props) => <li className="text-inherit" {...props} />,
+                              a: (props) => (
+                                <a
+                                  {...props}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="underline decoration-current/40 transition hover:decoration-current"
+                                />
+                              ),
+                              strong: (props) => <strong className="font-semibold" {...props} />,
+                              em: (props) => <em className="italic" {...props} />,
+                              blockquote: (props) => (
+                                <blockquote className="border-l-2 border-border-strong pl-3 text-inherit" {...props} />
+                              ),
+                              code: (props) => (
+                                <code className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[12px]" {...props} />
+                              ),
+                              pre: (props) => (
+                                <pre className="overflow-x-auto rounded-[var(--radius-md)] bg-surface-muted p-3 text-[12px]" {...props} />
+                              ),
+                            }}
+                          >
+                            {displayRecap}
+                          </ReactMarkdown>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <div className="space-y-2 text-sm leading-relaxed text-foreground">

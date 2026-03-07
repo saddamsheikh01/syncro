@@ -1156,7 +1156,7 @@ public class AnalyticsService {
                 normalizeBlank(idempotencyKey),
                 rawEvent,
                 errorCode,
-                errorMessage == null ? "Errore sconosciuto" : errorMessage
+                errorMessage == null ? "Unknown error" : errorMessage
             );
         } catch (Exception e) {
             logger.warn("Failed to record analytics ingestion error", e);

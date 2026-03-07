@@ -52,7 +52,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -396,8 +395,9 @@ public class TestService {
             userTestAnswerRepository.deleteAll(answers);
             userTestSubmissionRepository.deleteAll(submissions);
         }
+        clearPsyProfileForUser(user);
         clearBirthChartFromProfile(user.getId());
-        recapCache.invalidateUser(user.getId());
+        zyraService.clearProfileRecapForUser(user);
     }
 
     @Transactional
@@ -417,7 +417,7 @@ public class TestService {
         }
         userTestSubmissionRepository.delete(submission);
         removeTestFromProfile(user, testId, definition.getTestType());
-        recapCache.invalidateUser(user.getId());
+        zyraService.clearProfileRecapForUser(user);
     }
 
     private String resolveLocale(String language) {
@@ -1333,6 +1333,25 @@ public class TestService {
         if (updated) {
             userProfileRepository.save(userProfile);
         }
+    }
+
+    /** Clears psychological profile (insight dimensions and scores) so reset insight leaves no stale data in DB. */
+    private void clearPsyProfileForUser(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        UserPsyProfile psy = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (psy == null) {
+            return;
+        }
+        psy.setProfile(new HashMap<>());
+        psy.setInterestsScore(null);
+        psy.setLifestyleScore(null);
+        psy.setValuesScore(null);
+        psy.setObjectivesScore(null);
+        psy.setPsyScore(null);
+        psy.setAstroScore(null);
+        userPsyProfileRepository.save(psy);
     }
 
     private void clearBirthChartFromProfile(UUID userId) {

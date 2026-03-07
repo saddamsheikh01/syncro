@@ -34,7 +34,7 @@ public class AnalyticsIngestionErrorRecorder {
         entity.setIdempotencyKey(idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey.trim());
         entity.setRawEvent(rawEvent != null ? rawEvent : Map.of());
         entity.setErrorCode(errorCode == null || errorCode.isBlank() ? "UNKNOWN" : errorCode);
-        entity.setErrorMessage(errorMessage == null || errorMessage.isBlank() ? "Errore sconosciuto" : errorMessage);
+        entity.setErrorMessage(errorMessage == null || errorMessage.isBlank() ? "Unknown error" : errorMessage);
         repository.save(entity);
     }
 }
