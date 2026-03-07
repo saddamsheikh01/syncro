@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { EmptyState } from "@/components/elements/EmptyState";
@@ -59,6 +59,7 @@ export const PlacesOverview = () => {
   const [citySearchApplied, setCitySearchApplied] = useState("");
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [nearMe, setNearMe] = useState(false);
+  const locationRequestedRef = useRef(false);
   const {
     places,
     placesPage,
@@ -76,7 +77,7 @@ export const PlacesOverview = () => {
     hasMoreCatalog,
     actions,
   } = useCatalog();
-  const { position, hasPosition, actions: positionActions } = usePosition();
+  const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
   const [locationLoading, setLocationLoading] = useState(false);
 
   const hasLatLng = nearMe && hasPosition && position?.latitude != null && position?.longitude != null;
@@ -115,6 +116,41 @@ export const PlacesOverview = () => {
     [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
   );
 
+  // On section entry: request location once if permission unknown; default to "near me" when we have position.
+  useEffect(() => {
+    if (citySearchApplied) return;
+    if (hasPosition && position?.latitude != null && position?.longitude != null) {
+      setNearMe(true);
+      return;
+    }
+    if (positionPermission !== "unknown" || locationRequestedRef.current) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    locationRequestedRef.current = true;
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          positionActions.setPermission("granted");
+          await positionActions.savePosition({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracyMeters: pos.coords.accuracy ?? undefined,
+          });
+          setNearMe(true);
+        } catch {
+          // keep nearMe false
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      () => {
+        positionActions.setPermission("denied");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [citySearchApplied, hasPosition, position?.latitude, position?.longitude, positionPermission, positionActions]);
+
   // Fetch by tab: only one of catalog, places, or experiences. Note: other components
   // (e.g. NearbyHighlight in the sidebar) also react to position and may call fetchPlaces
   // or fetchExperiences; they share the same global loading state.
@@ -134,10 +170,15 @@ export const PlacesOverview = () => {
     setNearMe(false);
   }, []);
 
+  const clearCitySearchOnly = useCallback(() => {
+    setCitySearch("");
+    setCitySearchApplied("");
+  }, []);
+
   const handleTabChange = useCallback(
     (newFilter: TabFilter) => {
       if (filter === newFilter) return;
-      clearFilters();
+      clearCitySearchOnly();
       setFilter(newFilter);
       const params = new URLSearchParams(searchParams.toString());
       if (newFilter === "all") params.delete("filter");
@@ -145,7 +186,7 @@ export const PlacesOverview = () => {
       const q = params.toString();
       router.replace(q ? `${pathname}?${q}` : pathname);
     },
-    [clearFilters, filter, pathname, router, searchParams]
+    [clearCitySearchOnly, filter, pathname, router, searchParams]
   );
 
   const handleSearchApply = useCallback(() => {

@@ -54,6 +54,10 @@ public class CatalogService {
             page,
             size
         );
+        // Use Viator API for experiences when user has a search term or coordinates (same as Experiences tab).
+        CatalogSource experienceSource = (q != null && !q.isBlank()) || (lat != null && lng != null)
+            ? CatalogSource.VIATOR
+            : source;
         Page<ExperienceSummaryResponse> experiencesPage = experienceService.getExperiences(
             categoryId,
             tagIds,
@@ -61,7 +65,7 @@ public class CatalogService {
             lng,
             radiusKm,
             q,
-            source,
+            experienceSource,
             page,
             size
         );

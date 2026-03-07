@@ -92,11 +92,22 @@ export const ViatorExperiencesSection = ({
   const effectiveSearch = embedFilters ? citySearch : searchApplied;
   const useNearbyForFetch = embedFilters ? nearMe : scope === "nearby";
 
+  const hadPositionRef = useRef(hasPosition);
+
   useEffect(() => {
     if (!hasPosition && scope === "nearby") {
       setScope("everywhere");
     }
   }, [hasPosition, scope]);
+
+  // When position becomes available (e.g. after user grants location on section entry), default to "near me".
+  useEffect(() => {
+    const justGotPosition = hasPosition && !hadPositionRef.current;
+    hadPositionRef.current = hasPosition;
+    if (justGotPosition) {
+      setScope("nearby");
+    }
+  }, [hasPosition]);
 
   useEffect(() => {
     getCategories({ size: 50 })
