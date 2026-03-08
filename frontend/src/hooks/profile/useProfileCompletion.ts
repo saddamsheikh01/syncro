@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import { useUser } from "../user/useUser";
 import { useTags } from "../tags/useTags";
-import { usePosition } from "../position/usePosition";
 import { useTests } from "../insights/useTests";
 import {
   calculateProfileCompletion,
@@ -17,7 +16,6 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
   const { user } = useAuth();
   const { profile, actions: userActions } = useUser();
   const { interests, actions: tagsActions } = useTags();
-  const { hasPosition, actions: positionActions } = usePosition();
   const { tests, completedCount, actions: testsActions } = useTests();
 
   const fetchedRef = useRef(false);
@@ -29,11 +27,10 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
     fetchedRef.current = true;
     userActions.fetchProfile().catch(() => undefined);
     userActions.fetchPreferences().catch(() => undefined);
-    positionActions.fetchPosition().catch(() => undefined);
     tagsActions.fetchUserInterests().catch(() => undefined);
     testsActions.fetchTests().catch(() => undefined);
     testsActions.fetchCompletedCount().catch(() => undefined);
-  }, [userActions, positionActions, tagsActions, testsActions]);
+  }, [userActions, tagsActions, testsActions]);
 
   useEffect(() => {
     if (!user?.id || avatarFetchedRef.current) return;
@@ -74,12 +71,12 @@ export const useProfileCompletion = (): ProfileCompletionResult & {
       },
       hasAvatar: Boolean(profile?.avatarUrl) || hasAvatarMedia,
       interestCount: interests?.tags?.length ?? 0,
-      hasPosition,
       testsCompleted: completedCount ?? 0,
       testsTotal: tests.length,
       hasBirthChart: profile?.hasBirthChart === true,
+      hasUsername: Boolean(user?.username?.trim()),
     });
-  }, [profile, interests, hasPosition, tests.length, completedCount, hasAvatarMedia]);
+  }, [profile, user?.username, interests, tests.length, completedCount, hasAvatarMedia]);
 
   return { ...result, loading };
 };

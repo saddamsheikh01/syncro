@@ -144,9 +144,10 @@ export const ZyraProfileRecap = ({
       setError(null);
       try {
         const response = await regenerateProfileRecap(recapLocale);
-        setRecap(response.recap);
-        setEditedRecap(response.recap);
-        setHighlights(response.highlights ?? []);
+        const recapText = response.recap ?? "";
+        setRecap(recapText);
+        setEditedRecap(recapText);
+        setHighlights(deriveHighlightsFromRecap(recapText));
         try {
           await userActions.saveProfile({ zyraRecap: response.recap });
         } catch {

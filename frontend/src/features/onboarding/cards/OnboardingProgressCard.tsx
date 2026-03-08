@@ -18,53 +18,45 @@ const SUGGESTION_MAP: Record<
   string,
   { labelKey: string; href: string }
 > = {
-  tests: { labelKey: "Complete Insights", href: "/profile#insights" },
-  astrology: { labelKey: "Complete Birth chart", href: "/profile#insights" },
-  profile: { labelKey: "Fill Out Profile", href: "/settings#profile" },
-  interests: { labelKey: "Select Interests", href: "/settings#interests" },
-  avatar: { labelKey: "Add a Photo", href: "/settings#profile" },
-  location: { labelKey: "Enable Location", href: "/settings" },
+  profilePhoto: { labelKey: "Add a profile photo", href: "/profile#profile" },
+  profileFields: { labelKey: "Fill out profile (birth date, location)", href: "/profile#profile" },
+  userName: { labelKey: "Add your name", href: "/settings#profile" },
+  interests: { labelKey: "Select at least 3 interests", href: "/profile#interests" },
+  insights: { labelKey: "Complete Insights (tests and birth chart)", href: "/profile#insights" },
 };
 
 const buildSuggestions = (
   t: (key: string, values?: Record<string, string | number>) => string,
   categories: Record<string, CategoryScore>,
-  currentPercentage: number,
 ): Suggestion[] => {
-  const rawItems: { id: string; label: string; potential: number; href: string }[] = [];
+  const totalItems = Object.values(categories).reduce((sum, c) => sum + c.weight, 0);
+  if (totalItems <= 0) return [];
+
+  const rawItems: { id: string; label: string; potentialPercent: number; href: string }[] = [];
 
   for (const [key, score] of Object.entries(categories)) {
     if (score.ratio >= 1) continue;
     const meta = SUGGESTION_MAP[key];
     if (!meta) continue;
-    const potential = Math.round(score.weight - score.points);
-    if (potential <= 0) continue;
+    const missingPoints = score.weight - score.points;
+    if (missingPoints <= 0) continue;
+    const potentialPercent = Math.round((missingPoints / totalItems) * 100);
     rawItems.push({
       id: key,
       label: t(meta.labelKey),
-      potential,
+      potentialPercent,
       href: meta.href,
     });
   }
 
-  const sorted = rawItems
-    .sort((a, b) => b.potential - a.potential)
-    .slice(0, 3);
-
-  let remaining = Math.max(0, 100 - currentPercentage);
-  const items: Suggestion[] = [];
-  for (const item of sorted) {
-    const displayedPotential = Math.min(item.potential, remaining);
-    if (displayedPotential <= 0) continue;
-    remaining -= displayedPotential;
-    items.push({
+  return rawItems
+    .sort((a, b) => b.potentialPercent - a.potentialPercent)
+    .map((item) => ({
       id: item.id,
       label: item.label,
-      detail: `+${displayedPotential}%`,
+      detail: `+${item.potentialPercent}%`,
       href: item.href,
-    });
-  }
-  return items;
+    }));
 };
 
 export const OnboardingProgressCard = () => {
@@ -75,8 +67,8 @@ export const OnboardingProgressCard = () => {
   const isComplete = percentage >= 100;
 
   const suggestions = useMemo(
-    () => buildSuggestions(t, categories, percentage),
-    [categories, percentage, t],
+    () => buildSuggestions(t, categories),
+    [categories, t],
   );
 
   if (isComplete) {

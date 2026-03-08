@@ -130,14 +130,16 @@ const PROFILE_GENDER_OPTIONS: LabeledOptionKey[] = [
   { value: "PREFER_NOT_TO_SAY", labelKey: "Prefer not to say" },
 ];
 
-const PROFILE_COMPLETION_SUGGESTION_LABELS = {
-  tests: "Complete Insights",
-  astrology: "Complete Birth chart",
-  profile: "Fill Out Profile",
-  interests: "Select Interests",
-  avatar: "Add a Photo",
-  location: "Enable Location",
-} as const;
+const PROFILE_COMPLETION_SUGGESTION_LABELS: Record<
+  import("@/lib/profileCompletion").ProfileCompletionCategoryKey,
+  string
+> = {
+  profilePhoto: "Add a profile photo",
+  profileFields: "Fill out profile (birth date, location)",
+  userName: "Add your name",
+  interests: "Select at least 3 interests",
+  insights: "Complete Insights (tests and birth chart)",
+};
 
 export interface ProfileSettingsProps {
   title?: string;
@@ -225,7 +227,12 @@ export const ProfileSettings = ({
   const profileIsComplete = !profileCompletionLoading && displayPercentage >= 100;
 
   const completionSuggestions = useMemo(() => {
-    const remaining = Math.max(0, 100 - displayPercentage);
+    const totalItems = Object.values(profileCompletionCategories).reduce(
+      (sum, c) => sum + c.weight,
+      0,
+    );
+    if (totalItems <= 0) return [];
+
     const rawItems = Object.entries(profileCompletionCategories)
       .filter(([, score]) => score.ratio < 1)
       .map(([key, score]) => {
@@ -234,26 +241,30 @@ export const ProfileSettings = ({
             key as keyof typeof PROFILE_COMPLETION_SUGGESTION_LABELS
           ];
         if (!labelKey) return null;
-        const potential = Math.round(score.weight - score.points);
-        if (potential <= 0) return null;
-        return { id: key, label: t(labelKey), potential };
+        const missingPoints = score.weight - score.points;
+        if (missingPoints <= 0) return null;
+        const potentialPercent = (missingPoints / totalItems) * 100;
+        return {
+          id: key,
+          label: t(labelKey),
+          potentialPercent: Math.round(potentialPercent),
+        };
       })
       .filter(
-        (item): item is { id: string; label: string; potential: number } =>
+        (
+          item,
+        ): item is { id: string; label: string; potentialPercent: number } =>
           Boolean(item),
       );
 
-    const sorted = rawItems.sort((a, b) => b.potential - a.potential);
-    let remainingAcc = remaining;
-    const items: { id: string; label: string; detail: string }[] = [];
-    for (const item of sorted) {
-      const displayed = Math.min(item.potential, remainingAcc);
-      if (displayed <= 0) continue;
-      remainingAcc -= displayed;
-      items.push({ id: item.id, label: item.label, detail: `+${displayed}%` });
-    }
-    return items;
-  }, [profileCompletionCategories, displayPercentage, t]);
+    return rawItems
+      .sort((a, b) => b.potentialPercent - a.potentialPercent)
+      .map((item) => ({
+        id: item.id,
+        label: item.label,
+        detail: `+${item.potentialPercent}%`,
+      }));
+  }, [profileCompletionCategories, t]);
 
   const topCompletionSuggestion = completionSuggestions[0];
   const astrologyCompleted = profile?.hasBirthChart === true;

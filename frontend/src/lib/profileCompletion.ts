@@ -22,13 +22,14 @@ export interface ProfileCompletionInput {
   };
   hasAvatar: boolean;
   interestCount: number;
-  hasPosition: boolean;
   /** Completed insight tests (from API). */
   testsCompleted: number;
   /** Total insight tests (from API). Does not include birth chart. */
   testsTotal: number;
   /** Whether the user has completed the birth chart (astrology) insight. */
   hasBirthChart: boolean;
+  /** Whether the user has set their username (account handle). */
+  hasUsername: boolean;
 }
 
 export interface CategoryScore {
@@ -37,29 +38,42 @@ export interface CategoryScore {
   points: number;
 }
 
+/** Category keys used for "what's missing" suggestions. */
+export type ProfileCompletionCategoryKey =
+  | "profilePhoto"
+  | "profileFields"
+  | "userName"
+  | "interests"
+  | "insights";
+
 export interface ProfileCompletionResult {
   percentage: number;
-  /** Only insight categories (tests + birth chart); profile/interests/avatar/location are excluded. */
-  categories: {
-    tests: CategoryScore;
-    astrology: CategoryScore;
-  };
+  categories: Record<ProfileCompletionCategoryKey, CategoryScore>;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Total insight items = API tests + birth chart. */
-const totalInsightItems = (testsTotal: number) => testsTotal + 1;
+const MIN_INTERESTS = 3;
 
-/** Weight for tests category so tests + astrology weights sum to 100. */
-const testsWeight = (testsTotal: number) =>
-  testsTotal > 0 ? (100 * testsTotal) / totalInsightItems(testsTotal) : 0;
+/** Profile fields count as complete when core identity fields are filled (name is separate; bio is not required). */
+function isProfileFieldsComplete(profileFields: ProfileCompletionInput["profileFields"]): boolean {
+  const hasBirthDate = Boolean(profileFields.birthDate?.trim());
+  const hasLocation = Boolean(profileFields.city?.trim() || profileFields.country?.trim());
+  return hasBirthDate && hasLocation;
+}
 
-/** Weight for birth chart category. */
-const astrologyWeight = (testsTotal: number) =>
-  100 / Math.max(1, totalInsightItems(testsTotal));
+function isUserNameComplete(
+  profileFields: ProfileCompletionInput["profileFields"],
+  hasUsername: boolean,
+): boolean {
+  return Boolean(profileFields.fullName?.trim()) || hasUsername;
+}
+
+function isInterestsComplete(interestCount: number): boolean {
+  return interestCount >= MIN_INTERESTS;
+}
 
 const makeCategory = (weight: number, ratio: number): CategoryScore => ({
   weight,
@@ -71,29 +85,50 @@ const makeCategory = (weight: number, ratio: number): CategoryScore => ({
 /*  Main                                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Profile completion = Profile (photo, editable fields, interests) + Tests/Insights (all tests + birth chart).
+ * Each part contributes to the percentage; missing items are exposed in categories for the UI.
+ */
 export const calculateProfileCompletion = (
   input: ProfileCompletionInput,
 ): ProfileCompletionResult => {
-  const total = totalInsightItems(input.testsTotal);
-  const wTests = testsWeight(input.testsTotal);
-  const wAstrology = astrologyWeight(input.testsTotal);
+  const totalProfileItems = 4; // photo, fields, user name, interests
+  const totalInsightItems = input.testsTotal + 1; // all tests + birth chart (birth chart counts as one insight)
+  const totalItems = totalProfileItems + totalInsightItems;
 
-  const testsRatio =
-    input.testsTotal > 0 ? input.testsCompleted / input.testsTotal : 0;
-  const astrologyRatio = input.hasBirthChart ? 1 : 0;
+  const profilePhotoRatio = input.hasAvatar ? 1 : 0;
+  const profileFieldsRatio = isProfileFieldsComplete(input.profileFields) ? 1 : 0;
+  const userNameRatio = isUserNameComplete(input.profileFields, input.hasUsername) ? 1 : 0;
+  const interestsRatio = isInterestsComplete(input.interestCount) ? 1 : 0;
 
-  const categories = {
-    tests: makeCategory(wTests, testsRatio),
-    astrology: makeCategory(wAstrology, astrologyRatio),
+  const insightsCompleted = input.testsCompleted + (input.hasBirthChart ? 1 : 0);
+  const insightsRatio =
+    totalInsightItems > 0 ? insightsCompleted / totalInsightItems : 1;
+
+  const weightPhoto = 1;
+  const weightFields = 1;
+  const weightUserName = 1;
+  const weightInterests = 1;
+  const weightInsights = totalInsightItems;
+
+  const categories: Record<ProfileCompletionCategoryKey, CategoryScore> = {
+    profilePhoto: makeCategory(weightPhoto, profilePhotoRatio),
+    profileFields: makeCategory(weightFields, profileFieldsRatio),
+    userName: makeCategory(weightUserName, userNameRatio),
+    interests: makeCategory(weightInterests, interestsRatio),
+    insights: makeCategory(weightInsights, insightsRatio),
   };
 
-  const totalPoints = categories.tests.points + categories.astrology.points;
-  const rawPercentage = Math.round(totalPoints);
-  const allComplete =
-    (input.testsTotal === 0 || testsRatio >= 1) && astrologyRatio >= 1;
+  const totalPoints =
+    categories.profilePhoto.points +
+    categories.profileFields.points +
+    categories.userName.points +
+    categories.interests.points +
+    categories.insights.points;
+
   const percentage = Math.min(
     100,
-    Math.max(0, allComplete ? 100 : rawPercentage),
+    Math.max(0, Math.round((totalPoints / totalItems) * 100)),
   );
 
   return {
