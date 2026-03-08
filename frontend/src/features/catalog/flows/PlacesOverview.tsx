@@ -71,6 +71,8 @@ export const PlacesOverview = () => {
     catalogExperiencesPage,
     loading,
     loadingCatalog,
+    loadingCatalogAppend,
+    loadingAppend,
     error,
     hasMorePlaces,
     hasMoreExperiences,
@@ -395,6 +397,12 @@ export const PlacesOverview = () => {
   const isInitialLoadingCatalog = loadingCatalog && catalogPlaces.length === 0 && catalogExperiences.length === 0;
   const isInitialLoadingExperiences = loading && experiences.length === 0;
 
+  /** Show overlay for initial/refresh load only; hide during "Load more" (append) so button shows loading instead */
+  const showLoadingOverlay =
+    (filter === "all" && loadingCatalog && !loadingCatalogAppend) ||
+    (filter === "places" && loading && !loadingAppend) ||
+    (filter === "experiences" && loading && !loadingAppend);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12">
       <SectionHeader
@@ -479,12 +487,30 @@ export const PlacesOverview = () => {
         </div>
       </Card>
 
-      {filter === "all" && (
+      <div className="relative min-h-[320px]">
+        {showLoadingOverlay && (
+          <div
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-lg bg-background/80 backdrop-blur-sm"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <Loader size="lg" />
+            <p className="text-sm font-medium text-muted">
+              {filter === "all"
+                ? t("Loading places and experiences...")
+                : filter === "places"
+                  ? t("Loading places...")
+                  : t("Loading experiences...")}
+            </p>
+          </div>
+        )}
+
+        {filter === "all" && (
         <section className="space-y-6">
           {isInitialLoadingCatalog && (
-            <Card className="flex items-center gap-3 p-5">
-              <Loader size="sm" />
-              <p className="text-sm text-muted">{t("Loading places and experiences...")}</p>
+            <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 p-8">
+              <Loader size="lg" />
+              <p className="text-sm font-medium text-muted">{t("Loading places and experiences...")}</p>
             </Card>
           )}
           {error && !isInitialLoadingCatalog && (
@@ -532,9 +558,9 @@ export const PlacesOverview = () => {
       {filter === "places" && (
         <section className="space-y-4">
           {isInitialLoading && (
-            <Card className="flex items-center gap-3 p-5">
-              <Loader size="sm" />
-              <p className="text-sm text-muted">{t("Loading places...")}</p>
+            <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 p-8">
+              <Loader size="lg" />
+              <p className="text-sm font-medium text-muted">{t("Loading places...")}</p>
             </Card>
           )}
           {error && !isInitialLoading && (
@@ -582,25 +608,25 @@ export const PlacesOverview = () => {
 
       {filter === "experiences" && (
         <section className="space-y-4 relative">
-          {(loading || loadingCatalog) && (
-            <Card className="flex items-center gap-3 p-5">
-              <Loader size="sm" />
-              <p className="text-sm text-muted">{t("Loading experiences...")}</p>
+          {isInitialLoadingExperiences && (
+            <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 p-8">
+              <Loader size="lg" />
+              <p className="text-sm font-medium text-muted">{t("Loading experiences...")}</p>
             </Card>
           )}
-          {error && !loading && !loadingCatalog && (
+          {!isInitialLoadingExperiences && error && (
             <ErrorState
               title={t("Unable to load experiences")}
               description={error.message}
             />
           )}
-          {!loading && !loadingCatalog && !error && experiences.length === 0 && (
+          {!isInitialLoadingExperiences && !error && experiences.length === 0 && (
             <EmptyState
               title={t("No experiences found")}
               description={t("Try a different search or filter.")}
             />
           )}
-          {!(loading || loadingCatalog) && experiences.length > 0 && (
+          {!isInitialLoadingExperiences && experiences.length > 0 && (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {experienceItems.map((item, index) => (
@@ -623,7 +649,7 @@ export const PlacesOverview = () => {
               )}
             </>
           )}
-          {!(loading || loadingCatalog) && experiencesPage.totalElements > 0 && (
+          {!isInitialLoadingExperiences && experiencesPage.totalElements > 0 && (
             <p className="text-center text-xs text-subtle">
               {t("{current} of {total} experiences", {
                 current: experiences.length,
@@ -633,6 +659,7 @@ export const PlacesOverview = () => {
           )}
         </section>
       )}
+      </div>
     </div>
   );
 };

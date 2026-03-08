@@ -44,12 +44,16 @@ export const getCategories = async (
   return data;
 };
 
+/** Timeout for catalog request (unified places + experiences can be slow). */
+const CATALOG_TIMEOUT_MS = 60_000;
+
 /** Unified catalog: places and experiences in one request (All tab). */
 export const getCatalog = async (
   params: CatalogSearchParams = {}
 ): Promise<CatalogResponse> => {
   const { data } = await apiClient.get<CatalogResponse>("/catalog", {
     params: buildQueryParams(params),
+    timeout: CATALOG_TIMEOUT_MS,
   });
   return data;
 };
