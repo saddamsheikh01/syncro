@@ -1,8 +1,10 @@
 package com.syncro.backend.domain.zyra.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ExternalServiceException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.ZyraProperties;
@@ -77,6 +79,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -85,6 +89,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ZyraService {
+
+    private static final Logger log = LoggerFactory.getLogger(ZyraService.class);
 
     /** Max distinct tests to include in profile recap (covers all standard insight types with headroom). */
     private static final int MAX_TEST_RECAPS = 8;
@@ -351,8 +357,9 @@ public class ZyraService {
                 profile.setZyraRecapHighlights(highlightsToJson(result.highlights()));
                 userProfileRepository.save(profile);
             }
-        } catch (Exception ignored) {
-            // evita di bloccare il salvataggio profilo se il recap fallisce
+        } catch (Exception ex) {
+            // Avoid blocking profile/test saves, but keep the failure observable.
+            log.warn("Unable to refresh Zyra profile recap for userId={}: {}", user.getId(), ex.getMessage(), ex);
         }
     }
 
@@ -546,19 +553,13 @@ public class ZyraService {
                 : resolveResponseLanguage(user);
             String raw = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
             if (raw == null || raw.isBlank()) {
-                return new ProfileRecapResult(List.of(DEFAULT_HIGHLIGHT_NO_TESTS), DEFAULT_RECAP_NO_TESTS);
+                throw new ExternalServiceException("Zyra returned an empty profile recap response");
             }
-            ProfileRecapResult parsed = parseProfileRecapResponse(raw.trim());
-            if (parsed.highlights() == null || parsed.highlights().isEmpty()) {
-                String full = parsed.fullRecap() != null && !parsed.fullRecap().isBlank() ? parsed.fullRecap() : DEFAULT_RECAP_NO_TESTS;
-                return new ProfileRecapResult(List.of(truncateForHighlight(full, 15)), full);
-            }
-            if (parsed.fullRecap() == null || parsed.fullRecap().isBlank()) {
-                return new ProfileRecapResult(parsed.highlights(), String.join(" ", parsed.highlights()));
-            }
-            return parsed;
+            return parseProfileRecapResponse(raw.trim());
+        } catch (ExternalServiceException ex) {
+            throw ex;
         } catch (Exception ex) {
-            return new ProfileRecapResult(List.of(DEFAULT_HIGHLIGHT_NO_TESTS), DEFAULT_RECAP_NO_TESTS);
+            throw new ExternalServiceException("Unable to generate profile recap", ex);
         }
     }
 
@@ -571,41 +572,96 @@ public class ZyraService {
 
     private ProfileRecapResult parseProfileRecapResponse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return new ProfileRecapResult(List.of(), "");
+            throw new ExternalServiceException("Zyra returned an empty profile recap payload");
         }
-        String trimmed = raw.trim();
-        if (trimmed.startsWith("```")) {
-            int start = trimmed.indexOf("{");
-            int end = trimmed.lastIndexOf("}");
-            if (start >= 0 && end > start) {
-                trimmed = trimmed.substring(start, end + 1);
+        String jsonPayload = extractFirstJsonObject(raw.trim());
+        if (jsonPayload == null) {
+            throw new ExternalServiceException("Zyra profile recap response did not contain a valid JSON object");
+        }
+        try {
+            JsonNode root = objectMapper.readTree(jsonPayload);
+            if (root == null || !root.isObject()) {
+                throw new ExternalServiceException("Zyra profile recap response was not a JSON object");
             }
-        }
-        if (trimmed.startsWith("{")) {
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> map = objectMapper.readValue(trimmed, Map.class);
-                Object hObj = map.get("highlights");
-                List<String> highlights = new ArrayList<>();
-                if (hObj instanceof List<?> list) {
-                    for (Object item : list) {
-                        if (item != null && item.toString() != null && !item.toString().isBlank()) {
-                            highlights.add(item.toString().trim());
+
+            List<String> highlights = new ArrayList<>();
+            JsonNode highlightsNode = root.path("highlights");
+            if (highlightsNode.isArray()) {
+                for (JsonNode item : highlightsNode) {
+                    if (item != null && item.isValueNode()) {
+                        String value = item.asText(null);
+                        if (value != null && !value.isBlank()) {
+                            highlights.add(value.trim());
                         }
                     }
                 }
-                String fullRecap = map.get("fullRecap") != null ? map.get("fullRecap").toString().trim() : "";
-                if (fullRecap.isBlank()) {
-                    fullRecap = sanitizeRecapFromLabels(trimmed);
-                } else {
-                    fullRecap = sanitizeRecapFromLabels(fullRecap);
+            }
+
+            String fullRecap = sanitizeRecapFromLabels(root.path("fullRecap").asText(""));
+            if (fullRecap == null) {
+                fullRecap = "";
+            }
+
+            if (fullRecap.isBlank() && highlights.isEmpty()) {
+                throw new ExternalServiceException("Zyra profile recap JSON was missing both highlights and fullRecap");
+            }
+            if (highlights.isEmpty()) {
+                highlights = List.of(truncateForHighlight(fullRecap, 15));
+            }
+            if (fullRecap.isBlank()) {
+                fullRecap = String.join(" ", highlights);
+            }
+            return new ProfileRecapResult(highlights, fullRecap);
+        } catch (JsonProcessingException ex) {
+            throw new ExternalServiceException("Unable to parse Zyra profile recap JSON", ex);
+        }
+    }
+
+    private String extractFirstJsonObject(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        int start = -1;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaping = false;
+
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+
+            if (inString) {
+                if (escaping) {
+                    escaping = false;
+                } else if (ch == '\\') {
+                    escaping = true;
+                } else if (ch == '"') {
+                    inString = false;
                 }
-                return new ProfileRecapResult(highlights, fullRecap);
-            } catch (JsonProcessingException ignored) {
-                // fall through to plain text
+                continue;
+            }
+
+            if (ch == '"') {
+                inString = true;
+                continue;
+            }
+            if (ch == '{') {
+                if (depth == 0) {
+                    start = i;
+                }
+                depth++;
+                continue;
+            }
+            if (ch == '}') {
+                if (depth == 0) {
+                    continue;
+                }
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    return raw.substring(start, i + 1);
+                }
             }
         }
-        return new ProfileRecapResult(List.of(), sanitizeRecapFromLabels(trimmed));
+        return null;
     }
 
     private record ProfileRecapResult(List<String> highlights, String fullRecap) {}
