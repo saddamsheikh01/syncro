@@ -207,11 +207,11 @@ export const ViatorExperiencesSection = ({
       useNearbyForFetch && hasPosition && position?.latitude != null && position?.longitude != null
         ? `nearby:${position.latitude}:${position.longitude}`
         : "global";
-    const key = `${fetchKey}:q:${effectiveSearch}:cat:${selectedCategoryId ?? "all"}:trigger:${searchTrigger}`;
+    const key = `${fetchKey}:q:${effectiveSearch}:cat:${selectedCategoryId ?? "all"}:trigger:${searchTrigger}:locale:${locale}`;
     if (initializedRef.current === key) return;
     initializedRef.current = key;
     void fetchPage(0, false, effectiveSearch || undefined);
-  }, [effectiveSearch, fetchPage, hasPosition, position?.latitude, position?.longitude, searchTrigger, selectedCategoryId, useNearbyForFetch]);
+  }, [effectiveSearch, fetchPage, hasPosition, locale, position?.latitude, position?.longitude, searchTrigger, selectedCategoryId, useNearbyForFetch]);
 
   const hasMore = useMemo(() => {
     const pageHasMore = pageInfo.page + 1 < pageInfo.totalPages;

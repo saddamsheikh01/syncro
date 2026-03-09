@@ -75,6 +75,9 @@ export const getPlace = async (placeId: Uuid): Promise<PlaceDetailResponse> => {
   return data;
 };
 
+/** Timeout for experiences (Viator can be slow). */
+const EXPERIENCES_TIMEOUT_MS = 60_000;
+
 export const getExperiences = async (
   params: CatalogSearchParams = {}
 ): Promise<PageResponse<ExperienceSummaryResponse>> => {
@@ -82,6 +85,7 @@ export const getExperiences = async (
     "/experiences",
     {
       params: buildQueryParams(params),
+      timeout: EXPERIENCES_TIMEOUT_MS,
     }
   );
   return data;
