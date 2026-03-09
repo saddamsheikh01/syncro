@@ -158,10 +158,10 @@ public class ViatorNearbyDestinationResolver {
             }
             return Optional.of(new GeoContext(city, region, country, countryCode));
         } catch (RestClientException ex) {
-            log.warn("Reverse geocoding Google fallito: {}", ex.getMessage());
+            log.warn("Google reverse geocoding failed: {}", ex.getMessage());
             return Optional.empty();
         } catch (Exception ex) {
-            log.warn("Parsing reverse geocoding Google fallito: {}", ex.getMessage());
+            log.warn("Failed to parse Google reverse geocoding response: {}", ex.getMessage());
             return Optional.empty();
         }
     }

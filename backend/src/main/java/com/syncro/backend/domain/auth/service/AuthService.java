@@ -127,7 +127,7 @@ public class AuthService {
         if (existingByEmail.isPresent()) {
             User existing = existingByEmail.get();
             if (existing.isEmailVerified()) {
-                throw new ConflictException("Email gia registrata");
+                throw new ConflictException("Email already registered");
             }
             try {
                 emailVerificationService.sendOtp(email);
@@ -137,7 +137,7 @@ public class AuthService {
             return RegisterResponse.verification(email);
         }
         if (phone != null && userRepository.existsByPhone(phone)) {
-            throw new ConflictException("Telefono gia registrato");
+            throw new ConflictException("Phone number already registered");
         }
 
         User user = new User();
@@ -187,7 +187,7 @@ public class AuthService {
                 "LOGIN_FAILED",
                 buildLoginFailurePayload("USER_NOT_FOUND", AuthProvider.EMAIL)
             );
-            throw new UnauthorizedException("Credenziali non valide");
+            throw new UnauthorizedException("Invalid credentials");
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
             analyticsService.trackServerEventSafe(
@@ -195,7 +195,7 @@ public class AuthService {
                 "LOGIN_FAILED",
                 buildLoginFailurePayload("USER_INACTIVE", AuthProvider.EMAIL)
             );
-            throw new UnauthorizedException("Account sospeso");
+            throw new UnauthorizedException("Account suspended");
         }
 
         UserAuthProvider provider = providerRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL).orElse(null);
@@ -205,7 +205,7 @@ public class AuthService {
                 "LOGIN_FAILED",
                 buildLoginFailurePayload("PROVIDER_NOT_FOUND", AuthProvider.EMAIL)
             );
-            throw new UnauthorizedException("Credenziali non valide");
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         if (!passwordEncoder.matches(request.password(), provider.getProviderUserId())) {
@@ -214,7 +214,7 @@ public class AuthService {
                 "LOGIN_FAILED",
                 buildLoginFailurePayload("INVALID_PASSWORD", AuthProvider.EMAIL)
             );
-            throw new UnauthorizedException("Credenziali non valide");
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         if (!user.isEmailVerified()) {
@@ -249,7 +249,7 @@ public class AuthService {
         if (googleProvider != null) {
             UUID userId = googleProvider.getUser().getId();
             User existingGoogleUser = userRepository.findById(userId)
-                .orElseThrow(() -> new UnauthorizedException("Account non valido"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid account"));
             ensureUserActive(existingGoogleUser);
             if (!existingGoogleUser.isEmailVerified()) {
                 existingGoogleUser.setEmailVerified(true);
@@ -292,7 +292,7 @@ public class AuthService {
                     "LOGIN_FAILED",
                     buildLoginFailurePayload("GOOGLE_SUBJECT_MISMATCH", AuthProvider.GOOGLE)
                 );
-                throw new ConflictException("Account Google non associabile a questo utente");
+                throw new ConflictException("Google account cannot be linked to this user");
             } else if (
                 existingGoogleLink.getProviderUserId() == null ||
                 existingGoogleLink.getProviderUserId().isBlank()
@@ -353,7 +353,7 @@ public class AuthService {
     public TokenResponse refresh(RefreshTokenRequest request) {
         UUID userId = jwtService.parseRefreshToken(request.refreshToken(), SubjectType.USER);
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UnauthorizedException("Token non valido"));
+            .orElseThrow(() -> new UnauthorizedException("Invalid token"));
         ensureUserActive(user);
         return buildTokenResponse(user);
     }
@@ -382,7 +382,7 @@ public class AuthService {
             trackPasswordResetRequested(user.getId(), "TOKEN_EMAIL_SENT", "SELF_SERVICE");
         } catch (Exception ex) {
             passwordResetTokenRepository.delete(resetToken);
-            logger.warn("Invio email reset password fallito per userId={}", user.getId(), ex);
+            logger.warn("Password reset email failed for userId={}", user.getId(), ex);
             trackPasswordResetRequested(user.getId(), "EMAIL_SEND_FAILED", "SELF_SERVICE");
         }
 
@@ -392,13 +392,13 @@ public class AuthService {
     @Transactional
     public void requestPasswordResetByAdmin(UUID userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (user.getStatus() == UserStatus.DELETED) {
-            throw new BadRequestException("Operazione non disponibile per utenti eliminati");
+            throw new BadRequestException("Operation unavailable for deleted users");
         }
         if (user.getEmail() == null || user.getEmail().isBlank()) {
-            throw new BadRequestException("L'utente non ha un'email valida");
+            throw new BadRequestException("The user does not have a valid email");
         }
 
         ensureEmailProviderForPasswordReset(user);
@@ -412,7 +412,7 @@ public class AuthService {
         } catch (Exception ex) {
             passwordResetTokenRepository.delete(resetToken);
             trackPasswordResetRequested(user.getId(), "EMAIL_SEND_FAILED", "ADMIN_BACKOFFICE");
-            throw new ExternalServiceException("Invio email di reset password non riuscito", ex);
+            throw new ExternalServiceException("Failed to send password reset email", ex);
         }
     }
 
@@ -423,19 +423,19 @@ public class AuthService {
 
         UserPasswordResetToken resetToken = passwordResetTokenRepository
             .findByTokenHashAndUsedAtIsNullAndExpiresAtAfter(tokenHash, now)
-            .orElseThrow(() -> new BadRequestException("Token di reimpostazione non valido o scaduto"));
+            .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token"));
 
         User user = resetToken.getUser();
         ensureUserActive(user);
 
         UserAuthProvider provider = providerRepository.findByUserIdAndProvider(user.getId(), AuthProvider.EMAIL)
-            .orElseThrow(() -> new BadRequestException("Token di reimpostazione non valido o scaduto"));
+            .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token"));
         String currentPasswordHash = provider.getProviderUserId();
         if (currentPasswordHash == null || currentPasswordHash.isBlank()) {
-            throw new BadRequestException("Token di reimpostazione non valido o scaduto");
+            throw new BadRequestException("Invalid or expired password reset token");
         }
         if (passwordEncoder.matches(request.newPassword(), currentPasswordHash)) {
-            throw new BadRequestException("La nuova password deve essere diversa da quella attuale");
+            throw new BadRequestException("The new password must be different from the current one");
         }
 
         provider.setProviderUserId(passwordEncoder.encode(request.newPassword()));
@@ -459,22 +459,22 @@ public class AuthService {
 
     public UserResponse getMe(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         ensureUserActive(user);
         return authMapper.toUserResponse(user);
     }
 
     public UserAdminAccessResponse getAdminAccess(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         ensureUserActive(user);
 
         String email = user.getEmail();
@@ -505,7 +505,7 @@ public class AuthService {
 
     private void ensureUserActive(User user) {
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new UnauthorizedException("Account sospeso");
+            throw new UnauthorizedException("Account suspended");
         }
     }
 
@@ -609,7 +609,7 @@ public class AuthService {
             byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashed);
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Algoritmo di hash non disponibile", ex);
+            throw new IllegalStateException("Hash algorithm unavailable", ex);
         }
     }
 
@@ -622,7 +622,7 @@ public class AuthService {
             return null;
         }
         if (!PHONE_PATTERN.matcher(normalized).matches()) {
-            throw new BadRequestException("Telefono non valido");
+            throw new BadRequestException("Invalid phone number");
         }
         return normalized;
     }

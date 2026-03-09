@@ -78,7 +78,7 @@ public class ViatorDestinationRefService {
     @Transactional
     public ViatorDestinationRefResponse update(UUID id, ViatorDestinationRefUpdateRequest request) {
         ViatorDestinationRef entity = repository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Destination ref Viator non trovato"));
+            .orElseThrow(() -> new NotFoundException("Viator destination ref not found"));
 
         if (request.cityName() != null) {
             entity.setCityName(normalizeNullable(request.cityName()));
@@ -95,7 +95,7 @@ public class ViatorDestinationRefService {
     @Transactional
     public void delete(UUID id) {
         if (!repository.existsById(id)) {
-            throw new NotFoundException("Destination ref Viator non trovato");
+            throw new NotFoundException("Viator destination ref not found");
         }
         repository.deleteById(id);
     }

@@ -69,11 +69,11 @@ public class GoogleMapsSyncService {
         int maxResults
     ) {
         if (!config.isConfigured()) {
-            log.error("Google Maps API key non configurata");
-            return new SyncResult(0, 0, 0, 1, List.of("API key non configurata"));
+            log.error("Google Maps API key is not configured");
+            return new SyncResult(0, 0, 0, 1, List.of("API key is not configured"));
         }
 
-        log.info("Inizio sync luoghi: lat={}, lng={}, radius={}m, type={}, maxResults={}",
+        log.info("Starting place sync: lat={}, lng={}, radius={}m, type={}, maxResults={}",
             latitude, longitude, radiusMeters, type, maxResults);
 
         int totalFound = 0;
@@ -109,7 +109,7 @@ public class GoogleMapsSyncService {
                     }
                 } catch (Exception e) {
                     errors++;
-                    String msg = "Errore sync luogo " + googlePlace.getName() + ": " + e.getMessage();
+                    String msg = "Error syncing place " + googlePlace.getName() + ": " + e.getMessage();
                     errorMessages.add(msg);
                     log.error(msg, e);
                 }
@@ -123,7 +123,7 @@ public class GoogleMapsSyncService {
             }
         }
 
-        log.info("Sync completato: trovati={}, creati={}, aggiornati={}, errori={}",
+        log.info("Sync completed: found={}, created={}, updated={}, errors={}",
             totalFound, created, updated, errors);
 
         return new SyncResult(totalFound, created, updated, errors, errorMessages);
@@ -148,11 +148,11 @@ public class GoogleMapsSyncService {
         int maxResults
     ) {
         if (!config.isConfigured()) {
-            log.error("Google Maps API key non configurata");
-            return new SyncResult(0, 0, 0, 1, List.of("API key non configurata"));
+            log.error("Google Maps API key is not configured");
+            return new SyncResult(0, 0, 0, 1, List.of("API key is not configured"));
         }
 
-        log.info("Inizio sync per ricerca: query={}, maxResults={}", query, maxResults);
+        log.info("Starting search sync: query={}, maxResults={}", query, maxResults);
 
         int totalFound = 0;
         int created = 0;
@@ -184,7 +184,7 @@ public class GoogleMapsSyncService {
                         }
                     } catch (Exception e) {
                         errors++;
-                        String msg = "Errore sync luogo " + googlePlace.getName() + ": " + e.getMessage();
+                        String msg = "Error syncing place " + googlePlace.getName() + ": " + e.getMessage();
                         errorMessages.add(msg);
                         log.error(msg, e);
                     }
@@ -192,7 +192,7 @@ public class GoogleMapsSyncService {
             }
         }
 
-        log.info("Sync completato: trovati={}, creati={}, aggiornati={}, errori={}",
+        log.info("Sync completed: found={}, created={}, updated={}, errors={}",
             totalFound, created, updated, errors);
 
         return new SyncResult(totalFound, created, updated, errors, errorMessages);
@@ -207,13 +207,13 @@ public class GoogleMapsSyncService {
     @Transactional
     public SyncResult syncSinglePlaceById(String googlePlaceId) {
         if (!config.isConfigured()) {
-            return new SyncResult(0, 0, 0, 1, List.of("API key non configurata"));
+            return new SyncResult(0, 0, 0, 1, List.of("API key is not configured"));
         }
 
         Optional<GooglePlaceDetailsResponse> detailsOpt = googleMapsClient.getPlaceDetails(googlePlaceId);
 
         if (detailsOpt.isEmpty()) {
-            return new SyncResult(1, 0, 0, 1, List.of("Luogo non trovato: " + googlePlaceId));
+            return new SyncResult(1, 0, 0, 1, List.of("Place not found: " + googlePlaceId));
         }
 
         try {
@@ -239,7 +239,7 @@ public class GoogleMapsSyncService {
     @Transactional
     public Optional<Place> refreshPlace(Place place) {
         if (place.getGooglePlaceId() == null) {
-            log.warn("Il luogo {} non ha un Google Place ID", place.getId());
+            log.warn("Place {} does not have a Google Place ID", place.getId());
             return Optional.empty();
         }
 
@@ -247,13 +247,13 @@ public class GoogleMapsSyncService {
             googleMapsClient.getPlaceDetails(place.getGooglePlaceId());
 
         if (detailsOpt.isEmpty()) {
-            log.warn("Impossibile ottenere dettagli per Google Place ID: {}", place.getGooglePlaceId());
+            log.warn("Unable to fetch details for Google Place ID: {}", place.getGooglePlaceId());
             return Optional.empty();
         }
 
         placeMapper.updatePlace(place, detailsOpt.get().getResult());
         Place saved = placeRepository.save(place);
-        log.info("Luogo aggiornato: {} ({})", saved.getName(), saved.getId());
+        log.info("Place updated: {} ({})", saved.getName(), saved.getId());
 
         return Optional.of(saved);
     }
@@ -271,7 +271,7 @@ public class GoogleMapsSyncService {
             Place existing = existingOpt.get();
             placeMapper.updatePlace(existing, googlePlace);
             Place saved = placeRepository.save(existing);
-            log.debug("Luogo aggiornato: {} ({})", saved.getName(), saved.getId());
+            log.debug("Place updated: {} ({})", saved.getName(), saved.getId());
             return new SyncPlaceResult(false, true, saved);
         } else {
             // Ottieni dettagli completi prima di creare
@@ -287,7 +287,7 @@ public class GoogleMapsSyncService {
             }
 
             Place saved = placeRepository.save(newPlace);
-            log.debug("Luogo creato: {} ({})", saved.getName(), saved.getId());
+            log.debug("Place created: {} ({})", saved.getName(), saved.getId());
             return new SyncPlaceResult(true, false, saved);
         }
     }

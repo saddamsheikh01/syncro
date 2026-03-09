@@ -32,7 +32,7 @@ public class GoogleMapsSyncController {
         boolean configured = config.isConfigured();
         return ResponseEntity.ok(new StatusResponse(
             configured,
-            configured ? "Google Maps API configurata correttamente" : "API key mancante"
+            configured ? "Google Maps API is configured correctly" : "API key is missing"
         ));
     }
 
@@ -45,8 +45,8 @@ public class GoogleMapsSyncController {
         if (!config.isConfigured()) {
             return ResponseEntity.badRequest().body(new SyncResponse(
                 0, 0, 0, 1,
-                java.util.List.of("Google Maps API key non configurata"),
-                "Errore di configurazione"
+                java.util.List.of("Google Maps API key is not configured"),
+                "Configuration error"
             ));
         }
 
@@ -70,8 +70,8 @@ public class GoogleMapsSyncController {
         if (!config.isConfigured()) {
             return ResponseEntity.badRequest().body(new SyncResponse(
                 0, 0, 0, 1,
-                java.util.List.of("Google Maps API key non configurata"),
-                "Errore di configurazione"
+                java.util.List.of("Google Maps API key is not configured"),
+                "Configuration error"
             ));
         }
 
@@ -96,8 +96,8 @@ public class GoogleMapsSyncController {
         if (!config.isConfigured()) {
             return ResponseEntity.badRequest().body(new SyncResponse(
                 0, 0, 0, 1,
-                java.util.List.of("Google Maps API key non configurata"),
-                "Errore di configurazione"
+                java.util.List.of("Google Maps API key is not configured"),
+                "Configuration error"
             ));
         }
 

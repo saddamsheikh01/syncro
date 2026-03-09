@@ -159,7 +159,7 @@ public class PlaceService {
         String requestedType
     ) {
         if (!googleMapsConfig.isConfigured()) {
-            log.debug("Auto-sync Google Maps saltato: API key non configurata");
+            log.debug("Google Maps auto-sync skipped: API key is not configured");
             return;
         }
 
@@ -171,7 +171,7 @@ public class PlaceService {
         );
 
         if (freshPlacesCount > 0) {
-            log.debug("Auto-sync Google Maps saltato: {} luoghi freschi nell'area", freshPlacesCount);
+            log.debug("Google Maps auto-sync skipped: {} fresh places already exist in the area", freshPlacesCount);
             return;
         }
 
@@ -193,17 +193,17 @@ public class PlaceService {
                 syncType,
                 DEFAULT_SYNC_MAX_RESULTS
             );
-            log.info("Auto-sync completato: creati={}, aggiornati={}, errori={}",
+            log.info("Auto-sync completed: created={}, updated={}, errors={}",
                 result.created(), result.updated(), result.errors());
         } catch (Exception e) {
-            log.error("Errore durante auto-sync Google Maps: {}", e.getMessage(), e);
+            log.error("Error during Google Maps auto-sync: {}", e.getMessage(), e);
         }
     }
 
     @Transactional(readOnly = true)
     public PlaceDetailResponse getPlace(UUID placeId) {
         Place place = placeRepository.findById(placeId)
-            .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
+            .orElseThrow(() -> new NotFoundException("Place not found"));
         CategoryResponse category = place.getCategory() != null
             ? categoryMapper.toResponse(place.getCategory())
             : null;
@@ -255,19 +255,19 @@ public class PlaceService {
 
     private void validateCoordinates(Double latitude, Double longitude, Double radiusKm) {
         if ((latitude == null) != (longitude == null)) {
-            throw new BadRequestException("Latitudine e longitudine devono essere valorizzate insieme");
+            throw new BadRequestException("Latitude and longitude must be provided together");
         }
         if (radiusKm != null && (latitude == null || longitude == null)) {
-            throw new BadRequestException("Raggio richiede coordinate valide");
+            throw new BadRequestException("Radius requires valid coordinates");
         }
         if (radiusKm != null && radiusKm <= 0) {
-            throw new BadRequestException("Raggio non valido");
+            throw new BadRequestException("Invalid radius");
         }
     }
 
     private void validateGoogleFilters(Double minRating) {
         if (minRating != null && (minRating < 0 || minRating > 5)) {
-            throw new BadRequestException("Rating minimo non valido");
+            throw new BadRequestException("Invalid minimum rating");
         }
     }
 

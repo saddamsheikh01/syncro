@@ -51,7 +51,7 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
             .findFirst()
             .map(FieldError::getDefaultMessage)
-            .orElse("Errore di validazione");
+            .orElse("Validation error");
         return buildError(HttpStatus.BAD_REQUEST, message, request);
     }
 
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
         MethodArgumentTypeMismatchException ex,
         HttpServletRequest request
     ) {
-        String message = String.format("Parametro %s non valido", ex.getName());
+        String message = String.format("Invalid parameter: %s", ex.getName());
         return buildError(HttpStatus.BAD_REQUEST, message, request);
     }
 
@@ -72,14 +72,14 @@ public class GlobalExceptionHandler {
         String message = ex.getConstraintViolations().stream()
             .findFirst()
             .map(violation -> violation.getMessage())
-            .orElse("Errore di validazione");
+            .orElse("Validation error");
         return buildError(HttpStatus.BAD_REQUEST, message, request);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
-        logger.error("Errore non gestito su {}", request.getRequestURI(), ex);
-        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Errore interno", request);
+        logger.error("Unhandled error on {}", request.getRequestURI(), ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", request);
     }
 
     @ExceptionHandler(ExternalServiceException.class)
@@ -87,12 +87,12 @@ public class GlobalExceptionHandler {
         ExternalServiceException ex,
         HttpServletRequest request
     ) {
-        return buildError(HttpStatus.BAD_GATEWAY, "Servizio esterno non disponibile", request);
+        return buildError(HttpStatus.BAD_GATEWAY, "External service unavailable", request);
     }
 
     @ExceptionHandler(StorageException.class)
     public ResponseEntity<ApiError> handleStorage(StorageException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Storage temporaneamente non disponibile", request);
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Storage temporarily unavailable", request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -100,12 +100,12 @@ public class GlobalExceptionHandler {
         MaxUploadSizeExceededException ex,
         HttpServletRequest request
     ) {
-        return buildError(HttpStatus.valueOf(413), "File troppo grande", request);
+        return buildError(HttpStatus.valueOf(413), "File too large", request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
-        return buildError(HttpStatus.NOT_FOUND, "Risorsa non trovata", request);
+        return buildError(HttpStatus.NOT_FOUND, "Resource not found", request);
     }
 
     /**

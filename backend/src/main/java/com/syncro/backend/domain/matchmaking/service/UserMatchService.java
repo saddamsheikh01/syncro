@@ -147,10 +147,10 @@ public class UserMatchService {
 
         validateOtherUserId(user.getId(), otherUserId);
         userRepository.findById(otherUserId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!options.openToNewConnections() || !passesHardFilters(user.getId(), otherUserId, options)) {
-            throw new NotFoundException("Match non disponibile con i filtri correnti");
+            throw new NotFoundException("Match unavailable with the current filters");
         }
 
         UUID userAId = orderFirst(user.getId(), otherUserId);
@@ -162,7 +162,7 @@ public class UserMatchService {
         if (match == null || isMatchStale(match)) {
             upsertMatchAdvanced(user.getId(), otherUserId, options);
             match = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
-                .orElseThrow(() -> new NotFoundException("Match non disponibile"));
+                .orElseThrow(() -> new NotFoundException("Match unavailable"));
         }
 
         return mapSingleResponse(match, user.getId(), options);
@@ -178,10 +178,10 @@ public class UserMatchService {
 
         validateOtherUserId(user.getId(), otherUserId);
         userRepository.findById(otherUserId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!options.openToNewConnections() || !passesHardFilters(user.getId(), otherUserId, options)) {
-            throw new NotFoundException("Match non disponibile con i filtri correnti");
+            throw new NotFoundException("Match unavailable with the current filters");
         }
 
         upsertMatchAdvanced(user.getId(), otherUserId, options);
@@ -189,14 +189,14 @@ public class UserMatchService {
         UUID userAId = orderFirst(user.getId(), otherUserId);
         UUID userBId = orderSecond(user.getId(), otherUserId);
         UserMatchScore match = userMatchScoreRepository.findByUserAIdAndUserBId(userAId, userBId)
-            .orElseThrow(() -> new NotFoundException("Match non disponibile"));
+            .orElseThrow(() -> new NotFoundException("Match unavailable"));
 
         return mapSingleResponse(match, user.getId(), options);
     }
 
     private void validateOtherUserId(UUID currentUserId, UUID otherUserId) {
         if (otherUserId == null || otherUserId.equals(currentUserId)) {
-            throw new NotFoundException("Utente non valido");
+            throw new NotFoundException("Invalid user");
         }
     }
 
@@ -452,12 +452,12 @@ public class UserMatchService {
     private UserMatchResponse mapSingleResponse(UserMatchScore match, UUID userId, MatchOptions options) {
         UUID otherUserId = resolveOtherUserId(match, userId);
         if (otherUserId == null || !passesHardFilters(userId, otherUserId, options)) {
-            throw new NotFoundException("Match non disponibile con i filtri correnti");
+            throw new NotFoundException("Match unavailable with the current filters");
         }
 
         Integer resolvedScore = resolveScoreForResponse(match, options);
         if (resolvedScore == null) {
-            throw new NotFoundException("Match non disponibile con i filtri correnti");
+            throw new NotFoundException("Match unavailable with the current filters");
         }
 
         String explanation = loadExplanations(List.of(match)).get(match.getId());
@@ -645,7 +645,7 @@ public class UserMatchService {
 
         MatchDomain domain = parseDomainKey(value);
         if (domain == null) {
-            throw new BadRequestException("Dominio match non valido");
+            throw new BadRequestException("Invalid match domain");
         }
         return domain;
     }
@@ -958,11 +958,11 @@ public class UserMatchService {
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private record MatchOptions(

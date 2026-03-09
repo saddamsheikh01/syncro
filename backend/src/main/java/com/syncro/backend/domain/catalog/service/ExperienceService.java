@@ -236,7 +236,7 @@ public class ExperienceService {
         if (idOrRef != null && idOrRef.startsWith("viator-")) {
             String productCode = idOrRef.substring(7);
             if (productCode.isBlank()) {
-                throw new NotFoundException("Esperienza non trovata");
+                throw new NotFoundException("Experience not found");
             }
             String language = LocaleContextHolder.getLocale().toLanguageTag();
             List<com.fasterxml.jackson.databind.JsonNode> products = viatorClient.getProductsBulk(List.of(productCode), language);
@@ -244,7 +244,7 @@ public class ExperienceService {
                 ? products.getFirst()
                 : viatorClient.getProduct(productCode, language).orElse(null);
             if (product == null) {
-                throw new NotFoundException("Esperienza non trovata");
+                throw new NotFoundException("Experience not found");
             }
             return viatorProductMapper.toDetailResponse(product);
         }
@@ -252,7 +252,7 @@ public class ExperienceService {
         try {
             experienceId = UUID.fromString(idOrRef);
         } catch (IllegalArgumentException ex) {
-            throw new NotFoundException("Esperienza non trovata");
+            throw new NotFoundException("Experience not found");
         }
         return getExperienceById(experienceId);
     }
@@ -260,7 +260,7 @@ public class ExperienceService {
     @Transactional(readOnly = true)
     public ExperienceDetailResponse getExperienceById(UUID experienceId) {
         Experience experience = experienceRepository.findById(experienceId)
-            .orElseThrow(() -> new NotFoundException("Esperienza non trovata"));
+            .orElseThrow(() -> new NotFoundException("Experience not found"));
         CategoryResponse category = mapCategory(categoryMapper, experience.getCategory());
         PlaceReferenceResponse place = mapPlace(placeMapper, experience.getPlace());
         List<TagResponse> tags = loadTags(experienceId);

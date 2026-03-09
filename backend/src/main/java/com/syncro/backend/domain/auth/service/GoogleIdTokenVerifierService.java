@@ -37,10 +37,10 @@ public class GoogleIdTokenVerifierService {
 
     public GoogleIdentity verify(String idToken) {
         if (idToken == null || idToken.isBlank()) {
-            throw new BadRequestException("Token Google mancante");
+            throw new BadRequestException("Google token is missing");
         }
         if (!config.isConfigured()) {
-            throw new IllegalStateException("Google OAuth non configurato");
+            throw new IllegalStateException("Google OAuth is not configured");
         }
 
         String url = UriComponentsBuilder
@@ -53,32 +53,32 @@ public class GoogleIdTokenVerifierService {
         try {
             tokenInfo = restTemplate.getForObject(url, GoogleTokenInfoResponse.class);
         } catch (RestClientException ex) {
-            logger.warn("Token Google non valido: {}", ex.getMessage());
-            throw new UnauthorizedException("Token Google non valido");
+            logger.warn("Invalid Google token: {}", ex.getMessage());
+            throw new UnauthorizedException("Invalid Google token");
         }
 
         if (tokenInfo == null) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         if (!config.getClientId().equals(tokenInfo.aud())) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         if (tokenInfo.iss() == null || !TRUSTED_ISSUERS.contains(tokenInfo.iss())) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         if (tokenInfo.sub() == null || tokenInfo.sub().isBlank()) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         if (tokenInfo.email() == null || tokenInfo.email().isBlank()) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         if (!parseBooleanClaim(tokenInfo.emailVerified())) {
-            throw new UnauthorizedException("Email Google non verificata");
+            throw new UnauthorizedException("Google email is not verified");
         }
 
         long expirationEpochSeconds = parseNumericClaim(tokenInfo.exp());
         if (Instant.now().getEpochSecond() >= expirationEpochSeconds) {
-            throw new UnauthorizedException("Token Google scaduto");
+            throw new UnauthorizedException("Google token has expired");
         }
 
         return new GoogleIdentity(tokenInfo.sub(), tokenInfo.email(), tokenInfo.locale());
@@ -86,12 +86,12 @@ public class GoogleIdTokenVerifierService {
 
     private long parseNumericClaim(String value) {
         if (value == null || value.isBlank()) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
         try {
             return Long.parseLong(value.trim());
         } catch (NumberFormatException ex) {
-            throw new UnauthorizedException("Token Google non valido");
+            throw new UnauthorizedException("Invalid Google token");
         }
     }
 

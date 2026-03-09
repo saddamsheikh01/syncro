@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UpdateUserRequest(
-        @Pattern(regexp = "^[A-Za-z-]{2,10}$", message = "Lingua non valida") String language,
+        @Pattern(regexp = "^[A-Za-z-]{2,10}$", message = "Invalid language") String language,
         Boolean onboardingCompleted,
-        @Pattern(regexp = "^[a-z0-9]{3,30}$", message = "Username non valido") String username,
-        @Size(max = 32, message = "Telefono non valido") String phone,
-        @Email(message = "Email non valida") @Size(max = 320) String email
+        @Pattern(regexp = "^[a-z0-9]{3,30}$", message = "Invalid username") String username,
+        @Size(max = 32, message = "Invalid phone number") String phone,
+        @Email(message = "Invalid email") @Size(max = 320) String email
 ) {
 }

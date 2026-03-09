@@ -39,7 +39,7 @@ public class GoogleMapsClient {
         String type
     ) {
         if (!config.isConfigured()) {
-            log.warn("Google Maps API key non configurata");
+            log.warn("Google Maps API key is not configured");
             return Optional.empty();
         }
 
@@ -71,7 +71,7 @@ public class GoogleMapsClient {
         Integer radiusMeters
     ) {
         if (!config.isConfigured()) {
-            log.warn("Google Maps API key non configurata");
+            log.warn("Google Maps API key is not configured");
             return Optional.empty();
         }
 
@@ -98,7 +98,7 @@ public class GoogleMapsClient {
      */
     public Optional<GooglePlaceDetailsResponse> getPlaceDetails(String placeId) {
         if (!config.isConfigured()) {
-            log.warn("Google Maps API key non configurata");
+            log.warn("Google Maps API key is not configured");
             return Optional.empty();
         }
 
@@ -126,22 +126,22 @@ public class GoogleMapsClient {
             .toUriString();
 
         try {
-            log.debug("Chiamata Google Place Details: placeId={}", placeId);
+            log.debug("Google Place Details request: placeId={}", placeId);
             GooglePlaceDetailsResponse response = restTemplate.getForObject(
                 url,
                 GooglePlaceDetailsResponse.class
             );
 
             if (response != null && response.isSuccess()) {
-                log.debug("Place Details ottenuti: {}", response.getResult().getName());
+                log.debug("Place details received: {}", response.getResult().getName());
                 return Optional.of(response);
             } else {
-                String error = response != null ? response.getErrorMessage() : "Risposta nulla";
-                log.warn("Errore Place Details: {}", error);
+                String error = response != null ? response.getErrorMessage() : "Null response";
+                log.warn("Google Place Details error: {}", error);
                 return Optional.empty();
             }
         } catch (RestClientException e) {
-            log.error("Errore chiamata Google Place Details: {}", e.getMessage());
+            log.error("Google Place Details request failed: {}", e.getMessage());
             return Optional.empty();
         }
     }
@@ -154,7 +154,7 @@ public class GoogleMapsClient {
      */
     public Optional<GoogleSearchResponse> getNextPage(String nextPageToken) {
         if (!config.isConfigured()) {
-            log.warn("Google Maps API key non configurata");
+            log.warn("Google Maps API key is not configured");
             return Optional.empty();
         }
 
@@ -194,21 +194,21 @@ public class GoogleMapsClient {
 
     private Optional<GoogleSearchResponse> executeSearch(String url) {
         try {
-            log.debug("Chiamata Google Search: {}", url.replaceAll("key=[^&]+", "key=***"));
+            log.debug("Google Search request: {}", url.replaceAll("key=[^&]+", "key=***"));
             GoogleSearchResponse response = restTemplate.getForObject(url, GoogleSearchResponse.class);
 
             if (response != null && response.isSuccess()) {
                 int count = response.getResults() != null ? response.getResults().size() : 0;
-                log.debug("Ricerca completata: {} risultati", count);
+                log.debug("Search completed: {} results", count);
                 return Optional.of(response);
             } else {
-                String error = response != null ? response.getErrorMessage() : "Risposta nulla";
+                String error = response != null ? response.getErrorMessage() : "Null response";
                 String status = response != null ? response.getStatus() : "UNKNOWN";
-                log.warn("Errore ricerca Google: status={}, error={}", status, error);
+                log.warn("Google Search error: status={}, error={}", status, error);
                 return Optional.empty();
             }
         } catch (RestClientException e) {
-            log.error("Errore chiamata Google Search: {}", e.getMessage());
+            log.error("Google Search request failed: {}", e.getMessage());
             return Optional.empty();
         }
     }

@@ -99,10 +99,10 @@ public class ViatorClient {
             if (lowered.contains("endpoint access denied")) {
                 return ViatorFetchResult.accessDenied(body);
             }
-            log.error("Errore chiamata Viator modified-since (403): {}", body);
-            return ViatorFetchResult.failure("403 Forbidden su /products/modified-since");
+            log.error("Viator modified-since request failed (403): {}", body);
+            return ViatorFetchResult.failure("403 Forbidden on /products/modified-since");
         } catch (RuntimeException ex) {
-            log.error("Errore chiamata Viator modified-since: {}", ex.getMessage());
+            log.error("Viator modified-since request failed: {}", ex.getMessage());
             return ViatorFetchResult.failure(ex.getMessage());
         }
     }
@@ -146,7 +146,7 @@ public class ViatorClient {
             }
             return destinationIds;
         } catch (RuntimeException ex) {
-            log.error("Errore chiamata Viator destinations: {}", ex.getMessage());
+            log.error("Viator destinations request failed: {}", ex.getMessage());
             return List.of();
         }
     }
@@ -197,7 +197,7 @@ public class ViatorClient {
 
             return Optional.of(new ViatorProductSearchPage(products, totalCount));
         } catch (RuntimeException ex) {
-            log.error("Errore chiamata Viator products/search: {}", ex.getMessage());
+            log.error("Viator products/search request failed: {}", ex.getMessage());
             return Optional.empty();
         }
     }
@@ -417,7 +417,7 @@ public class ViatorClient {
             List<ViatorDestinationResult> destinations = parseDestinationsFromFreetextResponse(body);
             return destinations;
         } catch (RuntimeException ex) {
-            log.error("Errore chiamata Viator search/freetext destinations: {}", ex.getMessage());
+            log.error("Viator search/freetext destinations request failed: {}", ex.getMessage());
             return List.of();
         }
     }
@@ -454,13 +454,13 @@ public class ViatorClient {
             String lowered = body != null ? body.toLowerCase() : "";
             if (lowered.contains("endpoint access denied")) {
                 bulkEndpointDenied = true;
-                log.warn("Endpoint /products/bulk non abilitato per questa key: disabilitato per questa sessione");
+                log.warn("Endpoint /products/bulk is not enabled for this API key: disabled for this session");
                 return List.of();
             }
-            log.error("Errore chiamata Viator bulk (403): {}", body);
+            log.error("Viator bulk request failed (403): {}", body);
             return List.of();
         } catch (RuntimeException ex) {
-            log.error("Errore chiamata Viator bulk: {}", ex.getMessage());
+            log.error("Viator bulk request failed: {}", ex.getMessage());
             return List.of();
         }
     }
@@ -492,7 +492,7 @@ public class ViatorClient {
         } catch (HttpClientErrorException.NotFound ex) {
             return Optional.empty();
         } catch (RuntimeException ex) {
-            log.warn("Errore chiamata Viator GET /products/{}: {}", productCode, ex.getMessage());
+            log.warn("Viator GET /products/{} request failed: {}", productCode, ex.getMessage());
             return Optional.empty();
         }
     }
@@ -513,7 +513,7 @@ public class ViatorClient {
         try {
             return new HttpEntity<>(objectMapper.writeValueAsString(payload), headers);
         } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("Payload JSON non valido", ex);
+            throw new IllegalStateException("Invalid JSON payload", ex);
         }
     }
 
@@ -545,20 +545,20 @@ public class ViatorClient {
                     throw ex;
                 }
                 long sleepMs = retryAfterMillis(ex.getStatusCode(), ex.getResponseHeaders(), fallbackBackoffMs);
-                log.warn("{} rate-limited (tentativo {}/{}), retry tra {}ms",
+                log.warn("{} rate-limited (attempt {}/{}), retrying in {}ms",
                     operation, attempt, maxAttempts, sleepMs);
                 sleep(sleepMs);
             } catch (HttpServerErrorException | ResourceAccessException ex) {
                 if (attempt == maxAttempts) {
                     throw ex;
                 }
-                log.warn("{} errore temporaneo (tentativo {}/{}): {}",
+                log.warn("{} temporary error (attempt {}/{}): {}",
                     operation, attempt, maxAttempts, ex.getMessage());
                 sleep(fallbackBackoffMs);
             }
         }
 
-        throw new RestClientException(operation + " fallita dopo retry");
+        throw new RestClientException(operation + " failed after retries");
     }
 
     private long retryAfterMillis(

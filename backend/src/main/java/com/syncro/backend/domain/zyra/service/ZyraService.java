@@ -440,10 +440,10 @@ public class ZyraService {
         User requester = getUser(principal);
         String preferredLanguage = resolvePreferredLanguageForRecap(requester, requestLanguage);
         if (userId == null) {
-            throw new NotFoundException("Utente non valido");
+            throw new NotFoundException("Invalid user");
         }
         User target = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         ensureProfilePublic(target.getId());
         UserProfile targetProfile = userProfileRepository.findByUserId(target.getId()).orElse(null);
         if (targetProfile != null && isNotBlank(targetProfile.getZyraRecap())) {
@@ -479,10 +479,10 @@ public class ZyraService {
             ? fromRequest
             : resolvePreferredLanguage(user);
         if (placeId == null) {
-            throw new NotFoundException("Luogo non valido");
+            throw new NotFoundException("Invalid place");
         }
         Place place = placeRepository.findById(placeId)
-            .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
+            .orElseThrow(() -> new NotFoundException("Place not found"));
         return recapCache.getPlaceRecap(user.getId(), placeId)
             .map(entry -> new ZyraPlaceRecapResponse(
                 localizeRecap(entry.recap(), preferredLanguage),
@@ -1061,12 +1061,12 @@ public class ZyraService {
         User user = getUser(principal);
         String preferredLanguage = resolvePreferredLanguage(user);
         if (submissionId == null) {
-            throw new BadRequestException("ID submission non valido");
+            throw new BadRequestException("Invalid submission ID");
         }
         UserTestSubmission submission = userTestSubmissionRepository.findById(submissionId)
-            .orElseThrow(() -> new NotFoundException("Submission non trovata"));
+            .orElseThrow(() -> new NotFoundException("Submission not found"));
         if (!submission.getUser().getId().equals(user.getId())) {
-            throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
+            throw new UnauthorizedException("Not authorized to view this test");
         }
         String recap = generateTestRecap(submission);
         String localizedRecap = localizeRecap(recap, preferredLanguage, user.getLanguage());
@@ -1450,11 +1450,11 @@ public class ZyraService {
 
     private String normalizeRequired(String value) {
         if (value == null) {
-            throw new BadRequestException("Contenuto non valido");
+            throw new BadRequestException("Invalid content");
         }
         String normalized = value.trim();
         if (normalized.isBlank()) {
-            throw new BadRequestException("Contenuto non valido");
+            throw new BadRequestException("Invalid content");
         }
         return normalized;
     }
@@ -1935,28 +1935,28 @@ public class ZyraService {
 
     private ZyraChatSession getSession(UUID userId, UUID sessionId) {
         if (sessionId == null) {
-            throw new BadRequestException("Sessione non valida");
+            throw new BadRequestException("Invalid session");
         }
         return sessionRepository.findByIdAndUserId(sessionId, userId)
-            .orElseThrow(() -> new NotFoundException("Sessione non trovata"));
+            .orElseThrow(() -> new NotFoundException("Session not found"));
     }
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void ensureProfilePublic(UUID userId) {
         UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
         if (profile == null) {
-            throw new NotFoundException("Profilo non disponibile");
+            throw new NotFoundException("Profile unavailable");
         }
         if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
-            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+            throw new NotFoundException("Private profile. The user does not make these details visible.");
         }
     }
 }

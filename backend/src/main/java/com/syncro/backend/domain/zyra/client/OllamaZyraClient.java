@@ -34,15 +34,15 @@ public class OllamaZyraClient implements ZyraClient {
                 .retrieve()
                 .body(OllamaChatResponse.class);
             if (response == null || response.message == null) {
-                throw new ExternalServiceException("Risposta Ollama non valida");
+                throw new ExternalServiceException("Invalid Ollama response");
             }
             String content = response.message.content();
             if (content == null || content.isBlank()) {
-                throw new ExternalServiceException("Risposta Ollama non valida");
+                throw new ExternalServiceException("Invalid Ollama response");
             }
             return content.trim();
         } catch (RestClientResponseException ex) {
-            throw new ExternalServiceException("Errore Ollama: " + ex.getStatusCode(), ex);
+            throw new ExternalServiceException("Ollama error: " + ex.getStatusCode(), ex);
         }
     }
 

@@ -61,12 +61,12 @@ public class AdminAuthService {
     public AdminAuthResponse login(AdminLoginRequest request) {
         String email = normalizeEmail(request.email());
         AdminUser adminUser = adminUserRepository.findByEmail(email)
-            .orElseThrow(() -> new UnauthorizedException("Credenziali non valide"));
+            .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
         if (adminUser.getStatus() != AdminStatus.ACTIVE) {
-            throw new UnauthorizedException("Account sospeso");
+            throw new UnauthorizedException("Account suspended");
         }
         if (!passwordEncoder.matches(request.password(), adminUser.getPassword())) {
-            throw new UnauthorizedException("Credenziali non valide");
+            throw new UnauthorizedException("Invalid credentials");
         }
         adminUser.setLastLogin(Instant.now());
         AdminUser savedAdmin = adminUserRepository.save(adminUser);
@@ -81,7 +81,7 @@ public class AdminAuthService {
     ) {
         if (principal != null) {
             if (!"SUPER_ADMIN".equals(principal.role())) {
-                throw new UnauthorizedException("Permesso negato");
+                throw new UnauthorizedException("Permission denied");
             }
         } else {
             ensureBootstrapAllowed(bootstrapSecret);
@@ -89,7 +89,7 @@ public class AdminAuthService {
 
         String email = normalizeEmail(request.email());
         if (adminUserRepository.findByEmail(email).isPresent()) {
-            throw new ConflictException("Email gia registrata");
+            throw new ConflictException("Email already registered");
         }
 
         AdminUser adminUser = new AdminUser();
@@ -105,9 +105,9 @@ public class AdminAuthService {
     public TokenResponse refresh(RefreshTokenRequest request) {
         UUID adminId = jwtService.parseRefreshToken(request.refreshToken(), SubjectType.ADMIN);
         AdminUser adminUser = adminUserRepository.findById(adminId)
-            .orElseThrow(() -> new UnauthorizedException("Token non valido"));
+            .orElseThrow(() -> new UnauthorizedException("Invalid token"));
         if (adminUser.getStatus() != AdminStatus.ACTIVE) {
-            throw new UnauthorizedException("Account sospeso");
+            throw new UnauthorizedException("Account suspended");
         }
         return buildTokenResponse(adminUser);
     }
@@ -158,7 +158,7 @@ public class AdminAuthService {
 
     private String normalizeLanguage(String language) {
         if (language == null || language.isBlank()) {
-            throw new BadRequestException("Lingua non valida");
+            throw new BadRequestException("Invalid language");
         }
         String normalized = language.trim().toLowerCase(Locale.ROOT);
         int separatorIndex = normalized.indexOf('-');
@@ -166,30 +166,30 @@ public class AdminAuthService {
             normalized = normalized.substring(0, separatorIndex);
         }
         if (!SUPPORTED_LANGUAGES.contains(normalized)) {
-            throw new BadRequestException("Lingua non supportata");
+            throw new BadRequestException("Unsupported language");
         }
         return normalized;
     }
 
     private AdminUser getAdminUser(AdminPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID adminId = principal.adminId();
         return adminUserRepository.findById(adminId)
-            .orElseThrow(() -> new NotFoundException("Admin non trovato"));
+            .orElseThrow(() -> new NotFoundException("Admin not found"));
     }
 
     private void ensureBootstrapAllowed(String bootstrapSecret) {
         String configuredSecret = adminBootstrapProperties.bootstrapSecret();
         if (configuredSecret == null || configuredSecret.isBlank()) {
-            throw new UnauthorizedException("Bootstrap non abilitato");
+            throw new UnauthorizedException("Bootstrap is not enabled");
         }
         if (bootstrapSecret == null || !configuredSecret.equals(bootstrapSecret)) {
-            throw new UnauthorizedException("Bootstrap token non valido");
+            throw new UnauthorizedException("Invalid bootstrap token");
         }
         if (adminUserRepository.count() > 0) {
-            throw new UnauthorizedException("Bootstrap gia completato");
+            throw new UnauthorizedException("Bootstrap already completed");
         }
     }
 

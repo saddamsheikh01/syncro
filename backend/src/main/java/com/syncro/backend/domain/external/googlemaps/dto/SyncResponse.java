@@ -14,7 +14,7 @@ public record SyncResponse(
         com.syncro.backend.domain.external.googlemaps.GoogleMapsSyncService.SyncResult result
     ) {
         String message = String.format(
-            "Sincronizzazione completata: %d trovati, %d creati, %d aggiornati, %d errori",
+            "Sync completed: %d found, %d created, %d updated, %d errors",
             result.totalFound(),
             result.created(),
             result.updated(),

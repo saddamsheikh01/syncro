@@ -42,7 +42,7 @@ public class ViatorSyncController {
         int configuredDestinationCount = viatorDestinationRefService.countEnabledDestinationRefs();
         return ResponseEntity.ok(new StatusResponse(
             configured,
-            configured ? "Viator API configurata correttamente" : "VIATOR_API_KEY mancante",
+            configured ? "Viator API is configured correctly" : "VIATOR_API_KEY is missing",
             configuredDestinationCount
         ));
     }

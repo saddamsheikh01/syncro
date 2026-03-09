@@ -32,11 +32,11 @@ public class ViatorSyncScheduler {
             return;
         }
         if (!viatorConfig.isConfigured()) {
-            log.warn("Sync Viator pianificata ignorata: API key non configurata");
+            log.warn("Scheduled Viator sync skipped: API key is not configured");
             return;
         }
         if (!running.compareAndSet(false, true)) {
-            log.warn("Sync Viator già in esecuzione, skip di questo trigger");
+            log.warn("Viator sync is already running, skipping this trigger");
             return;
         }
 
@@ -50,7 +50,7 @@ public class ViatorSyncScheduler {
             );
             viatorSyncService.syncProducts(command);
         } catch (RuntimeException ex) {
-            log.error("Errore scheduler sync Viator: {}", ex.getMessage(), ex);
+            log.error("Viator sync scheduler error: {}", ex.getMessage(), ex);
         } finally {
             running.set(false);
         }

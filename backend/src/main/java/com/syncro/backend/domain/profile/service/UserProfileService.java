@@ -154,10 +154,10 @@ public class UserProfileService {
     public UserSummaryResponse getUserSummary(UserPrincipal principal, UUID userId) {
         getUser(principal); // solo per validare il token
         if (userId == null) {
-            throw new NotFoundException("Utente non valido");
+            throw new NotFoundException("Invalid user");
         }
         User targetUser = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
         String avatarUrl = resolveAvatarUrl(targetUser.getId());
         return profileMapper.toSummary(targetUser.getId(), targetUser.getUsername(), profile, avatarUrl);
@@ -167,13 +167,13 @@ public class UserProfileService {
     public UserPublicProfileResponse getPublicProfile(UserPrincipal principal, UUID userId) {
         getUser(principal);
         if (userId == null) {
-            throw new NotFoundException("Utente non valido");
+            throw new NotFoundException("Invalid user");
         }
         User targetUser = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         UserProfile profile = profileRepository.findByUserId(targetUser.getId()).orElse(null);
         if (profile != null && profile.getVisibility() == ProfileVisibility.PRIVATE) {
-            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+            throw new NotFoundException("Private profile. The user does not make these details visible.");
         }
         String avatarUrl = resolveAvatarUrl(targetUser.getId());
         return profileMapper.toPublicProfile(
@@ -300,11 +300,11 @@ public class UserProfileService {
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private ProfileVisibility parseVisibility(String visibility) {
