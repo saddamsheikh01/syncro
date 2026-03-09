@@ -83,11 +83,12 @@ export const PlacesOverview = () => {
   const [locationLoading, setLocationLoading] = useState(false);
 
   const hasLatLng = nearMe && hasPosition && position?.latitude != null && position?.longitude != null;
+  // When "near me" is active (hasLatLng), never send text search — use only lat/lng so previous search (e.g. "Malta") is not sent
   const placeParams = useMemo(
     () => ({
       source: "GOOGLE" as const,
       size: PAGE_SIZE,
-      q: citySearchApplied || undefined,
+      q: hasLatLng ? undefined : (citySearchApplied || undefined),
       lat: hasLatLng ? position?.latitude ?? undefined : undefined,
       lng: hasLatLng ? position?.longitude ?? undefined : undefined,
       radiusKm: hasLatLng ? 100 : undefined,
@@ -98,7 +99,7 @@ export const PlacesOverview = () => {
   const catalogParams = useMemo(
     () => ({
       size: PAGE_SIZE,
-      q: citySearchApplied || undefined,
+      q: hasLatLng ? undefined : (citySearchApplied || undefined),
       lat: hasLatLng ? position?.latitude ?? undefined : undefined,
       lng: hasLatLng ? position?.longitude ?? undefined : undefined,
       radiusKm: hasLatLng ? 100 : undefined,
@@ -110,7 +111,7 @@ export const PlacesOverview = () => {
     () => ({
       source: "VIATOR" as const,
       size: PAGE_SIZE,
-      q: citySearchApplied || undefined,
+      q: hasLatLng ? undefined : (citySearchApplied || undefined),
       lat: hasLatLng ? position?.latitude ?? undefined : undefined,
       lng: hasLatLng ? position?.longitude ?? undefined : undefined,
       radiusKm: hasLatLng ? 100 : undefined,
@@ -223,6 +224,8 @@ export const PlacesOverview = () => {
             longitude: pos.coords.longitude,
             accuracyMeters: pos.coords.accuracy ?? undefined,
           });
+          setCitySearch("");
+          setCitySearchApplied("");
           setNearMe(true);
         } catch {
           // keep nearMe false

@@ -156,7 +156,11 @@ export const ViatorExperiencesSection = ({
           position?.longitude != null;
         const nearbyLat = useNearby ? (position?.latitude ?? undefined) : undefined;
         const nearbyLng = useNearby ? (position?.longitude ?? undefined) : undefined;
-        const q = searchOverride !== undefined ? (searchOverride || undefined) : (effectiveSearch || undefined);
+        // When in "near me" mode, never send text search — use only lat/lng so old search (e.g. "Malta") is not sent
+        const q =
+          useNearby
+            ? undefined
+            : (searchOverride !== undefined ? (searchOverride || undefined) : (effectiveSearch || undefined));
 
         const response = await getExperiences({
           source: "VIATOR",
@@ -311,7 +315,12 @@ export const ViatorExperiencesSection = ({
           <button
             type="button"
             onClick={() => {
-              if (scope !== "nearby") setLoading(true);
+              if (scope !== "nearby") {
+                setLoading(true);
+                setSearchQuery("");
+                setSearchApplied("");
+                setSearchTrigger((t) => t + 1);
+              }
               setScope("nearby");
             }}
             disabled={!hasPosition || (scope === "nearby" && loading)}
