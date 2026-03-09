@@ -171,8 +171,8 @@ public class RecommendationService {
         Map<UUID, ExperienceSummaryResponse> experiences = loadExperienceSummaries(scores.getContent());
         return scores.map(score -> recommendationMapper.toResponse(
             score,
-            places.get(score.getPlaceId()),
-            experiences.get(score.getExperienceId())
+            score.getPlaceId() != null ? places.get(score.getPlaceId()) : null,
+            score.getExperienceId() != null ? experiences.get(score.getExperienceId()) : null
         ));
     }
 
