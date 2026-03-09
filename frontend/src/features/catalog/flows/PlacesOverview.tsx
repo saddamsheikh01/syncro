@@ -16,6 +16,7 @@ import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
 import { getExperienceDetailPath } from "@/lib/siteUrl";
 import { cx } from "@/lib/classNames";
+import { isViatorUnavailableError } from "@/lib/viatorErrors";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
 import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
 import type { ExperienceSummaryResponse } from "@/types/catalog";
@@ -81,6 +82,7 @@ export const PlacesOverview = () => {
   } = useCatalog();
   const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
   const [locationLoading, setLocationLoading] = useState(false);
+  const showViatorUnavailable = isViatorUnavailableError(error);
 
   const hasLatLng = nearMe && hasPosition && position?.latitude != null && position?.longitude != null;
   // When "near me" is active (hasLatLng), never send text search — use only lat/lng so previous search (e.g. "Malta") is not sent
@@ -517,10 +519,17 @@ export const PlacesOverview = () => {
             </Card>
           )}
           {error && !isInitialLoadingCatalog && (
-            <ErrorState
-              title={t("Unable to load catalog")}
-              description={error.message}
-            />
+            showViatorUnavailable ? (
+              <EmptyState
+                title={t("Experiences temporarily unavailable")}
+                description={t("Viator is temporarily unreachable. Please try again in a moment or switch to Places.")}
+              />
+            ) : (
+              <ErrorState
+                title={t("Unable to load catalog")}
+                description={error.message}
+              />
+            )
           )}
           {!isInitialLoadingCatalog && !error && catalogPlaceItems.length === 0 && catalogExperienceItems.length === 0 && (
             <EmptyState
@@ -618,10 +627,17 @@ export const PlacesOverview = () => {
             </Card>
           )}
           {!isInitialLoadingExperiences && error && (
-            <ErrorState
-              title={t("Unable to load experiences")}
-              description={error.message}
-            />
+            showViatorUnavailable ? (
+              <EmptyState
+                title={t("Experiences temporarily unavailable")}
+                description={t("Viator is temporarily unreachable. Please try again in a moment.")}
+              />
+            ) : (
+              <ErrorState
+                title={t("Unable to load experiences")}
+                description={error.message}
+              />
+            )
           )}
           {!isInitialLoadingExperiences && !error && experiences.length === 0 && (
             <EmptyState

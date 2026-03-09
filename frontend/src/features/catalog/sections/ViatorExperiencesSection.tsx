@@ -12,6 +12,7 @@ import { SectionHeader } from "@/features/home/sections/SectionHeader";
 import { usePosition, useT } from "@/hooks";
 import { toBcp47 } from "@/i18n/locales";
 import { cx } from "@/lib/classNames";
+import { isViatorUnavailableError } from "@/lib/viatorErrors";
 import { getExperienceDetailPath } from "@/lib/siteUrl";
 import { getCategories, getExperiences } from "@/services/catalog";
 import type { ApiError } from "@/types/api";
@@ -250,6 +251,7 @@ export const ViatorExperiencesSection = ({
   );
 
   const showLoader = loading;
+  const showViatorUnavailable = !loading && isViatorUnavailableError(error);
 
   return (
     <section id={id} className={cx("space-y-4", className)}>
@@ -357,14 +359,21 @@ export const ViatorExperiencesSection = ({
         </Card>
       ) : null}
 
-      {!loading && error ? (
+      {showViatorUnavailable ? (
+        <EmptyState
+          title={t("Experiences temporarily unavailable")}
+          description={t("Viator is temporarily unreachable. Please try again in a moment.")}
+        />
+      ) : null}
+
+      {!loading && error && !showViatorUnavailable ? (
         <ErrorState
           title={t("Unable to load experiences")}
           description={error.message}
         />
       ) : null}
 
-      {!loading && !error && experienceItems.length === 0 ? (
+      {!loading && !error && !showViatorUnavailable && experienceItems.length === 0 ? (
         <EmptyState
           title={t("No experiences found")}
           description={t("No Viator experiences available right now.")}
