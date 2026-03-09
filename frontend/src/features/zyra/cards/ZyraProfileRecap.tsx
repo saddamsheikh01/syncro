@@ -14,6 +14,7 @@ export interface ZyraProfileRecapProps
   title?: string;
   userId?: string;
   onRecapLoaded?: (recap: string) => void;
+  onRegenerated?: () => void;
   /** When this increments, recap is refetched (e.g. after regenerate from test completion). */
   recapRefreshTrigger?: number;
   /** True while parent is calling regenerate (e.g. on profile visit after test); show loading. */
@@ -25,6 +26,7 @@ export const ZyraProfileRecap = ({
   title = "Your profile according to Zyra",
   userId,
   onRecapLoaded,
+  onRegenerated,
   recapRefreshTrigger,
   regenerating = false,
   ...props
@@ -148,6 +150,7 @@ export const ZyraProfileRecap = ({
         setRecap(recapText);
         setEditedRecap(recapText);
         setHighlights(deriveHighlightsFromRecap(recapText));
+        onRegenerated?.();
         try {
           await userActions.saveProfile({ zyraRecap: response.recap });
         } catch {

@@ -320,28 +320,6 @@ export const ProfileSettings = ({
   const momentsInitializedRef = useRef(false);
   const usernameInitializedRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { pendingRefresh } = await getProfileRecapPending();
-        if (cancelled || !pendingRefresh) return;
-        setRecapRegenerating(true);
-        try {
-          await regenerateProfileRecap(locale ?? undefined);
-          if (!cancelled) setRecapRefreshTrigger((prev) => prev + 1);
-        } finally {
-          if (!cancelled) setRecapRegenerating(false);
-        }
-      } catch {
-        // ignore: recap will still load from cache/DB
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [locale]);
-
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
@@ -364,6 +342,8 @@ export const ProfileSettings = ({
   const [profileSaving, setProfileSaving] = useState(false);
   const [recapRefreshTrigger, setRecapRefreshTrigger] = useState(0);
   const [recapRegenerating, setRecapRegenerating] = useState(false);
+  const [recapPendingRefresh, setRecapPendingRefresh] = useState(false);
+  const [recapRefreshError, setRecapRefreshError] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
@@ -414,6 +394,38 @@ export const ProfileSettings = ({
   const [emailVerificationModalOpen, setEmailVerificationModalOpen] = useState(false);
   const [emailToVerify, setEmailToVerify] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { pendingRefresh } = await getProfileRecapPending();
+        if (cancelled) return;
+        setRecapPendingRefresh(Boolean(pendingRefresh));
+      } catch {
+        // ignore: recap will still load from cache/DB
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
+  const handleRecapRegenerate = useCallback(async () => {
+    setRecapRegenerating(true);
+    setRecapRefreshError(null);
+    try {
+      await regenerateProfileRecap(locale ?? undefined);
+      setRecapPendingRefresh(false);
+      setRecapRefreshTrigger((prev) => prev + 1);
+    } catch (refreshError) {
+      setRecapRefreshError(
+        resolveErrorMessage(refreshError, t("Unable to generate the recap. Try again."))
+      );
+    } finally {
+      setRecapRegenerating(false);
+    }
+  }, [locale, t]);
 
   const isDirty = useMemo(() => {
     if (!profileInitializedRef.current) return false;
@@ -1198,8 +1210,34 @@ export const ProfileSettings = ({
           title={t("Zyra recap")}
           subtitle={t("Review and edit how Zyra describes you.")}
         />
+        {recapPendingRefresh ? (
+          <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                {t("Recap outdated, regenerate?")}
+              </p>
+              <p className="text-sm text-muted">
+                {t("Your profile or insights changed. Regenerate to refresh Zyra's summary.")}
+              </p>
+              {recapRefreshError ? (
+                <p className="text-sm text-danger">{recapRefreshError}</p>
+              ) : null}
+            </div>
+            <Button
+              onClick={handleRecapRegenerate}
+              loading={recapRegenerating}
+              loadingText={t("Regenerate")}
+            >
+              {t("Regenerate")}
+            </Button>
+          </Card>
+        ) : null}
         <ZyraProfileRecap
           onRecapLoaded={handleProfileRecapLoaded}
+          onRegenerated={() => {
+            setRecapPendingRefresh(false);
+            setRecapRefreshError(null);
+          }}
           recapRefreshTrigger={recapRefreshTrigger}
           regenerating={recapRegenerating}
         />
