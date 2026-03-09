@@ -125,6 +125,9 @@ public class UserProfile {
     @Column(name = "zyra_recap", columnDefinition = "TEXT")
     private String zyraRecap;
 
+    @Column(name = "zyra_recap_highlights", columnDefinition = "TEXT")
+    private String zyraRecapHighlights;
+
     @Column(name = "zyra_birth_chart_interpretation", columnDefinition = "TEXT")
     private String zyraBirthChartInterpretation;
 
@@ -413,6 +416,14 @@ public class UserProfile {
 
     public void setZyraRecap(String zyraRecap) {
         this.zyraRecap = zyraRecap;
+    }
+
+    public String getZyraRecapHighlights() {
+        return zyraRecapHighlights;
+    }
+
+    public void setZyraRecapHighlights(String zyraRecapHighlights) {
+        this.zyraRecapHighlights = zyraRecapHighlights;
     }
 
     public String getZyraBirthChartInterpretation() {

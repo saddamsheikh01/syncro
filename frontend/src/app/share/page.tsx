@@ -12,31 +12,24 @@ export const generateMetadata = async (): Promise<Metadata> => {
   );
   const shareUrl = baseUrl ? `${baseUrl}/share` : "/share";
 
-  const metadata: Metadata = {
+  return {
     title,
     description,
+    metadataBase: new URL(baseUrl),
     openGraph: {
       type: "website",
       url: shareUrl,
       siteName: "Syncro",
       title,
       description,
-      images: [{ url: baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg", width: 1200, height: 630, alt: "Syncro" }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg"],
     },
     alternates: { canonical: shareUrl },
   };
-
-  if (baseUrl) {
-    metadata.metadataBase = new URL(baseUrl);
-  }
-
-  return metadata;
 };
 
 export default async function SharePage() {

@@ -7,6 +7,7 @@ import { InterestPickerGrid } from "@/features/onboarding/forms/InterestPickerGr
 import { SelectedTagsRow } from "@/features/tags/lists/SelectedTagsRow";
 import { Card } from "@/components/elements/Card";
 import { Button } from "@/components/buttons/Button";
+import { toInterestTranslationKey } from "@/lib/interestEmoji";
 import { useAuth, useOnboarding, useT, useTags } from "@/hooks";
 
 const MIN_SELECTIONS = 3;
@@ -43,18 +44,18 @@ export const OnboardingStep2 = () => {
     () =>
       tags.map((tag) => ({
         id: tag.id,
-        label: tag.name,
+        label: t(toInterestTranslationKey(tag.name)),
         selected: selectedIds.includes(tag.id),
       })),
-    [tags, selectedIds]
+    [tags, selectedIds, t]
   );
 
   const selectedTags = useMemo(
     () =>
       tags
         .filter((tag) => selectedIds.includes(tag.id))
-        .map((tag) => ({ id: tag.id, label: tag.name, tone: "accent" as const })),
-    [tags, selectedIds]
+        .map((tag) => ({ id: tag.id, label: t(toInterestTranslationKey(tag.name)), tone: "accent" as const })),
+    [tags, selectedIds, t]
   );
 
   const handleToggle = (id: string, nextSelected: boolean) => {

@@ -10,6 +10,7 @@ public record UserProfileRequest(
     @Past LocalDate birthDate,
     @Size(max = 120) String city,
     @Size(max = 120) String country,
+    @Size(max = 200) String birthPlace,
     @Size(max = 120) String jobTitle,
     @Size(max = 160) String companyName,
     @Size(max = 500) String bio,

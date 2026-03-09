@@ -1,8 +1,10 @@
 package com.syncro.backend.domain.zyra.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.syncro.backend.common.exception.BadRequestException;
+import com.syncro.backend.common.exception.ExternalServiceException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.common.exception.UnauthorizedException;
 import com.syncro.backend.config.ZyraProperties;
@@ -49,11 +51,13 @@ import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionResponse;
+import com.syncro.backend.domain.zyra.entity.ProfileRecapPendingRefresh;
 import com.syncro.backend.domain.zyra.entity.ZyraChatSession;
 import com.syncro.backend.domain.zyra.entity.ZyraMessage;
 import com.syncro.backend.domain.zyra.entity.ZyraMessageRole;
 import com.syncro.backend.domain.zyra.entity.ZyraSuggestion;
 import com.syncro.backend.domain.zyra.mapper.ZyraMapper;
+import com.syncro.backend.domain.zyra.repository.ProfileRecapPendingRefreshRepository;
 import com.syncro.backend.domain.zyra.repository.ZyraChatSessionRepository;
 import com.syncro.backend.domain.zyra.repository.ZyraMessageRepository;
 import com.syncro.backend.domain.zyra.repository.ZyraSuggestionRepository;
@@ -75,6 +79,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -84,7 +90,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ZyraService {
 
-    private static final int MAX_TEST_RECAPS = 6;
+    private static final Logger log = LoggerFactory.getLogger(ZyraService.class);
+
+    /** Max distinct tests to include in profile recap (covers all standard insight types with headroom). */
+    private static final int MAX_TEST_RECAPS = 8;
+
+    /** Default recap when user has no completed tests and no birth chart (no LLM call). */
+    private static final String DEFAULT_RECAP_NO_TESTS = "Complete your profile and take insight tests to see your personalized recap here.";
+    private static final String DEFAULT_HIGHLIGHT_NO_TESTS = "Complete your profile and take tests to see your recap.";
     private static final int MAX_QUESTIONS_PER_TEST = 3;
     private static final int MAX_OPTIONS_PER_QUESTION = 2;
     private static final int MAX_QUESTION_TEXT = 80;
@@ -105,6 +118,7 @@ public class ZyraService {
     private final ZyraChatSessionRepository sessionRepository;
     private final ZyraMessageRepository messageRepository;
     private final ZyraSuggestionRepository suggestionRepository;
+    private final ProfileRecapPendingRefreshRepository profileRecapPendingRefreshRepository;
     private final ZyraClient zyraClient;
     private final ZyraMapper zyraMapper;
     private final ObjectMapper objectMapper;
@@ -127,6 +141,7 @@ public class ZyraService {
         ZyraChatSessionRepository sessionRepository,
         ZyraMessageRepository messageRepository,
         ZyraSuggestionRepository suggestionRepository,
+        ProfileRecapPendingRefreshRepository profileRecapPendingRefreshRepository,
         ZyraClient zyraClient,
         ZyraMapper zyraMapper,
         ObjectMapper objectMapper,
@@ -148,6 +163,7 @@ public class ZyraService {
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
         this.suggestionRepository = suggestionRepository;
+        this.profileRecapPendingRefreshRepository = profileRecapPendingRefreshRepository;
         this.zyraClient = zyraClient;
         this.zyraMapper = zyraMapper;
         this.objectMapper = objectMapper;
@@ -297,38 +313,53 @@ public class ZyraService {
             java.time.Instant generatedAt = profile.getUpdatedAt() != null
                 ? profile.getUpdatedAt()
                 : java.time.Instant.now();
+            List<String> highlights = parseHighlightsFromJson(profile.getZyraRecapHighlights());
             return new ZyraProfileRecapResponse(
                 localizeRecap(profile.getZyraRecap(), preferredLanguage, user.getLanguage()),
+                highlights,
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(user.getId())
-            .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage, user.getLanguage()),
-                entry.generatedAt()
-            ))
+            .map(entry -> profileRecapFromCachePayload(entry.recap(), preferredLanguage, user.getLanguage(), entry.generatedAt()))
             .orElseGet(() -> {
-                String recap = generateProfileRecap(user, requestLanguage);
+                ProfileRecapResult result = generateProfileRecap(user, requestLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
-                recapCache.putProfileRecap(user.getId(), recap, generatedAt);
+                recapCache.putProfileRecap(user.getId(), profileRecapToCachePayload(result), generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage, preferredLanguage),
+                    localizeRecap(result.fullRecap(), preferredLanguage, preferredLanguage),
+                    result.highlights() != null ? result.highlights() : List.of(),
                     generatedAt
                 );
             });
     }
 
+    /**
+     * Regenerate profile recap and persist it (cache + DB).
+     * Called automatically after completing a test or saving a birth chart so the recap is up to date without clicking Regenerate.
+     */
     @Transactional
     public void refreshProfileRecap(User user) {
         if (user == null || user.getId() == null) {
             return;
         }
         try {
-            String recap = generateProfileRecap(user);
+            ProfileRecapResult result = generateProfileRecap(user);
+            if (result == null || result.fullRecap() == null || result.fullRecap().isBlank()) {
+                return;
+            }
+            String fullRecap = result.fullRecap().trim();
             java.time.Instant generatedAt = java.time.Instant.now();
-            recapCache.putProfileRecap(user.getId(), recap, generatedAt);
-        } catch (Exception ignored) {
-            // evita di bloccare il salvataggio profilo se il recap fallisce
+            recapCache.putProfileRecap(user.getId(), profileRecapToCachePayload(result), generatedAt);
+            UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+            if (profile != null) {
+                profile.setZyraRecap(fullRecap);
+                profile.setZyraRecapHighlights(highlightsToJson(result.highlights()));
+                userProfileRepository.save(profile);
+            }
+        } catch (Exception ex) {
+            // Avoid blocking profile/test saves, but keep the failure observable.
+            log.warn("Unable to refresh Zyra profile recap for userId={}: {}", user.getId(), ex.getMessage(), ex);
         }
     }
 
@@ -341,18 +372,67 @@ public class ZyraService {
         User user = getUser(principal);
         String preferredLanguage = resolvePreferredLanguageForRecap(user, requestLanguage);
         recapCache.invalidateUser(user.getId());
-        String recap = generateProfileRecap(user, requestLanguage);
+        ProfileRecapResult result = generateProfileRecap(user, requestLanguage);
         java.time.Instant generatedAt = java.time.Instant.now();
-        recapCache.putProfileRecap(user.getId(), recap, generatedAt);
+        recapCache.putProfileRecap(user.getId(), profileRecapToCachePayload(result), generatedAt);
         UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         if (profile != null) {
-            profile.setZyraRecap(recap != null ? recap.trim() : null);
+            profile.setZyraRecap(result.fullRecap() != null ? result.fullRecap().trim() : null);
+            profile.setZyraRecapHighlights(highlightsToJson(result.highlights()));
             userProfileRepository.save(profile);
         }
+        clearPendingRecapRefresh(user.getId());
         return new ZyraProfileRecapResponse(
-            localizeRecap(recap, preferredLanguage, preferredLanguage),
+            localizeRecap(result.fullRecap(), preferredLanguage, preferredLanguage),
+            result.highlights() != null ? result.highlights() : List.of(),
             generatedAt
         );
+    }
+
+    /** Called when user completes a test; frontend will call regenerate on next profile visit when this is true. */
+    @Transactional
+    public void setPendingRecapRefresh(UUID userId) {
+        ProfileRecapPendingRefresh row = profileRecapPendingRefreshRepository.findById(userId)
+            .orElseGet(() -> {
+                ProfileRecapPendingRefresh e = new ProfileRecapPendingRefresh();
+                e.setUserId(userId);
+                return e;
+            });
+        row.setPendingRefresh(true);
+        profileRecapPendingRefreshRepository.save(row);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isPendingRecapRefresh(UUID userId) {
+        return profileRecapPendingRefreshRepository.findById(userId)
+            .map(ProfileRecapPendingRefresh::isPendingRefresh)
+            .orElse(false);
+    }
+
+    @Transactional
+    public void clearPendingRecapRefresh(UUID userId) {
+        profileRecapPendingRefreshRepository.findById(userId).ifPresent(row -> {
+            row.setPendingRefresh(false);
+            profileRecapPendingRefreshRepository.save(row);
+        });
+    }
+
+    /**
+     * Clears stored profile recap (cache + DB) so the next request regenerates from current data.
+     * Call when the user resets insights so they do not keep seeing the old recap.
+     */
+    @Transactional
+    public void clearProfileRecapForUser(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        recapCache.invalidateUser(user.getId());
+        UserProfile profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (profile != null) {
+            profile.setZyraRecap(null);
+            profile.setZyraRecapHighlights(null);
+            userProfileRepository.save(profile);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -360,32 +440,32 @@ public class ZyraService {
         User requester = getUser(principal);
         String preferredLanguage = resolvePreferredLanguageForRecap(requester, requestLanguage);
         if (userId == null) {
-            throw new NotFoundException("Utente non valido");
+            throw new NotFoundException("Invalid user");
         }
         User target = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         ensureProfilePublic(target.getId());
         UserProfile targetProfile = userProfileRepository.findByUserId(target.getId()).orElse(null);
         if (targetProfile != null && isNotBlank(targetProfile.getZyraRecap())) {
             java.time.Instant generatedAt = targetProfile.getUpdatedAt() != null
                 ? targetProfile.getUpdatedAt()
                 : java.time.Instant.now();
+            List<String> highlights = parseHighlightsFromJson(targetProfile.getZyraRecapHighlights());
             return new ZyraProfileRecapResponse(
                 localizeRecap(targetProfile.getZyraRecap(), preferredLanguage, target.getLanguage()),
+                highlights,
                 generatedAt
             );
         }
         return recapCache.getProfileRecap(target.getId())
-            .map(entry -> new ZyraProfileRecapResponse(
-                localizeRecap(entry.recap(), preferredLanguage, target.getLanguage()),
-                entry.generatedAt()
-            ))
+            .map(entry -> profileRecapFromCachePayload(entry.recap(), preferredLanguage, target.getLanguage(), entry.generatedAt()))
             .orElseGet(() -> {
-                String recap = generateProfileRecap(target, requestLanguage);
+                ProfileRecapResult result = generateProfileRecap(target, requestLanguage);
                 java.time.Instant generatedAt = java.time.Instant.now();
-                recapCache.putProfileRecap(target.getId(), recap, generatedAt);
+                recapCache.putProfileRecap(target.getId(), profileRecapToCachePayload(result), generatedAt);
                 return new ZyraProfileRecapResponse(
-                    localizeRecap(recap, preferredLanguage, preferredLanguage),
+                    localizeRecap(result.fullRecap(), preferredLanguage, preferredLanguage),
+                    result.highlights() != null ? result.highlights() : List.of(),
                     generatedAt
                 );
             });
@@ -399,10 +479,10 @@ public class ZyraService {
             ? fromRequest
             : resolvePreferredLanguage(user);
         if (placeId == null) {
-            throw new NotFoundException("Luogo non valido");
+            throw new NotFoundException("Invalid place");
         }
         Place place = placeRepository.findById(placeId)
-            .orElseThrow(() -> new NotFoundException("Luogo non trovato"));
+            .orElseThrow(() -> new NotFoundException("Place not found"));
         return recapCache.getPlaceRecap(user.getId(), placeId)
             .map(entry -> new ZyraPlaceRecapResponse(
                 localizeRecap(entry.recap(), preferredLanguage),
@@ -422,11 +502,11 @@ public class ZyraService {
             });
     }
 
-    private String generateProfileRecap(User user) {
+    private ProfileRecapResult generateProfileRecap(User user) {
         return generateProfileRecap(user, null);
     }
 
-    private String generateProfileRecap(User user, String responseLanguageOverride) {
+    private ProfileRecapResult generateProfileRecap(User user, String responseLanguageOverride) {
         UserPsyProfile psyProfile = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
         UserProfile userProfile = userProfileRepository.findByUserId(user.getId()).orElse(null);
         List<String> testSummaries = buildTestSummaries(user);
@@ -438,49 +518,29 @@ public class ZyraService {
             testSummaries.add(birthChartSummary);
         }
 
+        if (testSummaries == null || testSummaries.isEmpty()) {
+            return new ProfileRecapResult(
+                List.of(DEFAULT_HIGHLIGHT_NO_TESTS),
+                DEFAULT_RECAP_NO_TESTS
+            );
+        }
+
         // Recap must be exclusively test results: no profile fields (name, location, job, interests, astro, etc.)
         // and no labels (Balanced Planner, etc.) — so we only send test summaries, scores, and sanitized dimensions.
         StringBuilder prompt = new StringBuilder(promptLoader.getPrompt(PromptType.PROFILE_RECAP));
         prompt.append("\n");
 
-        if (testSummaries != null && !testSummaries.isEmpty()) {
-            prompt.append("- Completed tests (summary by test):\n");
-            testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
-        }
+        prompt.append("- Completed tests (summary by test):\n");
+        testSummaries.forEach(summary -> prompt.append("  - ").append(summary).append("\n"));
 
-        // Aggregated scores from tests
-        if (psyProfile != null) {
-            StringBuilder scores = new StringBuilder();
-            if (psyProfile.getInterestsScore() != null) {
-                scores.append("Interests: ").append(psyProfile.getInterestsScore()).append("%, ");
-            }
-            if (psyProfile.getLifestyleScore() != null) {
-                scores.append("Lifestyle: ").append(psyProfile.getLifestyleScore()).append("%, ");
-            }
-            if (psyProfile.getValuesScore() != null) {
-                scores.append("Values: ").append(psyProfile.getValuesScore()).append("%, ");
-            }
-            if (psyProfile.getObjectivesScore() != null) {
-                scores.append("Objectives: ").append(psyProfile.getObjectivesScore()).append("%, ");
-            }
-            if (psyProfile.getPsyScore() != null) {
-                scores.append("Personality: ").append(psyProfile.getPsyScore()).append("%, ");
-            }
-            if (psyProfile.getAstroScore() != null) {
-                scores.append("Astrology: ").append(psyProfile.getAstroScore()).append("%");
-            }
-            String scoresStr = scores.toString().replaceAll(", $", "");
-            if (!scoresStr.isBlank()) {
-                prompt.append("- Completed test scores: ").append(scoresStr).append("\n");
-            }
-        }
-
+        // Psychological profile is derived from the same tests; send for context without duplicating paragraphs recap must not show percentages (plain language only)
         if (psyProfile != null && psyProfile.getProfile() != null && !psyProfile.getProfile().isEmpty()) {
             Map<String, Object> sanitized = sanitizeProfileForRecap(psyProfile.getProfile());
             if (!sanitized.isEmpty()) {
                 prompt.append("- Psychological profile (scores only; no labels): ").append(safeJson(sanitized)).append("\n");
             }
         }
+        prompt.append("\nRespond with a single JSON object only, no other text. Use exactly: {\"highlights\": [\"...\"], \"fullRecap\": \"...\"}. RULES: (1) highlights: exactly one short line per completed test/category above, in order: values, objectives, psychological, lifestyle, interests, birth chart. Each highlight = one phrase, max 15 words. (2) fullRecap: one flowing sentence per test (do not add a separate paragraph for psychological profile), then one short paragraph for birth chart if present. First person. Use the response language.");
 
         List<ZyraChatMessage> messages = List.of(
             new ZyraChatMessage("system", promptLoader.getPrompt(PromptType.PROFILE_RECAP_SYSTEM)),
@@ -491,13 +551,174 @@ public class ZyraService {
             String responseLanguage = (responseLanguageOverride != null && !responseLanguageOverride.isBlank())
                 ? responseLanguageOverride.trim().toLowerCase(Locale.ROOT)
                 : resolveResponseLanguage(user);
-            String recap = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
-            if (recap == null || recap.isBlank()) {
-                return "Complete your profile to get a personalized recap.";
+            String raw = zyraClient.chat(withLanguageGuard(messages, responseLanguage));
+            if (raw == null || raw.isBlank()) {
+                throw new ExternalServiceException("Zyra returned an empty profile recap response");
             }
-            return sanitizeRecapFromLabels(recap.trim());
+            return parseProfileRecapResponse(raw.trim());
+        } catch (ExternalServiceException ex) {
+            throw ex;
         } catch (Exception ex) {
-            return "Complete your profile to get a personalized recap.";
+            throw new ExternalServiceException("Unable to generate profile recap", ex);
+        }
+    }
+
+    private static String truncateForHighlight(String text, int maxWords) {
+        if (text == null || text.isBlank()) return "";
+        String[] words = text.trim().split("\\s+");
+        if (words.length <= maxWords) return text.trim();
+        return String.join(" ", java.util.Arrays.copyOf(words, maxWords));
+    }
+
+    private ProfileRecapResult parseProfileRecapResponse(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new ExternalServiceException("Zyra returned an empty profile recap payload");
+        }
+        String jsonPayload = extractFirstJsonObject(raw.trim());
+        if (jsonPayload == null) {
+            throw new ExternalServiceException("Zyra profile recap response did not contain a valid JSON object");
+        }
+        try {
+            JsonNode root = objectMapper.readTree(jsonPayload);
+            if (root == null || !root.isObject()) {
+                throw new ExternalServiceException("Zyra profile recap response was not a JSON object");
+            }
+
+            List<String> highlights = new ArrayList<>();
+            JsonNode highlightsNode = root.path("highlights");
+            if (highlightsNode.isArray()) {
+                for (JsonNode item : highlightsNode) {
+                    if (item != null && item.isValueNode()) {
+                        String value = item.asText(null);
+                        if (value != null && !value.isBlank()) {
+                            highlights.add(value.trim());
+                        }
+                    }
+                }
+            }
+
+            String fullRecap = sanitizeRecapFromLabels(root.path("fullRecap").asText(""));
+            if (fullRecap == null) {
+                fullRecap = "";
+            }
+
+            if (fullRecap.isBlank() && highlights.isEmpty()) {
+                throw new ExternalServiceException("Zyra profile recap JSON was missing both highlights and fullRecap");
+            }
+            if (highlights.isEmpty()) {
+                highlights = List.of(truncateForHighlight(fullRecap, 15));
+            }
+            if (fullRecap.isBlank()) {
+                fullRecap = String.join(" ", highlights);
+            }
+            return new ProfileRecapResult(highlights, fullRecap);
+        } catch (JsonProcessingException ex) {
+            throw new ExternalServiceException("Unable to parse Zyra profile recap JSON", ex);
+        }
+    }
+
+    private String extractFirstJsonObject(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        int start = -1;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaping = false;
+
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+
+            if (inString) {
+                if (escaping) {
+                    escaping = false;
+                } else if (ch == '\\') {
+                    escaping = true;
+                } else if (ch == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (ch == '"') {
+                inString = true;
+                continue;
+            }
+            if (ch == '{') {
+                if (depth == 0) {
+                    start = i;
+                }
+                depth++;
+                continue;
+            }
+            if (ch == '}') {
+                if (depth == 0) {
+                    continue;
+                }
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    return raw.substring(start, i + 1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private record ProfileRecapResult(List<String> highlights, String fullRecap) {}
+
+    private String profileRecapToCachePayload(ProfileRecapResult result) {
+        try {
+            return objectMapper.writeValueAsString(Map.of("h", result.highlights() != null ? result.highlights() : List.of(), "r", result.fullRecap() != null ? result.fullRecap() : ""));
+        } catch (JsonProcessingException e) {
+            return result.fullRecap() != null ? result.fullRecap() : "";
+        }
+    }
+
+    private ZyraProfileRecapResponse profileRecapFromCachePayload(String payload, String preferredLanguage, String sourceLanguage, java.time.Instant generatedAt) {
+        if (payload == null || payload.isBlank()) {
+            return new ZyraProfileRecapResponse("", List.of(), generatedAt != null ? generatedAt : java.time.Instant.now());
+        }
+        java.time.Instant at = generatedAt != null ? generatedAt : java.time.Instant.now();
+        if (payload.trim().startsWith("{")) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = objectMapper.readValue(payload, Map.class);
+                List<String> h = map.get("h") instanceof List<?> list
+                    ? list.stream().filter(Objects::nonNull).map(Object::toString).map(String::trim).filter(s -> !s.isBlank()).toList()
+                    : List.of();
+                String r = map.get("r") != null ? map.get("r").toString() : payload;
+                return new ZyraProfileRecapResponse(
+                    localizeRecap(r, preferredLanguage, sourceLanguage),
+                    h,
+                    at
+                );
+            } catch (JsonProcessingException ignored) {
+                // fallback: treat as legacy recap-only string
+            }
+        }
+        return new ZyraProfileRecapResponse(
+            localizeRecap(payload, preferredLanguage, sourceLanguage),
+            List.of(),
+            at
+        );
+    }
+
+    private List<String> parseHighlightsFromJson(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            List<?> list = objectMapper.readValue(json, List.class);
+            return list.stream().filter(Objects::nonNull).map(Object::toString).map(String::trim).filter(s -> !s.isBlank()).toList();
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
+    }
+
+    private String highlightsToJson(List<String> highlights) {
+        if (highlights == null || highlights.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(highlights);
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 
@@ -520,6 +741,7 @@ public class ZyraService {
                 continue;
             }
             latestByTest.put(testId, submission);
+            // Include all completed tests in profile recap; cap only to avoid unbounded prompt size
             if (latestByTest.size() >= MAX_TEST_RECAPS) {
                 break;
             }
@@ -839,12 +1061,12 @@ public class ZyraService {
         User user = getUser(principal);
         String preferredLanguage = resolvePreferredLanguage(user);
         if (submissionId == null) {
-            throw new BadRequestException("ID submission non valido");
+            throw new BadRequestException("Invalid submission ID");
         }
         UserTestSubmission submission = userTestSubmissionRepository.findById(submissionId)
-            .orElseThrow(() -> new NotFoundException("Submission non trovata"));
+            .orElseThrow(() -> new NotFoundException("Submission not found"));
         if (!submission.getUser().getId().equals(user.getId())) {
-            throw new UnauthorizedException("Non autorizzato a visualizzare questo test");
+            throw new UnauthorizedException("Not authorized to view this test");
         }
         String recap = generateTestRecap(submission);
         String localizedRecap = localizeRecap(recap, preferredLanguage, user.getLanguage());
@@ -1228,11 +1450,11 @@ public class ZyraService {
 
     private String normalizeRequired(String value) {
         if (value == null) {
-            throw new BadRequestException("Contenuto non valido");
+            throw new BadRequestException("Invalid content");
         }
         String normalized = value.trim();
         if (normalized.isBlank()) {
-            throw new BadRequestException("Contenuto non valido");
+            throw new BadRequestException("Invalid content");
         }
         return normalized;
     }
@@ -1645,6 +1867,11 @@ public class ZyraService {
             return recap;
         }
         String out = recap;
+        // Remove "psychological results/test" wording so recap reflects only the tests the user took (Values, etc.)
+        out = replaceLabel(out, "(?i)\\bMy psychological results suggest\\b", "My answers suggest");
+        out = replaceLabel(out, "(?i)\\bpsychological results\\b", "test answers");
+        out = replaceLabel(out, "(?i)\\bpsychological profile\\b", "profile");
+        out = replaceLabel(out, "(?i)\\bpsychological test\\b", "test");
         // Literal first so we always catch exact phrases from DB/cache (no regex/encoding issues)
         out = out.replace("\"Inclusive Innovator\"", "oriented toward inclusion and innovation");
         out = out.replace("\"Balanced Planner\"", "oriented toward balanced planning");
@@ -1708,28 +1935,28 @@ public class ZyraService {
 
     private ZyraChatSession getSession(UUID userId, UUID sessionId) {
         if (sessionId == null) {
-            throw new BadRequestException("Sessione non valida");
+            throw new BadRequestException("Invalid session");
         }
         return sessionRepository.findByIdAndUserId(sessionId, userId)
-            .orElseThrow(() -> new NotFoundException("Sessione non trovata"));
+            .orElseThrow(() -> new NotFoundException("Session not found"));
     }
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void ensureProfilePublic(UUID userId) {
         UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
         if (profile == null) {
-            throw new NotFoundException("Profilo non disponibile");
+            throw new NotFoundException("Profile unavailable");
         }
         if (profile.getVisibility() == ProfileVisibility.PRIVATE) {
-            throw new NotFoundException("Profilo privato. L'utente non rende visibili i dettagli.");
+            throw new NotFoundException("Private profile. The user does not make these details visible.");
         }
     }
 }

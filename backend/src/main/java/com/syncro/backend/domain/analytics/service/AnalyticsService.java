@@ -77,6 +77,7 @@ public class AnalyticsService {
     private final AnalyticsEventRepository analyticsEventRepository;
     private final AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository;
     private final AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository;
+    private final AnalyticsIngestionErrorRecorder ingestionErrorRecorder;
     private final AnalyticsSessionRepository analyticsSessionRepository;
     private final AnalyticsDailyKpiRepository analyticsDailyKpiRepository;
     private final UserRepository userRepository;
@@ -87,6 +88,7 @@ public class AnalyticsService {
         AnalyticsEventRepository analyticsEventRepository,
         AnalyticsEventDefinitionRepository analyticsEventDefinitionRepository,
         AnalyticsIngestionErrorRepository analyticsIngestionErrorRepository,
+        AnalyticsIngestionErrorRecorder ingestionErrorRecorder,
         AnalyticsSessionRepository analyticsSessionRepository,
         AnalyticsDailyKpiRepository analyticsDailyKpiRepository,
         UserRepository userRepository,
@@ -96,6 +98,7 @@ public class AnalyticsService {
         this.analyticsEventRepository = analyticsEventRepository;
         this.analyticsEventDefinitionRepository = analyticsEventDefinitionRepository;
         this.analyticsIngestionErrorRepository = analyticsIngestionErrorRepository;
+        this.ingestionErrorRecorder = ingestionErrorRecorder;
         this.analyticsSessionRepository = analyticsSessionRepository;
         this.analyticsDailyKpiRepository = analyticsDailyKpiRepository;
         this.userRepository = userRepository;
@@ -406,18 +409,15 @@ public class AnalyticsService {
                             and nullif(trim(up.country), '') is not null
                         ) as has_profile,
                         (
-                            pref.user_id is not null
+                            up.birth_date is not null
                             and (
-                                coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
-                                or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
-                                or coalesce(pref.privacy_policy_accepted, false)
-                                or coalesce(pref.newsletter_consent, false)
+                                nullif(trim(up.zyra_birth_chart_interpretation), '') is not null
+                                or up.sun_sign is not null
                             )
-                        ) as has_preferences,
+                        ) as has_birth_chart,
                         (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position
                     from users u
                     left join user_profiles up on up.user_id = u.id
-                    left join user_preferences pref on pref.user_id = u.id
                     left join user_positions pos on pos.user_id = u.id
                     where (?::text is null
                       or lower(coalesce(u.email, '')) like ?
@@ -480,7 +480,7 @@ public class AnalyticsService {
                     end as age,
                     fu.onboarding_completed,
                     fu.has_profile,
-                    fu.has_preferences,
+                    fu.has_birth_chart,
                     fu.has_position,
                     coalesce(ec.chat_uses, 0) as chat_uses,
                     coalesce(ec.map_uses, 0) as map_uses,
@@ -497,7 +497,7 @@ public class AnalyticsService {
                 """,
             (rs, rowNum) -> {
                 boolean hasProfile = rs.getBoolean("has_profile");
-                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasBirthChart = rs.getBoolean("has_birth_chart");
                 boolean hasPosition = rs.getBoolean("has_position");
                 long interestsCount = rs.getLong("interests_count");
                 long testsCompleted = rs.getLong("tests_completed");
@@ -508,8 +508,8 @@ public class AnalyticsService {
                 if (!hasProfile) {
                     missingSections.add("profile");
                 }
-                if (!hasPreferences) {
-                    missingSections.add("preferences");
+                if (!hasBirthChart) {
+                    missingSections.add("birth_chart");
                 }
                 if (!hasPosition) {
                     missingSections.add("position");
@@ -610,20 +610,17 @@ public class AnalyticsService {
                         and nullif(trim(up.country), '') is not null
                     ) as has_profile,
                     (
-                        pref.user_id is not null
+                        up.birth_date is not null
                         and (
-                            coalesce(pref.matchmaking_filters, '{}'::jsonb) <> '{}'::jsonb
-                            or coalesce(pref.feed_preferences, '{}'::jsonb) <> '{}'::jsonb
-                            or coalesce(pref.privacy_policy_accepted, false)
-                            or coalesce(pref.newsletter_consent, false)
+                            nullif(trim(up.zyra_birth_chart_interpretation), '') is not null
+                            or up.sun_sign is not null
                         )
-                    ) as has_preferences,
+                    ) as has_birth_chart,
                     (pos.user_id is not null and pos.latitude is not null and pos.longitude is not null) as has_position,
                     coalesce(ic.interests_count, 0) as interests_count,
                     coalesce(tc.tests_completed, 0) as tests_completed
                 from users u
                 left join user_profiles up on up.user_id = u.id
-                left join user_preferences pref on pref.user_id = u.id
                 left join user_positions pos on pos.user_id = u.id
                 left join (
                     select ui.user_id, count(*) as interests_count
@@ -639,7 +636,7 @@ public class AnalyticsService {
                 """,
             (rs, rowNum) -> {
                 boolean hasProfile = rs.getBoolean("has_profile");
-                boolean hasPreferences = rs.getBoolean("has_preferences");
+                boolean hasBirthChart = rs.getBoolean("has_birth_chart");
                 boolean hasPosition = rs.getBoolean("has_position");
                 long interestsCount = rs.getLong("interests_count");
                 long testsCompleted = rs.getLong("tests_completed");
@@ -650,8 +647,8 @@ public class AnalyticsService {
                 if (!hasProfile) {
                     missingSections.add("profile");
                 }
-                if (!hasPreferences) {
-                    missingSections.add("preferences");
+                if (!hasBirthChart) {
+                    missingSections.add("birth_chart");
                 }
                 if (!hasPosition) {
                     missingSections.add("position");
@@ -1015,6 +1012,9 @@ public class AnalyticsService {
         if (normalizedIdempotencyKey != null && analyticsEventRepository.existsByIdempotencyKey(normalizedIdempotencyKey)) {
             return TrackingOutcome.DUPLICATE;
         }
+        if (eventId != null && analyticsEventRepository.existsByEventId(eventId)) {
+            return TrackingOutcome.DUPLICATE;
+        }
 
         AnalyticsEventDefinition definition = resolveDefinition(normalizedEventName, normalizedVersion, enforceDefinition);
         Map<String, Object> normalizedPayload = normalizePayload(normalizedEventName, payload);
@@ -1144,13 +1144,17 @@ public class AnalyticsService {
         String errorCode,
         String errorMessage
     ) {
-        AnalyticsIngestionError ingestionError = new AnalyticsIngestionError();
-        ingestionError.setUserId(userId);
-        ingestionError.setIdempotencyKey(normalizeBlank(idempotencyKey));
-        ingestionError.setRawEvent(rawEvent);
-        ingestionError.setErrorCode(errorCode);
-        ingestionError.setErrorMessage(errorMessage == null ? "Errore sconosciuto" : errorMessage);
-        analyticsIngestionErrorRepository.save(ingestionError);
+        try {
+            ingestionErrorRecorder.record(
+                userId,
+                normalizeBlank(idempotencyKey),
+                rawEvent,
+                errorCode,
+                errorMessage == null ? "Unknown error" : errorMessage
+            );
+        } catch (Exception e) {
+            logger.warn("Failed to record analytics ingestion error", e);
+        }
     }
 
     private String normalizeEventName(String eventName) {

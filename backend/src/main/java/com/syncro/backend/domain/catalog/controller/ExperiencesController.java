@@ -57,7 +57,7 @@ public class ExperiencesController {
 
     @GetMapping("/{experienceId}")
     @Operation(summary = "Dettaglio esperienza")
-    public ResponseEntity<ExperienceDetailResponse> getExperience(@PathVariable UUID experienceId) {
+    public ResponseEntity<ExperienceDetailResponse> getExperience(@PathVariable String experienceId) {
         return ResponseEntity.ok(experienceService.getExperience(experienceId));
     }
 }

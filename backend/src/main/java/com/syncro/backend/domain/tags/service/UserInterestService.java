@@ -12,6 +12,7 @@ import com.syncro.backend.domain.tags.entity.UserInterest;
 import com.syncro.backend.domain.tags.mapper.TagMapper;
 import com.syncro.backend.domain.tags.repository.TagRepository;
 import com.syncro.backend.domain.tags.repository.UserInterestRepository;
+import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -30,17 +31,20 @@ public class UserInterestService {
     private final TagRepository tagRepository;
     private final UserInterestRepository userInterestRepository;
     private final TagMapper tagMapper;
+    private final ZyraService zyraService;
 
     public UserInterestService(
         UserRepository userRepository,
         TagRepository tagRepository,
         UserInterestRepository userInterestRepository,
-        TagMapper tagMapper
+        TagMapper tagMapper,
+        ZyraService zyraService
     ) {
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.userInterestRepository = userInterestRepository;
         this.tagMapper = tagMapper;
+        this.zyraService = zyraService;
     }
 
     @Transactional(readOnly = true)
@@ -74,16 +78,17 @@ public class UserInterestService {
             userInterestRepository.saveAll(interests);
         }
 
+        zyraService.setPendingRecapRefresh(user.getId());
         return new UserInterestsResponse(user.getId(), mapTags(tags));
     }
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private List<Tag> resolveTags(Set<UUID> tagIds) {

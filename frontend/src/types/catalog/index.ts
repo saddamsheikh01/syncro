@@ -105,6 +105,8 @@ export type PlaceDetailResponse = {
 
 export type ExperienceSummaryResponse = {
   id: Uuid;
+  /** Viator product code for live API products; used for detail URL when source is VIATOR */
+  externalId?: string | null;
   name: string;
   description: string | null;
   category: CategoryResponse | null;

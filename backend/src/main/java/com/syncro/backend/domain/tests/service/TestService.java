@@ -40,6 +40,7 @@ import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.entity.ZodiacSign;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
 import com.syncro.backend.domain.zyra.cache.ZyraRecapCache;
+import com.syncro.backend.domain.zyra.service.ZyraService;
 import com.syncro.backend.security.UserPrincipal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ public class TestService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final ZyraRecapCache recapCache;
+    private final ZyraService zyraService;
     private final TestMapper testMapper;
 
     public TestService(
@@ -88,6 +90,7 @@ public class TestService {
         UserRepository userRepository,
         UserProfileRepository userProfileRepository,
         ZyraRecapCache recapCache,
+        ZyraService zyraService,
         TestMapper testMapper
     ) {
         this.testDefinitionRepository = testDefinitionRepository;
@@ -102,6 +105,7 @@ public class TestService {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.recapCache = recapCache;
+        this.zyraService = zyraService;
         this.testMapper = testMapper;
     }
 
@@ -371,6 +375,7 @@ public class TestService {
         updateAggregatedScore(profile, definition, scorePayload);
         userPsyProfileRepository.save(profile);
         recapCache.invalidateUser(user.getId());
+        zyraService.setPendingRecapRefresh(user.getId());
         return new TestSubmissionResponse(
             savedSubmission.getId(),
             definition.getId(),
@@ -390,8 +395,9 @@ public class TestService {
             userTestAnswerRepository.deleteAll(answers);
             userTestSubmissionRepository.deleteAll(submissions);
         }
+        clearPsyProfileForUser(user);
         clearBirthChartFromProfile(user.getId());
-        recapCache.invalidateUser(user.getId());
+        zyraService.clearProfileRecapForUser(user);
     }
 
     @Transactional
@@ -411,7 +417,7 @@ public class TestService {
         }
         userTestSubmissionRepository.delete(submission);
         removeTestFromProfile(user, testId, definition.getTestType());
-        recapCache.invalidateUser(user.getId());
+        zyraService.clearProfileRecapForUser(user);
     }
 
     private String resolveLocale(String language) {
@@ -1327,6 +1333,25 @@ public class TestService {
         if (updated) {
             userProfileRepository.save(userProfile);
         }
+    }
+
+    /** Clears psychological profile (insight dimensions and scores) so reset insight leaves no stale data in DB. */
+    private void clearPsyProfileForUser(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        UserPsyProfile psy = userPsyProfileRepository.findByUserId(user.getId()).orElse(null);
+        if (psy == null) {
+            return;
+        }
+        psy.setProfile(new HashMap<>());
+        psy.setInterestsScore(null);
+        psy.setLifestyleScore(null);
+        psy.setValuesScore(null);
+        psy.setObjectivesScore(null);
+        psy.setPsyScore(null);
+        psy.setAstroScore(null);
+        userPsyProfileRepository.save(psy);
     }
 
     private void clearBirthChartFromProfile(UUID userId) {

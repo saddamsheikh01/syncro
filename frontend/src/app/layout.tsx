@@ -21,37 +21,26 @@ export const generateMetadata = async (): Promise<Metadata> => {
     },
     description,
     applicationName: title,
+    metadataBase: new URL(baseUrl),
     openGraph: {
       type: "website",
       locale: "en_US",
       siteName: title,
+      url: baseUrl,
       title,
       description,
-      images: [
-        {
-          url: baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg",
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      // Image from app/opengraph-image.tsx (PNG; SVG not supported by social crawlers)
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg"],
     },
     robots: {
       index: true,
       follow: true,
     },
   };
-
-  if (baseUrl) {
-    metadata.metadataBase = new URL(baseUrl);
-    metadata.openGraph = { ...metadata.openGraph, url: baseUrl } as Metadata["openGraph"];
-  }
 
   return metadata;
 };

@@ -1,15 +1,20 @@
 package com.syncro.backend.domain.external.viator;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.syncro.backend.domain.catalog.dto.ExperienceDetailResponse;
+import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
 import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Experience;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -51,6 +56,142 @@ public class ViatorProductMapper {
         List<String> imageUrls = readImageUrls(product.path("images"));
         experience.setImages(imageUrls);
         experience.setImageUrl(imageUrls.isEmpty() ? null : imageUrls.getFirst());
+    }
+
+    /**
+     * Map Viator product JSON to ExperienceSummaryResponse for live API search results.
+     * Uses a deterministic synthetic UUID from productCode (no DB record).
+     */
+    public ExperienceSummaryResponse toSummaryResponse(JsonNode product) {
+        return toSummaryResponse(product, null);
+    }
+
+    /**
+     * Map Viator product JSON to ExperienceSummaryResponse with optional destination id→name map.
+     * When destinationIdToName is provided (e.g. from freetext search), locationName is the display name; otherwise the destination ref (id) is used.
+     */
+    public ExperienceSummaryResponse toSummaryResponse(JsonNode product, Map<String, String> destinationIdToName) {
+        String productCode = text(product, "productCode");
+        UUID syntheticId = productCode != null
+            ? UUID.nameUUIDFromBytes(("viator-live-" + productCode).getBytes(StandardCharsets.UTF_8))
+            : UUID.randomUUID();
+
+        String name = firstNonBlank(text(product, "title"), productCode);
+        String description = text(product, "description");
+
+        BigDecimal rating = decimal(product.path("reviews").path("combinedAverageRating"));
+        if (rating != null) {
+            rating = rating.setScale(1, RoundingMode.HALF_UP);
+        }
+        Integer reviewCount = intValue(product.path("reviews").path("totalReviews"));
+
+        List<String> imageUrls = readImageUrls(product.path("images"));
+        String imageUrl = imageUrls.isEmpty() ? null : imageUrls.getFirst();
+
+        JsonNode pricingSummary = product.path("pricing").path("summary");
+        BigDecimal price = decimal(pricingSummary.path("fromPrice"));
+        String priceCurrency = text(pricingSummary, "currency");
+        BigDecimal originalPrice = decimal(pricingSummary.path("fromPriceOriginal"));
+        Integer durationMinutes = readDurationMinutes(product.path("itinerary"));
+        String destinationRef = readLocationName(product.path("destinations"));
+        String locationName = (destinationIdToName != null && destinationRef != null && destinationIdToName.containsKey(destinationRef))
+            ? destinationIdToName.get(destinationRef)
+            : destinationRef;
+
+        return new ExperienceSummaryResponse(
+            syntheticId,
+            productCode,
+            name,
+            description,
+            null,
+            null,
+            CatalogSource.VIATOR,
+            "VIATOR",
+            imageUrl,
+            price,
+            priceCurrency,
+            originalPrice,
+            durationMinutes,
+            rating,
+            reviewCount,
+            locationName,
+            true
+        );
+    }
+
+    /**
+     * Map Viator product JSON to ExperienceDetailResponse for live API product fetch.
+     */
+    public ExperienceDetailResponse toDetailResponse(JsonNode product) {
+        String productCode = text(product, "productCode");
+        UUID syntheticId = productCode != null
+            ? UUID.nameUUIDFromBytes(("viator-live-" + productCode).getBytes(StandardCharsets.UTF_8))
+            : UUID.randomUUID();
+
+        String name = firstNonBlank(text(product, "title"), productCode);
+        String description = text(product, "description");
+        String bookingUrl = text(product, "productUrl");
+
+        BigDecimal rating = decimal(product.path("reviews").path("combinedAverageRating"));
+        if (rating != null) {
+            rating = rating.setScale(1, RoundingMode.HALF_UP);
+        }
+        Integer reviewCount = intValue(product.path("reviews").path("totalReviews"));
+
+        List<String> imageUrls = readImageUrls(product.path("images"));
+        String imageUrl = imageUrls.isEmpty() ? null : imageUrls.getFirst();
+
+        JsonNode pricingSummary = product.path("pricing").path("summary");
+        BigDecimal price = decimal(pricingSummary.path("fromPrice"));
+        String priceCurrency = text(pricingSummary, "currency");
+        BigDecimal originalPrice = decimal(pricingSummary.path("fromPriceOriginal"));
+        Integer durationMinutes = readDurationMinutes(product.path("itinerary"));
+        String locationName = readLocationName(product.path("destinations"));
+        String cancellationPolicy = text(product.path("cancellationPolicy"), "description");
+        String meetingPoint = readMeetingPoint(product.path("logistics"));
+        List<String> highlights = readHighlights(product);
+        List<String> inclusions = readInclusionExclusion(product.path("inclusions"));
+        List<String> exclusions = readInclusionExclusion(product.path("exclusions"));
+        List<String> languages = readLanguages(product.path("languageGuides"));
+        Integer minParticipants = readMinParticipants(product.path("pricingInfo"));
+        Integer maxParticipants = readMaxParticipants(product.path("pricingInfo"));
+
+        return new ExperienceDetailResponse(
+            syntheticId,
+            name,
+            description,
+            null,
+            null,
+            CatalogSource.VIATOR,
+            List.of(),
+            List.of(),
+            Instant.EPOCH,
+            Instant.EPOCH,
+            "VIATOR",
+            productCode,
+            price,
+            priceCurrency,
+            originalPrice,
+            durationMinutes,
+            imageUrl,
+            imageUrls,
+            bookingUrl,
+            rating,
+            reviewCount,
+            null,
+            null,
+            locationName,
+            highlights,
+            inclusions,
+            exclusions,
+            languages,
+            cancellationPolicy,
+            meetingPoint,
+            minParticipants,
+            maxParticipants,
+            null,
+            true
+        );
     }
 
     private List<String> readImageUrls(JsonNode imagesNode) {
@@ -120,7 +261,7 @@ public class ViatorProductMapper {
         if (!itemsNode.isArray()) {
             return List.of();
         }
-        List<String> items = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
         for (JsonNode item : itemsNode) {
             String normalized = firstNonBlank(
                 text(item, "categoryDescription"),
@@ -130,10 +271,10 @@ public class ViatorProductMapper {
                 text(item, "category")
             );
             if (!isBlank(normalized)) {
-                items.add(normalized);
+                seen.add(normalized);
             }
         }
-        return items;
+        return new ArrayList<>(seen);
     }
 
     private List<String> readHighlights(JsonNode product) {

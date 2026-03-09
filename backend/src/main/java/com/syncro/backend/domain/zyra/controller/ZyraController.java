@@ -8,6 +8,7 @@ import com.syncro.backend.domain.zyra.dto.ZyraSessionResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraSuggestionRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraTestRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraChatRecapResponse;
+import com.syncro.backend.domain.zyra.dto.ProfileRecapPendingResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraProfileRecapResponse;
 import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationRequest;
 import com.syncro.backend.domain.zyra.dto.ZyraBirthChartInterpretationResponse;
@@ -125,6 +126,15 @@ public class ZyraController {
             .body(zyraService.createSuggestion(principal, request));
     }
 
+    @GetMapping("/profile-recap/pending")
+    @Operation(summary = "Indica se il recap profilo va rigenerato (es. dopo un test completato)")
+    public ResponseEntity<ProfileRecapPendingResponse> getProfileRecapPending(
+        @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        boolean pending = zyraService.isPendingRecapRefresh(principal.userId());
+        return ResponseEntity.ok(new ProfileRecapPendingResponse(pending));
+    }
+
     @GetMapping("/profile-recap")
     @Operation(summary = "Genera recap profilo con Zyra")
     public ResponseEntity<ZyraProfileRecapResponse> getProfileRecap(
@@ -162,7 +172,12 @@ public class ZyraController {
         String recap = resp.recap();
         if (recap == null) return resp;
         String sanitized = zyraService.sanitizeRecapForResponse(recap);
-        return sanitized.equals(recap) ? resp : new ZyraProfileRecapResponse(sanitized, resp.generatedAt());
+        if (sanitized.equals(recap)) return resp;
+        return new ZyraProfileRecapResponse(
+            sanitized,
+            resp.highlights() != null ? resp.highlights() : java.util.List.of(),
+            resp.generatedAt()
+        );
     }
 
     private static String parseAcceptLanguage(String acceptLanguage) {

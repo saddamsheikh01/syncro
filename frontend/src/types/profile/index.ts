@@ -7,6 +7,7 @@ export type UserProfileRequest = {
   birthDate?: IsoDate | null;
   city?: string | null;
   country?: string | null;
+  birthPlace?: string | null;
   jobTitle?: string | null;
   companyName?: string | null;
   bio?: string | null;
@@ -32,6 +33,7 @@ export type UserProfileResponse = {
   age: number | null;
   city: string | null;
   country: string | null;
+  birthPlace: string | null;
   jobTitle: string | null;
   companyName: string | null;
   bio: string | null;

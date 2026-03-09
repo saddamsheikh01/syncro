@@ -77,6 +77,7 @@ const HeaderProfile = () => {
       .catch(() => undefined);
   }, [avatarReloadTick, user?.id]);
 
+  // Public display name: profile Full Name (from profile) first, then username (Settings), then email
   const displayName = useMemo(() => {
     const fullName = profile?.fullName?.trim();
     const username = user?.username?.trim();

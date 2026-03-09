@@ -18,13 +18,23 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
             SELECT e.*
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
+            LEFT JOIN viator_destination_refs vdr ON vdr.destination_ref = e.location_name
+              AND vdr.enabled = true
             WHERE (e.is_active = true OR e.is_active IS NULL)
               AND (:source IS NULL OR e.source = :source)
               AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
-                  OR e.name ILIKE CONCAT('%', :q, '%')
-                  OR e.description ILIKE CONCAT('%', :q, '%')
+                  OR (p.city ILIKE CONCAT('%', :q, '%')
+                      OR (e.location_name IS NOT NULL AND e.location_name ILIKE CONCAT('%', :q, '%'))
+                      OR (vdr.city_name IS NOT NULL AND vdr.city_name ILIKE CONCAT('%', :q, '%')))
+                  OR ((e.name ILIKE CONCAT('%', :q, '%') OR e.description ILIKE CONCAT('%', :q, '%'))
+                      AND (
+                        (p.city IS NULL AND e.location_name IS NULL AND vdr.id IS NULL)
+                        OR (p.city ILIKE CONCAT('%', :q, '%'))
+                        OR (e.location_name ILIKE CONCAT('%', :q, '%'))
+                        OR (vdr.city_name ILIKE CONCAT('%', :q, '%'))
+                      ))
               )
               AND (
                   :locationRefFilter = false
@@ -76,16 +86,26 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
               e.created_at DESC
             """,
         countQuery = """
-            SELECT COUNT(*)
+            SELECT COUNT(DISTINCT e.id)
             FROM experiences e
             LEFT JOIN places p ON e.place_id = p.id
+            LEFT JOIN viator_destination_refs vdr ON vdr.destination_ref = e.location_name
+              AND vdr.enabled = true
             WHERE (e.is_active = true OR e.is_active IS NULL)
               AND (:source IS NULL OR e.source = :source)
               AND (:categoryId IS NULL OR e.category_id = :categoryId)
               AND (
                   :q IS NULL
-                  OR e.name ILIKE CONCAT('%', :q, '%')
-                  OR e.description ILIKE CONCAT('%', :q, '%')
+                  OR (p.city ILIKE CONCAT('%', :q, '%')
+                      OR (e.location_name IS NOT NULL AND e.location_name ILIKE CONCAT('%', :q, '%'))
+                      OR (vdr.city_name IS NOT NULL AND vdr.city_name ILIKE CONCAT('%', :q, '%')))
+                  OR ((e.name ILIKE CONCAT('%', :q, '%') OR e.description ILIKE CONCAT('%', :q, '%'))
+                      AND (
+                        (p.city IS NULL AND e.location_name IS NULL AND vdr.id IS NULL)
+                        OR (p.city ILIKE CONCAT('%', :q, '%'))
+                        OR (e.location_name ILIKE CONCAT('%', :q, '%'))
+                        OR (vdr.city_name ILIKE CONCAT('%', :q, '%'))
+                      ))
               )
               AND (
                   :locationRefFilter = false

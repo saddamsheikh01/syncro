@@ -21,11 +21,15 @@ import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.external.viator.ViatorClient;
+import com.syncro.backend.domain.external.viator.ViatorNearbyDestinationResolver;
+import com.syncro.backend.domain.external.viator.ViatorProductMapper;
 import com.syncro.backend.domain.external.viator.ViatorSyncService;
 import com.syncro.backend.domain.tags.dto.TagResponse;
 import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.mapper.TagMapper;
 import com.syncro.backend.domain.tags.repository.TagRepository;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +38,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +50,8 @@ public class ExperienceService {
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private static final String DUMMY_LOCATION_REF = "__NO_LOCATION_REF__";
     /** Default radius when lat/lng provided but radiusKm null (e.g. Viator fallback to DB by distance). */
-    private static final double DEFAULT_NEARBY_RADIUS_KM = 150.0;
+    private static final double DEFAULT_NEARBY_RADIUS_KM = 100.0;
+    private static final int NEARBY_MAX_DESTINATIONS = 6;
 
     private final ExperienceRepository experienceRepository;
     private final CategoryRepository categoryRepository;
@@ -54,6 +60,9 @@ public class ExperienceService {
     private final TagRepository tagRepository;
     private final AffiliationLinkRepository affiliationLinkRepository;
     private final ViatorSyncService viatorSyncService;
+    private final ViatorClient viatorClient;
+    private final ViatorNearbyDestinationResolver viatorNearbyDestinationResolver;
+    private final ViatorProductMapper viatorProductMapper;
     private final ExperienceMapper experienceMapper;
     private final CategoryMapper categoryMapper;
     private final PlaceMapper placeMapper;
@@ -68,6 +77,9 @@ public class ExperienceService {
         TagRepository tagRepository,
         AffiliationLinkRepository affiliationLinkRepository,
         ViatorSyncService viatorSyncService,
+        ViatorClient viatorClient,
+        ViatorNearbyDestinationResolver viatorNearbyDestinationResolver,
+        ViatorProductMapper viatorProductMapper,
         ExperienceMapper experienceMapper,
         CategoryMapper categoryMapper,
         PlaceMapper placeMapper,
@@ -81,6 +93,9 @@ public class ExperienceService {
         this.tagRepository = tagRepository;
         this.affiliationLinkRepository = affiliationLinkRepository;
         this.viatorSyncService = viatorSyncService;
+        this.viatorClient = viatorClient;
+        this.viatorNearbyDestinationResolver = viatorNearbyDestinationResolver;
+        this.viatorProductMapper = viatorProductMapper;
         this.experienceMapper = experienceMapper;
         this.categoryMapper = categoryMapper;
         this.placeMapper = placeMapper;
@@ -112,22 +127,16 @@ public class ExperienceService {
         Double effectiveLongitude = longitude;
         Double effectiveRadiusKm = radiusKm;
 
-        if (source == CatalogSource.VIATOR && latitude != null && longitude != null) {
-            String localeTag = resolveLocaleTag();
-            ViatorSyncService.NearbySyncResult nearbySyncResult = viatorSyncService.syncNearbyForCoordinates(
-                latitude,
-                longitude,
-                localeTag
-            );
-            if (!nearbySyncResult.destinationRefs().isEmpty()) {
-                locationRefs = normalizeLocationRefs(nearbySyncResult.destinationRefs());
-                locationRefFilter = !locationRefs.isEmpty();
-                effectiveLatitude = null;
-                effectiveLongitude = null;
-                effectiveRadiusKm = null;
-            } else if (effectiveRadiusKm == null) {
-                effectiveRadiusKm = DEFAULT_NEARBY_RADIUS_KM;
-            }
+        if (source == CatalogSource.VIATOR && normalizedQuery != null) {
+            return getExperiencesFromViatorApi(normalizedQuery, page, size);
+        }
+
+        if (source == CatalogSource.VIATOR && latitude != null && longitude != null && normalizedQuery == null) {
+            return getExperiencesFromViatorApiNearby(latitude, longitude, page, size);
+        }
+
+        if (latitude != null && longitude != null && effectiveRadiusKm == null) {
+            effectiveRadiusKm = DEFAULT_NEARBY_RADIUS_KM;
         }
 
         PageRequest pageable = PageRequest.of(page, size);
@@ -153,10 +162,105 @@ public class ExperienceService {
         ));
     }
 
+    /**
+     * Search experiences via Viator partner API for nearby coordinates.
+     * Chains: reverse-geocode (lat/lng → location) → resolve destinations → searchProductsByDestination.
+     * Radius ~100km via ViatorNearbyDestinationResolver (6 destinations).
+     */
+    private Page<ExperienceSummaryResponse> getExperiencesFromViatorApiNearby(
+        double latitude,
+        double longitude,
+        int page,
+        int size
+    ) {
+        String localeTag = resolveLocaleTag();
+        List<String> destinationRefs = viatorNearbyDestinationResolver.resolveDestinationRefs(
+            latitude,
+            longitude,
+            localeTag != null ? localeTag : "en",
+            NEARBY_MAX_DESTINATIONS
+        );
+        var result = viatorClient.searchProductsByCoordinates(
+            destinationRefs,
+            page,
+            size,
+            "EUR",
+            localeTag != null ? localeTag : "en"
+        );
+        List<ExperienceSummaryResponse> content = new ArrayList<>();
+        if (result.products() != null) {
+            for (var product : result.products()) {
+                content.add(viatorProductMapper.toSummaryResponse(product));
+            }
+        }
+        return new PageImpl<>(
+            content,
+            PageRequest.of(page, size),
+            result.totalCount()
+        );
+    }
+
+    /**
+     * Search experiences via Viator partner API when search filter (q) is applied.
+     * Chains: searchDestinationsByTerm(q) → searchProductsByDestination for each destination.
+     */
+    private Page<ExperienceSummaryResponse> getExperiencesFromViatorApi(String query, int page, int size) {
+        String localeTag = resolveLocaleTag();
+        var result = viatorClient.searchProductsBySearchTerm(
+            query,
+            page,
+            size,
+            "EUR",
+            localeTag != null ? localeTag : "en"
+        );
+        List<ExperienceSummaryResponse> content = new ArrayList<>();
+        if (result.products() != null) {
+            for (var product : result.products()) {
+                content.add(viatorProductMapper.toSummaryResponse(product));
+            }
+        }
+        return new PageImpl<>(
+            content,
+            PageRequest.of(page, size),
+            result.totalCount()
+        );
+    }
+
     @Transactional(readOnly = true)
     public ExperienceDetailResponse getExperience(UUID experienceId) {
+        return getExperience(experienceId.toString());
+    }
+
+    @Transactional(readOnly = true)
+    public ExperienceDetailResponse getExperience(String idOrRef) {
+        if (idOrRef != null && idOrRef.startsWith("viator-")) {
+            String productCode = idOrRef.substring(7);
+            if (productCode.isBlank()) {
+                throw new NotFoundException("Experience not found");
+            }
+            String language = LocaleContextHolder.getLocale().toLanguageTag();
+            List<com.fasterxml.jackson.databind.JsonNode> products = viatorClient.getProductsBulk(List.of(productCode), language);
+            com.fasterxml.jackson.databind.JsonNode product = (products != null && !products.isEmpty())
+                ? products.getFirst()
+                : viatorClient.getProduct(productCode, language).orElse(null);
+            if (product == null) {
+                throw new NotFoundException("Experience not found");
+            }
+            return viatorProductMapper.toDetailResponse(product);
+        }
+        UUID experienceId;
+        try {
+            experienceId = UUID.fromString(idOrRef);
+        } catch (IllegalArgumentException ex) {
+            throw new NotFoundException("Experience not found");
+        }
+        return getExperienceById(experienceId);
+    }
+
+    @Transactional(readOnly = true)
+    public ExperienceDetailResponse getExperienceById(UUID experienceId) {
         Experience experience = experienceRepository.findById(experienceId)
-            .orElseThrow(() -> new NotFoundException("Esperienza non trovata"));
+            .orElseThrow(() -> new NotFoundException("Experience not found"));
         CategoryResponse category = mapCategory(categoryMapper, experience.getCategory());
         PlaceReferenceResponse place = mapPlace(placeMapper, experience.getPlace());
         List<TagResponse> tags = loadTags(experienceId);

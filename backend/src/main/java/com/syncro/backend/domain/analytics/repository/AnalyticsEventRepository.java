@@ -12,6 +12,8 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
+    boolean existsByEventId(UUID eventId);
+
     @Query(
         value = """
             SELECT date_trunc('day', occurred_at) AS bucket,

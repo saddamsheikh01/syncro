@@ -7,6 +7,10 @@ import { useT, useTutorial, useUi } from "@/hooks";
 const STORAGE_KEY_A2HS = "syncro_a2hs_dismissed";
 const OPEN_EARLY_ACCESS_FEEDBACK_EVENT = "syncro:open-early-access-feedback";
 
+/** Set NEXT_PUBLIC_SHOW_DEV_TOOLS=true in .env.local to show Dev Tools on localhost. When unset, Dev Tools are hidden. */
+const SHOW_DEV_TOOLS =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_SHOW_DEV_TOOLS === "true";
+
 const useIsLocalhost = () => {
   return useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -36,12 +40,12 @@ export interface DevToolsProps {
 }
 
 export const DevTools = ({ collapsed = false }: DevToolsProps) => {
-  const isDev = useIsLocalhost();
+  const isLocalhost = useIsLocalhost();
   const { t } = useT();
   const { actions: tutorialActions } = useTutorial();
   const { actions: uiActions } = useUi();
 
-  if (!isDev) return null;
+  if (!SHOW_DEV_TOOLS || !isLocalhost) return null;
 
   const handleOpenTutorial = () => {
     // Apre l'onboarding intro senza reset dei flag persistiti

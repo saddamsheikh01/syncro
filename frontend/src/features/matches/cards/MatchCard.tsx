@@ -61,16 +61,14 @@ export const MatchCard = ({
     ? resolveMatchDomainScores(match.breakdown)
     : [];
   const score = Math.round(match.scoreTotal ?? 0);
+  const contextualDescription = buildContextualMatchDescription(
+    match.breakdown,
+    t,
+    `${match.matchId ?? ""}-${match.userId ?? ""}`,
+  );
   const description =
     descriptionOverride ??
-    resolveMatchCopy(
-      match.explanation,
-      buildContextualMatchDescription(
-        match.breakdown,
-        t,
-        `${match.matchId ?? ""}-${match.userId ?? ""}`,
-      ) ?? null,
-    );
+    (contextualDescription ?? resolveMatchCopy(match.explanation, null));
   const imageUrl = match.user?.avatarUrl ?? null;
   const displayName =
     match.user?.fullName?.trim() ||

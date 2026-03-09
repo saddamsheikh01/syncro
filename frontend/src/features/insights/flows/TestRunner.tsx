@@ -535,10 +535,10 @@ export const TestRunner = ({ testId }: TestRunnerProps) => {
                 eventName: "INSIGHT_BACK_TO_LIST",
                 payload: { testId },
               });
-              router.push("/insights");
+              router.push("/profile");
             }}
           >
-            {t("Back to insights")}
+            {t("Back to profile")}
           </Button>
           <Button
             onClick={() => {

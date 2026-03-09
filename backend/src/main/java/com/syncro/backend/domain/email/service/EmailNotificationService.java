@@ -148,8 +148,15 @@ public class EmailNotificationService {
         }
     }
 
+    /** Resolves Brevo template ID for the given user's language (type.locale then type). */
+    private long getTemplateIdForUser(UUID userId, EmailType type) {
+        User user = userRepository.findById(userId).orElse(null);
+        String locale = user != null && user.getLanguage() != null ? user.getLanguage() : "en";
+        return brevoConfig.getTemplateId(type.name(), locale);
+    }
+
     public void sendWelcome(UUID userId) {
-        long tid = brevoConfig.getTemplateId(EmailType.WELCOME.name());
+        long tid = getTemplateIdForUser(userId, EmailType.WELCOME);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.PROFILE, null));
         sendWithTemplate(userId, EmailType.WELCOME, null, tid, params);
@@ -163,22 +170,22 @@ public class EmailNotificationService {
     }
 
     public void sendRegistrationConfirmation(UUID userId, String verificationLink) {
-        long tid = brevoConfig.getTemplateId(EmailType.REGISTRATION_CONFIRMATION.name());
-        if (tid <= 0) tid = brevoConfig.getTemplateId("EMAIL_VERIFICATION");
+        long tid = getTemplateIdForUser(userId, EmailType.REGISTRATION_CONFIRMATION);
+        if (tid <= 0) tid = getTemplateIdForUser(userId, EmailType.EMAIL_VERIFICATION);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("cta_url", verificationLink != null ? verificationLink : buildCtaUrl(DeepLinkPaths.HOME, null));
         sendWithTemplate(userId, EmailType.REGISTRATION_CONFIRMATION, null, tid, params);
     }
 
     public void sendPasswordChangeNotification(UUID userId) {
-        long tid = brevoConfig.getTemplateId(EmailType.PASSWORD_CHANGE.name());
+        long tid = getTemplateIdForUser(userId, EmailType.PASSWORD_CHANGE);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.SETTINGS_NOTIFICATIONS, null));
         sendWithTemplate(userId, EmailType.PASSWORD_CHANGE, null, tid, params);
     }
 
     public void sendEmailChangeNotification(UUID userId, String newEmail) {
-        long tid = brevoConfig.getTemplateId(EmailType.EMAIL_CHANGE.name());
+        long tid = getTemplateIdForUser(userId, EmailType.EMAIL_CHANGE);
         if (tid <= 0) {
             return;
         }
@@ -189,7 +196,7 @@ public class EmailNotificationService {
     }
 
     public void sendConnectionRequestReceived(UUID recipientUserId, String actorDisplayName, UUID connectionId) {
-        long tid = brevoConfig.getTemplateId(EmailType.CONNECTION_REQUEST_RECEIVED.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.CONNECTION_REQUEST_RECEIVED);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.CONNECTIONS, null));
@@ -197,7 +204,7 @@ public class EmailNotificationService {
     }
 
     public void sendConnectionAccepted(UUID recipientUserId, String actorDisplayName, UUID connectionId) {
-        long tid = brevoConfig.getTemplateId(EmailType.CONNECTION_ACCEPTED.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.CONNECTION_ACCEPTED);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.CHAT, null));
@@ -205,7 +212,7 @@ public class EmailNotificationService {
     }
 
     public void sendNewMessageWhenOffline(UUID recipientUserId, String senderDisplayName, UUID conversationId) {
-        long tid = brevoConfig.getTemplateId(EmailType.NEW_MESSAGE_OFFLINE.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.NEW_MESSAGE_OFFLINE);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("sender_display_name", senderDisplayName != null ? senderDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(
@@ -214,7 +221,7 @@ public class EmailNotificationService {
     }
 
     public void sendNoChatReminder24h(UUID userId, String otherDisplayName, UUID connectionId) {
-        long tid = brevoConfig.getTemplateId(EmailType.NO_CHAT_REMINDER_24H.name());
+        long tid = getTemplateIdForUser(userId, EmailType.NO_CHAT_REMINDER_24H);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("other_display_name", otherDisplayName != null ? otherDisplayName : "your new connection");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.CHAT, null));
@@ -222,7 +229,7 @@ public class EmailNotificationService {
     }
 
     public void sendNewMatch(UUID userId, String matchDisplayName, double compatibilityPercent, UUID matchUserId) {
-        long tid = brevoConfig.getTemplateId(EmailType.NEW_MATCH.name());
+        long tid = getTemplateIdForUser(userId, EmailType.NEW_MATCH);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("match_display_name", matchDisplayName != null ? matchDisplayName : "A new match");
         params.put("compatibility_percent", String.format("%.0f", compatibilityPercent));
@@ -231,7 +238,7 @@ public class EmailNotificationService {
     }
 
     public void sendImprovedMatch(UUID userId, String matchDisplayName, double oldPercent, double newPercent, UUID matchUserId) {
-        long tid = brevoConfig.getTemplateId(EmailType.IMPROVED_MATCH.name());
+        long tid = getTemplateIdForUser(userId, EmailType.IMPROVED_MATCH);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("match_display_name", matchDisplayName != null ? matchDisplayName : "A match");
         params.put("old_percent", String.format("%.0f", oldPercent));
@@ -243,7 +250,7 @@ public class EmailNotificationService {
     public void sendWeeklyMatchDigest(UUID userId, String topMatchesSummary) {
         UserEmailPreference prefs = getOrCreatePreferences(userId);
         if (!prefs.isDigestEnabled()) return;
-        long tid = brevoConfig.getTemplateId(EmailType.WEEKLY_MATCH_DIGEST.name());
+        long tid = getTemplateIdForUser(userId, EmailType.WEEKLY_MATCH_DIGEST);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("top_matches_summary", topMatchesSummary != null ? topMatchesSummary : "Your top matches this week");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.MATCHES, null));
@@ -251,14 +258,14 @@ public class EmailNotificationService {
     }
 
     public void sendNewTestAvailable(UUID userId) {
-        long tid = brevoConfig.getTemplateId(EmailType.NEW_TEST_AVAILABLE.name());
+        long tid = getTemplateIdForUser(userId, EmailType.NEW_TEST_AVAILABLE);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.TESTS, null));
         sendWithTemplate(userId, EmailType.NEW_TEST_AVAILABLE, null, tid, params);
     }
 
     public void sendTestStartedNotCompleted(UUID userId, String testTitle) {
-        long tid = brevoConfig.getTemplateId(EmailType.TEST_STARTED_NOT_COMPLETED.name());
+        long tid = getTemplateIdForUser(userId, EmailType.TEST_STARTED_NOT_COMPLETED);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("test_title", testTitle != null ? testTitle : "your test");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.TESTS, null));
@@ -266,14 +273,14 @@ public class EmailNotificationService {
     }
 
     public void sendIncompleteProfileReminder(UUID userId) {
-        long tid = brevoConfig.getTemplateId(EmailType.INCOMPLETE_PROFILE_REMINDER.name());
+        long tid = getTemplateIdForUser(userId, EmailType.INCOMPLETE_PROFILE_REMINDER);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.PROFILE, null));
         sendWithTemplate(userId, EmailType.INCOMPLETE_PROFILE_REMINDER, null, tid, params);
     }
 
     public void sendNewEventNearby(UUID userId, String eventTitle, String city, UUID eventId) {
-        long tid = brevoConfig.getTemplateId(EmailType.NEW_EVENT_NEARBY.name());
+        long tid = getTemplateIdForUser(userId, EmailType.NEW_EVENT_NEARBY);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("event_title", eventTitle != null ? eventTitle : "An event");
         params.put("city", city != null ? city : "your area");
@@ -283,7 +290,7 @@ public class EmailNotificationService {
     }
 
     public void sendSavedEventReminder(UUID userId, String eventTitle, String eventDate, UUID eventId) {
-        long tid = brevoConfig.getTemplateId(EmailType.SAVED_EVENT_REMINDER.name());
+        long tid = getTemplateIdForUser(userId, EmailType.SAVED_EVENT_REMINDER);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("event_title", eventTitle != null ? eventTitle : "Saved event");
         params.put("event_date", eventDate != null ? eventDate : "");
@@ -295,7 +302,7 @@ public class EmailNotificationService {
     public void sendWeeklyEventsDigest(UUID userId, String digestSummary) {
         UserEmailPreference prefs = getOrCreatePreferences(userId);
         if (!prefs.isContentWeeklyDigest()) return;
-        long tid = brevoConfig.getTemplateId(EmailType.WEEKLY_EVENTS_DIGEST.name());
+        long tid = getTemplateIdForUser(userId, EmailType.WEEKLY_EVENTS_DIGEST);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("digest_summary", digestSummary != null ? digestSummary : "Updates in your area");
         params.put("cta_url", buildCtaUrl(DeepLinkPaths.EVENTS, null));
@@ -303,7 +310,7 @@ public class EmailNotificationService {
     }
 
     public void sendCommentReceived(UUID recipientUserId, String actorDisplayName, UUID postId) {
-        long tid = brevoConfig.getTemplateId(EmailType.COMMENT_RECEIVED.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.COMMENT_RECEIVED);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(
@@ -312,7 +319,7 @@ public class EmailNotificationService {
     }
 
     public void sendReactionReceived(UUID recipientUserId, String actorDisplayName, UUID postId) {
-        long tid = brevoConfig.getTemplateId(EmailType.REACTION_RECEIVED.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.REACTION_RECEIVED);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(
@@ -321,7 +328,7 @@ public class EmailNotificationService {
     }
 
     public void sendMentionTag(UUID recipientUserId, String actorDisplayName, UUID postId) {
-        long tid = brevoConfig.getTemplateId(EmailType.MENTION_TAG.name());
+        long tid = getTemplateIdForUser(recipientUserId, EmailType.MENTION_TAG);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("actor_display_name", actorDisplayName != null ? actorDisplayName : "Someone");
         params.put("cta_url", buildCtaUrl(
@@ -330,7 +337,7 @@ public class EmailNotificationService {
     }
 
     public void sendNewLoginDeviceCountry(UUID userId, String deviceOrCountry, String ctaUrl) {
-        long tid = brevoConfig.getTemplateId(EmailType.NEW_LOGIN_DEVICE_COUNTRY.name());
+        long tid = getTemplateIdForUser(userId, EmailType.NEW_LOGIN_DEVICE_COUNTRY);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("device_or_country", deviceOrCountry != null ? deviceOrCountry : "a new device or location");
         params.put("cta_url", ctaUrl != null && !ctaUrl.isBlank() ? ctaUrl : buildCtaUrl(DeepLinkPaths.SETTINGS_NOTIFICATIONS, null));

@@ -18,7 +18,7 @@ import { ConnectButton } from "@/features/matches/elements/ConnectButton";
 import { MatchTypeChip } from "@/features/matches/elements/MatchTypeChip";
 import { MapTestListItem } from "@/features/insights/lists/MapTestListItem";
 import { calculateDistanceKm } from "@/lib/geo";
-import { resolveTestCopy } from "@/lib/insightsCopy";
+import { INSIGHT_COPY_KEYS, resolveTestCopy } from "@/lib/insightsCopy";
 import { getDomainFilterItems, getMatchDomainMeta } from "@/lib/matchDomains";
 import type { DomainFilter } from "@/lib/matchDomains";
 import type { UserMatchResponse } from "@/types/matches";
@@ -42,7 +42,7 @@ const DISTANCE_EPSILON = 0.000001;
 
 export const HomeOverview = () => {
   const router = useRouter();
-  const { t } = useT();
+  const { t, locale } = useT();
   const { status, user, actions: authActions } = useAuth();
   const { profile, actions: userActions } = useUser();
   const {
@@ -142,7 +142,7 @@ export const HomeOverview = () => {
       locationFetchRef.current = null;
       return;
     }
-    const key = `${position.latitude}:${position.longitude}`;
+    const key = `${position.latitude}:${position.longitude}:${locale}`;
     if (locationFetchRef.current === key) return;
     locationFetchRef.current = key;
 
@@ -154,7 +154,7 @@ export const HomeOverview = () => {
         source: "GOOGLE",
       })
       .catch(() => undefined);
-  }, [catalogActions, hasPosition, position?.latitude, position?.longitude]);
+  }, [catalogActions, hasPosition, locale, position?.latitude, position?.longitude]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -305,15 +305,26 @@ export const HomeOverview = () => {
   const testItems = useMemo(
     () => {
       const fromApi = tests.slice(0, 5).map((test) => {
-        const localized = resolveTestCopy({
-          title: test.title,
-          description: test.description,
-          testType: test.testType,
-        });
+        const copyKeys =
+          test.testType != null ? INSIGHT_COPY_KEYS[test.testType] : null;
+        const title = copyKeys
+          ? t(copyKeys.titleKey)
+          : resolveTestCopy({
+              title: test.title,
+              description: test.description,
+              testType: test.testType,
+            }).title;
+        const description = copyKeys?.descriptionKey
+          ? t(copyKeys.descriptionKey)
+          : resolveTestCopy({
+              title: test.title,
+              description: test.description,
+              testType: test.testType,
+            }).description;
         return {
           testType: test.testType,
-          title: localized.title,
-          description: localized.description,
+          title,
+          description,
           href: `/insights/${test.id}`,
           actionLabel: t("View Insights"),
           completed: test.completed,
@@ -724,7 +735,7 @@ export const HomeOverview = () => {
           title={t("Insights")}
           subtitle={t("Insights that help improve accuracy and alignment.")}
           actionLabel={t("Explore Insights")}
-          actionHref="/insights"
+          actionHref="/profile#insights"
         />
 
         <Card className="space-y-4 bg-surface-muted/60 p-5">
@@ -747,7 +758,7 @@ export const HomeOverview = () => {
             <>
               <MapTestListItem items={testItems} />
               <div className="flex justify-center">
-                <Link href="/insights">
+                <Link href="/profile#insights">
                   <Button size="sm">{t("Explore Insights")}</Button>
                 </Link>
               </div>

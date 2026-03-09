@@ -54,11 +54,11 @@ public class UserService {
 
     public UserResponse getMe(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         return authMapper.toUserResponse(user);
     }
 
@@ -74,18 +74,18 @@ public class UserService {
     @Transactional
     public void sendEmailChangeOtp(UserPrincipal principal, SendEmailChangeOtpRequest request) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         String normalizedEmail = normalizeEmail(request.newEmail());
         if (normalizedEmail == null || normalizedEmail.isBlank()) {
-            throw new BadRequestException("Email non valida");
+            throw new BadRequestException("Invalid email");
         }
         emailVerificationService.sendOtpForEmailChange(principal.userId(), normalizedEmail);
     }
 
     public UserResponse verifyEmailChangeOtp(UserPrincipal principal, VerifyEmailChangeOtpRequest request) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         emailVerificationService.verifyOtpForEmailChange(
             principal.userId(),
@@ -93,7 +93,7 @@ public class UserService {
             request.otp()
         );
         User user = userRepository.findById(principal.userId())
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         return authMapper.toUserResponse(user);
     }
 
@@ -109,17 +109,17 @@ public class UserService {
     @Transactional
     public UpdateUserResponse updateMe(UserPrincipal principal, UpdateUserRequest request) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (request.language() != null) {
             user.setLanguage(normalizeLanguage(request.language()));
         }
         if (request.onboardingCompleted() != null) {
-            throw new BadRequestException("onboardingCompleted e gestito automaticamente");
+            throw new BadRequestException("onboardingCompleted is managed automatically");
         }
         if (request.username() != null) {
             String normalized = normalizeUsername(request.username());
@@ -147,7 +147,7 @@ public class UserService {
             if (emailActuallyChanged) {
                 Optional<User> existingByEmail = userRepository.findByEmail(normalizedEmail);
                 if (existingByEmail.isPresent()) {
-                    throw new ConflictException("Email già in uso");
+                    throw new ConflictException("Email already in use");
                 }
                 newEmailAfterSave = normalizedEmail;
                 emailChangeRequiresVerification = true;
@@ -177,7 +177,7 @@ public class UserService {
         String username
     ) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         String normalized = normalizeUsername(username);
         if (!isValidUsername(normalized)) {
@@ -195,18 +195,18 @@ public class UserService {
     @Transactional
     public void deleteMe(UserPrincipal principal, DeleteUserRequest request) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         String confirmationPhrase = request.confirmationPhrase() == null
             ? ""
             : request.confirmationPhrase().trim();
         if (!ACCOUNT_DELETION_CONFIRMATION_PHRASE.equals(confirmationPhrase)) {
-            throw new BadRequestException("Frase di conferma non valida");
+            throw new BadRequestException("Invalid confirmation phrase");
         }
 
         UUID userId = principal.userId();
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
         userRepository.delete(user);
     }
 
@@ -217,7 +217,7 @@ public class UserService {
             normalized = normalized.substring(0, separatorIndex);
         }
         if (!SUPPORTED_LANGUAGES.contains(normalized)) {
-            throw new BadRequestException("Lingua non supportata");
+            throw new BadRequestException("Unsupported language");
         }
         return normalized;
     }
@@ -238,13 +238,13 @@ public class UserService {
 
     private void validateUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new BadRequestException("Username non valido");
+            throw new BadRequestException("Invalid username");
         }
         if (!isValidUsername(username)) {
-            throw new BadRequestException("Username non valido");
+            throw new BadRequestException("Invalid username");
         }
         if (isReservedUsername(username)) {
-            throw new ConflictException("Username non disponibile");
+            throw new ConflictException("Username is unavailable");
         }
     }
 
@@ -252,7 +252,7 @@ public class UserService {
         userRepository.findByUsernameIgnoreCase(username)
             .filter(existing -> !existing.getId().equals(userId))
             .ifPresent(existing -> {
-                throw new ConflictException("Username gia in uso");
+                throw new ConflictException("Username already in use");
             });
     }
 
@@ -280,7 +280,7 @@ public class UserService {
             return null;
         }
         if (!PHONE_PATTERN.matcher(normalized).matches()) {
-            throw new BadRequestException("Telefono non valido");
+            throw new BadRequestException("Invalid phone number");
         }
         return normalized;
     }
@@ -289,7 +289,7 @@ public class UserService {
         userRepository.findByPhone(phone)
             .filter(existing -> !existing.getId().equals(userId))
             .ifPresent(existing -> {
-                throw new ConflictException("Telefono gia in uso");
+                throw new ConflictException("Phone number already in use");
             });
     }
 }

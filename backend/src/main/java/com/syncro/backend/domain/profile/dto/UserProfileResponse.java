@@ -13,6 +13,7 @@ public record UserProfileResponse(
     Integer age,
     String city,
     String country,
+    String birthPlace,
     String jobTitle,
     String companyName,
     String bio,

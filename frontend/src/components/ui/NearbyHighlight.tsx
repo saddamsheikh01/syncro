@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/buttons/Button";
 import { useCatalog, usePosition, useT } from "@/hooks";
 import { calculateDistanceKm } from "@/lib/geo";
+import { getExperienceDetailPath } from "@/lib/siteUrl";
 import { cx } from "@/lib/classNames";
 
 const MapPinIcon = () => (
@@ -152,7 +153,7 @@ export const NearbyHighlight = () => {
                 </div>
               </div>
             </div>
-            <Link href={`/experiences/${experience.id}`} className="mt-2 block">
+            <Link href={getExperienceDetailPath(experience)} className="mt-2 block">
               <Button variant="secondary" size="sm" fullWidth>
                 {t("Show interest")}
               </Button>

@@ -102,7 +102,7 @@ public class ViatorSyncService {
         String effectiveLanguage = isNotBlank(language) ? language : viatorConfig.getDefaultLanguage();
         List<String> destinationRefs = resolveNearbyDestinationRefs(latitude, longitude, effectiveLanguage);
         if (destinationRefs.isEmpty()) {
-            log.info("Sync Viator nearby: nessuna destination risolta per lat={}, lng={}", latitude, longitude);
+            log.info("Viator nearby sync: no destinations resolved for lat={}, lng={}", latitude, longitude);
             return NearbySyncResult.empty();
         }
         log.info("Sync Viator nearby: lat={}, lng={}, destinationRefs={}", latitude, longitude, destinationRefs);
@@ -113,7 +113,7 @@ public class ViatorSyncService {
             .toList();
 
         if (destinationsToSync.isEmpty()) {
-            log.info("Sync Viator nearby: destinazioni già aggiornate recentemente, skip sync");
+            log.info("Viator nearby sync: destinations were updated recently, skipping sync");
             return new NearbySyncResult(destinationRefs, 0, 0, 0, 0, 0, 0, List.of());
         }
 
@@ -143,9 +143,9 @@ public class ViatorSyncService {
         try {
             return doSyncProducts(command);
         } catch (RuntimeException ex) {
-            log.error("Errore imprevisto durante sync Viator", ex);
+            log.error("Unexpected error during Viator sync", ex);
             String detail = normalize(ex.getMessage());
-            String message = "Errore imprevisto sync Viator";
+            String message = "Unexpected Viator sync error";
             if (detail != null) {
                 message = message + ": " + detail;
             }
@@ -160,7 +160,7 @@ public class ViatorSyncService {
         if (!viatorConfig.isConfigured()) {
             return buildResponse(
                 0, 0, 0, 0, 0, 1, null, null,
-                List.of("Viator API key non configurata")
+                List.of("Viator API key is not configured")
             );
         }
 
@@ -188,11 +188,11 @@ public class ViatorSyncService {
         int errors = 0;
         List<String> errorMessages = new ArrayList<>();
 
-        log.info("Avvio sync Viator: count={}, maxPages={}, cursor={}, modifiedSince={}",
+        log.info("Starting Viator sync: count={}, maxPages={}, cursor={}, modifiedSince={}",
             count, maxPages, cursor, effectiveModifiedSince);
 
         if (viatorConfig.getSync().isUseSearchOnly()) {
-            log.info("Sync Viator in modalità Basic: uso diretto fallback /products/search");
+            log.info("Viator sync in basic mode: using /products/search fallback directly");
 
             FallbackSyncResult fallback = syncUsingSearchFallback(maxPages, count, language);
             pagesProcessed = fallback.pagesProcessed();
@@ -234,7 +234,7 @@ public class ViatorSyncService {
             if (fetchResult.endpointAccessDenied()) {
                 addError(
                     errorMessages,
-                    "Endpoint /products/modified-since non abilitato per questa key; fallback su /products/search"
+                    "Endpoint /products/modified-since is not enabled for this key; falling back to /products/search"
                 );
 
                 FallbackSyncResult fallback = syncUsingSearchFallback(
@@ -264,7 +264,7 @@ public class ViatorSyncService {
                 errors++;
                 addError(
                     errorMessages,
-                    "Errore recupero pagina products/modified-since"
+                    "Error fetching products/modified-since page"
                         + (fetchResult.errorMessage() != null ? ": " + fetchResult.errorMessage() : "")
                 );
                 state.setLastError(firstError(errorMessages));
@@ -334,7 +334,7 @@ public class ViatorSyncService {
             String code = text(product, "productCode");
             if (!isNotBlank(code)) {
                 errors++;
-                addError(errorMessages, "Prodotto senza productCode ignorato");
+                addError(errorMessages, "Skipped product without productCode");
                 continue;
             }
             String status = normalize(text(product, "status"));
@@ -358,7 +358,7 @@ public class ViatorSyncService {
             JsonNode product = fullProducts.getOrDefault(code, fallbackProducts.get(code));
             if (product == null || product.isNull()) {
                 errors++;
-                addError(errorMessages, "Dettaglio prodotto non disponibile: " + code);
+                addError(errorMessages, "Product details unavailable: " + code);
                 continue;
             }
             try {
@@ -370,7 +370,7 @@ public class ViatorSyncService {
                 }
             } catch (RuntimeException ex) {
                 errors++;
-                addError(errorMessages, "Errore upsert prodotto " + code + ": " + ex.getMessage());
+                addError(errorMessages, "Error upserting product " + code + ": " + ex.getMessage());
             }
         }
 
@@ -381,7 +381,7 @@ public class ViatorSyncService {
                 }
             } catch (RuntimeException ex) {
                 errors++;
-                addError(errorMessages, "Errore disattivazione prodotto " + code + ": " + ex.getMessage());
+                addError(errorMessages, "Error deactivating product " + code + ": " + ex.getMessage());
             }
         }
 
@@ -417,7 +417,7 @@ public class ViatorSyncService {
 
         if (destinationIds.isEmpty()) {
             errors++;
-            addError(errorMessages, "Fallback search non disponibile: nessuna destination configurata nel backoffice");
+            addError(errorMessages, "Fallback search unavailable: no destinations configured in backoffice");
             return new FallbackSyncResult(
                 pagesProcessed,
                 productsSeen,
@@ -428,7 +428,7 @@ public class ViatorSyncService {
                 errorMessages
             );
         }
-        log.info("Fallback /products/search attivo su {} destinazioni (maxPages={})",
+        log.info("Fallback /products/search active for {} destinations (maxPages={})",
             destinationIds.size(), maxPages);
 
         int searchCount = Math.min(Math.max(requestedCount, 1), 50);
@@ -454,7 +454,7 @@ public class ViatorSyncService {
                 );
                 if (searchPageOpt.isEmpty()) {
                     errors++;
-                    addError(errorMessages, "Fallback search fallita per destinationId=" + destinationId);
+                    addError(errorMessages, "Fallback search failed for destinationId=" + destinationId);
                     completedDestinations.add(destinationId);
                     continue;
                 }
@@ -579,7 +579,7 @@ public class ViatorSyncService {
     protected UpsertResult upsertActiveProduct(JsonNode product, Instant syncedAt) {
         String productCode = text(product, "productCode");
         if (!isNotBlank(productCode)) {
-            throw new IllegalArgumentException("productCode mancante");
+            throw new IllegalArgumentException("Missing productCode");
         }
 
         Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalId(PROVIDER, productCode);

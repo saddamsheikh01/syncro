@@ -32,8 +32,17 @@ public class BrevoMailClient {
     }
 
     public void sendPasswordResetEmail(String recipientEmail, String firstName, String rawToken) {
+        sendPasswordResetEmail(recipientEmail, firstName, rawToken, null);
+    }
+
+    public void sendPasswordResetEmail(String recipientEmail, String firstName, String rawToken, String locale) {
         if (!config.isConfiguredForPasswordReset()) {
-            throw new ExternalServiceException("Brevo non configurato per password reset");
+            throw new ExternalServiceException("Brevo is not configured for password reset");
+        }
+
+        long templateId = config.getPasswordResetTemplateId(locale);
+        if (templateId <= 0) {
+            throw new ExternalServiceException("Brevo is not configured for password reset");
         }
 
         String resetUrl = UriComponentsBuilder.fromUriString(config.getPasswordResetUrlBase())
@@ -50,7 +59,7 @@ public class BrevoMailClient {
         SendTransactionalEmailRequest request = new SendTransactionalEmailRequest(
             new Sender(config.getSenderEmail(), config.getSenderName()),
             List.of(new Recipient(recipientEmail)),
-            config.getPasswordResetTemplateId(),
+            templateId,
             params
         );
 

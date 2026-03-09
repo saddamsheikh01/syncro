@@ -31,6 +31,45 @@ const INTEREST_EMOJI_MAP: Record<string, string> = {
 
 const INTEREST_EMOJI_ENTRIES = Object.entries(INTEREST_EMOJI_MAP);
 
+/** Canonical phrase keys for interest tags (must match keys in phrase files). */
+const INTEREST_PHRASE_KEYS: Record<string, string> = {
+  art: "Art",
+  business: "Business",
+  culture: "Culture",
+  events: "Events",
+  food: "Food",
+  music: "Music",
+  networking: "Networking",
+  photography: "Photography",
+  sport: "Sport",
+  sports: "Sport",
+  tech: "Tech",
+  travel: "Travel",
+  wellness: "Wellness",
+  arte: "Art",
+  cibo: "Food",
+  cultura: "Culture",
+  eventi: "Events",
+  musica: "Music",
+  fotografia: "Photography",
+  tecnologia: "Tech",
+  viaggi: "Travel",
+  benessere: "Wellness",
+  affari: "Business",
+  travail: "Business",
+};
+
+/**
+ * Normalizes a tag name from the API to a phrase key so t(key) returns the correct translation.
+ * Handles lowercase, uppercase, and common localized names (e.g. "cibo" -> "Food").
+ */
+export const toInterestTranslationKey = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return name;
+  const lower = trimmed.toLowerCase();
+  return INTEREST_PHRASE_KEYS[lower] ?? trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+};
+
 export const getInterestEmoji = (value: string) => {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return "";

@@ -105,7 +105,7 @@ public class AstrologyController {
 
         User user = userRepository.findById(principal.userId()).orElse(null);
         if (user != null) {
-            zyraService.refreshProfileRecap(user);
+            zyraService.setPendingRecapRefresh(user.getId());
         }
 
         AstrologyCalculationResponse responseWithInterpretation = new AstrologyCalculationResponse(

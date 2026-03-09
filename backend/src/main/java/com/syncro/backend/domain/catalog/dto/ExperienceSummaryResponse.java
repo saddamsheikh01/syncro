@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record ExperienceSummaryResponse(
     UUID id,
+    String externalId,
     String name,
     String description,
     CategoryResponse category,

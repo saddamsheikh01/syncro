@@ -32,7 +32,7 @@ public class OpenAiZyraClient implements ZyraClient {
     @Override
     public String chat(List<ZyraChatMessage> messages) {
         if (apiKey == null || apiKey.isBlank()) {
-            throw new ExternalServiceException("OPENAI_API_KEY mancante");
+            throw new ExternalServiceException("OPENAI_API_KEY is missing");
         }
         OpenAiChatRequest request = new OpenAiChatRequest(model, messages, DEFAULT_TEMPERATURE);
         try {
@@ -43,11 +43,11 @@ public class OpenAiZyraClient implements ZyraClient {
                 .retrieve()
                 .body(OpenAiChatResponse.class);
             if (response == null || response.choices == null || response.choices.isEmpty()) {
-                throw new ExternalServiceException("Risposta OpenAI non valida");
+                throw new ExternalServiceException("Invalid OpenAI response");
             }
             OpenAiChatResponse.Choice choice = response.choices.get(0);
             if (choice.message == null || choice.message.content == null || choice.message.content.isBlank()) {
-                throw new ExternalServiceException("Risposta OpenAI non valida");
+                throw new ExternalServiceException("Invalid OpenAI response");
             }
             return choice.message.content.trim();
         } catch (RestClientResponseException ex) {

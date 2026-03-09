@@ -17,6 +17,7 @@ export type MenuItem = {
 
 export const MENU_ITEMS: MenuItem[] = [
   { id: "home", labelKey: "Home", href: "/home", icon: "home" },
+  { id: "profile", labelKey: "Profile", href: "/profile", icon: "profile" },
   {
     id: "people",
     labelKey: "People & Connections",
@@ -30,11 +31,9 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: "places",
   },
   { id: "moments", labelKey: "Moments", href: "/moments", icon: "moments" },
-  { id: "insights", labelKey: "Insights", href: "/insights", icon: "insights" },
   { id: "zyra", labelKey: "Zyra", href: "/zyra", icon: "zyra" },
   { id: "chat", labelKey: "Conversations", href: "/chat", icon: "chat" },
   { id: "connections", labelKey: "Connection requests", href: "/connections", icon: "people" },
-  { id: "profile", labelKey: "Profile", href: "/profile", icon: "profile" },
   { id: "settings", labelKey: "Settings", href: "/settings", icon: "settings" },
   { id: "support", labelKey: "Support", href: "/support", icon: "support" },
 ];
@@ -44,7 +43,8 @@ const normalizePath = (path: string) =>
 
 const isItemActive = (pathname: string, href: string) => {
   const normalizedPath = normalizePath(pathname);
-  const normalizedHref = normalizePath(href);
+  const baseHref = href.includes("#") ? href.split("#")[0] : href;
+  const normalizedHref = normalizePath(baseHref);
   return (
     normalizedPath === normalizedHref ||
     normalizedPath.startsWith(`${normalizedHref}/`)

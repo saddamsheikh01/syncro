@@ -17,26 +17,21 @@ export const generateMetadata = async ({
   const metadata: Metadata = {
     title: t("Moment | Syncro"),
     description: t("View a shared moment on Syncro."),
+    metadataBase: baseUrl ? new URL(baseUrl) : undefined,
     openGraph: {
       type: "website",
       url: momentUrl,
       siteName: "Syncro",
       title: t("Moment on Syncro"),
       description: t("View a shared moment on Syncro."),
-      images: [{ url: baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg", width: 1200, height: 630, alt: "Syncro" }],
     },
     twitter: {
       card: "summary_large_image",
       title: t("Moment on Syncro"),
       description: t("View a shared moment on Syncro."),
-      images: [baseUrl ? `${baseUrl}/new_logosvg.svg` : "/new_logosvg.svg"],
     },
     alternates: { canonical: momentUrl },
   };
-
-  if (baseUrl) {
-    metadata.metadataBase = new URL(baseUrl);
-  }
 
   return metadata;
 };

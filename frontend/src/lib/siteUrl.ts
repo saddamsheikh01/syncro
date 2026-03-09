@@ -1,10 +1,26 @@
+/** Production canonical URL (used when no env is set). */
+const PRODUCTION_SITE_URL = "https://www.syncroapp.it";
+
+/**
+ * Absolute base URL for the site. On server, prefers NEXT_PUBLIC_SITE_URL; falls back to
+ * VERCEL_URL (when deployed on Vercel), then production URL, or http://localhost:3000 in dev.
+ */
 export function getSiteUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  const base =
-    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SITE_URL?.trim()) || "";
-  return base.replace(/\/+$/, "");
+  const envUrl =
+    typeof process !== "undefined" && process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/+$/, "");
+  const vercelUrl =
+    typeof process !== "undefined" && process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+  }
+  const isDev =
+    typeof process !== "undefined" &&
+    process.env.NODE_ENV === "development";
+  return isDev ? "http://localhost:3000" : PRODUCTION_SITE_URL;
 }
 
 /** Base URL to use for shared links (uses env in build, else runtime origin). */
@@ -52,6 +68,19 @@ export function getShareableShareUrl(params?: { ref?: string; id?: string }): st
 export function getShareablePlaceUrl(placeId: string): string {
   const base = getShareableBaseUrl();
   return base ? `${base}/places/${placeId}` : `/places/${placeId}`;
+}
+
+/** Experience detail path: UUID for DB experiences, viator-{productCode} for Viator live. */
+export function getExperienceDetailPath(exp: {
+  id: string;
+  source?: string | null;
+  provider?: string | null;
+  externalId?: string | null;
+}): string {
+  if ((exp.source === "VIATOR" || exp.provider === "VIATOR") && exp.externalId) {
+    return `/experiences/viator-${exp.externalId}`;
+  }
+  return `/experiences/${exp.id}`;
 }
 
 export function getShareableExperienceUrl(experienceId: string): string {

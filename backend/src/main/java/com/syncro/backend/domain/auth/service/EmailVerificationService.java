@@ -124,7 +124,8 @@ public class EmailVerificationService {
         entity.setTargetEmailHash(hashEmail(normalizedNewEmail));
         otpRepository.save(entity);
 
-        sendOtpEmailToAddress(normalizedNewEmail, user.getUsername(), otp);
+        String locale = user.getLanguage() != null ? user.getLanguage() : "en";
+        sendOtpEmailToAddress(normalizedNewEmail, user.getUsername(), otp, locale);
     }
 
     /**
@@ -242,11 +243,16 @@ public class EmailVerificationService {
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             return;
         }
-        sendOtpEmailToAddress(user.getEmail(), user.getUsername(), otp);
+        String locale = user.getLanguage() != null ? user.getLanguage() : "en";
+        sendOtpEmailToAddress(user.getEmail(), user.getUsername(), otp, locale);
     }
 
     private void sendOtpEmailToAddress(String recipientEmail, String firstName, String otp) {
-        long templateId = brevoConfig.getTemplateId("EMAIL_VERIFICATION_OTP");
+        sendOtpEmailToAddress(recipientEmail, firstName, otp, "en");
+    }
+
+    private void sendOtpEmailToAddress(String recipientEmail, String firstName, String otp, String locale) {
+        long templateId = brevoConfig.getTemplateId("EMAIL_VERIFICATION_OTP", locale);
         if (templateId <= 0 || !brevoConfig.isConfigured()) {
             return;
         }

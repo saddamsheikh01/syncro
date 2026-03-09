@@ -96,11 +96,11 @@ public class UserPreferenceService {
 
     private User getUser(UserPrincipal principal) {
         if (principal == null) {
-            throw new UnauthorizedException("Token mancante o non valido");
+            throw new UnauthorizedException("Missing or invalid token");
         }
         UUID userId = principal.userId();
         return userRepository.findById(userId)
-            .orElseThrow(() -> new NotFoundException("Utente non trovato"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private Map<String, Object> enforceAlwaysOnFlags(Map<String, Object> filters) {
