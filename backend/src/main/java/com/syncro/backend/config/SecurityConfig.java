@@ -48,7 +48,10 @@ public class SecurityConfig {
                                 "/api/v1/auth/admin/register",
                                 "/api/v1/auth/admin/refresh",
                                 "/api/v1/auth/admin/logout",
-                                "/api/v1/astrology/calculate"
+                                "/api/v1/astrology/calculate",
+                                "/api/v1/expats/funnel/config",
+                                "/api/v1/expats/anonymous/sessions",
+                                "/api/v1/expats/anonymous/sessions/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

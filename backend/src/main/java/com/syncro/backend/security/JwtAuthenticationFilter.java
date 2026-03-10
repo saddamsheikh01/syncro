@@ -103,6 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (identity.subjectType() == SubjectType.ADMIN) {
             return new AdminPrincipal(identity.subjectId(), identity.role());
         }
-        return new UserPrincipal(identity.subjectId());
+        // Resolve the full User entity so controllers can use @AuthenticationPrincipal User user
+        return userRepository.findById(identity.subjectId()).orElse(null);
     }
 }
