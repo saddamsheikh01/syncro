@@ -113,7 +113,7 @@ class RelocationOnboardingServiceTest {
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
         UpdateOnboardingRequest request = new UpdateOnboardingRequest(
-                "chosen_city", "Lisbon", "Portugal", null, null, null,
+                "chosen_city", "Lisbon", "Portugal", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, 1
         );
 
@@ -136,7 +136,7 @@ class RelocationOnboardingServiceTest {
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
         UpdateOnboardingRequest request = new UpdateOnboardingRequest(
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, 10
         );
 

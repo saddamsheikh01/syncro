@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record UpdateOnboardingRequest(
         @Size(max = 30)
@@ -16,6 +17,11 @@ public record UpdateOnboardingRequest(
 
         @Size(max = 100)
         String targetCountry,
+
+        UUID currentCityId,
+
+        @Size(max = 255)
+        String currentCityName,
 
         @Size(max = 30)
         String household,

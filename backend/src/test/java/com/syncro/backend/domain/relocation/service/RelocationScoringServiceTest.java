@@ -31,9 +31,9 @@ class RelocationScoringServiceTest {
     @Mock private RelocationCityDatasetRepository cityRepository;
     @Mock private RelocationCityScoreRepository scoreRepository;
     @Mock private RelocationScoringConfigRepository configRepository;
-    @Mock private RelocationWeightRuleRepository weightRuleRepository;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
+    @Mock private ScoringCalculationHelper helper;
 
     @InjectMocks
     private RelocationScoringService service;
@@ -76,10 +76,10 @@ class RelocationScoringServiceTest {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
-        when(weightRuleRepository.findByActiveTrue()).thenReturn(buildTestWeightRules());
         when(cityRepository.findByActiveTrue()).thenReturn(List.of(testCity, city2));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-        when(mapper.toCityScoreResponse(any())).thenCallRealMethod();
+
+        stubHelperDefaults();
 
         ScoringResultResponse result = service.computeScoring(testUser, null);
 
@@ -122,10 +122,10 @@ class RelocationScoringServiceTest {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
-        when(weightRuleRepository.findByActiveTrue()).thenReturn(buildTestWeightRules());
         when(cityRepository.findById(testCity.getId())).thenReturn(Optional.of(testCity));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-        when(mapper.toCityScoreResponse(any())).thenCallRealMethod();
+
+        stubHelperDefaults();
 
         ComputeScoringRequest request = new ComputeScoringRequest(testCity.getId(), "chosen_city");
         ScoringResultResponse result = service.computeScoring(testUser, request);
@@ -164,6 +164,31 @@ class RelocationScoringServiceTest {
     }
 
     // ========== HELPERS ==========
+
+    private void stubHelperDefaults() {
+        Map<String, Double> normalizedWeights = Map.of(
+                "costo_vita", 0.20, "mercato_immobiliare", 0.15,
+                "potere_economico", 0.18, "qualita_vita", 0.17,
+                "opportunita_lavorative", 0.18, "integrazione_sociale", 0.12);
+        Map<String, String> priorityClassification = Map.of(
+                "costo_vita", "HIGH", "mercato_immobiliare", "MEDIUM",
+                "potere_economico", "HIGH", "qualita_vita", "HIGH",
+                "opportunita_lavorative", "HIGH", "integrazione_sociale", "MEDIUM");
+        Map<String, BigDecimal> cityMacroaree = Map.of(
+                "costo_vita", new BigDecimal("55.50"), "mercato_immobiliare", new BigDecimal("48.85"),
+                "potere_economico", new BigDecimal("65.00"), "qualita_vita", new BigDecimal("72.00"),
+                "opportunita_lavorative", new BigDecimal("57.50"), "integrazione_sociale", new BigDecimal("70.00"));
+
+        when(helper.accumulateUserWeights(anyMap())).thenReturn(new LinkedHashMap<>(normalizedWeights));
+        when(helper.normalizeWeights(anyMap())).thenReturn(normalizedWeights);
+        when(helper.classifyPriorities(anyMap(), any())).thenReturn(priorityClassification);
+        when(helper.computeCityFitScore(any(), anyMap(), any(), anyMap())).thenReturn(70);
+        when(helper.computeBudgetCheck(any(), any(), anyMap())).thenReturn(Map.of("marginStatus", "sustainable"));
+        when(helper.generateInsights(any(), anyMap(), any())).thenReturn(Map.of("insights", List.of()));
+        when(helper.getCityMacroareeMap(any())).thenReturn(cityMacroaree);
+        when(helper.classifyCompatibility(anyInt(), any())).thenReturn("GOOD_FIT");
+        when(mapper.toCityScoreResponse(any())).thenReturn(null);
+    }
 
     private Map<String, Object> buildTestPayload() {
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -244,41 +269,4 @@ class RelocationScoringServiceTest {
         return city;
     }
 
-    private List<RelocationWeightRule> buildTestWeightRules() {
-        List<RelocationWeightRule> rules = new ArrayList<>();
-
-        // life_state -> planning_move
-        RelocationWeightRule r1 = new RelocationWeightRule();
-        r1.setQuestionKey("life_state");
-        r1.setAnswerValue("planning_move");
-        r1.setWeightAdjustments(Map.of("costo_vita", 5, "mercato_immobiliare", 10, "opportunita_lavorative", 5));
-        r1.setActive(true);
-        rules.add(r1);
-
-        // motivation -> career
-        RelocationWeightRule r2 = new RelocationWeightRule();
-        r2.setQuestionKey("motivation");
-        r2.setAnswerValue("career");
-        r2.setWeightAdjustments(Map.of("opportunita_lavorative", 15, "potere_economico", 10));
-        r2.setActive(true);
-        rules.add(r2);
-
-        // work_type -> employed
-        RelocationWeightRule r3 = new RelocationWeightRule();
-        r3.setQuestionKey("work_type");
-        r3.setAnswerValue("employed");
-        r3.setWeightAdjustments(Map.of("opportunita_lavorative", 10, "potere_economico", 10));
-        r3.setActive(true);
-        rules.add(r3);
-
-        // need -> monthly_costs
-        RelocationWeightRule r4 = new RelocationWeightRule();
-        r4.setQuestionKey("need");
-        r4.setAnswerValue("monthly_costs");
-        r4.setWeightAdjustments(Map.of("costo_vita", 15, "potere_economico", 10));
-        r4.setActive(true);
-        rules.add(r4);
-
-        return rules;
-    }
 }

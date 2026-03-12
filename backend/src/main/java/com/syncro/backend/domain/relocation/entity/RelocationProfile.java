@@ -33,6 +33,13 @@ public class RelocationProfile {
     @Column(name = "target_country", length = 100)
     private String targetCountry;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_city_id")
+    private RelocationCityDataset currentCity;
+
+    @Column(name = "current_city_name", length = 255)
+    private String currentCityName;
+
     @Column(name = "household", nullable = false, length = 30)
     private String household;
 
@@ -121,6 +128,12 @@ public class RelocationProfile {
 
     public String getTargetCountry() { return targetCountry; }
     public void setTargetCountry(String targetCountry) { this.targetCountry = targetCountry; }
+
+    public RelocationCityDataset getCurrentCity() { return currentCity; }
+    public void setCurrentCity(RelocationCityDataset currentCity) { this.currentCity = currentCity; }
+
+    public String getCurrentCityName() { return currentCityName; }
+    public void setCurrentCityName(String currentCityName) { this.currentCityName = currentCityName; }
 
     public String getHousehold() { return household; }
     public void setHousehold(String household) { this.household = household; }

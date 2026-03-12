@@ -88,6 +88,18 @@ public class RelocationOnboardingService {
             resolveTargetCity(profile, request.targetCityName());
         }
 
+        // Resolve current city FK
+        if (request.currentCityId() != null) {
+            var currentCityOpt = cityDatasetRepository.findById(request.currentCityId());
+            if (currentCityOpt.isPresent()) {
+                profile.setCurrentCity(currentCityOpt.get());
+                profile.setCurrentCityName(currentCityOpt.get().getCityName());
+            }
+        }
+        if (request.currentCityName() != null && request.currentCityId() == null) {
+            profile.setCurrentCityName(request.currentCityName());
+        }
+
         // Update completed steps and completion percent
         if (request.completedSteps() != null) {
             profile.setCompletedSteps(request.completedSteps());
@@ -305,6 +317,8 @@ public class RelocationOnboardingService {
         payload.put("targetCityName", profile.getTargetCityName());
         payload.put("targetCountry", profile.getTargetCountry());
         payload.put("targetCityId", profile.getTargetCity() != null ? profile.getTargetCity().getId().toString() : null);
+        payload.put("currentCityName", profile.getCurrentCityName());
+        payload.put("currentCityId", profile.getCurrentCity() != null ? profile.getCurrentCity().getId().toString() : null);
         payload.put("household", profile.getHousehold());
         payload.put("hasPets", profile.getHasPets());
         payload.put("childrenAgeRange", profile.getChildrenAgeRange());

@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.controller;
 
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.relocation.dto.*;
+import com.syncro.backend.domain.relocation.service.CityComparisonService;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
 import com.syncro.backend.domain.relocation.service.RelocationOnboardingService;
 import com.syncro.backend.domain.relocation.service.RelocationScoringService;
@@ -28,15 +29,18 @@ public class RelocationController {
 
     private final RelocationOnboardingService onboardingService;
     private final RelocationScoringService scoringService;
+    private final CityComparisonService comparisonService;
     private final CityDatasetService cityDatasetService;
     private final WaitingListService waitingListService;
 
     public RelocationController(RelocationOnboardingService onboardingService,
                                 RelocationScoringService scoringService,
+                                CityComparisonService comparisonService,
                                 CityDatasetService cityDatasetService,
                                 WaitingListService waitingListService) {
         this.onboardingService = onboardingService;
         this.scoringService = scoringService;
+        this.comparisonService = comparisonService;
         this.cityDatasetService = cityDatasetService;
         this.waitingListService = waitingListService;
     }
@@ -125,6 +129,16 @@ public class RelocationController {
     @Operation(summary = "Dettaglio citta per slug")
     public ResponseEntity<CityDatasetResponse> getCityBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(cityDatasetService.getCityBySlug(slug));
+    }
+
+    // ========== CITY COMPARISON ==========
+
+    @PostMapping("/city-scoring/compare")
+    @Operation(summary = "Confronta due citta basandosi su profilo utente e priorita")
+    public ResponseEntity<CityComparisonResponse> compareCities(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody CityComparisonRequest request) {
+        return ResponseEntity.ok(comparisonService.compareCities(user, request));
     }
 
     // ========== WAITING LIST ==========
