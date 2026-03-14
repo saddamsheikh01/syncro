@@ -54,6 +54,10 @@ public class Experience {
     @Column(name = "external_id")
     private String externalId;
 
+    /** Content language (e.g. en, it). For Viator: same product in different languages = separate row. */
+    @Column(name = "locale", length = 16)
+    private String locale;
+
     // Prezzi
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
@@ -259,6 +263,14 @@ public class Experience {
 
     public void setExternalId(String externalId) {
         this.externalId = externalId;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
     }
 
     public BigDecimal getPrice() {

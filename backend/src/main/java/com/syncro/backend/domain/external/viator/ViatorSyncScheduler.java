@@ -3,6 +3,7 @@ package com.syncro.backend.domain.external.viator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -11,14 +12,17 @@ public class ViatorSyncScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(ViatorSyncScheduler.class);
 
+    private final ConfigurableApplicationContext applicationContext;
     private final ViatorConfig viatorConfig;
     private final ViatorSyncService viatorSyncService;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     public ViatorSyncScheduler(
+        ConfigurableApplicationContext applicationContext,
         ViatorConfig viatorConfig,
         ViatorSyncService viatorSyncService
     ) {
+        this.applicationContext = applicationContext;
         this.viatorConfig = viatorConfig;
         this.viatorSyncService = viatorSyncService;
     }
@@ -28,6 +32,9 @@ public class ViatorSyncScheduler {
         zone = "${app.viator.sync.zone:UTC}"
     )
     public void syncIncrementalProducts() {
+        if (!applicationContext.isActive()) {
+            return;
+        }
         if (!viatorConfig.getSync().isEnabled()) {
             return;
         }
@@ -46,7 +53,7 @@ public class ViatorSyncScheduler {
                 viatorConfig.getSync().getDefaultMaxPages(),
                 null,
                 false,
-                viatorConfig.getDefaultLanguage()
+                null
             );
             viatorSyncService.syncProducts(command);
         } catch (RuntimeException ex) {

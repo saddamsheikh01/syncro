@@ -61,6 +61,13 @@ export const PlacesOverview = () => {
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [nearMe, setNearMe] = useState(false);
   const locationRequestedRef = useRef(false);
+  const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
+
+  // Hydrate position from storage so "Near me" has coords when returning from experience detail.
+  useEffect(() => {
+    positionActions.hydrate();
+  }, [positionActions]);
+
   const {
     places,
     placesPage,
@@ -80,7 +87,6 @@ export const PlacesOverview = () => {
     hasMoreCatalog,
     actions,
   } = useCatalog();
-  const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
   const [locationLoading, setLocationLoading] = useState(false);
   const showViatorUnavailable = isViatorUnavailableError(error);
 

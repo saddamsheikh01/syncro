@@ -65,6 +65,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                       ) <= :radiusKm
                   )
               )
+              AND (:locale IS NULL OR (e.locale IS NOT NULL AND e.locale = :locale))
             ORDER BY
               CASE WHEN :tagFilter = true AND EXISTS (
                   SELECT 1
@@ -136,6 +137,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                       ) <= :radiusKm
                   )
               )
+              AND (:locale IS NULL OR (e.locale IS NOT NULL AND e.locale = :locale))
             """,
         nativeQuery = true
     )
@@ -150,11 +152,14 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
         @Param("locationRefs") List<String> locationRefs,
         @Param("locationRefFilter") boolean locationRefFilter,
         @Param("source") String source,
+        @Param("locale") String locale,
         Pageable pageable
     );
 
     // Metodi per provider esterni
     Optional<Experience> findByProviderAndExternalId(String provider, String externalId);
+
+    Optional<Experience> findByProviderAndExternalIdAndLocale(String provider, String externalId, String locale);
 
     List<Experience> findByProviderAndIsActiveTrue(String provider);
 

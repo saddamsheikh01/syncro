@@ -5,10 +5,16 @@ import type {
   CategoryResponse,
   ExperienceDetailResponse,
   ExperienceSummaryResponse,
+  JobAcceptedResponse,
   PlaceDetailResponse,
   PlaceSummaryResponse,
 } from "../../types/catalog";
 import type { PageResponse, Uuid } from "../../types/shared";
+
+/** Result of GET /experiences: either page data (200) or job accepted (202). */
+export type GetExperiencesResult =
+  | { type: "data"; data: PageResponse<ExperienceSummaryResponse> }
+  | { type: "job"; job: JobAcceptedResponse };
 
 export type CategoryListParams = {
   page?: number;
@@ -28,6 +34,8 @@ export type CatalogSearchParams = {
   radiusKm?: number;
   q?: string;
   source?: CatalogSource;
+  /** Preferred locale for experiences (e.g. en, it). Backend uses it for cache/job so language switch refetches instantly. */
+  locale?: string;
   page?: number;
   size?: number;
 };
@@ -78,17 +86,60 @@ export const getPlace = async (placeId: Uuid): Promise<PlaceDetailResponse> => {
 /** Timeout for experiences (Viator can be slow). */
 const EXPERIENCES_TIMEOUT_MS = 60_000;
 
+/** GET /experiences. Returns data (200) or job accepted (202) for Viator nearby/search. */
 export const getExperiences = async (
   params: CatalogSearchParams = {}
-): Promise<PageResponse<ExperienceSummaryResponse>> => {
-  const { data } = await apiClient.get<PageResponse<ExperienceSummaryResponse>>(
-    "/experiences",
-    {
-      params: buildQueryParams(params),
-      timeout: EXPERIENCES_TIMEOUT_MS,
-    }
-  );
+): Promise<GetExperiencesResult> => {
+  const response = await apiClient.get<
+    PageResponse<ExperienceSummaryResponse> | JobAcceptedResponse
+  >("/experiences", {
+    params: buildQueryParams(params),
+    timeout: EXPERIENCES_TIMEOUT_MS,
+    validateStatus: (status) => status === 200 || status === 202,
+  });
+  if (response.status === 202) {
+    return { type: "job", job: response.data as JobAcceptedResponse };
+  }
+  return { type: "data", data: response.data as PageResponse<ExperienceSummaryResponse> };
+};
+
+/** GET /experiences/jobs/:jobId — status of a Viator fetch job (for polling after 202). */
+export const getExperienceJobStatus = async (
+  jobId: Uuid
+): Promise<JobAcceptedResponse> => {
+  const { data } = await apiClient.get<JobAcceptedResponse>(`/experiences/jobs/${jobId}`);
   return data;
+};
+
+const JOB_POLL_INTERVAL_MS = 5000; // 5 s between polls (worker runs every ~2 min, no need to check every 2 s)
+const JOB_POLL_MAX_ATTEMPTS = 40;  // ~3.3 min total
+
+/** Call getExperiences; on 202, poll job until COMPLETED/FAILED/NOT_FOUND then refetch. Returns page or throws. */
+export const getExperiencesWithPolling = async (
+  params: CatalogSearchParams = {}
+): Promise<PageResponse<ExperienceSummaryResponse>> => {
+  const first = await getExperiences(params);
+  if (first.type === "data") return first.data;
+
+  const { jobId } = first.job;
+  for (let i = 0; i < JOB_POLL_MAX_ATTEMPTS; i++) {
+    await new Promise((r) => setTimeout(r, JOB_POLL_INTERVAL_MS));
+    const status = await getExperienceJobStatus(jobId);
+    if (status.status === "COMPLETED") {
+      const second = await getExperiences(params);
+      if (second.type === "data") return second.data;
+      if (second.type === "job") throw new Error("Please try again");
+    }
+    if (status.status === "FAILED") {
+      throw new Error(status.message || "Fetch failed");
+    }
+    if (status.status === "NOT_FOUND") {
+      const refetch = await getExperiences(params);
+      if (refetch.type === "data") return refetch.data;
+      throw new Error("Job no longer available; please try again");
+    }
+  }
+  throw new Error("Job did not complete in time");
 };
 
 export const getExperience = async (

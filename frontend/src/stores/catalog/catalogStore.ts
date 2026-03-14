@@ -13,7 +13,7 @@ import {
   getCatalog,
   getCategories,
   getExperience,
-  getExperiences,
+  getExperiencesWithPolling,
   getPlace,
   getPlaces,
 } from "../../services/catalog";
@@ -253,7 +253,7 @@ export const catalogActions = {
     });
 
     try {
-      const response = await getExperiences(params);
+      const response = await getExperiencesWithPolling(params);
       catalogStore.setState((state) => ({
         experiences: options.append
           ? [...state.experiences, ...response.content]

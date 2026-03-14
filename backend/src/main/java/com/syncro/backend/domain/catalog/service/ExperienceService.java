@@ -6,7 +6,11 @@ import com.syncro.backend.domain.catalog.dto.AffiliationLinkResponse;
 import com.syncro.backend.domain.catalog.dto.CategoryResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
+import com.syncro.backend.domain.catalog.dto.GetExperiencesResult;
+import com.syncro.backend.domain.catalog.dto.JobAcceptedResponse;
 import com.syncro.backend.domain.catalog.dto.PlaceReferenceResponse;
+import com.syncro.backend.domain.catalog.entity.ViatorExperienceCache;
+import com.syncro.backend.domain.catalog.entity.ViatorFetchJob;
 import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Category;
 import com.syncro.backend.domain.catalog.entity.Experience;
@@ -21,6 +25,7 @@ import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.catalog.repository.ViatorFetchJobRepository;
 import com.syncro.backend.domain.external.viator.ViatorClient;
 import com.syncro.backend.domain.external.viator.ViatorNearbyDestinationResolver;
 import com.syncro.backend.domain.external.viator.ViatorProductMapper;
@@ -31,8 +36,10 @@ import com.syncro.backend.domain.tags.mapper.TagMapper;
 import com.syncro.backend.domain.tags.repository.TagRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -40,12 +47,16 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.i18n.LocaleContextHolder;
 
 @Service
 public class ExperienceService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExperienceService.class);
 
     private static final UUID DUMMY_TAG_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     private static final String DUMMY_LOCATION_REF = "__NO_LOCATION_REF__";
@@ -68,6 +79,8 @@ public class ExperienceService {
     private final PlaceMapper placeMapper;
     private final TagMapper tagMapper;
     private final AffiliationLinkMapper affiliationLinkMapper;
+    private final ViatorExperienceCacheService viatorExperienceCacheService;
+    private final ViatorFetchJobRepository viatorFetchJobRepository;
 
     public ExperienceService(
         ExperienceRepository experienceRepository,
@@ -84,7 +97,9 @@ public class ExperienceService {
         CategoryMapper categoryMapper,
         PlaceMapper placeMapper,
         TagMapper tagMapper,
-        AffiliationLinkMapper affiliationLinkMapper
+        AffiliationLinkMapper affiliationLinkMapper,
+        ViatorExperienceCacheService viatorExperienceCacheService,
+        ViatorFetchJobRepository viatorFetchJobRepository
     ) {
         this.experienceRepository = experienceRepository;
         this.categoryRepository = categoryRepository;
@@ -101,10 +116,25 @@ public class ExperienceService {
         this.placeMapper = placeMapper;
         this.tagMapper = tagMapper;
         this.affiliationLinkMapper = affiliationLinkMapper;
+        this.viatorExperienceCacheService = viatorExperienceCacheService;
+        this.viatorFetchJobRepository = viatorFetchJobRepository;
     }
 
     @Transactional(readOnly = true)
-    public Page<ExperienceSummaryResponse> getExperiences(
+    public JobAcceptedResponse getJobStatus(UUID jobId) {
+        return viatorFetchJobRepository.findById(jobId)
+            .map(job -> {
+                String message = job.getStatus();
+                if (ViatorFetchJob.STATUS_FAILED.equals(job.getStatus()) && job.getLastError() != null) {
+                    message = job.getLastError();
+                }
+                return new JobAcceptedResponse(job.getId(), job.getStatus(), message);
+            })
+            .orElse(new JobAcceptedResponse(jobId, "NOT_FOUND", "Job not found or no longer available"));
+    }
+
+    @Transactional(readOnly = true)
+    public GetExperiencesResult getExperiences(
         UUID categoryId,
         List<UUID> tagIds,
         Double latitude,
@@ -112,6 +142,7 @@ public class ExperienceService {
         Double radiusKm,
         String query,
         CatalogSource source,
+        String requestLocale,
         int page,
         int size
     ) {
@@ -127,18 +158,59 @@ public class ExperienceService {
         Double effectiveLongitude = longitude;
         Double effectiveRadiusKm = radiusKm;
 
-        if (source == CatalogSource.VIATOR && normalizedQuery != null) {
-            return getExperiencesFromViatorApi(normalizedQuery, page, size);
-        }
+        if (source == CatalogSource.VIATOR && (normalizedQuery != null || (latitude != null && longitude != null))) {
+            String locale = viatorExperienceCacheService.resolveLocale(requestLocale);
+            String cacheKey;
+            String jobType;
+            Map<String, Object> jobParams = new LinkedHashMap<>();
+            if (normalizedQuery != null) {
+                cacheKey = viatorExperienceCacheService.buildCacheKeySearch(normalizedQuery, locale);
+                jobType = ViatorFetchJob.JOB_TYPE_SEARCH;
+                jobParams.put("q", normalizedQuery);
+                jobParams.put("locale", locale);
+            } else {
+                cacheKey = viatorExperienceCacheService.buildCacheKeyNearby(latitude, longitude, locale);
+                jobType = ViatorFetchJob.JOB_TYPE_NEARBY;
+                jobParams.put("lat", latitude);
+                jobParams.put("lng", longitude);
+                if (radiusKm != null) {
+                    jobParams.put("radiusKm", radiusKm);
+                }
+                jobParams.put("locale", locale);
+            }
 
-        if (source == CatalogSource.VIATOR && latitude != null && longitude != null && normalizedQuery == null) {
-            return getExperiencesFromViatorApiNearby(latitude, longitude, page, size);
+            Optional<ViatorExperienceCache> cacheOpt = viatorExperienceCacheService.findValidCache(cacheKey);
+            if (cacheOpt.isPresent()) {
+                Page<ExperienceSummaryResponse> pageFromCache = pageFromCacheIds(cacheOpt.get(), page, size);
+                return new GetExperiencesResult.GetExperiencesData(pageFromCache);
+            }
+
+            Optional<ViatorFetchJob> existingJob = viatorExperienceCacheService.findExistingJob(cacheKey);
+            if (existingJob.isPresent()) {
+                ViatorFetchJob job = existingJob.get();
+                log.info("[Viator] Returning 202 existing job jobId={} type={} cacheKey={}", job.getId(), jobType, cacheKey);
+                return new GetExperiencesResult.GetExperiencesJobAccepted(
+                    new JobAcceptedResponse(job.getId(), job.getStatus(), "Job already in progress")
+                );
+            }
+
+            ViatorFetchJob newJob = viatorExperienceCacheService.createJob(cacheKey, jobType, locale, jobParams);
+            log.info("[Viator] Created job jobId={} type={} cacheKey={} (worker will pick in up to 2 min)", newJob.getId(), jobType, cacheKey);
+
+            if (ViatorFetchJob.JOB_TYPE_NEARBY.equals(jobType)) {
+                enqueueNearbyJobsForAllLocales(latitude, longitude, radiusKm, locale);
+            }
+
+            return new GetExperiencesResult.GetExperiencesJobAccepted(
+                new JobAcceptedResponse(newJob.getId(), ViatorFetchJob.STATUS_PENDING, "Fetch started")
+            );
         }
 
         if (latitude != null && longitude != null && effectiveRadiusKm == null) {
             effectiveRadiusKm = DEFAULT_NEARBY_RADIUS_KM;
         }
 
+        String effectiveLocale = viatorExperienceCacheService.resolveLocale(requestLocale);
         PageRequest pageable = PageRequest.of(page, size);
         Page<Experience> experiences = experienceRepository.searchExperiences(
             categoryId,
@@ -151,15 +223,70 @@ public class ExperienceService {
             locationRefs,
             locationRefFilter,
             sourceValue,
+            effectiveLocale,
             pageable
         );
         Map<UUID, CategoryResponse> categories = loadCategories(experiences.getContent());
         Map<UUID, PlaceReferenceResponse> places = loadPlaces(experiences.getContent());
-        return experiences.map(experience -> experienceMapper.toSummaryResponse(
+        Page<ExperienceSummaryResponse> pageResponse = experiences.map(experience -> experienceMapper.toSummaryResponse(
             experience,
             mapCategory(categories, experience.getCategory()),
             mapPlace(places, experience.getPlace())
         ));
+        return new GetExperiencesResult.GetExperiencesData(pageResponse);
+    }
+
+    private Page<ExperienceSummaryResponse> pageFromCacheIds(ViatorExperienceCache cache, int page, int size) {
+        List<UUID> allIds = cache.getExperienceIds();
+        int total = allIds.size();
+        int start = Math.min(page * size, total);
+        int end = Math.min(start + size, total);
+        List<UUID> pageIds = start < end ? allIds.subList(start, end) : List.of();
+        if (pageIds.isEmpty()) {
+            return new PageImpl<>(List.of(), PageRequest.of(page, size), total);
+        }
+        List<Experience> list = experienceRepository.findAllById(pageIds);
+        Map<UUID, Integer> order = new LinkedHashMap<>();
+        for (int i = 0; i < pageIds.size(); i++) {
+            order.put(pageIds.get(i), i);
+        }
+        list.sort(Comparator.comparing(e -> order.getOrDefault(e.getId(), Integer.MAX_VALUE)));
+        Map<UUID, CategoryResponse> categories = loadCategories(list);
+        Map<UUID, PlaceReferenceResponse> places = loadPlaces(list);
+        List<ExperienceSummaryResponse> content = list.stream()
+            .map(experience -> experienceMapper.toSummaryResponse(
+                experience,
+                mapCategory(categories, experience.getCategory()),
+                mapPlace(places, experience.getPlace())
+            ))
+            .toList();
+        return new PageImpl<>(content, PageRequest.of(page, size), total);
+    }
+
+    /** For nearby: enqueue fetch jobs for all locales in background so switching language has data ready. */
+    private void enqueueNearbyJobsForAllLocales(Double lat, Double lng, Double radiusKm, String requestLocale) {
+        Map<String, Object> baseParams = new LinkedHashMap<>();
+        baseParams.put("lat", lat);
+        baseParams.put("lng", lng);
+        if (radiusKm != null) {
+            baseParams.put("radiusKm", radiusKm);
+        }
+        for (String loc : ViatorExperienceCacheService.NEARBY_LOCALES) {
+            if (loc.equals(requestLocale)) {
+                continue;
+            }
+            String key = viatorExperienceCacheService.buildCacheKeyNearby(lat, lng, loc);
+            if (viatorExperienceCacheService.findValidCache(key).isPresent()) {
+                continue;
+            }
+            if (viatorExperienceCacheService.findExistingJob(key).isPresent()) {
+                continue;
+            }
+            Map<String, Object> params = new LinkedHashMap<>(baseParams);
+            params.put("locale", loc);
+            ViatorFetchJob job = viatorExperienceCacheService.createJob(key, ViatorFetchJob.JOB_TYPE_NEARBY, loc, params);
+            log.info("[Viator] Enqueued nearby job for locale {} jobId={} cacheKey={}", loc, job.getId(), key);
+        }
     }
 
     /**

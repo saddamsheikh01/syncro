@@ -31,6 +31,8 @@ public class ViatorSyncService {
     private static final Logger log = LoggerFactory.getLogger(ViatorSyncService.class);
     private static final String PROVIDER = "VIATOR";
     private static final String SCOPE = "products";
+    /** Locales to sync (match frontend / ViatorExperienceCacheService.NEARBY_LOCALES). */
+    private static final List<String> SYNC_LOCALES = List.of("en", "it", "es", "fr", "sq", "pt");
     private static final int BULK_SIZE = 50;
     private static final int MAX_ERROR_MESSAGES = 50;
     private static final String LOCATION_KEY_SEPARATOR = ":";
@@ -164,154 +166,137 @@ public class ViatorSyncService {
             );
         }
 
-        ExternalSyncState state = loadOrCreateState();
-        if (command.resetCursor()) {
-            state.setCursorValue(null);
-            state.setCursorTs(null);
-            state.setLastError(null);
-            syncStateRepository.save(state);
-        }
-
         int count = command.count() > 0 ? command.count() : viatorConfig.getSync().getDefaultCount();
         int maxPages = command.maxPages() > 0 ? command.maxPages() : viatorConfig.getSync().getDefaultMaxPages();
-        String language = isNotBlank(command.language()) ? command.language() : viatorConfig.getDefaultLanguage();
+        List<String> languagesToSync = isNotBlank(command.language())
+            ? List.of(command.language())
+            : SYNC_LOCALES;
 
-        String cursor = normalize(state.getCursorValue());
-        Instant effectiveModifiedSince = resolveModifiedSince(command.modifiedSince(), cursor, state.getCursorTs());
-        Instant initialModifiedSince = effectiveModifiedSince;
+        int totalPagesProcessed = 0;
+        int totalProductsSeen = 0;
+        int totalCreated = 0;
+        int totalUpdated = 0;
+        int totalDeactivated = 0;
+        int totalErrors = 0;
+        List<String> allErrorMessages = new ArrayList<>();
 
-        int pagesProcessed = 0;
-        int productsSeen = 0;
-        int created = 0;
-        int updated = 0;
-        int deactivated = 0;
-        int errors = 0;
-        List<String> errorMessages = new ArrayList<>();
+        for (String language : languagesToSync) {
+            ExternalSyncState state = loadOrCreateState(language);
+            if (command.resetCursor()) {
+                state.setCursorValue(null);
+                state.setCursorTs(null);
+                state.setLastError(null);
+                syncStateRepository.save(state);
+            }
 
-        log.info("Starting Viator sync: count={}, maxPages={}, cursor={}, modifiedSince={}",
-            count, maxPages, cursor, effectiveModifiedSince);
+            String cursor = normalize(state.getCursorValue());
+            Instant effectiveModifiedSince = resolveModifiedSince(command.modifiedSince(), cursor, state.getCursorTs());
 
-        if (viatorConfig.getSync().isUseSearchOnly()) {
-            log.info("Viator sync in basic mode: using /products/search fallback directly");
+            int pagesProcessed = 0;
+            int productsSeen = 0;
+            int created = 0;
+            int updated = 0;
+            int deactivated = 0;
+            int errors = 0;
+            List<String> errorMessages = new ArrayList<>();
 
-            FallbackSyncResult fallback = syncUsingSearchFallback(maxPages, count, language);
-            pagesProcessed = fallback.pagesProcessed();
-            productsSeen = fallback.productsSeen();
-            created = fallback.created();
-            updated = fallback.updated();
-            deactivated = fallback.deactivated();
-            errors = fallback.errors();
-            fallback.errorMessages().forEach(msg -> addError(errorMessages, msg));
+            log.info("Starting Viator sync locale={}: count={}, maxPages={}, cursor={}", language, count, maxPages, cursor);
 
-            cursor = null;
-            state.setCursorValue(null);
-            state.setCursorTs(Instant.now());
-            state.setLastSuccessAt(Instant.now());
-            state.setLastError(errors == 0 ? null : firstError(errorMessages));
-            syncStateRepository.save(state);
-
-            return buildResponse(
-                pagesProcessed,
-                productsSeen,
-                created,
-                updated,
-                deactivated,
-                errors,
-                cursor,
-                initialModifiedSince,
-                errorMessages
-            );
-        }
-
-        while (pagesProcessed < maxPages) {
-            ViatorFetchResult fetchResult = viatorClient.getModifiedProducts(
-                cursor,
-                effectiveModifiedSince,
-                count,
-                language
-            );
-
-            if (fetchResult.endpointAccessDenied()) {
-                addError(
-                    errorMessages,
-                    "Endpoint /products/modified-since is not enabled for this key; falling back to /products/search"
-                );
-
-                FallbackSyncResult fallback = syncUsingSearchFallback(
-                    Math.max(maxPages - pagesProcessed, 1),
-                    count,
-                    language
-                );
-
-                pagesProcessed += fallback.pagesProcessed();
-                productsSeen += fallback.productsSeen();
-                created += fallback.created();
-                updated += fallback.updated();
-                deactivated += fallback.deactivated();
-                errors += fallback.errors();
+            if (viatorConfig.getSync().isUseSearchOnly()) {
+                FallbackSyncResult fallback = syncUsingSearchFallback(maxPages, count, language);
+                pagesProcessed = fallback.pagesProcessed();
+                productsSeen = fallback.productsSeen();
+                created = fallback.created();
+                updated = fallback.updated();
+                deactivated = fallback.deactivated();
+                errors = fallback.errors();
                 fallback.errorMessages().forEach(msg -> addError(errorMessages, msg));
-
-                cursor = null;
                 state.setCursorValue(null);
                 state.setCursorTs(Instant.now());
                 state.setLastSuccessAt(Instant.now());
                 state.setLastError(errors == 0 ? null : firstError(errorMessages));
                 syncStateRepository.save(state);
-                break;
+            } else {
+                while (pagesProcessed < maxPages) {
+                    ViatorFetchResult fetchResult = viatorClient.getModifiedProducts(
+                        cursor, effectiveModifiedSince, count, language);
+
+                    if (fetchResult.endpointAccessDenied()) {
+                        addError(errorMessages,
+                            "Endpoint /products/modified-since is not enabled for this key; falling back to /products/search");
+                        FallbackSyncResult fallback = syncUsingSearchFallback(
+                            Math.max(maxPages - pagesProcessed, 1), count, language);
+                        pagesProcessed += fallback.pagesProcessed();
+                        productsSeen += fallback.productsSeen();
+                        created += fallback.created();
+                        updated += fallback.updated();
+                        deactivated += fallback.deactivated();
+                        errors += fallback.errors();
+                        fallback.errorMessages().forEach(msg -> addError(errorMessages, msg));
+                        state.setCursorValue(null);
+                        state.setCursorTs(Instant.now());
+                        state.setLastSuccessAt(Instant.now());
+                        state.setLastError(errors == 0 ? null : firstError(errorMessages));
+                        syncStateRepository.save(state);
+                        break;
+                    }
+
+                    if (!fetchResult.isSuccess()) {
+                        errors++;
+                        addError(errorMessages, "Error fetching products/modified-since page"
+                            + (fetchResult.errorMessage() != null ? ": " + fetchResult.errorMessage() : ""));
+                        state.setLastError(firstError(errorMessages));
+                        syncStateRepository.save(state);
+                        break;
+                    }
+
+                    ViatorProductsPage page = fetchResult.page();
+                    pagesProcessed++;
+                    List<JsonNode> products = page.products() != null ? page.products() : List.of();
+                    productsSeen += products.size();
+
+                    PageSyncResult pageResult = processPageProducts(products, language, true);
+                    created += pageResult.created();
+                    updated += pageResult.updated();
+                    deactivated += pageResult.deactivated();
+                    errors += pageResult.errors();
+                    pageResult.errorMessages().forEach(msg -> addError(errorMessages, msg));
+
+                    cursor = normalize(page.nextCursor());
+                    state.setCursorValue(cursor);
+                    state.setLastSuccessAt(Instant.now());
+                    state.setLastError(errors == 0 ? null : firstError(errorMessages));
+                    if (cursor == null) {
+                        state.setCursorTs(Instant.now());
+                    }
+                    syncStateRepository.save(state);
+
+                    if (cursor == null) {
+                        break;
+                    }
+                    effectiveModifiedSince = null;
+                }
             }
 
-            if (!fetchResult.isSuccess()) {
-                errors++;
-                addError(
-                    errorMessages,
-                    "Error fetching products/modified-since page"
-                        + (fetchResult.errorMessage() != null ? ": " + fetchResult.errorMessage() : "")
-                );
-                state.setLastError(firstError(errorMessages));
-                syncStateRepository.save(state);
-                break;
-            }
-
-            ViatorProductsPage page = fetchResult.page();
-            pagesProcessed++;
-
-            List<JsonNode> products = page.products() != null ? page.products() : List.of();
-            productsSeen += products.size();
-
-            PageSyncResult pageResult = processPageProducts(products, language, true);
-            created += pageResult.created();
-            updated += pageResult.updated();
-            deactivated += pageResult.deactivated();
-            errors += pageResult.errors();
-            pageResult.errorMessages().forEach(msg -> addError(errorMessages, msg));
-
-            cursor = normalize(page.nextCursor());
-            state.setCursorValue(cursor);
-            state.setLastSuccessAt(Instant.now());
-            state.setLastError(errors == 0 ? null : firstError(errorMessages));
-            if (cursor == null) {
-                state.setCursorTs(Instant.now());
-            }
-            syncStateRepository.save(state);
-
-            if (cursor == null) {
-                break;
-            }
-
-            // Alla prima chiamata si usa modified-since; dalla seconda in poi solo cursor.
-            effectiveModifiedSince = null;
+            totalPagesProcessed += pagesProcessed;
+            totalProductsSeen += productsSeen;
+            totalCreated += created;
+            totalUpdated += updated;
+            totalDeactivated += deactivated;
+            totalErrors += errors;
+            errorMessages.forEach(msg -> addError(allErrorMessages, "[" + language + "] " + msg));
         }
 
         return buildResponse(
-            pagesProcessed,
-            productsSeen,
-            created,
-            updated,
-            deactivated,
-            errors,
-            cursor,
-            initialModifiedSince,
-            errorMessages
+            totalPagesProcessed,
+            totalProductsSeen,
+            totalCreated,
+            totalUpdated,
+            totalDeactivated,
+            totalErrors,
+            null,
+            null,
+            allErrorMessages
         );
     }
 
@@ -362,7 +347,7 @@ public class ViatorSyncService {
                 continue;
             }
             try {
-                UpsertResult result = upsertActiveProduct(product, now);
+                UpsertResult result = upsertActiveProduct(product, now, language);
                 if (result.created()) {
                     created++;
                 } else if (result.updated()) {
@@ -376,7 +361,7 @@ public class ViatorSyncService {
 
         for (String code : inactiveCodes) {
             try {
-                if (deactivateProduct(code, now)) {
+                if (deactivateProduct(code, now, language)) {
                     deactivated++;
                 }
             } catch (RuntimeException ex) {
@@ -576,16 +561,18 @@ public class ViatorSyncService {
     }
 
     @Transactional
-    protected UpsertResult upsertActiveProduct(JsonNode product, Instant syncedAt) {
+    protected UpsertResult upsertActiveProduct(JsonNode product, Instant syncedAt, String locale) {
         String productCode = text(product, "productCode");
         if (!isNotBlank(productCode)) {
             throw new IllegalArgumentException("Missing productCode");
         }
+        String effectiveLocale = normalizeLocaleForStorage(isNotBlank(locale) ? locale : "en");
 
-        Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalId(PROVIDER, productCode);
+        Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalIdAndLocale(PROVIDER, productCode, effectiveLocale);
         Experience experience = existingOpt.orElseGet(Experience::new);
 
         productMapper.updateExperience(experience, product, syncedAt);
+        experience.setLocale(effectiveLocale);
         applyDestinationCityLabel(experience);
         Experience saved = experienceRepository.save(experience);
         upsertAffiliationLink(saved, saved.getBookingUrl());
@@ -597,8 +584,9 @@ public class ViatorSyncService {
     }
 
     @Transactional
-    protected boolean deactivateProduct(String productCode, Instant syncedAt) {
-        Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalId(PROVIDER, productCode);
+    protected boolean deactivateProduct(String productCode, Instant syncedAt, String locale) {
+        String effectiveLocale = normalizeLocaleForStorage(isNotBlank(locale) ? locale : "en");
+        Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalIdAndLocale(PROVIDER, productCode, effectiveLocale);
         if (existingOpt.isEmpty()) {
             return false;
         }
@@ -634,12 +622,26 @@ public class ViatorSyncService {
         }
     }
 
-    private ExternalSyncState loadOrCreateState() {
-        return syncStateRepository.findByProviderAndScope(PROVIDER, SCOPE)
+    /** Normalize to short locale for DB (en-US -> en) so it matches frontend SUPPORTED_LOCALES. */
+    private static String normalizeLocaleForStorage(String locale) {
+        if (locale == null || locale.isBlank()) {
+            return "en";
+        }
+        String s = locale.trim();
+        int dash = s.indexOf('-');
+        String shortCode = dash > 0 ? s.substring(0, dash) : s;
+        shortCode = shortCode.toLowerCase(java.util.Locale.ROOT);
+        return SYNC_LOCALES.contains(shortCode) ? shortCode : "en";
+    }
+
+    /** @param language locale for this sync run (e.g. en, it). Use null for legacy single scope. */
+    private ExternalSyncState loadOrCreateState(String language) {
+        String scope = isNotBlank(language) ? SCOPE + ":" + language : SCOPE;
+        return syncStateRepository.findByProviderAndScope(PROVIDER, scope)
             .orElseGet(() -> {
                 ExternalSyncState state = new ExternalSyncState();
                 state.setProvider(PROVIDER);
-                state.setScope(SCOPE);
+                state.setScope(scope);
                 return syncStateRepository.save(state);
             });
     }

@@ -3,11 +3,19 @@ server:
   tomcat:
     connection-timeout: 600000
 
+# Reduce console noise: Hibernate connection/JTA messages and pool warnings on failed startup
+logging:
+  level:
+    org.hibernate.orm.connections: WARN
+    org.hibernate.orm.core: WARN
+    com.zaxxer.hikari: WARN
+    org.apache.catalina.loader: WARN
+
 spring:
   config:
     import: optional:file:.env[.properties],optional:file:../.env[.properties]
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?currentSchema=${POSTGRES_SCHEMA:public}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?currentSchema=${POSTGRES_SCHEMA:syncro_dev}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
   jpa:
@@ -15,10 +23,10 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: ${POSTGRES_SCHEMA}
+        default_schema: ${POSTGRES_SCHEMA:syncro_dev}
   flyway:
     enabled: true
-    schemas: ${POSTGRES_SCHEMA:public}
+    schemas: ${POSTGRES_SCHEMA:syncro_dev}
     baseline-on-migrate: true
     baseline-version: 8
   servlet:
@@ -50,6 +58,9 @@ app:
     api-key: ${GOOGLE_MAPS_API_KEY:}
     base-url: https://maps.googleapis.com/maps/api
     timeout-seconds: ${GOOGLE_MAPS_TIMEOUT_SECONDS:60}
+  viator-fetch-worker:
+    fixed-delay-ms: ${VIATOR_FETCH_WORKER_DELAY_MS:300000}
+    concurrency: ${VIATOR_FETCH_WORKER_CONCURRENCY:6}
   viator:
     api-key: ${VIATOR_API_KEY:}
     base-url: ${VIATOR_BASE_URL:https://api.sandbox.viator.com/partner}

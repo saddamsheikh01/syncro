@@ -11,6 +11,11 @@ export const ExperiencesOverview = () => {
   const { permission, hasPosition, actions: positionActions } = usePosition();
   const locationRequestedRef = useRef(false);
 
+  // Hydrate position from storage so "Near me" has coords immediately when returning from detail page.
+  useEffect(() => {
+    positionActions.hydrate();
+  }, [positionActions]);
+
   // On section entry: request location once if permission unknown. If granted, ViatorExperiencesSection defaults to "near me".
   useEffect(() => {
     if (permission !== "unknown" || locationRequestedRef.current) return;

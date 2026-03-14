@@ -8,6 +8,7 @@ import com.syncro.backend.domain.catalog.dto.AdminExperienceRequest;
 import com.syncro.backend.domain.catalog.dto.AdminExperienceUpdateRequest;
 import com.syncro.backend.domain.catalog.dto.ExperienceDetailResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
+import com.syncro.backend.domain.catalog.dto.GetExperiencesResult;
 import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import com.syncro.backend.domain.catalog.entity.Category;
 import com.syncro.backend.domain.catalog.entity.Experience;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,7 +79,7 @@ public class AdminExperienceService {
         int size
     ) {
         ensureAdmin(principal);
-        return experienceService.getExperiences(
+        var result = experienceService.getExperiences(
             categoryId,
             tagIds,
             latitude,
@@ -85,9 +87,14 @@ public class AdminExperienceService {
             radiusKm,
             query,
             null,
+            null,
             page,
             size
         );
+        if (result instanceof GetExperiencesResult.GetExperiencesData d) {
+            return d.page();
+        }
+        return Page.empty(PageRequest.of(page, size));
     }
 
     @Transactional(readOnly = true)

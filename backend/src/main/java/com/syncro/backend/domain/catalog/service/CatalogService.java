@@ -2,11 +2,13 @@ package com.syncro.backend.domain.catalog.service;
 
 import com.syncro.backend.domain.catalog.dto.CatalogResponse;
 import com.syncro.backend.domain.catalog.dto.ExperienceSummaryResponse;
+import com.syncro.backend.domain.catalog.dto.GetExperiencesResult;
 import com.syncro.backend.domain.catalog.dto.PlaceSummaryResponse;
 import com.syncro.backend.domain.catalog.entity.CatalogSource;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +60,7 @@ public class CatalogService {
         CatalogSource experienceSource = (q != null && !q.isBlank()) || (lat != null && lng != null)
             ? CatalogSource.VIATOR
             : source;
-        Page<ExperienceSummaryResponse> experiencesPage = experienceService.getExperiences(
+        GetExperiencesResult experiencesResult = experienceService.getExperiences(
             categoryId,
             tagIds,
             lat,
@@ -66,9 +68,13 @@ public class CatalogService {
             radiusKm,
             q,
             experienceSource,
+            null,
             page,
             size
         );
+        Page<ExperienceSummaryResponse> experiencesPage = experiencesResult instanceof GetExperiencesResult.GetExperiencesData d
+            ? d.page()
+            : Page.empty(PageRequest.of(page, size));
 
         return new CatalogResponse(
             placesPage.getContent(),

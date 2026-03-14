@@ -125,6 +125,13 @@ export type ExperienceSummaryResponse = {
   isActive: boolean;
 };
 
+/** Response body when GET /experiences returns 202 (job accepted). */
+export type JobAcceptedResponse = {
+  jobId: Uuid;
+  status: string;
+  message: string;
+};
+
 /** Unified catalog response: places and experiences in one API call (All tab). */
 export type CatalogResponse = {
   places: PlaceSummaryResponse[];

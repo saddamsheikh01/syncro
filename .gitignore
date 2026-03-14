@@ -12,6 +12,13 @@ desktop.ini
 .idea
 *.iml
 .vscode/
+.cursor/
+*.mdc
+
+#################################
+# Markdown / docs (optional: comment out *.md to track .md files)
+#################################
+*.md
 
 #################################
 # Directory strutturali da escludere

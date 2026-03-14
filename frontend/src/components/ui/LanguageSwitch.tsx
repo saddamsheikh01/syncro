@@ -2,7 +2,7 @@
 
 import type { HTMLAttributes } from "react";
 import { useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { useAdminAuth, useAuth, useI18n, useT } from "@/hooks";
 import type { SupportedLocale } from "@/i18n/locales";
@@ -30,6 +30,7 @@ export const LanguageSwitch = ({
   ...props
 }: LanguageSwitchProps) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, locale } = useT();
   const { isAuthenticated } = useAuth();
   const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
@@ -59,10 +60,16 @@ export const LanguageSwitch = ({
           if (isAdminArea) {
             if (!isAdminAuthenticated) return;
             i18nActions.syncAdminLanguage(next).catch(() => undefined);
+            router.refresh();
             return;
           }
-          if (!isAuthenticated) return;
+          if (!isAuthenticated) {
+            router.refresh();
+            return;
+          }
           i18nActions.syncLanguage(next).catch(() => undefined);
+          // Refresh so server-rendered content and client tree see the new locale/cookie; experiences refetch with new locale.
+          router.refresh();
         }}
         buttonClassName={cx(
           variant === "compact" && "px-3 py-2 text-[11px] font-bold tracking-wider"
