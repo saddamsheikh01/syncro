@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,22 +93,31 @@ public class ViatorFetchWorkerService {
             self.logJobCountsWhenEmpty();
             return;
         }
-        log.info("[ViatorFetchWorker] Claimed {} jobs, processing in parallel", claimedIds.size());
-        List<CompletableFuture<Void>> futures = claimedIds.stream()
-            .map(id -> CompletableFuture.runAsync(() -> processOneJob(id), viatorFetchWorkerExecutor))
-            .toList();
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+        log.info("[ViatorFetchWorker] Claimed {} jobs, submitting async (fire-and-forget)", claimedIds.size());
+        for (UUID id : claimedIds) {
+            try {
+                CompletableFuture.runAsync(() -> processOneJob(id), viatorFetchWorkerExecutor);
+            } catch (RejectedExecutionException ex) {
+                // Executor at capacity (all threads busy) — release job back to PENDING for next tick
+                log.warn("[ViatorFetchWorker] Executor full, releasing jobId={} back to PENDING", id);
+                self.releaseJobToPending(id);
+            }
+        }
+        // Returns immediately — jobs run in background on viatorFetchWorkerExecutor
     }
 
     @Transactional(readOnly = true)
     public void logJobCountsWhenEmpty() {
-        long total = jobRepository.count();
-        long p = jobRepository.countByStatus(ViatorFetchJob.STATUS_PENDING);
         long r = jobRepository.countByStatus(ViatorFetchJob.STATUS_RUNNING);
-        long c = jobRepository.countByStatus(ViatorFetchJob.STATUS_COMPLETED);
         long f = jobRepository.countByStatus(ViatorFetchJob.STATUS_FAILED);
-        log.info("[ViatorFetchWorker] No eligible pending jobs (total={} PENDING={} RUNNING={} COMPLETED={} FAILED={}); next run in ~5 s",
-            total, p, r, c, f);
+        // Only log if there are stuck running jobs or failures worth knowing about
+        if (r > 0 || f > 0) {
+            long total = jobRepository.count();
+            long p = jobRepository.countByStatus(ViatorFetchJob.STATUS_PENDING);
+            long c = jobRepository.countByStatus(ViatorFetchJob.STATUS_COMPLETED);
+            log.info("[ViatorFetchWorker] Idle (total={} PENDING={} RUNNING={} COMPLETED={} FAILED={})",
+                total, p, r, c, f);
+        }
     }
 
     @Transactional
@@ -201,6 +211,18 @@ public class ViatorFetchWorkerService {
                 : ViatorFetchJob.STATUS_PENDING);
             job.setUpdatedAt(Instant.now());
             jobRepository.save(job);
+        });
+    }
+
+    /** Releases a claimed job back to PENDING when the executor rejects it (all threads busy). */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void releaseJobToPending(UUID jobId) {
+        jobRepository.findById(jobId).ifPresent(job -> {
+            if (ViatorFetchJob.STATUS_RUNNING.equals(job.getStatus())) {
+                job.setStatus(ViatorFetchJob.STATUS_PENDING);
+                job.setUpdatedAt(Instant.now());
+                jobRepository.save(job);
+            }
         });
     }
 
