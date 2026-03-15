@@ -24,11 +24,9 @@ import type { ExperienceSummaryResponse, PlaceSummaryResponse } from "@/types/ca
 const PAGE_SIZE = 10;
 const DEFAULT_RADIUS_KM = 100;
 
-// ---- DEV TESTING TOGGLE -------------------------------------------------------
-// Set to `true` to replace the "Near me" button with manual lat/lng input fields.
-// Flip back to `false` to restore normal geolocation behaviour.
-const MANUAL_COORDS_TESTING: boolean = false;
-// -------------------------------------------------------------------------------
+// Manual lat/lng input replaces the "Near me" button in development only.
+// Dead-code eliminated by the bundler in production builds (NODE_ENV !== 'development').
+const MANUAL_COORDS_TESTING: boolean = process.env.NODE_ENV === "development";
 
 const formatDuration = (minutes: number | null): string | undefined => {
   if (!minutes) return undefined;

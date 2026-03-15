@@ -94,6 +94,8 @@ export const ViatorExperiencesSection = ({
   const useNearbyForFetch = embedFilters ? nearMe : scope === "nearby";
 
   const hadPositionRef = useRef(hasPosition);
+  const lastVisibilityFetchRef = useRef<number>(0);
+  const VISIBILITY_REFETCH_COOLDOWN_MS = 30_000;
 
   // Hydrate position before any effect runs so "Near me" and fetch use coords when returning from detail.
   useLayoutEffect(() => {
@@ -140,16 +142,20 @@ export const ViatorExperiencesSection = ({
   }, [locale]);
 
   // When page becomes visible again (e.g. user navigated back from experience detail), refetch so "Near me" data is restored.
+  // A cooldown prevents spurious refetches from rapid tab switching.
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === "visible" && useNearbyForFetch && hasPosition) {
-        initializedRef.current = null;
-        setSearchTrigger((t) => t + 1);
-      }
+      if (document.visibilityState !== "visible") return;
+      if (!useNearbyForFetch || !hasPosition) return;
+      const now = Date.now();
+      if (now - lastVisibilityFetchRef.current < VISIBILITY_REFETCH_COOLDOWN_MS) return;
+      lastVisibilityFetchRef.current = now;
+      initializedRef.current = null;
+      setSearchTrigger((t) => t + 1);
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [hasPosition, useNearbyForFetch]);
+  }, [hasPosition, useNearbyForFetch, VISIBILITY_REFETCH_COOLDOWN_MS]);
 
   const formatDuration = useCallback((minutes: number | null): string | undefined => {
     if (!minutes) return undefined;
@@ -282,6 +288,7 @@ export const ViatorExperiencesSection = ({
   );
 
   const showViatorUnavailable = !loading && isViatorUnavailableError(error);
+  const isInitialLoading = loading && experienceItems.length === 0;
 
   return (
     <section id={id} className={cx("space-y-4", className)}>
@@ -351,15 +358,21 @@ export const ViatorExperiencesSection = ({
       </Card>
       )}
 
+      {isInitialLoading ? (
+        <Card className="flex min-h-[280px] flex-col items-center justify-center gap-4 p-8">
+          <Loader size="lg" />
+          <p className="text-sm font-medium text-muted">{t("Curating experiences for you")}</p>
+        </Card>
+      ) : null}
 
-      {showViatorUnavailable ? (
+      {!isInitialLoading && showViatorUnavailable ? (
         <EmptyState
           title={t("Experiences temporarily unavailable")}
           description={t("Viator is temporarily unreachable. Please try again in a moment.")}
         />
       ) : null}
 
-      {!loading && error && !showViatorUnavailable ? (
+      {!isInitialLoading && !loading && error && !showViatorUnavailable ? (
         <ErrorState
           title={t("Unable to load experiences")}
           description={
@@ -370,14 +383,14 @@ export const ViatorExperiencesSection = ({
         />
       ) : null}
 
-      {!loading && !error && !showViatorUnavailable && experienceItems.length === 0 ? (
+      {!isInitialLoading && !loading && !error && !showViatorUnavailable && experienceItems.length === 0 ? (
         <EmptyState
           title={t("No experiences found")}
           description={t("No Viator experiences available right now.")}
         />
       ) : null}
 
-      {!loading && experienceItems.length > 0 ? (
+      {!isInitialLoading && experienceItems.length > 0 ? (
         <>
           <MapExperienceListItem
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"

@@ -1,4 +1,4 @@
-n -- Viator experience cache: for a given cache_key (includes locale), stores experience IDs from last successful fetch.
+-- Viator experience cache: for a given cache_key (includes locale), stores experience IDs from last successful fetch.
 CREATE TABLE IF NOT EXISTS viator_experience_cache (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cache_key VARCHAR(512) NOT NULL,

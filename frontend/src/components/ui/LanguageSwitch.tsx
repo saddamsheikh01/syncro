@@ -55,11 +55,11 @@ export const LanguageSwitch = ({
         align={align}
         buttonAriaLabel={t("Change language")}
         items={items}
-        onSelect={(next) => {
+        onSelect={async (next) => {
           i18nActions.setLanguage(next);
           if (isAdminArea) {
             if (!isAdminAuthenticated) return;
-            i18nActions.syncAdminLanguage(next).catch(() => undefined);
+            await i18nActions.syncAdminLanguage(next).catch(() => undefined);
             router.refresh();
             return;
           }
@@ -67,8 +67,8 @@ export const LanguageSwitch = ({
             router.refresh();
             return;
           }
-          i18nActions.syncLanguage(next).catch(() => undefined);
-          // Refresh so server-rendered content and client tree see the new locale/cookie; experiences refetch with new locale.
+          // Await the sync so the locale cookie is set before the server re-renders.
+          await i18nActions.syncLanguage(next).catch(() => undefined);
           router.refresh();
         }}
         buttonClassName={cx(

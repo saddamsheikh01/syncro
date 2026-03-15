@@ -382,7 +382,10 @@ public class AdminExperienceService {
     @Transactional
     public int clearViatorCache(AdminPrincipal principal, String prefix) {
         ensureAdmin(principal);
-        String safePrefix = (prefix != null && !prefix.isBlank()) ? prefix.trim() : "";
+        if (prefix == null || prefix.isBlank()) {
+            throw new BadRequestException("Cache key prefix is required — pass a specific prefix (e.g. \"nearby:45.61:13.83\") to avoid wiping the entire cache");
+        }
+        String safePrefix = prefix.trim();
         int cacheDeleted = viatorExperienceCacheRepository.deleteByCacheKeyPrefix(safePrefix);
         viatorFetchJobRepository.deleteCompletedOrFailedByCacheKeyPrefix(safePrefix);
         return cacheDeleted;
