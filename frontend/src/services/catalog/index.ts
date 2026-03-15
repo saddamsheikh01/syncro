@@ -111,8 +111,8 @@ export const getExperienceJobStatus = async (
   return data;
 };
 
-const JOB_POLL_INTERVAL_MS = 5000; // 5 s between polls (worker runs every ~2 min, no need to check every 2 s)
-const JOB_POLL_MAX_ATTEMPTS = 40;  // ~3.3 min total
+const JOB_POLL_INTERVAL_MS = 3000; // 3 s between polls (worker picks up jobs within ~5 s)
+const JOB_POLL_MAX_ATTEMPTS = 40;  // ~2 min total
 
 /** Call getExperiences; on 202, poll job until COMPLETED/FAILED/NOT_FOUND then refetch. Returns page or throws. */
 export const getExperiencesWithPolling = async (

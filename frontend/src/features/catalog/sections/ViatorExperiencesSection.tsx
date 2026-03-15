@@ -21,8 +21,7 @@ import type { ExperienceListItemProps } from "@/features/catalog/cards/Experienc
 import type { ExperienceSummaryResponse } from "@/types/catalog";
 
 const DEFAULT_PAGE_SIZE = 8;
-const RADIUS_OPTIONS_KM = [50, 75, 100, 125, 150] as const;
-const DEFAULT_RADIUS_KM = 50;
+const RADIUS_KM = 100;
 type ViatorScope = "nearby" | "everywhere";
 
 type PageInfo = {
@@ -83,7 +82,6 @@ export const ViatorExperiencesSection = ({
   const fetchIdRef = useRef(0);
   const prevPathnameRef = useRef(pathname);
   const [scope, setScope] = useState<ViatorScope>("nearby");
-  const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchApplied, setSearchApplied] = useState("");
   const [searchTrigger, setSearchTrigger] = useState(0);
@@ -198,7 +196,7 @@ export const ViatorExperiencesSection = ({
           q,
           lat: nearbyLat,
           lng: nearbyLng,
-          radiusKm: useNearby ? radiusKm : undefined,
+          radiusKm: useNearby ? RADIUS_KM : undefined,
           locale,
           page,
           size: pageSize,
@@ -228,7 +226,7 @@ export const ViatorExperiencesSection = ({
         }
       }
     },
-    [effectiveSearch, hasPosition, locale, maxItems, pageSize, position?.latitude, position?.longitude, radiusKm, useNearbyForFetch]
+    [effectiveSearch, hasPosition, locale, maxItems, pageSize, position?.latitude, position?.longitude, useNearbyForFetch]
   );
 
   const handleSearchApply = useCallback(() => {
@@ -239,9 +237,9 @@ export const ViatorExperiencesSection = ({
   }, [searchQuery]);
 
   useEffect(() => {
-    const fetchKey =
+        const fetchKey =
       useNearbyForFetch && hasPosition && position?.latitude != null && position?.longitude != null
-        ? `nearby:${position.latitude}:${position.longitude}:r:${radiusKm}`
+        ? `nearby:${position.latitude}:${position.longitude}:r:${RADIUS_KM}`
         : "global";
     const key = `${fetchKey}:q:${effectiveSearch}:trigger:${searchTrigger}:locale:${locale}`;
     if (initializedRef.current === key) return;
@@ -249,7 +247,7 @@ export const ViatorExperiencesSection = ({
     fetchIdRef.current += 1;
     const requestId = fetchIdRef.current;
     void fetchPage(0, false, effectiveSearch || undefined, requestId);
-  }, [effectiveSearch, fetchPage, hasPosition, locale, position?.latitude, position?.longitude, radiusKm, searchTrigger, useNearbyForFetch]);
+  }, [effectiveSearch, fetchPage, hasPosition, locale, position?.latitude, position?.longitude, searchTrigger, useNearbyForFetch]);
 
   const hasMore = useMemo(() => {
     const pageHasMore = pageInfo.page + 1 < pageInfo.totalPages;
@@ -283,7 +281,6 @@ export const ViatorExperiencesSection = ({
     [formatDuration, formatPrice, hideProviderLabel, items]
   );
 
-  const showLoader = loading;
   const showViatorUnavailable = !loading && isViatorUnavailableError(error);
 
   return (
@@ -350,53 +347,10 @@ export const ViatorExperiencesSection = ({
           >
             {t("Anywhere")}
           </button>
-          {useNearbyForFetch && hasPosition ? (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-subtle">{t("Search radius")}</span>
-              <select
-                value={radiusKm}
-                onChange={(e) => {
-                  const next = Number(e.target.value) as (typeof RADIUS_OPTIONS_KM)[number];
-                  setRadiusKm(next);
-                  setSearchTrigger((t) => t + 1);
-                }}
-                className="rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                aria-label={t("Search radius in km")}
-              >
-                {RADIUS_OPTIONS_KM.map((km) => (
-                  <option key={km} value={km}>
-                    {km} km
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
         </div>
       </Card>
       )}
 
-      {showLoader ? (
-        <Card className="overflow-hidden border-border/70 bg-gradient-to-b from-surface-muted/40 to-surface py-10 text-center">
-          <div className="mx-auto flex max-w-sm flex-col items-center gap-5 px-4">
-            <span className="text-5xl opacity-90" aria-hidden>
-              ✨
-            </span>
-            <Loader size="md" />
-            <div className="space-y-1">
-              <p className="text-base font-semibold text-foreground">
-                {scope === "nearby" && useNearbyForFetch
-                  ? t("Processing your location. Experiences will be ready in a few minutes—check back soon for the best results.")
-                  : t("Curating experiences for you")}
-              </p>
-              <p className="text-sm text-muted">
-                {scope === "nearby" && useNearbyForFetch
-                  ? t("This may take up to 5 minutes. You can leave and return.")
-                  : t("Won’t be long — we’re finding the best ones.")}
-              </p>
-            </div>
-          </div>
-        </Card>
-      ) : null}
 
       {showViatorUnavailable ? (
         <EmptyState

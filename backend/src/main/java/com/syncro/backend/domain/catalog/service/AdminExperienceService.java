@@ -18,6 +18,8 @@ import com.syncro.backend.domain.catalog.repository.CategoryRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceRepository;
 import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
+import com.syncro.backend.domain.catalog.repository.ViatorExperienceCacheRepository;
+import com.syncro.backend.domain.catalog.repository.ViatorFetchJobRepository;
 import com.syncro.backend.domain.email.service.EmailNotificationService;
 import com.syncro.backend.domain.profile.entity.UserProfile;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
@@ -45,6 +47,8 @@ public class AdminExperienceService {
     private final ExperienceService experienceService;
     private final EmailNotificationService emailNotificationService;
     private final UserProfileRepository userProfileRepository;
+    private final ViatorExperienceCacheRepository viatorExperienceCacheRepository;
+    private final ViatorFetchJobRepository viatorFetchJobRepository;
 
     public AdminExperienceService(
         ExperienceRepository experienceRepository,
@@ -54,7 +58,9 @@ public class AdminExperienceService {
         TagRepository tagRepository,
         ExperienceService experienceService,
         EmailNotificationService emailNotificationService,
-        UserProfileRepository userProfileRepository
+        UserProfileRepository userProfileRepository,
+        ViatorExperienceCacheRepository viatorExperienceCacheRepository,
+        ViatorFetchJobRepository viatorFetchJobRepository
     ) {
         this.experienceRepository = experienceRepository;
         this.categoryRepository = categoryRepository;
@@ -64,6 +70,8 @@ public class AdminExperienceService {
         this.experienceService = experienceService;
         this.emailNotificationService = emailNotificationService;
         this.userProfileRepository = userProfileRepository;
+        this.viatorExperienceCacheRepository = viatorExperienceCacheRepository;
+        this.viatorFetchJobRepository = viatorFetchJobRepository;
     }
 
     @Transactional(readOnly = true)
@@ -360,5 +368,23 @@ public class AdminExperienceService {
         }
         String normalized = value.trim();
         return normalized.isBlank() ? null : normalized;
+    }
+
+    /**
+     * Clears Viator cache entries (and their completed/failed jobs) whose cache key starts with
+     * the given prefix. Useful when a location resolved to the wrong destination and produced
+     * empty results — clearing the cache lets the worker re-run with the corrected logic.
+     *
+     * @param principal admin user
+     * @param prefix    cache key prefix, e.g. "nearby:45.61:13.83" or "nearby:" for all
+     * @return number of cache rows deleted
+     */
+    @Transactional
+    public int clearViatorCache(AdminPrincipal principal, String prefix) {
+        ensureAdmin(principal);
+        String safePrefix = (prefix != null && !prefix.isBlank()) ? prefix.trim() : "";
+        int cacheDeleted = viatorExperienceCacheRepository.deleteByCacheKeyPrefix(safePrefix);
+        viatorFetchJobRepository.deleteCompletedOrFailedByCacheKeyPrefix(safePrefix);
+        return cacheDeleted;
     }
 }

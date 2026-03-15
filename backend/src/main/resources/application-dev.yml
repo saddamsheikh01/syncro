@@ -59,7 +59,7 @@ app:
     base-url: https://maps.googleapis.com/maps/api
     timeout-seconds: ${GOOGLE_MAPS_TIMEOUT_SECONDS:60}
   viator-fetch-worker:
-    fixed-delay-ms: ${VIATOR_FETCH_WORKER_DELAY_MS:300000}
+    fixed-delay-ms: ${VIATOR_FETCH_WORKER_DELAY_MS:5000}
     concurrency: ${VIATOR_FETCH_WORKER_CONCURRENCY:6}
   viator:
     api-key: ${VIATOR_API_KEY:}

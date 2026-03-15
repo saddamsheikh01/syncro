@@ -25,8 +25,12 @@ public class ViatorExperienceCacheService {
     /** Round coordinates to this many decimals for stable cache keys. */
     private static final int COORD_DECIMALS = 2;
 
-    /** All locales we pre-fetch for nearby (match frontend language options). */
-    public static final List<String> NEARBY_LOCALES = List.of("en", "it", "es", "fr", "sq", "pt");
+    /**
+     * Locales we pre-fetch for nearby jobs. Must only contain locales accepted by the
+     * Viator Accept-Language header — "sq" (Albanian) is not supported by the Viator API
+     * and returns a 400, so it is intentionally excluded.
+     */
+    public static final List<String> NEARBY_LOCALES = List.of("en", "it", "es", "fr", "pt");
 
     private final ViatorExperienceCacheRepository cacheRepository;
     private final ViatorFetchJobRepository jobRepository;

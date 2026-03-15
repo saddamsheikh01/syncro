@@ -16,4 +16,8 @@ public interface ViatorExperienceCacheRepository extends JpaRepository<ViatorExp
     @Modifying
     @Query("DELETE FROM ViatorExperienceCache c WHERE c.expiresAt < :now")
     int deleteExpired(@Param("now") Instant now);
+
+    @Modifying
+    @Query("DELETE FROM ViatorExperienceCache c WHERE c.cacheKey LIKE :prefix%")
+    int deleteByCacheKeyPrefix(@Param("prefix") String prefix);
 }

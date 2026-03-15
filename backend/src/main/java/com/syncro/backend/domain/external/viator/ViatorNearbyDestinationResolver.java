@@ -60,13 +60,17 @@ public class ViatorNearbyDestinationResolver {
             return List.of();
         }
 
-        List<String> searchTerms = buildSearchTerms(geoContext.get());
+        GeoContext geo = geoContext.get();
+        log.info("[ViatorResolver] lat={} lng={} → city={} district={} region={} country={} countryCode={}",
+            latitude, longitude, geo.city(), geo.district(), geo.region(), geo.country(), geo.countryCode());
+
+        List<String> searchTerms = buildSearchTerms(geo);
+        log.info("[ViatorResolver] searchTerms={}", searchTerms);
         if (searchTerms.isEmpty()) {
             return List.of();
         }
 
         Map<String, Integer> scoreByDestination = new LinkedHashMap<>();
-        GeoContext geo = geoContext.get();
         for (String term : searchTerms) {
             List<ViatorDestinationResult> results = viatorClient.searchDestinationsByTerm(
                 term,
@@ -87,12 +91,17 @@ public class ViatorNearbyDestinationResolver {
             }
         }
 
-        return scoreByDestination.entrySet()
+        log.info("[ViatorResolver] scores={}", scoreByDestination);
+
+        List<String> resolved = scoreByDestination.entrySet()
             .stream()
             .sorted(Map.Entry.<String, Integer>comparingByValue(Comparator.reverseOrder()))
             .limit(safeMaxDestinations)
             .map(Map.Entry::getKey)
             .toList();
+
+        log.info("[ViatorResolver] resolved destinations={}", resolved);
+        return resolved;
     }
 
     private Optional<GeoContext> reverseGeocode(double latitude, double longitude, String language) {
@@ -130,6 +139,7 @@ public class ViatorNearbyDestinationResolver {
             String region = null;
             String country = null;
             String countryCode = null;
+            String rawDistrict = null;
 
             for (JsonNode result : results) {
                 JsonNode components = result.path("address_components");
@@ -142,21 +152,27 @@ public class ViatorNearbyDestinationResolver {
                 if (region == null) {
                     region = extractAddressComponent(components, "administrative_area_level_1", true);
                 }
+                if (rawDistrict == null) {
+                    rawDistrict = extractAddressComponent(components, "administrative_area_level_2", true);
+                }
                 if (country == null) {
                     country = extractAddressComponent(components, "country", true);
                 }
                 if (countryCode == null) {
                     countryCode = extractAddressComponent(components, "country", false);
                 }
-                if (city != null && country != null) {
+                if (city != null && country != null && rawDistrict != null) {
                     break;
                 }
             }
 
+            // Clean "Provincia di Trieste" → "Trieste", "Province of Rome" → "Rome", etc.
+            String district = cleanProvinceOrCountyName(rawDistrict);
+
             if (city == null && region == null && country == null) {
                 return Optional.empty();
             }
-            return Optional.of(new GeoContext(city, region, country, countryCode));
+            return Optional.of(new GeoContext(city, district, region, country, countryCode));
         } catch (RestClientException ex) {
             log.warn("Google reverse geocoding failed: {}", ex.getMessage());
             return Optional.empty();
@@ -186,18 +202,29 @@ public class ViatorNearbyDestinationResolver {
 
     private List<String> buildSearchTerms(GeoContext geoContext) {
         Set<String> terms = new LinkedHashSet<>();
+        // 1. Most specific: city
         if (geoContext.city != null && geoContext.country != null) {
             terms.add(geoContext.city + ", " + geoContext.country);
         }
         if (geoContext.city != null) {
             terms.add(geoContext.city);
         }
+        // 2. District / province (e.g. "Trieste" from "Provincia di Trieste")
+        //    This fires when locality is a hamlet/village not known to Viator.
+        if (geoContext.district != null && geoContext.country != null) {
+            terms.add(geoContext.district + ", " + geoContext.country);
+        }
+        if (geoContext.district != null) {
+            terms.add(geoContext.district);
+        }
+        // 3. Region / state
         if (geoContext.region != null && geoContext.country != null) {
             terms.add(geoContext.region + ", " + geoContext.country);
         }
         if (geoContext.region != null) {
             terms.add(geoContext.region);
         }
+        // 4. Country fallback
         if (geoContext.country != null) {
             terms.add(geoContext.country);
         }
@@ -217,6 +244,7 @@ public class ViatorNearbyDestinationResolver {
         String normalizedParent = normalizeForMatch(result.parentDestinationName());
         String normalizedName = normalizeForMatch(result.name());
         String normalizedCity = normalizeForMatch(geo.city());
+        String normalizedDistrict = normalizeForMatch(geo.district());
         String normalizedRegion = normalizeForMatch(geo.region());
 
         if (normalizedCountry != null || normalizedCountryCode != null) {
@@ -231,12 +259,15 @@ public class ViatorNearbyDestinationResolver {
             }
         }
 
-        if (normalizedCity == null && normalizedRegion == null) {
+        if (normalizedCity == null && normalizedDistrict == null && normalizedRegion == null) {
             return false;
         }
-        boolean cityRegionMatch = (normalizedCity != null && normalizedName != null && normalizedName.contains(normalizedCity))
+        boolean cityRegionMatch =
+            (normalizedCity != null && normalizedName != null && normalizedName.contains(normalizedCity))
+            || (normalizedDistrict != null && normalizedName != null && normalizedName.contains(normalizedDistrict))
             || (normalizedRegion != null && normalizedName != null && normalizedName.contains(normalizedRegion))
             || (normalizedCity != null && normalizedParent != null && normalizedParent.contains(normalizedCity))
+            || (normalizedDistrict != null && normalizedParent != null && normalizedParent.contains(normalizedDistrict))
             || (normalizedRegion != null && normalizedParent != null && normalizedParent.contains(normalizedRegion));
         return cityRegionMatch;
     }
@@ -247,6 +278,7 @@ public class ViatorNearbyDestinationResolver {
         String normalizedParent = normalizeForMatch(result.parentDestinationName());
         String normalizedTerm = normalizeForMatch(term);
         String normalizedCity = normalizeForMatch(geoContext.city);
+        String normalizedDistrict = normalizeForMatch(geoContext.district);
         String normalizedRegion = normalizeForMatch(geoContext.region);
         String normalizedCountry = normalizeForMatch(geoContext.country);
         String normalizedCountryCode = normalizeForMatch(geoContext.countryCode);
@@ -254,13 +286,33 @@ public class ViatorNearbyDestinationResolver {
         if (normalizedTerm != null && normalizedTerm.equals(normalizedName)) {
             score += 300;
         }
+
+        // City-level match (most specific)
         if (normalizedCity != null) {
             if (normalizedCity.equals(normalizedName)) {
-                score += 250;
+                score += 600;
             } else if (normalizedName != null && normalizedName.contains(normalizedCity)) {
                 score += 160;
             }
         }
+
+        // District/province match (e.g. "Trieste" from "Provincia di Trieste")
+        if (normalizedDistrict != null) {
+            if (normalizedDistrict.equals(normalizedName)) {
+                score += 450;
+            } else if (normalizedName != null && normalizedName.contains(normalizedDistrict)) {
+                score += 200;
+            }
+        }
+
+        // Penalize country-level destinations when more specific context is available.
+        // Prevents "Italy" from beating "Trieste" just because its name exactly matches country.
+        boolean hasSpecificContext = normalizedCity != null || normalizedDistrict != null;
+        if (hasSpecificContext && normalizedCountry != null && normalizedName != null
+                && normalizedName.equals(normalizedCountry)) {
+            score -= 400;
+        }
+
         if (normalizedRegion != null) {
             if (normalizedRegion.equals(normalizedName)) {
                 score += 120;
@@ -308,8 +360,29 @@ public class ViatorNearbyDestinationResolver {
         return withoutAccents.toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Strips common province/county name prefixes so that e.g.
+     * "Provincia di Trieste" → "Trieste", "Province of Rome" → "Rome".
+     * Returns the raw value unchanged if no prefix is found.
+     */
+    private String cleanProvinceOrCountyName(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        for (String sep : List.of(" di ", " of ", " de ", " della ", " del ", " des ")) {
+            int idx = trimmed.indexOf(sep);
+            if (idx > 0) {
+                String rest = trimmed.substring(idx + sep.length()).trim();
+                if (!rest.isEmpty()) {
+                    return rest;
+                }
+            }
+        }
+        return trimmed;
+    }
+
     private record GeoContext(
         String city,
+        String district,   // cleaned administrative_area_level_2 (e.g. "Trieste" from "Provincia di Trieste")
         String region,
         String country,
         String countryCode

@@ -27,14 +27,11 @@ import com.syncro.backend.domain.catalog.repository.ExperienceTagRepository;
 import com.syncro.backend.domain.catalog.repository.PlaceRepository;
 import com.syncro.backend.domain.catalog.repository.ViatorFetchJobRepository;
 import com.syncro.backend.domain.external.viator.ViatorClient;
-import com.syncro.backend.domain.external.viator.ViatorNearbyDestinationResolver;
 import com.syncro.backend.domain.external.viator.ViatorProductMapper;
-import com.syncro.backend.domain.external.viator.ViatorSyncService;
 import com.syncro.backend.domain.tags.dto.TagResponse;
 import com.syncro.backend.domain.tags.entity.Tag;
 import com.syncro.backend.domain.tags.mapper.TagMapper;
 import com.syncro.backend.domain.tags.repository.TagRepository;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,9 +46,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.i18n.LocaleContextHolder;
 
 @Service
 public class ExperienceService {
@@ -62,7 +59,6 @@ public class ExperienceService {
     private static final String DUMMY_LOCATION_REF = "__NO_LOCATION_REF__";
     /** Default radius when lat/lng provided but radiusKm null (e.g. Viator fallback to DB by distance). */
     private static final double DEFAULT_NEARBY_RADIUS_KM = 100.0;
-    private static final int NEARBY_MAX_DESTINATIONS = 6;
 
     private final ExperienceRepository experienceRepository;
     private final CategoryRepository categoryRepository;
@@ -70,9 +66,7 @@ public class ExperienceService {
     private final ExperienceTagRepository experienceTagRepository;
     private final TagRepository tagRepository;
     private final AffiliationLinkRepository affiliationLinkRepository;
-    private final ViatorSyncService viatorSyncService;
     private final ViatorClient viatorClient;
-    private final ViatorNearbyDestinationResolver viatorNearbyDestinationResolver;
     private final ViatorProductMapper viatorProductMapper;
     private final ExperienceMapper experienceMapper;
     private final CategoryMapper categoryMapper;
@@ -89,9 +83,7 @@ public class ExperienceService {
         ExperienceTagRepository experienceTagRepository,
         TagRepository tagRepository,
         AffiliationLinkRepository affiliationLinkRepository,
-        ViatorSyncService viatorSyncService,
         ViatorClient viatorClient,
-        ViatorNearbyDestinationResolver viatorNearbyDestinationResolver,
         ViatorProductMapper viatorProductMapper,
         ExperienceMapper experienceMapper,
         CategoryMapper categoryMapper,
@@ -107,9 +99,7 @@ public class ExperienceService {
         this.experienceTagRepository = experienceTagRepository;
         this.tagRepository = tagRepository;
         this.affiliationLinkRepository = affiliationLinkRepository;
-        this.viatorSyncService = viatorSyncService;
         this.viatorClient = viatorClient;
-        this.viatorNearbyDestinationResolver = viatorNearbyDestinationResolver;
         this.viatorProductMapper = viatorProductMapper;
         this.experienceMapper = experienceMapper;
         this.categoryMapper = categoryMapper;
@@ -195,10 +185,25 @@ public class ExperienceService {
             }
 
             ViatorFetchJob newJob = viatorExperienceCacheService.createJob(cacheKey, jobType, locale, jobParams);
-            log.info("[Viator] Created job jobId={} type={} cacheKey={} (worker will pick in up to 2 min)", newJob.getId(), jobType, cacheKey);
+            log.info("[Viator] Created job jobId={} type={} cacheKey={} (worker picks up within ~5 s)", newJob.getId(), jobType, cacheKey);
 
-            if (ViatorFetchJob.JOB_TYPE_NEARBY.equals(jobType)) {
-                enqueueNearbyJobsForAllLocales(latitude, longitude, radiusKm, locale);
+            // Pre-create background jobs for all other locales immediately so the worker
+            // can process all locales in parallel on the very first scheduler tick.
+            for (String bgLocale : ViatorExperienceCacheService.NEARBY_LOCALES) {
+                if (bgLocale.equals(locale)) continue;
+                try {
+                    String bgCacheKey = ViatorFetchJob.JOB_TYPE_NEARBY.equals(jobType)
+                        ? viatorExperienceCacheService.buildCacheKeyNearby(latitude, longitude, bgLocale)
+                        : viatorExperienceCacheService.buildCacheKeySearch(normalizedQuery, bgLocale);
+                    if (viatorExperienceCacheService.findValidCache(bgCacheKey).isPresent()) continue;
+                    if (viatorExperienceCacheService.findExistingJob(bgCacheKey).isPresent()) continue;
+                    Map<String, Object> bgParams = new LinkedHashMap<>(jobParams);
+                    bgParams.put("locale", bgLocale);
+                    ViatorFetchJob bgJob = viatorExperienceCacheService.createJob(bgCacheKey, jobType, bgLocale, bgParams);
+                    log.info("[Viator] Pre-created background job locale={} jobId={} cacheKey={}", bgLocale, bgJob.getId(), bgCacheKey);
+                } catch (Exception e) {
+                    log.warn("[Viator] Failed to pre-create background job locale={}: {}", bgLocale, e.getMessage());
+                }
             }
 
             return new GetExperiencesResult.GetExperiencesJobAccepted(
@@ -261,96 +266,6 @@ public class ExperienceService {
             ))
             .toList();
         return new PageImpl<>(content, PageRequest.of(page, size), total);
-    }
-
-    /** For nearby: enqueue fetch jobs for all locales in background so switching language has data ready. */
-    private void enqueueNearbyJobsForAllLocales(Double lat, Double lng, Double radiusKm, String requestLocale) {
-        Map<String, Object> baseParams = new LinkedHashMap<>();
-        baseParams.put("lat", lat);
-        baseParams.put("lng", lng);
-        if (radiusKm != null) {
-            baseParams.put("radiusKm", radiusKm);
-        }
-        for (String loc : ViatorExperienceCacheService.NEARBY_LOCALES) {
-            if (loc.equals(requestLocale)) {
-                continue;
-            }
-            String key = viatorExperienceCacheService.buildCacheKeyNearby(lat, lng, loc);
-            if (viatorExperienceCacheService.findValidCache(key).isPresent()) {
-                continue;
-            }
-            if (viatorExperienceCacheService.findExistingJob(key).isPresent()) {
-                continue;
-            }
-            Map<String, Object> params = new LinkedHashMap<>(baseParams);
-            params.put("locale", loc);
-            ViatorFetchJob job = viatorExperienceCacheService.createJob(key, ViatorFetchJob.JOB_TYPE_NEARBY, loc, params);
-            log.info("[Viator] Enqueued nearby job for locale {} jobId={} cacheKey={}", loc, job.getId(), key);
-        }
-    }
-
-    /**
-     * Search experiences via Viator partner API for nearby coordinates.
-     * Chains: reverse-geocode (lat/lng → location) → resolve destinations → searchProductsByDestination.
-     * Radius ~100km via ViatorNearbyDestinationResolver (6 destinations).
-     */
-    private Page<ExperienceSummaryResponse> getExperiencesFromViatorApiNearby(
-        double latitude,
-        double longitude,
-        int page,
-        int size
-    ) {
-        String localeTag = resolveLocaleTag();
-        List<String> destinationRefs = viatorNearbyDestinationResolver.resolveDestinationRefs(
-            latitude,
-            longitude,
-            localeTag != null ? localeTag : "en",
-            NEARBY_MAX_DESTINATIONS
-        );
-        var result = viatorClient.searchProductsByCoordinates(
-            destinationRefs,
-            page,
-            size,
-            "EUR",
-            localeTag != null ? localeTag : "en"
-        );
-        List<ExperienceSummaryResponse> content = new ArrayList<>();
-        if (result.products() != null) {
-            for (var product : result.products()) {
-                content.add(viatorProductMapper.toSummaryResponse(product));
-            }
-        }
-        return new PageImpl<>(
-            content,
-            PageRequest.of(page, size),
-            result.totalCount()
-        );
-    }
-
-    /**
-     * Search experiences via Viator partner API when search filter (q) is applied.
-     * Chains: searchDestinationsByTerm(q) → searchProductsByDestination for each destination.
-     */
-    private Page<ExperienceSummaryResponse> getExperiencesFromViatorApi(String query, int page, int size) {
-        String localeTag = resolveLocaleTag();
-        var result = viatorClient.searchProductsBySearchTerm(
-            query,
-            page,
-            size,
-            "EUR",
-            localeTag != null ? localeTag : "en"
-        );
-        List<ExperienceSummaryResponse> content = new ArrayList<>();
-        if (result.products() != null) {
-            for (var product : result.products()) {
-                content.add(viatorProductMapper.toSummaryResponse(product));
-            }
-        }
-        return new PageImpl<>(
-            content,
-            PageRequest.of(page, size),
-            result.totalCount()
-        );
     }
 
     @Transactional(readOnly = true)
@@ -499,22 +414,4 @@ public class ExperienceService {
         return ids.stream().distinct().toList();
     }
 
-    private List<String> normalizeLocationRefs(List<String> refs) {
-        if (refs == null || refs.isEmpty()) {
-            return List.of();
-        }
-        List<String> normalized = refs.stream()
-            .map(this::normalizeOptional)
-            .filter(value -> value != null)
-            .distinct()
-            .toList();
-        if (normalized.isEmpty()) {
-            return List.of();
-        }
-        return normalized;
-    }
-
-    private String resolveLocaleTag() {
-        return normalizeOptional(LocaleContextHolder.getLocale().toLanguageTag());
-    }
 }

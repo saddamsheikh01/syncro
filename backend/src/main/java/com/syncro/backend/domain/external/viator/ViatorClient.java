@@ -353,16 +353,15 @@ public class ViatorClient {
             List<JsonNode> products = pageOpt.get().products() != null
                 ? pageOpt.get().products()
                 : List.of();
-            java.util.Set<String> allowedRefs = new java.util.HashSet<>(destinationRefs);
             for (JsonNode product : products) {
                 String code = text(product, "productCode");
                 if (!isNotBlank(code) || seenCodes.contains(code)) {
                     continue;
                 }
-                String primaryRef = extractPrimaryDestinationRef(product);
-                if (primaryRef != null && !allowedRefs.contains(primaryRef)) {
-                    continue;
-                }
+                // Trust Viator's API: products returned for a destination query are already
+                // relevant to that destination. No additional ref filtering needed — country-level
+                // destinations (e.g. China=13, Italy=57) return city-level product refs, and
+                // a secondary ref check would incorrectly discard all of them.
                 seenCodes.add(code);
                 allProducts.add(product);
             }

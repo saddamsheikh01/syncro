@@ -155,4 +155,21 @@ public class AdminExperiencesController {
         affiliationLinkService.deleteForExperience(principal, experienceId, affiliationId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/clear-viator-cache")
+    @Operation(
+        summary = "Clear Viator cache",
+        description = "Deletes Viator cache entries (and their completed/failed jobs) whose cache key starts with the given prefix. "
+            + "Example prefix: 'nearby:45.61:13.83' to clear a specific location, or 'nearby:' to clear all nearby caches."
+    )
+    public ResponseEntity<java.util.Map<String, Object>> clearViatorCache(
+        @AuthenticationPrincipal AdminPrincipal principal,
+        @RequestParam(required = false, defaultValue = "") String prefix
+    ) {
+        int deleted = adminExperienceService.clearViatorCache(principal, prefix);
+        return ResponseEntity.ok(java.util.Map.of(
+            "deleted", deleted,
+            "prefix", prefix
+        ));
+    }
 }

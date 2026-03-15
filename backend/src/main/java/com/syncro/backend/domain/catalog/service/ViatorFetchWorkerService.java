@@ -13,12 +13,14 @@ import com.syncro.backend.domain.external.viator.ViatorProductMapper;
 import com.syncro.backend.domain.external.viator.dto.ViatorProductSearchByTermResult;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,7 +41,6 @@ public class ViatorFetchWorkerService {
 
     private static final Logger log = LoggerFactory.getLogger(ViatorFetchWorkerService.class);
     private static final String PROVIDER = "VIATOR";
-    /** Cache TTL after a successful fetch. */
     private static final long CACHE_TTL_SECONDS = 24 * 60 * 60;
     private static final int FETCH_PAGE_SIZE = 50;
 
@@ -49,9 +50,9 @@ public class ViatorFetchWorkerService {
     private final ViatorClient viatorClient;
     private final ViatorNearbyDestinationResolver nearbyResolver;
     private final ViatorProductMapper viatorProductMapper;
+    private final ViatorExperienceCacheService viatorExperienceCacheService;
     private final Executor viatorFetchWorkerExecutor;
     private final int concurrency;
-    /** Self-reference for transactional proxy (claim runs in short transaction without holding across join). */
     private final ViatorFetchWorkerService self;
     private final ConfigurableApplicationContext applicationContext;
 
@@ -62,6 +63,7 @@ public class ViatorFetchWorkerService {
         ViatorClient viatorClient,
         ViatorNearbyDestinationResolver nearbyResolver,
         ViatorProductMapper viatorProductMapper,
+        ViatorExperienceCacheService viatorExperienceCacheService,
         @Qualifier("viatorFetchWorkerExecutor") Executor viatorFetchWorkerExecutor,
         @Value("${app.viator-fetch-worker.concurrency:6}") int concurrency,
         @Lazy ViatorFetchWorkerService self,
@@ -73,6 +75,7 @@ public class ViatorFetchWorkerService {
         this.viatorClient = viatorClient;
         this.nearbyResolver = nearbyResolver;
         this.viatorProductMapper = viatorProductMapper;
+        this.viatorExperienceCacheService = viatorExperienceCacheService;
         this.viatorFetchWorkerExecutor = viatorFetchWorkerExecutor;
         this.concurrency = Math.max(1, concurrency);
         this.self = self;
@@ -96,7 +99,6 @@ public class ViatorFetchWorkerService {
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
     }
 
-    /** Logs job counts (runs in read-only transaction so scheduler path has no long-held write tx). */
     @Transactional(readOnly = true)
     public void logJobCountsWhenEmpty() {
         long total = jobRepository.count();
@@ -104,11 +106,10 @@ public class ViatorFetchWorkerService {
         long r = jobRepository.countByStatus(ViatorFetchJob.STATUS_RUNNING);
         long c = jobRepository.countByStatus(ViatorFetchJob.STATUS_COMPLETED);
         long f = jobRepository.countByStatus(ViatorFetchJob.STATUS_FAILED);
-        log.info("[ViatorFetchWorker] No eligible pending jobs (total={} PENDING={} RUNNING={} COMPLETED={} FAILED={}); next run in 2 min",
+        log.info("[ViatorFetchWorker] No eligible pending jobs (total={} PENDING={} RUNNING={} COMPLETED={} FAILED={}); next run in ~5 s",
             total, p, r, c, f);
     }
 
-    /** Claims up to maxJobs pending jobs (locks and sets RUNNING) in one transaction. */
     @Transactional
     public List<UUID> claimNextJobs(int maxJobs) {
         List<ViatorFetchJob> pending = jobRepository.findNextPending(PageRequest.of(0, maxJobs));
@@ -124,131 +125,216 @@ public class ViatorFetchWorkerService {
         return pending.stream().map(ViatorFetchJob::getId).toList();
     }
 
-    /** Processes a single job in its own transaction (called in parallel by the executor). */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    /**
+     * Orchestrates one job: loads it (short tx), calls external APIs (no tx, no held connection),
+     * then saves results (short tx). Enqueues background locale jobs after commit.
+     */
     public void processOneJob(UUID jobId) {
-        Optional<ViatorFetchJob> opt = jobRepository.findById(jobId);
-        if (opt.isEmpty()) {
+        ViatorFetchJob job = self.loadJobIfRunning(jobId);
+        if (job == null) {
             return;
         }
-        ViatorFetchJob job = opt.get();
-        if (!ViatorFetchJob.STATUS_RUNNING.equals(job.getStatus())) {
-            return;
-        }
-        log.info("[ViatorFetchWorker] Picked job jobId={} type={} cacheKey={} locale={}",
+        log.info("[ViatorFetchWorker] Processing jobId={} type={} cacheKey={} locale={}",
             job.getId(), job.getJobType(), job.getCacheKey(), job.getLocale());
 
+        // resolvedParams carries data between fetch and persist (e.g. destinationRefs resolved during NEARBY fetch)
+        Map<String, Object> resolvedParams = new LinkedHashMap<>(job.getParams() != null ? job.getParams() : Map.of());
+
         try {
-            List<JsonNode> products = runFetch(job);
-            log.info("[ViatorFetchWorker] API fetch completed jobId={} products={}",
-                job.getId(), products != null ? products.size() : 0);
+            List<JsonNode> products = runFetch(job, resolvedParams);
+            log.info("[ViatorFetchWorker] Fetched jobId={} products={}", jobId, products.size());
 
-            List<UUID> experienceIds = upsertExperiences(job.getLocale(), products);
-            log.info("[ViatorFetchWorker] Upserted experiences jobId={} count={}", job.getId(), experienceIds.size());
-
-            saveCache(job.getCacheKey(), job.getJobType(), job.getLocale(), experienceIds);
-            log.info("[ViatorFetchWorker] Cache saved jobId={} cacheKey={}", job.getId(), job.getCacheKey());
-
-            job.setStatus(ViatorFetchJob.STATUS_COMPLETED);
-            job.setCompletedAt(Instant.now());
-            job.setLastError(null);
-            log.info("[ViatorFetchWorker] Job completed jobId={}", job.getId());
+            self.persistResults(jobId, job.getLocale(), job.getCacheKey(), job.getJobType(), products, resolvedParams);
+            log.info("[ViatorFetchWorker] Job completed jobId={}", jobId);
         } catch (Exception e) {
             log.warn("[ViatorFetchWorker] Job failed jobId={} retry={}/{} error={}",
-                job.getId(), job.getRetryCount() + 1, job.getMaxRetries(), e.getMessage());
-            job.setRetryCount(job.getRetryCount() + 1);
-            job.setLastError(e.getMessage());
-            job.setStatus(job.getRetryCount() >= job.getMaxRetries()
-                ? ViatorFetchJob.STATUS_FAILED
-                : ViatorFetchJob.STATUS_PENDING);
+                jobId, job.getRetryCount() + 1, job.getMaxRetries(), e.getMessage());
+            self.markFailed(jobId, job.getRetryCount(), job.getMaxRetries(), e.getMessage());
+            return;
         }
+
+        enqueueOtherLocaleJobs(job.getJobType(), job.getLocale(), resolvedParams);
+    }
+
+    /** Short read-only transaction to load the job. Returns null if not found or not in RUNNING state. */
+    @Transactional(readOnly = true)
+    public ViatorFetchJob loadJobIfRunning(UUID jobId) {
+        return jobRepository.findById(jobId)
+            .filter(j -> ViatorFetchJob.STATUS_RUNNING.equals(j.getStatus()))
+            .orElse(null);
+    }
+
+    /** Short write transaction: batch-upsert experiences, save cache, mark job COMPLETED. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void persistResults(
+        UUID jobId,
+        String locale,
+        String cacheKey,
+        String jobType,
+        List<JsonNode> products,
+        Map<String, Object> resolvedParams
+    ) {
+        List<UUID> experienceIds = upsertExperiences(locale, products);
+        log.info("[ViatorFetchWorker] Upserted experiences jobId={} count={}", jobId, experienceIds.size());
+
+        saveCache(cacheKey, jobType, locale, experienceIds);
+
+        ViatorFetchJob job = jobRepository.findById(jobId)
+            .orElseThrow(() -> new IllegalStateException("Job not found: " + jobId));
+        job.setStatus(ViatorFetchJob.STATUS_COMPLETED);
+        job.setCompletedAt(Instant.now());
+        job.setLastError(null);
+        job.setParams(resolvedParams);
         job.setUpdatedAt(Instant.now());
         jobRepository.save(job);
     }
 
-    private List<JsonNode> runFetch(ViatorFetchJob job) {
+    /** Short write transaction: increment retry count and update job status to FAILED or PENDING. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(UUID jobId, int currentRetry, int maxRetries, String error) {
+        jobRepository.findById(jobId).ifPresent(job -> {
+            int newRetry = currentRetry + 1;
+            job.setRetryCount(newRetry);
+            job.setLastError(error);
+            job.setStatus(newRetry >= maxRetries
+                ? ViatorFetchJob.STATUS_FAILED
+                : ViatorFetchJob.STATUS_PENDING);
+            job.setUpdatedAt(Instant.now());
+            jobRepository.save(job);
+        });
+    }
+
+    private List<JsonNode> runFetch(ViatorFetchJob job, Map<String, Object> resolvedParams) {
         String locale = job.getLocale() != null ? job.getLocale() : "en";
-        Map<String, Object> params = job.getParams() != null ? job.getParams() : Map.of();
 
         if (ViatorFetchJob.JOB_TYPE_SEARCH.equals(job.getJobType())) {
-            String q = (String) params.get("q");
+            String q = (String) resolvedParams.get("q");
             if (q == null || q.isBlank()) {
                 log.info("[ViatorFetchWorker] SEARCH jobId={} skipped: empty q", job.getId());
                 return List.of();
             }
-            log.info("[ViatorFetchWorker] SEARCH jobId={} calling Viator searchProductsBySearchTerm q={} locale={}",
-                job.getId(), q, locale);
+            log.info("[ViatorFetchWorker] SEARCH jobId={} q={} locale={}", job.getId(), q, locale);
             ViatorProductSearchByTermResult result = viatorClient.searchProductsBySearchTerm(
-                q, 0, FETCH_PAGE_SIZE, "EUR", locale
-            );
+                q, 0, FETCH_PAGE_SIZE, "EUR", locale);
             List<JsonNode> products = result.products() != null ? result.products() : List.of();
-            log.info("[ViatorFetchWorker] SEARCH jobId={} Viator returned products={}", job.getId(), products.size());
+            log.info("[ViatorFetchWorker] SEARCH jobId={} products={}", job.getId(), products.size());
             return products;
         }
 
         if (ViatorFetchJob.JOB_TYPE_NEARBY.equals(job.getJobType())) {
-            Double lat = number(params.get("lat"));
-            Double lng = number(params.get("lng"));
+            Double lat = number(resolvedParams.get("lat"));
+            Double lng = number(resolvedParams.get("lng"));
             if (lat == null || lng == null) {
                 log.info("[ViatorFetchWorker] NEARBY jobId={} skipped: missing lat/lng", job.getId());
                 return List.of();
             }
-            log.info("[ViatorFetchWorker] NEARBY jobId={} calling Google reverse geocode + Viator resolveDestinationRefs lat={} lng={} locale={}",
-                job.getId(), lat, lng, locale);
-            List<String> destinationRefs = nearbyResolver.resolveDestinationRefs(
-                lat, lng, locale, 6
-            );
-            log.info("[ViatorFetchWorker] NEARBY jobId={} got destinationRefs={} refs={}",
-                job.getId(), destinationRefs.size(), destinationRefs);
+
+            // Reuse destination refs if already resolved by a parent job (avoids re-geocoding for background locale jobs)
+            List<String> destinationRefs = preResolvedDestinationRefs(resolvedParams);
+            if (destinationRefs != null) {
+                log.info("[ViatorFetchWorker] NEARBY jobId={} reusing pre-resolved refs={}", job.getId(), destinationRefs.size());
+            } else {
+                log.info("[ViatorFetchWorker] NEARBY jobId={} resolving via geocode lat={} lng={} locale={}", job.getId(), lat, lng, locale);
+                destinationRefs = nearbyResolver.resolveDestinationRefs(lat, lng, locale, 6);
+                log.info("[ViatorFetchWorker] NEARBY jobId={} resolved refs={} {}", job.getId(), destinationRefs.size(), destinationRefs);
+                // Persist in resolvedParams so background locale jobs (created after this tx commits) can reuse
+                resolvedParams.put("destinationRefs", destinationRefs);
+            }
+
             if (destinationRefs.isEmpty()) {
                 return List.of();
             }
-            log.info("[ViatorFetchWorker] NEARBY jobId={} calling Viator searchProductsByCoordinates refs={}",
-                job.getId(), destinationRefs.size());
+            log.info("[ViatorFetchWorker] NEARBY jobId={} calling Viator searchProductsByCoordinates refs={}", job.getId(), destinationRefs.size());
             ViatorProductSearchByTermResult result = viatorClient.searchProductsByCoordinates(
-                destinationRefs, 0, FETCH_PAGE_SIZE, "EUR", locale
-            );
+                destinationRefs, 0, FETCH_PAGE_SIZE, "EUR", locale);
             List<JsonNode> products = result.products() != null ? result.products() : List.of();
-            log.info("[ViatorFetchWorker] NEARBY jobId={} Viator returned products={}", job.getId(), products.size());
+            log.info("[ViatorFetchWorker] NEARBY jobId={} products={}", job.getId(), products.size());
             return products;
         }
 
         return List.of();
     }
 
-    private static Double number(Object o) {
-        if (o == null) return null;
-        if (o instanceof Number n) return n.doubleValue();
-        try {
-            return Double.parseDouble(o.toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
+    /**
+     * Batch-upserts experiences: one SELECT for all product codes, one saveAll instead of N individual queries.
+     * N+1 → 2 queries for a batch of 50 products.
+     */
     private List<UUID> upsertExperiences(String locale, List<JsonNode> products) {
+        if (products.isEmpty()) {
+            return List.of();
+        }
         Instant now = Instant.now();
-        List<UUID> ids = new ArrayList<>();
+
+        List<String> productCodes = products.stream()
+            .map(p -> p.path("productCode").asText(""))
+            .filter(code -> !code.isBlank())
+            .distinct()
+            .toList();
+
+        Map<String, Experience> existingByCode = experienceRepository
+            .findByProviderAndLocaleAndExternalIdIn(PROVIDER, locale, productCodes)
+            .stream()
+            .collect(Collectors.toMap(Experience::getExternalId, e -> e));
+
+        List<Experience> toSave = new ArrayList<>();
         for (JsonNode product : products) {
             String productCode = product.path("productCode").asText("");
             if (productCode.isBlank()) continue;
-
-            Optional<Experience> existingOpt = experienceRepository.findByProviderAndExternalIdAndLocale(
-                PROVIDER, productCode, locale
-            );
-            Experience experience = existingOpt.orElseGet(Experience::new);
+            Experience experience = existingByCode.getOrDefault(productCode, new Experience());
             viatorProductMapper.updateExperience(experience, product, now);
             experience.setLocale(locale);
-            Experience saved = experienceRepository.save(experience);
-            ids.add(saved.getId());
+            toSave.add(experience);
         }
-        return ids;
+
+        return experienceRepository.saveAll(toSave).stream()
+            .map(Experience::getId)
+            .toList();
+    }
+
+    /**
+     * Enqueues pending jobs for all other supported locales after the requested locale completes.
+     * NEARBY jobs pass the pre-resolved destinationRefs so background jobs skip geocoding.
+     * Called after persistResults tx has committed — no DB reload of the completed job needed.
+     */
+    private void enqueueOtherLocaleJobs(String jobType, String completedLocale, Map<String, Object> params) {
+        for (String locale : ViatorExperienceCacheService.NEARBY_LOCALES) {
+            if (locale.equals(completedLocale)) continue;
+            try {
+                if (ViatorFetchJob.JOB_TYPE_NEARBY.equals(jobType)) {
+                    Double lat = number(params.get("lat"));
+                    Double lng = number(params.get("lng"));
+                    if (lat == null || lng == null) continue;
+                    String cacheKey = viatorExperienceCacheService.buildCacheKeyNearby(lat, lng, locale);
+                    if (viatorExperienceCacheService.findValidCache(cacheKey).isPresent()) continue;
+                    if (viatorExperienceCacheService.findExistingJob(cacheKey).isPresent()) continue;
+                    Map<String, Object> newParams = new LinkedHashMap<>(params);
+                    newParams.put("locale", locale);
+                    ViatorFetchJob created = viatorExperienceCacheService.createJob(
+                        cacheKey, ViatorFetchJob.JOB_TYPE_NEARBY, locale, newParams);
+                    log.info("[ViatorFetchWorker] Enqueued background NEARBY job locale={} jobId={}", locale, created.getId());
+
+                } else if (ViatorFetchJob.JOB_TYPE_SEARCH.equals(jobType)) {
+                    String q = (String) params.get("q");
+                    if (q == null || q.isBlank()) continue;
+                    String cacheKey = viatorExperienceCacheService.buildCacheKeySearch(q, locale);
+                    if (viatorExperienceCacheService.findValidCache(cacheKey).isPresent()) continue;
+                    if (viatorExperienceCacheService.findExistingJob(cacheKey).isPresent()) continue;
+                    Map<String, Object> newParams = new LinkedHashMap<>();
+                    newParams.put("q", q);
+                    newParams.put("locale", locale);
+                    ViatorFetchJob created = viatorExperienceCacheService.createJob(
+                        cacheKey, ViatorFetchJob.JOB_TYPE_SEARCH, locale, newParams);
+                    log.info("[ViatorFetchWorker] Enqueued background SEARCH job locale={} jobId={}", locale, created.getId());
+                }
+            } catch (Exception e) {
+                log.warn("[ViatorFetchWorker] Failed to enqueue background job locale={}: {}", locale, e.getMessage());
+            }
+        }
     }
 
     private void saveCache(String cacheKey, String cacheType, String locale, List<UUID> experienceIds) {
         Instant now = Instant.now();
         Instant expiresAt = now.plusSeconds(CACHE_TTL_SECONDS);
-
         Optional<ViatorExperienceCache> existing = cacheRepository.findByCacheKey(cacheKey);
         ViatorExperienceCache cache;
         if (existing.isPresent()) {
@@ -265,5 +351,24 @@ public class ViatorFetchWorkerService {
             cache.setExpiresAt(expiresAt);
         }
         cacheRepository.save(cache);
+    }
+
+    private static Double number(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.doubleValue();
+        try {
+            return Double.parseDouble(o.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> preResolvedDestinationRefs(Map<String, Object> params) {
+        Object refs = params.get("destinationRefs");
+        if (refs instanceof List<?> list && !list.isEmpty()) {
+            return (List<String>) list;
+        }
+        return null;
     }
 }
