@@ -2,11 +2,7 @@ package com.syncro.backend.domain.relocation.controller;
 
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.relocation.dto.*;
-import com.syncro.backend.domain.relocation.service.CityComparisonService;
-import com.syncro.backend.domain.relocation.service.CityDatasetService;
-import com.syncro.backend.domain.relocation.service.RelocationOnboardingService;
-import com.syncro.backend.domain.relocation.service.RelocationScoringService;
-import com.syncro.backend.domain.relocation.service.WaitingListService;
+import com.syncro.backend.domain.relocation.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,17 +28,32 @@ public class RelocationController {
     private final CityComparisonService comparisonService;
     private final CityDatasetService cityDatasetService;
     private final WaitingListService waitingListService;
+    private final BudgetSimulationService budgetSimulationService;
+    private final BudgetTrackingService budgetTrackingService;
+    private final StarterKitService starterKitService;
+    private final MicroTestOrchestrationService microTestService;
+    private final RelocationRiskService riskService;
 
     public RelocationController(RelocationOnboardingService onboardingService,
                                 RelocationScoringService scoringService,
                                 CityComparisonService comparisonService,
                                 CityDatasetService cityDatasetService,
-                                WaitingListService waitingListService) {
+                                WaitingListService waitingListService,
+                                BudgetSimulationService budgetSimulationService,
+                                BudgetTrackingService budgetTrackingService,
+                                StarterKitService starterKitService,
+                                MicroTestOrchestrationService microTestService,
+                                RelocationRiskService riskService) {
         this.onboardingService = onboardingService;
         this.scoringService = scoringService;
         this.comparisonService = comparisonService;
         this.cityDatasetService = cityDatasetService;
         this.waitingListService = waitingListService;
+        this.budgetSimulationService = budgetSimulationService;
+        this.budgetTrackingService = budgetTrackingService;
+        this.starterKitService = starterKitService;
+        this.microTestService = microTestService;
+        this.riskService = riskService;
     }
 
     // ========== ONBOARDING ==========
@@ -149,5 +160,74 @@ public class RelocationController {
             @AuthenticationPrincipal User user,
             @Valid @RequestBody WaitingListRequest request) {
         return ResponseEntity.ok(waitingListService.joinWaitingList(request, user));
+    }
+
+    // ========== BUDGET SIMULATIONS (Sprint 2) ==========
+
+    @PostMapping("/budget/simulations")
+    @Operation(summary = "Esegui simulazione budget differenziata per piano (FREE/PREMIUM/SUPER_PRO)")
+    public ResponseEntity<BudgetSimulationResponse> runBudgetSimulation(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody CreateBudgetSimulationRequest request) {
+        return ResponseEntity.ok(budgetSimulationService.runSimulation(user, request));
+    }
+
+    @GetMapping("/budget/simulations")
+    @Operation(summary = "Lista simulazioni budget dell'utente")
+    public ResponseEntity<List<BudgetSimulationResponse>> getBudgetSimulations(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(budgetSimulationService.getSimulations(user));
+    }
+
+    // ========== BUDGET TRACKING (Sprint 2) ==========
+
+    @PostMapping("/budget/tracking")
+    @Operation(summary = "Registra voce di tracking budget (actual vs expected)")
+    public ResponseEntity<BudgetTrackingResponse> createBudgetTracking(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody CreateBudgetTrackingRequest request) {
+        return ResponseEntity.ok(budgetTrackingService.createEntry(user, request));
+    }
+
+    @GetMapping("/budget/tracking")
+    @Operation(summary = "Lista voci tracking budget dell'utente")
+    public ResponseEntity<List<BudgetTrackingResponse>> getBudgetTracking(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(budgetTrackingService.getEntries(user));
+    }
+
+    // ========== STARTER KIT (Sprint 2) ==========
+
+    @PostMapping("/starter-kit/generate")
+    @Operation(summary = "Genera Starter Kit personalizzato con 7 sezioni")
+    public ResponseEntity<StarterKitResponse> generateStarterKit(
+            @AuthenticationPrincipal User user,
+            @RequestBody(required = false) GenerateStarterKitRequest request) {
+        return ResponseEntity.ok(starterKitService.generate(user, request));
+    }
+
+    @GetMapping("/starter-kit/latest")
+    @Operation(summary = "Ultimo Starter Kit generato per l'utente")
+    public ResponseEntity<StarterKitResponse> getLatestStarterKit(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(starterKitService.getLatest(user));
+    }
+
+    // ========== MICRO-TESTS (Sprint 2) ==========
+
+    @GetMapping("/micro-tests/next")
+    @Operation(summary = "Prossimo micro-test disponibile (con anti-ripetizione)")
+    public ResponseEntity<MicroTestNextResponse> getNextMicroTest(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(microTestService.getNextMicroTest(user));
+    }
+
+    // ========== RISK INDICATORS (Sprint 2) ==========
+
+    @GetMapping("/risk/indicators")
+    @Operation(summary = "Indicatori di rischio consolidati (finanziario, isolamento, adattamento)")
+    public ResponseEntity<RiskSnapshotResponse> getRiskIndicators(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(riskService.getLatestIndicators(user));
     }
 }

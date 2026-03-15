@@ -152,7 +152,7 @@ public class TestService {
         Set<UUID> selectedOptionIds;
         if (completed) {
             Optional<UserTestSubmission> submissionOpt = userTestSubmissionRepository
-                .findByUser_IdAndTestDefinition_Id(user.getId(), testId);
+                .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(user.getId(), testId);
             if (submissionOpt.isPresent()) {
                 List<UserTestAnswer> userAnswers = userTestAnswerRepository
                     .findBySubmission_Id(submissionOpt.get().getId());
@@ -262,7 +262,7 @@ public class TestService {
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
         Optional<UserTestSubmission> existingSubmission = userTestSubmissionRepository
-            .findByUser_IdAndTestDefinition_Id(user.getId(), testId);
+            .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(user.getId(), testId);
 
         List<TestQuestion> questions = testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testId);
         if (questions.isEmpty()) {
@@ -406,7 +406,7 @@ public class TestService {
         TestDefinition definition = testDefinitionRepository.findByIdAndActiveTrue(testId)
             .orElseThrow(() -> new NotFoundException("Test non trovato"));
         UserTestSubmission submission = userTestSubmissionRepository
-            .findByUser_IdAndTestDefinition_Id(user.getId(), testId)
+            .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(user.getId(), testId)
             .orElse(null);
         if (submission == null) {
             return;

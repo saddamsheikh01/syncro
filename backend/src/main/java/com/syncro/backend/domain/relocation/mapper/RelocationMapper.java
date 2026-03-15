@@ -176,4 +176,86 @@ public class RelocationMapper {
                 config.getUpdatedAt()
         );
     }
+
+    // ========== Sprint 2 Mappers ==========
+
+    public BudgetSimulationResponse toBudgetSimulationResponse(BudgetSimulation sim) {
+        RelocationCityDataset city = sim.getCity();
+        return new BudgetSimulationResponse(
+                sim.getId(),
+                city != null ? city.getId() : null,
+                city != null ? city.getCityName() : null,
+                sim.getScenario(),
+                sim.getPlanCode(),
+                sim.getInputPayload(),
+                sim.getOutputPayload(),
+                sim.getAlgorithmVersion(),
+                sim.getCreatedAt()
+        );
+    }
+
+    public BudgetTrackingResponse toBudgetTrackingResponse(BudgetTrackingEntry entry) {
+        return new BudgetTrackingResponse(
+                entry.getId(),
+                entry.getSimulation() != null ? entry.getSimulation().getId() : null,
+                entry.getCategory(),
+                entry.getExpectedValue(),
+                entry.getActualValue(),
+                entry.getDelta(),
+                entry.getThreshold(),
+                entry.getAlertStatus(),
+                entry.getRecordedAt(),
+                entry.getCreatedAt()
+        );
+    }
+
+    public StarterKitResponse toStarterKitResponse(StarterKitReport report) {
+        java.util.List<StarterKitActionResponse> actionResponses = report.getActions() != null
+                ? report.getActions().stream().map(this::toStarterKitActionResponse).toList()
+                : java.util.List.of();
+        return new StarterKitResponse(
+                report.getId(),
+                report.getCity() != null ? report.getCity().getId() : null,
+                report.getScenario(),
+                report.getPlanCode(),
+                report.getPayload(),
+                actionResponses,
+                report.getCreatedAt()
+        );
+    }
+
+    public StarterKitActionResponse toStarterKitActionResponse(StarterKitAction action) {
+        return new StarterKitActionResponse(
+                action.getId(),
+                action.getActionOrder(),
+                action.getTitle(),
+                action.getDescription(),
+                action.getCategory()
+        );
+    }
+
+    public RiskSnapshotResponse toRiskSnapshotResponse(RelocationRiskSnapshot snapshot) {
+        return new RiskSnapshotResponse(
+                snapshot.getId(),
+                snapshot.getScenario(),
+                snapshot.getSourceType(),
+                snapshot.getRiskIndicators(),
+                snapshot.getBurnoutIndex(),
+                snapshot.getOverallRiskLevel(),
+                snapshot.getCreatedAt()
+        );
+    }
+
+    public MicroTestNextResponse toMicroTestNextResponse(MicroTestAssignment assignment) {
+        var test = assignment.getTestDefinition();
+        return new MicroTestNextResponse(
+                assignment.getId(),
+                test != null ? test.getId() : null,
+                test != null ? test.getTitle() : null,
+                test != null ? test.getDescription() : null,
+                assignment.getStatus(),
+                assignment.getAvailableFrom(),
+                assignment.getExpiresAt()
+        );
+    }
 }
