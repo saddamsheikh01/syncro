@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Floor -->
+  <rect x="15" y="148" width="170" height="6" rx="3" fill="#E8E0D8" opacity="0.5"/>
+  <!-- Couch back -->
+  <rect x="25" y="88" width="120" height="62" rx="14" fill="#5B8BF0"/>
+  <!-- Couch seat -->
+  <rect x="30" y="112" width="110" height="38" rx="10" fill="#4A7AE0"/>
+  <!-- Couch arm left -->
+  <rect x="20" y="100" width="20" height="48" rx="10" fill="#5B8BF0"/>
+  <!-- Couch arm right -->
+  <rect x="130" y="100" width="20" height="48" rx="10" fill="#5B8BF0"/>
+  <!-- Pillow -->
+  <ellipse cx="55" cy="105" rx="16" ry="12" fill="#FFD166" transform="rotate(-10, 55, 105)"/>
+  <!-- Person sitting -->
+  <g transform="translate(85, 55)">
+    <!-- Head -->
+    <circle cx="15" cy="0" r="14" fill="#FFD5B0"/>
+    <!-- Hair -->
+    <path d="M2-4 Q5-16 15-16 Q25-16 28-4 Q30 2 28 6 L25-2 Q22-10 15-10 Q8-10 5-2 L2 6 Q0 2 2-4Z" fill="#5C3D2E"/>
+    <!-- Body -->
+    <path d="M5 14 Q5 28 3 45 L27 45 Q25 28 25 14Z" fill="#4ECDC4"/>
+    <!-- Laptop -->
+    <g transform="translate(-5, 35)">
+      <rect x="0" y="0" width="40" height="3" rx="1" fill="#666"/>
+      <rect x="2" y="-18" width="36" height="18" rx="2" fill="#333"/>
+      <rect x="5" y="-15" width="30" height="12" rx="1" fill="#87CEEB"/>
+    </g>
+    <!-- Arm -->
+    <path d="M5 20 Q-5 32 0 40" stroke="#FFD5B0" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M25 20 Q35 32 30 40" stroke="#FFD5B0" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Side table -->
+  <rect x="153" y="112" width="28" height="36" rx="3" fill="#D4A574"/>
+  <!-- Coffee cup on table -->
+  <g transform="translate(163, 100)">
+    <rect x="0" y="0" width="14" height="14" rx="3" fill="white" stroke="#DDD" stroke-width="1"/>
+    <path d="M14 3 Q20 3 20 8 Q20 13 14 13" stroke="#DDD" stroke-width="1.5" fill="none"/>
+    <ellipse cx="7" cy="3" rx="5" ry="2" fill="#8B6F47" opacity="0.4"/>
+  </g>
+  <!-- Wi-Fi signal -->
+  <g transform="translate(167, 80)" opacity="0.4">
+    <path d="M0 10 Q5 5 10 10" stroke="#3B6BDC" stroke-width="1.5" fill="none"/>
+    <path d="M-3 7 Q5 0 13 7" stroke="#3B6BDC" stroke-width="1.5" fill="none"/>
+    <path d="M-6 4 Q5-5 16 4" stroke="#3B6BDC" stroke-width="1.5" fill="none"/>
+  </g>
+</svg>

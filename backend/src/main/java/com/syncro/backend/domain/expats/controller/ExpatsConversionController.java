@@ -1,8 +1,8 @@
 package com.syncro.backend.domain.expats.controller;
 
-import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.expats.dto.ConvertSessionRequest;
 import com.syncro.backend.domain.expats.service.ExpatsConversionService;
+import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,9 +30,9 @@ public class ExpatsConversionController {
     @PostMapping("/convert")
     @Operation(summary = "Converte sessione anonima a utente registrato (atomico, idempotente)")
     public ResponseEntity<Map<String, String>> convertSession(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ConvertSessionRequest request) {
-        conversionService.convertSession(request.sessionToken(), user);
+        conversionService.convertSession(request.sessionToken(), principal.userId());
         return ResponseEntity.ok(Map.of("status", "converted"));
     }
 }

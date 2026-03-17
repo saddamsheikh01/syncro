@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.ActivationStateResponse;
 import com.syncro.backend.domain.relocation.dto.OnboardingResponse;
 import com.syncro.backend.domain.relocation.dto.OnboardingStatusResponse;
@@ -42,6 +43,7 @@ class RelocationOnboardingServiceTest {
     @Mock private RelocationOnboardingSnapshotRepository snapshotRepository;
     @Mock private RelocationCityDatasetRepository cityDatasetRepository;
     @Mock private RelocationCityScoreRepository cityScoreRepository;
+    @Mock private UserRepository userRepository;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
 
@@ -88,7 +90,7 @@ class RelocationOnboardingServiceTest {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(mapper.toOnboardingResponse(testProfile)).thenReturn(expected);
 
-        OnboardingResponse result = service.getOnboarding(testUser);
+        OnboardingResponse result = service.getOnboarding(testUser.getId());
 
         assertThat(result).isNotNull();
         assertThat(result.userType()).isEqualTo("planning_move");
@@ -100,7 +102,7 @@ class RelocationOnboardingServiceTest {
     void getOnboarding_noProfile_throwsNotFound() {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getOnboarding(testUser))
+        assertThatThrownBy(() -> service.getOnboarding(testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Relocation profile not found");
     }
@@ -109,6 +111,7 @@ class RelocationOnboardingServiceTest {
     @DisplayName("updateOnboarding creates new profile if none exists")
     void updateOnboarding_createsNewProfile() {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
@@ -117,7 +120,7 @@ class RelocationOnboardingServiceTest {
                 null, null, null, null, null, null, null, null, 1
         );
 
-        service.updateOnboarding(testUser, request);
+        service.updateOnboarding(testUser.getId(), request);
 
         verify(profileRepository).save(argThat(profile ->
                 profile.getUserType().equals("chosen_city") &&
@@ -140,7 +143,7 @@ class RelocationOnboardingServiceTest {
                 null, null, null, null, null, null, null, null, 10
         );
 
-        service.updateOnboarding(testUser, request);
+        service.updateOnboarding(testUser.getId(), request);
 
         verify(profileRepository).save(argThat(profile ->
                 "COMPLETED".equals(profile.getStatus()) &&
@@ -156,7 +159,7 @@ class RelocationOnboardingServiceTest {
         testProfile.setStatus("IN_PROGRESS");
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
 
-        assertThatThrownBy(() -> service.createSnapshot(testUser))
+        assertThatThrownBy(() -> service.createSnapshot(testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Onboarding must be completed");
     }
@@ -183,7 +186,9 @@ class RelocationOnboardingServiceTest {
                 new SnapshotResponse(UUID.randomUUID(), 2, true, Map.of(), Instant.now())
         );
 
-        SnapshotResponse result = service.createSnapshot(testUser);
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
+
+        SnapshotResponse result = service.createSnapshot(testUser.getId());
 
         assertThat(result).isNotNull();
         assertThat(result.version()).isEqualTo(2);
@@ -201,7 +206,7 @@ class RelocationOnboardingServiceTest {
         when(mapper.toOnboardingStatusResponse(eq(testProfile), eq(false), isNull()))
                 .thenReturn(new OnboardingStatusResponse("IN_PROGRESS", 5, 50, "planning_move", false, null, Instant.now()));
 
-        OnboardingStatusResponse result = service.getOnboardingStatus(testUser);
+        OnboardingStatusResponse result = service.getOnboardingStatus(testUser.getId());
 
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo("IN_PROGRESS");
@@ -222,7 +227,7 @@ class RelocationOnboardingServiceTest {
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
         when(cityScoreRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId())).thenReturn(List.of());
 
-        ActivationStateResponse result = service.getActivationState(testUser);
+        ActivationStateResponse result = service.getActivationState(testUser.getId());
 
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo("IN_PROGRESS");
@@ -230,7 +235,6 @@ class RelocationOnboardingServiceTest {
         assertThat(result.missingFields()).contains("target_city", "free_notes");
         assertThat(result.hasActiveSnapshot()).isFalse();
         assertThat(result.hasScoringResults()).isFalse();
-        // Should suggest complete_onboarding since there are missing fields
         assertThat(result.nextActions()).anyMatch(a -> "complete_onboarding".equals(a.get("action")));
     }
 
@@ -251,7 +255,7 @@ class RelocationOnboardingServiceTest {
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(activeSnapshot));
         when(cityScoreRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId())).thenReturn(List.of());
 
-        ActivationStateResponse result = service.getActivationState(testUser);
+        ActivationStateResponse result = service.getActivationState(testUser.getId());
 
         assertThat(result.hasActiveSnapshot()).isTrue();
         assertThat(result.hasScoringResults()).isFalse();
@@ -281,7 +285,9 @@ class RelocationOnboardingServiceTest {
                 "priority_problem", "monthly_costs"
         );
 
-        RelocationProfile result = service.initFromConversion(testUser, UUID.randomUUID(), answers);
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
+
+        RelocationProfile result = service.initFromConversion(testUser.getId(), UUID.randomUUID(), answers);
 
         assertThat(result).isNotNull();
         verify(profileRepository).save(argThat(profile ->
@@ -307,7 +313,7 @@ class RelocationOnboardingServiceTest {
                 new SnapshotResponse(UUID.randomUUID(), 1, false, Map.of(), Instant.now())
         );
 
-        List<SnapshotResponse> result = service.getSnapshots(testUser);
+        List<SnapshotResponse> result = service.getSnapshots(testUser.getId());
 
         assertThat(result).hasSize(2);
         verify(snapshotRepository).findByUserIdOrderByVersionDesc(testUser.getId());

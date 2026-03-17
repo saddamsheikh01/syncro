@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Pot -->
+  <path d="M60 140L72 175H128L140 140Z" fill="#D4A574"/>
+  <rect x="55" y="133" width="90" height="12" rx="4" fill="#E0B888"/>
+  <ellipse cx="100" cy="139" rx="40" ry="7" fill="#8B6F47"/>
+  <!-- Tree trunk -->
+  <path d="M95 135V70" stroke="#8B6F47" stroke-width="6" stroke-linecap="round"/>
+  <path d="M105 135V75" stroke="#A0855C" stroke-width="4" stroke-linecap="round"/>
+  <!-- Cherry blossoms / full tree -->
+  <circle cx="80" cy="60" r="20" fill="#F48FB1" opacity="0.8"/>
+  <circle cx="100" cy="48" r="22" fill="#EC407A" opacity="0.6"/>
+  <circle cx="120" cy="60" r="18" fill="#F48FB1" opacity="0.8"/>
+  <circle cx="90" cy="42" r="16" fill="#F06292" opacity="0.5"/>
+  <circle cx="110" cy="45" r="14" fill="#F48FB1" opacity="0.6"/>
+  <circle cx="100" cy="55" r="18" fill="#F06292" opacity="0.4"/>
+  <!-- Small blossoms -->
+  <circle cx="70" cy="50" r="4" fill="#FCE4EC"/>
+  <circle cx="130" cy="52" r="3" fill="#FCE4EC"/>
+  <circle cx="95" cy="32" r="3" fill="#FCE4EC"/>
+  <circle cx="115" cy="36" r="4" fill="#FCE4EC"/>
+</svg>

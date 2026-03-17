@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
@@ -12,7 +12,10 @@ export type MenuItem = {
   id: string;
   labelKey: string;
   href: string;
-  icon: SidebarIconName;
+  /** Standard icon from the icon sprite. Ignored when `customIcon` is provided. */
+  icon?: SidebarIconName;
+  /** Inline SVG / React node used when there is no sprite entry for this item. */
+  customIcon?: ReactNode;
 };
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -99,7 +102,9 @@ export const Menu = ({
                 active && "drop-shadow-[0_8px_16px_rgba(255,255,255,0.35)]",
               )}
             >
-              <SidebarIcon name={item.icon} size={36} />
+              {item.customIcon ?? (
+                item.icon && <SidebarIcon name={item.icon} size={36} />
+              )}
             </span>
             <span
               className={cx(

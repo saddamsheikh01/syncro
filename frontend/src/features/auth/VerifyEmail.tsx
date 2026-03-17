@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
+import { expatsActions } from "../../stores/expats/expatsStore";
 
 const MailIcon = () => (
   <svg
@@ -41,6 +42,7 @@ export const VerifyEmail = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const emailParam = searchParams.get("email")?.trim() ?? "";
+  const fromExpats = searchParams.get("from") === "expats";
 
   useEffect(() => {
     actions.hydrate();
@@ -54,9 +56,9 @@ export const VerifyEmail = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/home");
+      router.replace(fromExpats ? "/expats/activation" : "/home");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, fromExpats]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -74,7 +76,12 @@ export const VerifyEmail = () => {
 
     try {
       await actions.verifyEmail(normalizedEmail, normalizedOtp);
-      router.push("/home");
+      if (fromExpats) {
+        await expatsActions.convertAndSync().catch(() => null);
+        router.push("/expats/activation");
+      } else {
+        router.push("/home");
+      }
     } catch {}
   };
 

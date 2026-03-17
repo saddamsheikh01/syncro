@@ -2,6 +2,7 @@ package com.syncro.backend.domain.expats.service;
 
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousAnswerRepository;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
@@ -27,6 +28,7 @@ class ExpatsConversionServiceTest {
 
     @Mock private ExpatsAnonymousSessionRepository sessionRepository;
     @Mock private ExpatsAnonymousAnswerRepository answerRepository;
+    @Mock private UserRepository userRepository;
     @Mock private AnalyticsService analyticsService;
 
     @InjectMocks
@@ -54,9 +56,10 @@ class ExpatsConversionServiceTest {
     void convertSession_success() {
         when(sessionRepository.findBySessionToken("test-token-123"))
                 .thenReturn(Optional.of(testSession));
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(sessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.convertSession("test-token-123", testUser);
+        service.convertSession("test-token-123", testUser.getId());
 
         verify(sessionRepository).save(argThat(session ->
                 "CONVERTED".equals(session.getStatus()) &&
@@ -78,10 +81,8 @@ class ExpatsConversionServiceTest {
         when(sessionRepository.findBySessionToken("test-token-123"))
                 .thenReturn(Optional.of(testSession));
 
-        // Should not throw
-        service.convertSession("test-token-123", testUser);
+        service.convertSession("test-token-123", testUser.getId());
 
-        // Should NOT save again
         verify(sessionRepository, never()).save(any());
         verify(analyticsService, never()).trackServerEventSafe(any(), any(), any());
     }
@@ -92,7 +93,7 @@ class ExpatsConversionServiceTest {
         when(sessionRepository.findBySessionToken("nonexistent"))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.convertSession("nonexistent", testUser))
+        assertThatThrownBy(() -> service.convertSession("nonexistent", testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Session not found");
     }
@@ -105,7 +106,7 @@ class ExpatsConversionServiceTest {
         when(sessionRepository.findBySessionToken("test-token-123"))
                 .thenReturn(Optional.of(testSession));
 
-        assertThatThrownBy(() -> service.convertSession("test-token-123", testUser))
+        assertThatThrownBy(() -> service.convertSession("test-token-123", testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Session has expired");
     }
@@ -122,7 +123,7 @@ class ExpatsConversionServiceTest {
         when(sessionRepository.findBySessionToken("test-token-123"))
                 .thenReturn(Optional.of(testSession));
 
-        assertThatThrownBy(() -> service.convertSession("test-token-123", testUser))
+        assertThatThrownBy(() -> service.convertSession("test-token-123", testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Session already converted to another user");
     }

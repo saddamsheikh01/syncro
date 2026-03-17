@@ -1,6 +1,6 @@
 package com.syncro.backend.domain.relocation.service;
 
-import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.CityComparisonRequest;
 import com.syncro.backend.domain.relocation.dto.CityComparisonResponse;
 import com.syncro.backend.domain.relocation.dto.CityComparisonResponse.*;
@@ -33,6 +33,7 @@ public class CityComparisonService {
     private final RelocationCityDatasetRepository cityRepository;
     private final RelocationCityScoreRepository scoreRepository;
     private final RelocationScoringConfigRepository configRepository;
+    private final UserRepository userRepository;
     private final ScoringCalculationHelper helper;
 
     public CityComparisonService(RelocationProfileRepository profileRepository,
@@ -40,22 +41,23 @@ public class CityComparisonService {
                                   RelocationCityDatasetRepository cityRepository,
                                   RelocationCityScoreRepository scoreRepository,
                                   RelocationScoringConfigRepository configRepository,
+                                  UserRepository userRepository,
                                   ScoringCalculationHelper helper) {
         this.profileRepository = profileRepository;
         this.snapshotRepository = snapshotRepository;
         this.cityRepository = cityRepository;
         this.scoreRepository = scoreRepository;
         this.configRepository = configRepository;
+        this.userRepository = userRepository;
         this.helper = helper;
     }
 
     @Transactional
-    public CityComparisonResponse compareCities(User user, CityComparisonRequest request) {
-        // 1. Verify profile exists, load snapshot
-        profileRepository.findByUserId(user.getId())
+    public CityComparisonResponse compareCities(UUID userId, CityComparisonRequest request) {
+        profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
 
-        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(user.getId())
+        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "No active snapshot found. Complete onboarding and create a snapshot first."));
 
@@ -106,8 +108,7 @@ public class CityComparisonService {
                 currentCity, targetCity, scoreCurrentCity, scoreTargetCity,
                 compatCurrent, compatTarget, macroareeComparison, economicImpact);
 
-        // 10. Persistere per storico
-        persistComparisonScore(user, snapshot, currentCity, targetCity, scoreTargetCity,
+        persistComparisonScore(userId, snapshot, currentCity, targetCity, scoreTargetCity,
                 normalizedWeights, priorityClassification, config);
 
         return new CityComparisonResponse(
@@ -273,7 +274,7 @@ public class CityComparisonService {
 
     // ========== PERSISTENCE ==========
 
-    private void persistComparisonScore(User user, RelocationOnboardingSnapshot snapshot,
+    private void persistComparisonScore(UUID userId, RelocationOnboardingSnapshot snapshot,
                                          RelocationCityDataset currentCity, RelocationCityDataset targetCity,
                                          int scoreTargetCity,
                                          Map<String, Double> normalizedWeights,
@@ -290,7 +291,7 @@ public class CityComparisonService {
         breakdown.put("comparisonMeta", comparisonMeta);
 
         RelocationCityScore score = new RelocationCityScore();
-        score.setUser(user);
+        score.setUser(userRepository.getReferenceById(userId));
         score.setSnapshot(snapshot);
         score.setCity(targetCity);
         score.setAnalysisType("city_comparison");

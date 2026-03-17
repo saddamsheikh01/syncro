@@ -56,24 +56,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JwtIdentity identity = jwtService.parseAccessToken(token);
             if (!isActive(identity)) {
                 SecurityContextHolder.clearContext();
-                sendUnauthorized(response, request.getRequestURI(), "Account is not active");
-                return;
+            } else {
+                Object principal = buildPrincipal(identity);
+                List<GrantedAuthority> authorities = identity.subjectType() == SubjectType.ADMIN && identity.role() != null
+                        ? List.of(new SimpleGrantedAuthority("ROLE_" + identity.role()))
+                        : List.of();
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        principal,
+                        token,
+                        authorities
+                );
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-            Object principal = buildPrincipal(identity);
-            List<GrantedAuthority> authorities = identity.subjectType() == SubjectType.ADMIN && identity.role() != null
-                    ? List.of(new SimpleGrantedAuthority("ROLE_" + identity.role()))
-                    : List.of();
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    principal,
-                    token,
-                    authorities
-            );
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException ex) {
             SecurityContextHolder.clearContext();
-            sendUnauthorized(response, request.getRequestURI(), "Token invalid or expired");
-            return;
         }
 
         filterChain.doFilter(request, response);
@@ -103,7 +100,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (identity.subjectType() == SubjectType.ADMIN) {
             return new AdminPrincipal(identity.subjectId(), identity.role());
         }
-        // Resolve the full User entity so controllers can use @AuthenticationPrincipal User user
-        return userRepository.findById(identity.subjectId()).orElse(null);
+        return new UserPrincipal(identity.subjectId());
     }
 }

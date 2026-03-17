@@ -6,9 +6,19 @@ ALTER TABLE relocation_profiles
     ADD COLUMN IF NOT EXISTS current_city_name VARCHAR(255);
 
 -- FK verso relocation_city_dataset per la citta corrente
-ALTER TABLE relocation_profiles
-    ADD CONSTRAINT fk_relocation_profiles_current_city
-        FOREIGN KEY (current_city_id) REFERENCES relocation_city_dataset (id);
+-- Guard added: V14 may have already created this constraint as part of the catch-up migration.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_relocation_profiles_current_city'
+          AND conrelid = 'relocation_profiles'::regclass
+    ) THEN
+        ALTER TABLE relocation_profiles
+            ADD CONSTRAINT fk_relocation_profiles_current_city
+                FOREIGN KEY (current_city_id) REFERENCES relocation_city_dataset (id);
+    END IF;
+END $$;
 
 -- Indice per join sulla citta corrente
 CREATE INDEX IF NOT EXISTS idx_relocation_profiles_current_city

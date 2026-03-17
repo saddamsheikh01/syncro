@@ -1,6 +1,6 @@
 package com.syncro.backend.domain.relocation.service;
 
-import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.entity.*;
@@ -25,6 +25,7 @@ public class RelocationScoringService {
     private final RelocationCityDatasetRepository cityRepository;
     private final RelocationCityScoreRepository scoreRepository;
     private final RelocationScoringConfigRepository configRepository;
+    private final UserRepository userRepository;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
     private final ScoringCalculationHelper helper;
@@ -35,6 +36,7 @@ public class RelocationScoringService {
                                     RelocationCityScoreRepository scoreRepository,
                                     RelocationScoringConfigRepository configRepository,
                                     RelocationWeightRuleRepository weightRuleRepository,
+                                    UserRepository userRepository,
                                     RelocationMapper mapper,
                                     AnalyticsService analyticsService,
                                     ScoringCalculationHelper helper) {
@@ -43,6 +45,7 @@ public class RelocationScoringService {
         this.cityRepository = cityRepository;
         this.scoreRepository = scoreRepository;
         this.configRepository = configRepository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
         this.helper = helper;
@@ -52,11 +55,11 @@ public class RelocationScoringService {
      * Computes City Fit Score for the user based on their active snapshot.
      */
     @Transactional
-    public ScoringResultResponse computeScoring(User user, ComputeScoringRequest request) {
-        RelocationProfile profile = profileRepository.findByUserId(user.getId())
+    public ScoringResultResponse computeScoring(UUID userId, ComputeScoringRequest request) {
+        RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
 
-        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(user.getId())
+        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "No active snapshot found. Complete onboarding and create a snapshot first."));
 
@@ -79,17 +82,17 @@ public class RelocationScoringService {
 
         switch (analysisType) {
             case "planning_move" -> scores = computePlanningMoveScores(
-                    user, snapshot, config, normalizedWeights, priorityClassification, profile);
+                    userId, snapshot, config, normalizedWeights, priorityClassification, profile);
             case "chosen_city" -> scores = computeChosenCityScores(
-                    user, snapshot, config, normalizedWeights, priorityClassification, profile, request);
+                    userId, snapshot, config, normalizedWeights, priorityClassification, profile, request);
             case "already_in_city" -> scores = computeAlreadyInCityScores(
-                    user, snapshot, config, normalizedWeights, priorityClassification, profile);
+                    userId, snapshot, config, normalizedWeights, priorityClassification, profile);
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid analysis type: " + analysisType);
         }
 
         scoreRepository.saveAll(scores);
 
-        analyticsService.trackServerEventSafe(user.getId(), "CITY_SCORING_COMPUTED",
+        analyticsService.trackServerEventSafe(userId, "CITY_SCORING_COMPUTED",
                 Map.of("analysisType", analysisType,
                         "snapshotVersion", snapshot.getVersion(),
                         "citiesScored", scores.size()));
@@ -108,16 +111,16 @@ public class RelocationScoringService {
     }
 
     @Transactional(readOnly = true)
-    public List<CityScoreResponse> getHistory(User user) {
-        return scoreRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+    public List<CityScoreResponse> getHistory(UUID userId) {
+        return scoreRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(mapper::toCityScoreResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<CityScoreResponse> getLatestScores(User user, UUID snapshotId) {
-        return scoreRepository.findByUserIdAndSnapshotIdOrderByRankingPositionAsc(user.getId(), snapshotId)
+    public List<CityScoreResponse> getLatestScores(UUID userId, UUID snapshotId) {
+        return scoreRepository.findByUserIdAndSnapshotIdOrderByRankingPositionAsc(userId, snapshotId)
                 .stream()
                 .map(mapper::toCityScoreResponse)
                 .toList();
@@ -126,7 +129,7 @@ public class RelocationScoringService {
     // ========== ANALYSIS TYPE SPECIFIC COMPUTATIONS ==========
 
     private List<RelocationCityScore> computePlanningMoveScores(
-            User user, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
+            UUID userId, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
             Map<String, Double> normalizedWeights, Map<String, String> priorityClassification,
             RelocationProfile profile) {
 
@@ -139,7 +142,7 @@ public class RelocationScoringService {
             Map<String, Object> insights = helper.generateInsights(city, priorityClassification, config);
 
             RelocationCityScore score = buildCityScore(
-                    user, snapshot, city, "planning_move", fitScore,
+                    userId, snapshot, city, "planning_move", fitScore,
                     normalizedWeights, priorityClassification, budgetCheck, insights, null, config);
             scores.add(score);
         }
@@ -153,7 +156,7 @@ public class RelocationScoringService {
     }
 
     private List<RelocationCityScore> computeChosenCityScores(
-            User user, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
+            UUID userId, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
             Map<String, Double> normalizedWeights, Map<String, String> priorityClassification,
             RelocationProfile profile, ComputeScoringRequest request) {
 
@@ -174,7 +177,7 @@ public class RelocationScoringService {
         Map<String, Object> insights = helper.generateInsights(city, priorityClassification, config);
 
         RelocationCityScore score = buildCityScore(
-                user, snapshot, city, "chosen_city", fitScore,
+                userId, snapshot, city, "chosen_city", fitScore,
                 normalizedWeights, priorityClassification, budgetCheck, insights, null, config);
         score.setRankingPosition(1);
 
@@ -182,7 +185,7 @@ public class RelocationScoringService {
     }
 
     private List<RelocationCityScore> computeAlreadyInCityScores(
-            User user, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
+            UUID userId, RelocationOnboardingSnapshot snapshot, RelocationScoringConfig config,
             Map<String, Double> normalizedWeights, Map<String, String> priorityClassification,
             RelocationProfile profile) {
 
@@ -201,14 +204,14 @@ public class RelocationScoringService {
         Map<String, Object> integrationBreakdown = helper.computeIntegrationBreakdown(city, snapshot.getPayload());
 
         RelocationCityScore score = buildCityScore(
-                user, snapshot, city, "already_in_city", fitScore,
+                userId, snapshot, city, "already_in_city", fitScore,
                 normalizedWeights, priorityClassification, budgetCheck, insights, integrationBreakdown, config);
         score.setRankingPosition(1);
 
         return List.of(score);
     }
 
-    private RelocationCityScore buildCityScore(User user, RelocationOnboardingSnapshot snapshot,
+    private RelocationCityScore buildCityScore(UUID userId, RelocationOnboardingSnapshot snapshot,
                                                 RelocationCityDataset city, String analysisType, int fitScore,
                                                 Map<String, Double> normalizedWeights,
                                                 Map<String, String> priorityClassification,
@@ -226,7 +229,7 @@ public class RelocationScoringService {
         Map<String, Object> radarValues = new LinkedHashMap<>(cityMacroaree);
 
         RelocationCityScore score = new RelocationCityScore();
-        score.setUser(user);
+        score.setUser(userRepository.getReferenceById(userId));
         score.setSnapshot(snapshot);
         score.setCity(city);
         score.setAnalysisType(analysisType);

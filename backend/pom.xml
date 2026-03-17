@@ -164,6 +164,27 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.14.1</version>
+				<configuration>
+					<url>jdbc:postgresql://localhost:5432/syncro_db?currentSchema=syncro_dev</url>
+					<user>postgres</user>
+					<password>mushhood@1811</password>
+					<schemas>syncro_dev</schemas>
+					<locations>filesystem:src/main/resources/db/migration</locations>
+					<outOfOrder>true</outOfOrder>
+				<placeholderReplacement>false</placeholderReplacement>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.7.5</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>

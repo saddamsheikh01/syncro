@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Floor -->
+  <rect x="20" y="145" width="160" height="8" rx="4" fill="#F5E6D0" opacity="0.6"/>
+  <!-- Big box -->
+  <g transform="translate(45, 60)">
+    <rect width="70" height="65" rx="6" fill="#E8A65D"/>
+    <rect width="70" height="65" rx="6" stroke="#D49545" stroke-width="2"/>
+    <line x1="0" y1="22" x2="70" y2="22" stroke="#D49545" stroke-width="2"/>
+    <rect x="27" y="28" width="16" height="12" rx="2" fill="#D49545" opacity="0.6"/>
+  </g>
+  <!-- Small box -->
+  <g transform="translate(125, 90)">
+    <rect width="50" height="45" rx="5" fill="#F0C888"/>
+    <rect width="50" height="45" rx="5" stroke="#E0B878" stroke-width="1.5"/>
+    <line x1="0" y1="15" x2="50" y2="15" stroke="#E0B878" stroke-width="1.5"/>
+    <rect x="18" y="20" width="14" height="10" rx="2" fill="#E0B878" opacity="0.6"/>
+  </g>
+  <!-- Plant in box (poking out) -->
+  <g transform="translate(68, 38)">
+    <path d="M0 22C0 22-12-2-6-15C-1-26 10-20 10-10" stroke="#4CAF50" stroke-width="2.5" fill="none"/>
+    <ellipse cx="-4" cy="-12" rx="7" ry="5" fill="#66BB6A" transform="rotate(-30, -4, -12)"/>
+    <path d="M0 22C0 22 14 0 8-12C4-20-8-18-8-8" stroke="#4CAF50" stroke-width="2.5" fill="none"/>
+    <ellipse cx="6" cy="-8" rx="7" ry="5" fill="#81C784" transform="rotate(25, 6, -8)"/>
+  </g>
+  <!-- Tape roll -->
+  <g transform="translate(150, 78)">
+    <circle cx="0" cy="0" r="10" fill="#D5A44C"/>
+    <circle cx="0" cy="0" r="5" fill="#FFF8E8"/>
+    <path d="M10 0L18 4L18-4Z" fill="#D5A44C" opacity="0.4"/>
+  </g>
+  <!-- Label/sticker on big box -->
+  <rect x="52" y="40" width="28" height="16" rx="2" fill="white" opacity="0.8"/>
+  <line x1="56" y1="45" x2="74" y2="45" stroke="#CCC" stroke-width="1.5"/>
+  <line x1="56" y1="50" x2="68" y2="50" stroke="#CCC" stroke-width="1.5"/>
+</svg>

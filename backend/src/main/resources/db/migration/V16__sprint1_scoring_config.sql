@@ -47,4 +47,4 @@ INSERT INTO relocation_scoring_config (
     true,
     now(),
     now()
-);
+) ON CONFLICT (config_key) DO NOTHING;

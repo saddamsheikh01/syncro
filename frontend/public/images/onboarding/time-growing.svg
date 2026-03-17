@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Pot -->
+  <path d="M65 135L75 170H125L135 135Z" fill="#D4A574"/>
+  <rect x="60" y="128" width="80" height="12" rx="4" fill="#E0B888"/>
+  <ellipse cx="100" cy="134" rx="35" ry="6" fill="#8B6F47"/>
+  <!-- Taller plant -->
+  <path d="M100 130V80" stroke="#4CAF50" stroke-width="3"/>
+  <path d="M100 120C88 115 82 105 90 98C95 95 100 100 100 108" fill="#4CAF50"/>
+  <path d="M100 115C112 110 118 100 110 94C105 91 100 96 100 104" fill="#66BB6A"/>
+  <path d="M100 100C88 95 84 85 92 80C96 78 100 82 100 90" fill="#66BB6A"/>
+  <path d="M100 95C112 90 116 82 108 76C104 74 100 78 100 86" fill="#81C784"/>
+  <path d="M100 85C94 78 92 68 98 65C100 64 102 66 100 75" fill="#81C784"/>
+</svg>

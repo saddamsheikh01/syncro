@@ -1,16 +1,17 @@
 package com.syncro.backend.domain.relocation.controller;
 
-import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.service.CityComparisonService;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
 import com.syncro.backend.domain.relocation.service.RelocationOnboardingService;
 import com.syncro.backend.domain.relocation.service.RelocationScoringService;
 import com.syncro.backend.domain.relocation.service.WaitingListService;
+import com.syncro.backend.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -49,42 +50,42 @@ public class RelocationController {
 
     @GetMapping("/onboarding")
     @Operation(summary = "Recupera profilo onboarding relocation dell'utente autenticato")
-    public ResponseEntity<OnboardingResponse> getOnboarding(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(onboardingService.getOnboarding(user));
+    public ResponseEntity<OnboardingResponse> getOnboarding(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(onboardingService.getOnboarding(principal.userId()));
     }
 
     @PatchMapping("/onboarding")
     @Operation(summary = "Aggiorna profilo onboarding (salvataggio progressivo)")
     public ResponseEntity<OnboardingResponse> updateOnboarding(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody UpdateOnboardingRequest request) {
-        return ResponseEntity.ok(onboardingService.updateOnboarding(user, request));
+        return ResponseEntity.ok(onboardingService.updateOnboarding(principal.userId(), request));
     }
 
     @GetMapping("/onboarding/status")
     @Operation(summary = "Stato onboarding: step completati, percentuale, snapshot attivo")
-    public ResponseEntity<OnboardingStatusResponse> getOnboardingStatus(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(onboardingService.getOnboardingStatus(user));
+    public ResponseEntity<OnboardingStatusResponse> getOnboardingStatus(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(onboardingService.getOnboardingStatus(principal.userId()));
     }
 
     @GetMapping("/activation-state")
     @Operation(summary = "Stato attivazione post-registrazione: step completati, mancanti, next actions")
-    public ResponseEntity<ActivationStateResponse> getActivationState(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(onboardingService.getActivationState(user));
+    public ResponseEntity<ActivationStateResponse> getActivationState(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(onboardingService.getActivationState(principal.userId()));
     }
 
     // ========== SNAPSHOTS ==========
 
     @PostMapping("/onboarding/snapshots")
     @Operation(summary = "Crea nuovo snapshot immutabile dal profilo completato")
-    public ResponseEntity<SnapshotResponse> createSnapshot(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(onboardingService.createSnapshot(user));
+    public ResponseEntity<SnapshotResponse> createSnapshot(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(onboardingService.createSnapshot(principal.userId()));
     }
 
     @GetMapping("/onboarding/snapshots")
     @Operation(summary = "Lista snapshot versioni (piu recente prima)")
-    public ResponseEntity<List<SnapshotResponse>> getSnapshots(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(onboardingService.getSnapshots(user));
+    public ResponseEntity<List<SnapshotResponse>> getSnapshots(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(onboardingService.getSnapshots(principal.userId()));
     }
 
     // ========== CITY SCORING ==========
@@ -92,23 +93,27 @@ public class RelocationController {
     @PostMapping("/city-scoring/compute")
     @Operation(summary = "Calcola City Fit Score basato su snapshot attivo e macroaree citta")
     public ResponseEntity<ScoringResultResponse> computeScoring(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody(required = false) ComputeScoringRequest request) {
-        return ResponseEntity.ok(scoringService.computeScoring(user, request));
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(null);
+        }
+        return ResponseEntity.ok(scoringService.computeScoring(principal.userId(), request));
     }
 
     @GetMapping("/city-scoring/history")
     @Operation(summary = "Storico scoring utente (tutti i calcoli precedenti)")
-    public ResponseEntity<List<CityScoreResponse>> getScoringHistory(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(scoringService.getHistory(user));
+    public ResponseEntity<List<CityScoreResponse>> getScoringHistory(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(scoringService.getHistory(principal.userId()));
     }
 
     @GetMapping("/city-scoring/latest/{snapshotId}")
     @Operation(summary = "Ultimi score per un dato snapshot")
     public ResponseEntity<List<CityScoreResponse>> getLatestScores(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID snapshotId) {
-        return ResponseEntity.ok(scoringService.getLatestScores(user, snapshotId));
+        return ResponseEntity.ok(scoringService.getLatestScores(principal.userId(), snapshotId));
     }
 
     // ========== CITIES (public data, authenticated) ==========
@@ -136,9 +141,9 @@ public class RelocationController {
     @PostMapping("/city-scoring/compare")
     @Operation(summary = "Confronta due citta basandosi su profilo utente e priorita")
     public ResponseEntity<CityComparisonResponse> compareCities(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody CityComparisonRequest request) {
-        return ResponseEntity.ok(comparisonService.compareCities(user, request));
+        return ResponseEntity.ok(comparisonService.compareCities(principal.userId(), request));
     }
 
     // ========== WAITING LIST ==========
@@ -146,8 +151,8 @@ public class RelocationController {
     @PostMapping("/waiting-list")
     @Operation(summary = "Iscriviti alla waiting list per una citta non ancora disponibile")
     public ResponseEntity<Map<String, Object>> joinWaitingList(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody WaitingListRequest request) {
-        return ResponseEntity.ok(waitingListService.joinWaitingList(request, user));
+        return ResponseEntity.ok(waitingListService.joinWaitingList(request, principal.userId()));
     }
 }

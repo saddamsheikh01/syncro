@@ -51,7 +51,8 @@ public class SecurityConfig {
                                 "/api/v1/astrology/calculate",
                                 "/api/v1/expats/funnel/config",
                                 "/api/v1/expats/anonymous/sessions",
-                                "/api/v1/expats/anonymous/sessions/**"
+                                "/api/v1/expats/anonymous/sessions/**",
+                                "/api/v1/relocation/city-scoring/compute"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

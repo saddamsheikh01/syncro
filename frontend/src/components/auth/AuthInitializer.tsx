@@ -13,7 +13,9 @@ const isPublicPath = (path: string) =>
   /^\/moments(\/[^/]+)?$/.test(path) ||
   /^\/profile\/[^/]+$/.test(path) ||
   /^\/places\/[^/]+$/.test(path) ||
-  /^\/experiences\/[^/]+$/.test(path);
+  /^\/experiences\/[^/]+$/.test(path) ||
+  // Expats public routes (landing, funnel, wow)
+  /^\/expats(\/funnel(\/\d+)?|\/wow)?$/.test(path);
 
 export const AuthInitializer = () => {
   const router = useRouter();
