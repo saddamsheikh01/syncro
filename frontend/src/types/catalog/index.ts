@@ -125,10 +125,18 @@ export type ExperienceSummaryResponse = {
   isActive: boolean;
 };
 
+/** Job status from GET /experiences/jobs/:jobId (and 202 accept response). */
+export type ExperienceJobStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "COMPLETED"
+  | "FAILED"
+  | "NOT_FOUND";
+
 /** Response body when GET /experiences returns 202 (job accepted). */
 export type JobAcceptedResponse = {
   jobId: Uuid;
-  status: string;
+  status: ExperienceJobStatus;
   message: string;
 };
 

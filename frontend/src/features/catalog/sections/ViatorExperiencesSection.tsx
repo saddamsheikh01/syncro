@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
@@ -98,7 +98,8 @@ export const ViatorExperiencesSection = ({
   const VISIBILITY_REFETCH_COOLDOWN_MS = 30_000;
 
   // Hydrate position before any effect runs so "Near me" and fetch use coords when returning from detail.
-  useLayoutEffect(() => {
+  // useEffect (not useLayoutEffect) to avoid SSR warning: hydrate() reads localStorage, which isn't available server-side.
+  useEffect(() => {
     positionActions.hydrate();
   }, [positionActions]);
 
