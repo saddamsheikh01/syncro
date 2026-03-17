@@ -168,13 +168,14 @@
 				<artifactId>flyway-maven-plugin</artifactId>
 				<version>11.14.1</version>
 				<configuration>
-					<url>jdbc:postgresql://localhost:5432/syncro_db?currentSchema=syncro_dev</url>
-					<user>postgres</user>
-					<password>mushhood@1811</password>
+					<!-- Use env: FLYWAY_URL, FLYWAY_USER, FLYWAY_PASSWORD (no defaults for password) -->
+					<url>${env.FLYWAY_URL:-jdbc:postgresql://localhost:5432/syncro_db?currentSchema=syncro_dev}</url>
+					<user>${env.FLYWAY_USER:-postgres}</user>
+					<password>${env.FLYWAY_PASSWORD}</password>
 					<schemas>syncro_dev</schemas>
 					<locations>filesystem:src/main/resources/db/migration</locations>
 					<outOfOrder>true</outOfOrder>
-				<placeholderReplacement>false</placeholderReplacement>
+					<placeholderReplacement>false</placeholderReplacement>
 				</configuration>
 				<dependencies>
 					<dependency>
