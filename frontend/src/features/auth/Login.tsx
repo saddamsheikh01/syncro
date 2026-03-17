@@ -320,6 +320,33 @@ export const Login = () => {
         </div>
         <AuthDesktopVisual alt={t("Syncro login visual")} />
       </div>
+
+      {/* Expats Mode entry point */}
+      <div className="mx-auto mt-6 w-full max-w-6xl px-2 pb-8">
+        <Link
+          href="/expats"
+          className="group flex items-center justify-between rounded-[20px] border border-[#dde8ff] bg-gradient-to-r from-[#eef4ff] to-[#f0f7ff] px-5 py-4 shadow-sm transition hover:border-[#b8d0ff] hover:shadow-md"
+        >
+          <div className="flex items-center gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dce8ff] text-xl">
+              🌍
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[#2b4c8f]">
+                {t("Planning to move abroad?")}
+              </p>
+              <p className="text-xs text-muted">
+                {t("Try Expats Mode — get your free city compatibility snapshot")}
+              </p>
+            </div>
+          </div>
+          <span className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#3f69d0] shadow-sm transition group-hover:bg-[#3f69d0] group-hover:text-white">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </span>
+        </Link>
+      </div>
     </div>
   );
 };

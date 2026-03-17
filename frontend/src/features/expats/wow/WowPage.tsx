@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useMemo, useState } from "react";
@@ -30,7 +30,7 @@ const MACROAREA_LABELS: Record<keyof MacroareeScores, { label: string; short: st
   opportunita_lavorative: { label: "Work Opportunities", short: "Work\nOpportunities" },
 };
 
-/** Display label for API macroarea key (e.g. costo_vita → "costo vita") — no fixed city copy. */
+/** Display label for API macroarea key (e.g. costo_vita ΓåÆ "costo vita") ΓÇö no fixed city copy. */
 function macroareaLabelFromApi(macroarea: string): string {
   return macroarea.replace(/_/g, " ");
 }
@@ -81,8 +81,8 @@ function compatLabel(level: string | undefined, score: number) {
 function budgetClassLabel(marginStatusOrClassification: string | undefined) {
   if (marginStatusOrClassification === "sustainable") return { text: "Sustainable with your budget", color: "#22a55f" };
   if (marginStatusOrClassification === "tight" || marginStatusOrClassification === "very_tight") return { text: "Tight, but manageable", color: "#f2b203" };
-  if (marginStatusOrClassification === "unsustainable") return { text: "Over budget — adjustments needed", color: "#e05555" };
-  return { text: "Over budget — adjustments needed", color: "#e05555" };
+  if (marginStatusOrClassification === "unsustainable") return { text: "Over budget ΓÇö adjustments needed", color: "#e05555" };
+  return { text: "Over budget ΓÇö adjustments needed", color: "#e05555" };
 }
 
 function structuralBulletsFromApi(score: CityScoreResponse | null): string[] {
@@ -113,7 +113,7 @@ function structuralBulletsFromApi(score: CityScoreResponse | null): string[] {
   return out.slice(0, 3);
 }
 
-// ─── WOW Page – Planning Move ─────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ WOW Page ΓÇô Planning Move ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function WowPlanningMove({
   cityName,
@@ -163,7 +163,7 @@ function WowPlanningMove({
       <div className="wow-header">
         <h1 className="wow-title">
           {cityName}
-          {totalScore > 0 ? ` — ${totalScore}% city fit` : ""}
+          {totalScore > 0 ? ` ΓÇö ${totalScore}% city fit` : ""}
         </h1>
         <p className="wow-sub">
           {firstStrength ||
@@ -201,7 +201,7 @@ function WowPlanningMove({
                       <span className="wow-big-num__sub">/100 city</span>
                     </>
                   ) : (
-                    "—"
+                    "ΓÇö"
                   )}
                 </p>
               </div>
@@ -237,7 +237,7 @@ function WowPlanningMove({
           <div className="wow-city-hero">
             <img src={`${IMG}/Rectangle%203465225.png`} alt={cityName} className="wow-city-hero__img" />
             <span className="wow-compat-badge" style={{ background: compat.color }}>
-              {totalScore > 0 ? `${totalScore}% ${compat.text}` : "Score loading…"}
+              {totalScore > 0 ? `${totalScore}% ${compat.text}` : "Score loadingΓÇª"}
             </span>
           </div>
 
@@ -265,7 +265,7 @@ function WowPlanningMove({
           <button type="button" onClick={() => router.push("/register?from=expats")} className="wow-cta">
             See My Full Relocation Analysis
           </button>
-          <p className="wow-cta-sub">🔒 Free account · Personalized results · No credit card required</p>
+          <p className="wow-cta-sub">≡ƒöÆ Free account ┬╖ Personalized results ┬╖ No credit card required</p>
         </div>
 
         <div className="wow-col">
@@ -285,7 +285,7 @@ function WowPlanningMove({
               <>
                 <p className="wow-budget-line">{formatEur(estimatedCost)} estimated monthly need (dataset + your lifestyle inputs)</p>
                 <p className="wow-budget-check" style={{ color: budgetLabel.color }}>
-                  ✓ {budgetLabel.text}
+                  Γ£ô {budgetLabel.text}
                 </p>
               </>
             ) : (
@@ -293,7 +293,7 @@ function WowPlanningMove({
             )}
             <div className="wow-insight-box">
               <strong>Insight:</strong>{" "}
-              {firstInsightMessage || firstStrength || `Analysis for ${cityName} — sign in for full report.`}
+              {firstInsightMessage || firstStrength || `Analysis for ${cityName} ΓÇö sign in for full report.`}
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@ function WowPlanningMove({
   );
 }
 
-// ─── WOW Page – Already There ─────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ WOW Page ΓÇô Already There ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function WowAlreadyThere({
   cityName,
@@ -397,11 +397,11 @@ function WowAlreadyThere({
                 ))}
               </ul>
             ) : (
-              <p className="wow-muted-sm">Loading district data from your city profile…</p>
+              <p className="wow-muted-sm">Loading district data from your city profileΓÇª</p>
             )}
           </div>
           <button type="button" onClick={() => router.push("/register?from=expats")} className="wow-cta">
-            See My Full {cityName} Analysis →
+            See My Full {cityName} Analysis ΓåÆ
           </button>
           <p className="wow-cta-sub">Preview unlocked. Full system activates after registration.</p>
         </div>
@@ -420,7 +420,7 @@ function WowAlreadyThere({
               <>
                 <p className="wow-budget-line">{formatEur(estimatedCost)} estimated monthly need</p>
                 <p className="wow-budget-check" style={{ color: budgetLabel.color }}>
-                  ✓ {budgetLabel.text}
+                  Γ£ô {budgetLabel.text}
                 </p>
               </>
             ) : (
@@ -438,7 +438,7 @@ function WowAlreadyThere({
   );
 }
 
-// ─── WOW Page – Comparison ────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ WOW Page ΓÇô Comparison ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function WowComparison({
   comparison,
@@ -501,7 +501,7 @@ function WowComparison({
           </div>
           <div className="wow-card">
             <p className="wow-bold" style={{ marginBottom: 8 }}>
-              {tgt} — districts ({targetDistricts.length || "…"})
+              {tgt} ΓÇö districts ({targetDistricts.length || "ΓÇª"})
             </p>
             <img src={`${IMG}/image%202436.png`} alt="" className="wow-img-160" style={{ margin: "8px auto" }} />
             {targetDistricts.length > 0 ? (
@@ -604,7 +604,7 @@ function WowComparison({
               <div>
                 <p className="wow-muted-sm" style={{ fontWeight: 700, color: "#0d1b36" }}>Target city fit</p>
                 <p className="wow-big-num">
-                  {comparison?.overallImpact?.scoreTargetCity ?? targetScore?.scoreTotal ?? "—"}
+                  {comparison?.overallImpact?.scoreTargetCity ?? targetScore?.scoreTotal ?? "ΓÇö"}
                   {typeof (comparison?.overallImpact?.scoreTargetCity ?? targetScore?.scoreTotal) === "number" ? (
                     <span className="wow-big-num__sub">/100</span>
                   ) : null}
@@ -618,7 +618,7 @@ function WowComparison({
                   ? `Compatibility: ${targetScore.compatibilityLevel.replace(/_/g, " ")}`
                   : targetScore?.compatibilityLevel
                     ? targetScore.compatibilityLevel.replace(/_/g, " ")
-                    : "—"}
+                    : "ΓÇö"}
             </p>
           </div>
         </div>
@@ -627,7 +627,7 @@ function WowComparison({
   );
 }
 
-// ─── WOW Page – Unsure ────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ WOW Page ΓÇô Unsure ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function WowUnsure({ scores }: { scores: CityScoreResponse[] | undefined }) {
   const router = useRouter();
@@ -653,7 +653,7 @@ function WowUnsure({ scores }: { scores: CityScoreResponse[] | undefined }) {
         <div className="wow-header">
           <h1 className="wow-title">City rankings</h1>
           <p className="wow-muted-sm">
-            After you sign in, complete your profile, create a snapshot, and run scoring — your ranked cities will show here.
+            After you sign in, complete your profile, create a snapshot, and run scoring ΓÇö your ranked cities will show here.
           </p>
         </div>
         <button type="button" onClick={() => router.push("/register?from=expats")} className="wow-cta" style={{ marginTop: 32 }}>
@@ -679,7 +679,7 @@ function WowUnsure({ scores }: { scores: CityScoreResponse[] | undefined }) {
             <div className="wow-city-rank">#{i + 1}</div>
             <img src={city.img} alt={city.name} className="wow-city-card__img" />
             <div className="wow-city-card__body">
-              <h3 className="wow-bold">🌍 {city.name}</h3>
+              <h3 className="wow-bold">≡ƒîì {city.name}</h3>
               <p className="wow-muted-sm">{city.country}</p>
               <div className="wow-score-bar">
                 <div className="wow-score-fill" style={{ width: `${Math.min(100, city.score)}%` }} />
@@ -702,7 +702,7 @@ function WowUnsure({ scores }: { scores: CityScoreResponse[] | undefined }) {
   );
 }
 
-// ─── Main WOW Page ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Main WOW Page ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 export default function WowPage() {
   const router = useRouter();
@@ -871,7 +871,7 @@ export default function WowPage() {
     if (userPhase === "already_there") {
       return (
         <WowAlreadyThere
-          cityName={onboarding?.currentCityName || funnelCurrent || cityDisplay || "…"}
+          cityName={onboarding?.currentCityName || funnelCurrent || cityDisplay || "ΓÇª"}
           score={primaryScore}
           completionPercent={completionPercent}
           districts={districts}
@@ -886,7 +886,7 @@ export default function WowPage() {
     if (targetType === "already_live") {
       return (
         <WowAlreadyThere
-          cityName={onboarding?.currentCityName || funnelCurrent || cityDisplay || "…"}
+          cityName={onboarding?.currentCityName || funnelCurrent || cityDisplay || "ΓÇª"}
           score={primaryScore}
           completionPercent={completionPercent}
           districts={districts}
@@ -908,7 +908,7 @@ export default function WowPage() {
     }
     return (
       <WowPlanningMove
-        cityName={cityDisplay || "…"}
+        cityName={cityDisplay || "ΓÇª"}
         score={primaryScore}
         funnelBudget={onboarding?.monthlyBudget ?? funnelAnswers.monthlyBudget ?? null}
         completionPercent={completionPercent}
@@ -929,7 +929,7 @@ export default function WowPage() {
           </svg>
         </div>
         <div className="wow-logo">
-          <span className="wow-logo__sym">∞</span>
+          <span className="wow-logo__sym">Γê₧</span>
           <span className="wow-logo__txt">
             <strong>EXPATS</strong> MODE
           </span>
