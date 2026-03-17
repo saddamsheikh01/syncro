@@ -186,17 +186,18 @@ public class ScoringCalculationHelper {
                                                     Map<String, Object> payload) {
         BigDecimal userBudget = getBudgetFromPayload(payload);
         BigDecimal lifestyleMultiplier = getLifestyleMultiplier(payload, config);
-        BigDecimal adjustedBudget = userBudget.multiply(lifestyleMultiplier).setScale(2, RoundingMode.HALF_UP);
 
         boolean isFamily = isFamily(payload);
-        BigDecimal cityCost = computeCityCost(city, isFamily);
+        BigDecimal baseCityCost = computeCityCost(city, isFamily);
+        BigDecimal adjustedCityCost = baseCityCost.multiply(lifestyleMultiplier).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal margin = adjustedBudget.subtract(cityCost);
+        BigDecimal margin = userBudget.subtract(adjustedCityCost);
         String marginStatus = classifyMarginStatus(margin, config);
 
         Map<String, Object> check = new LinkedHashMap<>();
-        check.put("estimatedCityCost", cityCost);
-        check.put("userBudgetAdjusted", adjustedBudget);
+        check.put("declaredBudget", userBudget);
+        check.put("estimatedCityCost", adjustedCityCost);
+        check.put("baseCityCost", baseCityCost);
         check.put("lifestyleMultiplier", lifestyleMultiplier);
         check.put("margin", margin);
         check.put("marginStatus", marginStatus);
@@ -226,12 +227,12 @@ public class ScoringCalculationHelper {
         if (userBudget.compareTo(BigDecimal.ZERO) == 0) return 0;
 
         BigDecimal lifestyleMultiplier = getLifestyleMultiplier(payload, config);
-        BigDecimal adjustedBudget = userBudget.multiply(lifestyleMultiplier);
 
         boolean isFamily = isFamily(payload);
-        BigDecimal cityCost = computeCityCost(city, isFamily);
+        BigDecimal baseCityCost = computeCityCost(city, isFamily);
+        BigDecimal adjustedCityCost = baseCityCost.multiply(lifestyleMultiplier);
 
-        BigDecimal margin = adjustedBudget.subtract(cityCost);
+        BigDecimal margin = userBudget.subtract(adjustedCityCost);
 
         Map<String, Object> penaltyThresholds = config.getBudgetPenaltyThresholds();
         if (margin.compareTo(BigDecimal.ZERO) < 0) {
