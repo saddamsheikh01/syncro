@@ -51,6 +51,7 @@ public class RelocationController {
     @GetMapping("/onboarding")
     @Operation(summary = "Recupera profilo onboarding relocation dell'utente autenticato")
     public ResponseEntity<OnboardingResponse> getOnboarding(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.getOnboarding(principal.userId()));
     }
 
@@ -59,18 +60,21 @@ public class RelocationController {
     public ResponseEntity<OnboardingResponse> updateOnboarding(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody UpdateOnboardingRequest request) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.updateOnboarding(principal.userId(), request));
     }
 
     @GetMapping("/onboarding/status")
     @Operation(summary = "Stato onboarding: step completati, percentuale, snapshot attivo")
     public ResponseEntity<OnboardingStatusResponse> getOnboardingStatus(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.getOnboardingStatus(principal.userId()));
     }
 
     @GetMapping("/activation-state")
     @Operation(summary = "Stato attivazione post-registrazione: step completati, mancanti, next actions")
     public ResponseEntity<ActivationStateResponse> getActivationState(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.getActivationState(principal.userId()));
     }
 
@@ -79,12 +83,14 @@ public class RelocationController {
     @PostMapping("/onboarding/snapshots")
     @Operation(summary = "Crea nuovo snapshot immutabile dal profilo completato")
     public ResponseEntity<SnapshotResponse> createSnapshot(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.createSnapshot(principal.userId()));
     }
 
     @GetMapping("/onboarding/snapshots")
     @Operation(summary = "Lista snapshot versioni (piu recente prima)")
     public ResponseEntity<List<SnapshotResponse>> getSnapshots(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(onboardingService.getSnapshots(principal.userId()));
     }
 
@@ -105,6 +111,7 @@ public class RelocationController {
     @GetMapping("/city-scoring/history")
     @Operation(summary = "Storico scoring utente (tutti i calcoli precedenti)")
     public ResponseEntity<List<CityScoreResponse>> getScoringHistory(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(scoringService.getHistory(principal.userId()));
     }
 
@@ -113,6 +120,7 @@ public class RelocationController {
     public ResponseEntity<List<CityScoreResponse>> getLatestScores(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID snapshotId) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(scoringService.getLatestScores(principal.userId(), snapshotId));
     }
 
@@ -143,6 +151,7 @@ public class RelocationController {
     public ResponseEntity<CityComparisonResponse> compareCities(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody CityComparisonRequest request) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(comparisonService.compareCities(principal.userId(), request));
     }
 
@@ -153,6 +162,7 @@ public class RelocationController {
     public ResponseEntity<Map<String, Object>> joinWaitingList(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody WaitingListRequest request) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return ResponseEntity.ok(waitingListService.joinWaitingList(request, principal.userId()));
     }
 }

@@ -216,12 +216,40 @@ export interface MacroareeScores {
   integrazione_sociale: number;
 }
 
+/** Backend sends marginStatus: sustainable | tight | very_tight | unsustainable. */
+export type BudgetMarginStatus =
+  | "sustainable"
+  | "tight"
+  | "very_tight"
+  | "unsustainable";
+
 export interface BudgetCheck {
   declaredBudget: number;
-  estimatedCost: number;
+  /** Backend key (post budget-margin fix). */
+  estimatedCityCost?: number;
+  /** Legacy / display alias. */
+  estimatedCost?: number;
+  baseCityCost?: number;
   margin: number;
-  classification: "sustainable" | "tight" | "over_budget";
+  /** Backend key (post budget-margin fix). */
+  marginStatus?: BudgetMarginStatus;
+  /** Legacy / display alias. */
+  classification?: "sustainable" | "tight" | "over_budget";
   lifestyleMultiplier: number;
+  isFamily?: boolean;
+  suggestions?: string[];
+}
+
+/** Backend returns breakdown/userWeights/radarValues as Map; keys match MacroareeScores. */
+export type MacroareeMap = Partial<Record<keyof MacroareeScores, number>>;
+
+/** Backend insights: optional arrays or nested structure. */
+export interface ScoreInsights {
+  strengths?: string[];
+  warnings?: string[];
+  suggestions?: string[];
+  insights?: string[];
+  [key: string]: unknown;
 }
 
 export interface CityScoreResponse {
@@ -233,17 +261,13 @@ export interface CityScoreResponse {
   analysisType: AnalysisType;
   scoreTotal: number;
   compatibilityLevel: CompatibilityLevel;
-  breakdown: MacroareeScores;
-  userWeights: MacroareeScores;
-  userPriorityClassification: Partial<Record<keyof MacroareeScores, string>>;
-  radarValues: MacroareeScores;
+  breakdown: MacroareeScores | MacroareeMap;
+  userWeights: MacroareeScores | MacroareeMap;
+  userPriorityClassification: Partial<Record<keyof MacroareeScores, string>> | Record<string, string>;
+  radarValues: MacroareeScores | MacroareeMap;
   budgetCheck: BudgetCheck | null;
   integrationBreakdown: unknown | null;
-  insights: {
-    strengths: string[];
-    warnings: string[];
-    suggestions: string[];
-  } | null;
+  insights: ScoreInsights | null;
   algorithmVersion: string;
   rankingPosition: number | null;
   computedAt: string;

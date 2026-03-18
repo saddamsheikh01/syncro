@@ -146,6 +146,15 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     headers.set("Accept-Language", locale.trim());
   }
 
+  // Expat flow: send session token so backend can resolve converted user (avoids 401 after register)
+  const url = config.url ?? "";
+  if (url.includes("relocation") && typeof window !== "undefined") {
+    const expatToken = localStorage.getItem("expats.session.token");
+    if (expatToken?.trim()) {
+      headers.set("X-Expat-Session-Token", expatToken.trim());
+    }
+  }
+
   config.headers = headers;
   return config;
 });

@@ -6,7 +6,7 @@ import { setOnUnauthorized } from "@/services/axiosConfig";
 import { resetAllStores } from "@/stores/utils/resetAllStores";
 import { useAuth } from "@/hooks";
 
-const PUBLIC_PATHS = ["/login", "/register", "/verify-email", "/"];
+const PUBLIC_PATHS = ["/login", "/register", "/verify-email", "/", "/expats"];
 
 const isPublicPath = (path: string) =>
   PUBLIC_PATHS.includes(path) ||
