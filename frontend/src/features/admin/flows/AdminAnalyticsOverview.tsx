@@ -386,15 +386,6 @@ export const AdminAnalyticsOverview = () => {
               )}
             />
             <AdminStatCard
-              label={t("Onboarding completed")}
-              value={formatNumber(analytics.onboardingCompleted)}
-              trend={analytics.onboardingTrend.direction}
-              trendLabel={t(
-                analytics.onboardingTrend.labelKey,
-                analytics.onboardingTrend.labelValues
-              )}
-            />
-            <AdminStatCard
               label={t("Onboarding completed users")}
               value={formatNumber(analytics.onboardingCompletedUsersTotal)}
               trend="neutral"
