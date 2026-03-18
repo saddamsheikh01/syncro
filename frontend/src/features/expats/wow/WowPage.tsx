@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useMemo, useState } from "react";
@@ -14,7 +14,6 @@ import {
 import type {
   CityScoreResponse,
   MacroareeScores,
-  BudgetCheck,
   CityComparisonResponse,
   CityDetail,
 } from "../../../types/expats";
@@ -118,7 +117,7 @@ function structuralBulletsFromApi(score: CityScoreResponse | null): string[] {
 function WowPlanningMove({
   cityName,
   score,
-  funnelBudget,
+  funnelBudget: _funnelBudget,
   completionPercent,
   districts,
   structuralTitleFromConfig,
@@ -775,14 +774,29 @@ export default function WowPage() {
     })();
   }, [session]);
 
+  /* Re-fetch comparison when city ids / funnel mode change only */
   useEffect(() => {
     const ob = onboarding;
-    if (!ob?.currentCityId || !ob?.targetCityId) {
-      setComparison(null);
-      return;
-    }
-    if (funnelAnswers.targetType !== "specific_city") return;
     let cancelled = false;
+    const clearComparison = () => {
+      queueMicrotask(() => {
+        if (!cancelled) setComparison(null);
+      });
+    };
+
+    if (!ob?.currentCityId || !ob?.targetCityId) {
+      clearComparison();
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (funnelAnswers.targetType !== "specific_city") {
+      clearComparison();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     compareCities({ currentCityId: ob.currentCityId, targetCityId: ob.targetCityId })
       .then((c) => {
         if (!cancelled) setComparison(c);
@@ -797,11 +811,15 @@ export default function WowPage() {
 
   useEffect(() => {
     const tid = comparison?.targetCity?.id;
-    if (!tid) {
-      setComparisonTargetDistricts([]);
-      return;
-    }
     let cancelled = false;
+    if (!tid) {
+      queueMicrotask(() => {
+        if (!cancelled) setComparisonTargetDistricts([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     getCityById(tid)
       .then((d) => {
         if (!cancelled) setComparisonTargetDistricts(d.districts ?? []);
@@ -831,11 +849,15 @@ export default function WowPage() {
 
   useEffect(() => {
     const id = primaryScore?.cityId;
-    if (!id) {
-      setDistrictCity(null);
-      return;
-    }
     let cancelled = false;
+    if (!id) {
+      queueMicrotask(() => {
+        if (!cancelled) setDistrictCity(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     getCityById(id)
       .then((d) => {
         if (!cancelled) setDistrictCity(d);

@@ -1,4 +1,4 @@
--- V18: Aggiunge supporto City Comparison alla tabella relocation_profiles
+-- V20: City comparison — current_city_id / current_city_name on relocation_profiles
 -- Nuovi campi: current_city_id e current_city_name per confronto tra citta corrente e target
 
 ALTER TABLE relocation_profiles
