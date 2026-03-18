@@ -444,12 +444,14 @@ function WowComparison({
   currentCityName,
   targetCityName,
   targetScore,
+  currentDistricts,
   targetDistricts,
 }: {
   comparison: CityComparisonResponse | null;
   currentCityName: string;
   targetCityName: string;
   targetScore: CityScoreResponse | null;
+  currentDistricts: { name: string }[];
   targetDistricts: { name: string }[];
 }) {
   const router = useRouter();
@@ -460,6 +462,8 @@ function WowComparison({
   const econ = comparison?.economicImpact;
   const tradeBullets = comparison?.tradeOffs?.slice(0, 4) ?? [];
   const winnerSummary = comparison?.overallImpact?.summary ?? comparison?.priorityAlignment?.summary;
+  const aligned = comparison?.priorityAlignment?.alignedPriorities ?? [];
+  const oi = comparison?.overallImpact;
 
   return (
     <>
@@ -486,6 +490,19 @@ function WowComparison({
             )}
             <img src={`${IMG}/image%202425.png`} alt="Trophy" className="wow-img-60" />
             <h2 className="wow-winner-city">{tgt.toUpperCase()}</h2>
+            {oi != null && (oi.scoreCurrentCity > 0 || oi.scoreTargetCity > 0) && (
+              <p className="wow-muted-sm" style={{ marginBottom: 10 }}>
+                <strong>{cur}</strong> fit {oi.scoreCurrentCity}/100
+                {oi.compatibilityLevelCurrent ? ` (${oi.compatibilityLevelCurrent.replace(/_/g, " ")})` : ""} ΓÇó{" "}
+                <strong>{tgt}</strong> fit {oi.scoreTargetCity}/100
+                {oi.compatibilityLevelTarget ? ` (${oi.compatibilityLevelTarget.replace(/_/g, " ")})` : ""}
+              </p>
+            )}
+            {aligned.length > 0 && (
+              <p className="wow-muted-sm" style={{ marginBottom: 8 }}>
+                Your priorities aligned: {aligned.join(" ΓÇó ")}
+              </p>
+            )}
             {tradeBullets.length > 0 ? (
               <ul className="wow-accent-list" style={{ textAlign: "left" }}>
                 {tradeBullets.map((t) => (
@@ -496,6 +513,21 @@ function WowComparison({
               <ul className="wow-accent-list">
                 <li>{comparison?.priorityAlignment?.summary || `Add both cities to your profile and create a snapshot to load the full comparison.`}</li>
               </ul>
+            )}
+          </div>
+          <div className="wow-card">
+            <p className="wow-bold" style={{ marginBottom: 8 }}>
+              {cur} ΓÇö districts ({currentDistricts.length || "ΓÇª"})
+            </p>
+            <img src={`${IMG}/Rectangle%203465225%20(1).png`} alt="" className="wow-img-120" style={{ margin: "8px auto", display: "block" }} />
+            {currentDistricts.length > 0 ? (
+              <ul className="wow-accent-list">
+                {currentDistricts.slice(0, 5).map((d) => (
+                  <li key={d.name}>{d.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="wow-muted-sm">Districts from catalog for {cur}.</p>
             )}
           </div>
           <div className="wow-card">
@@ -551,6 +583,23 @@ function WowComparison({
               </p>
             </div>
           )}
+          {comparison?.userPriorityClassification &&
+            Object.keys(comparison.userPriorityClassification).length > 0 && (
+              <div className="wow-card">
+                <p className="wow-bold-sm">Your priority focus (comparison model)</p>
+                <p className="wow-muted-sm">
+                  {Object.entries(comparison.userPriorityClassification)
+                    .slice(0, 6)
+                    .map(([k, v]) => `${macroareaLabelFromApi(k)}: ${v}`)
+                    .join(" ΓÇó ")}
+                </p>
+              </div>
+            )}
+          {comparison?.algorithmVersion ? (
+            <p className="wow-cta-sub" style={{ marginTop: 4 }}>
+              Comparison algorithm: {comparison.algorithmVersion}
+            </p>
+          ) : null}
           {econ && (
             <div className="wow-card wow-card--center">
               <p className="wow-bold-sm">Your Monthly Life Simulation</p>
@@ -711,6 +760,7 @@ export default function WowPage() {
   const [districtCity, setDistrictCity] = useState<CityDetail | null>(null);
   const [comparison, setComparison] = useState<CityComparisonResponse | null>(null);
   const [comparisonTargetDistricts, setComparisonTargetDistricts] = useState<{ name: string }[]>([]);
+  const [comparisonCurrentDistricts, setComparisonCurrentDistricts] = useState<{ name: string }[]>([]);
   const [structuralTitleFromFunnel, setStructuralTitleFromFunnel] = useState<string | null>(null);
 
   const nextActionDescription = activationState?.nextActions?.[0]?.description ?? null;
@@ -770,6 +820,10 @@ export default function WowPage() {
         else await expatsActions.computeScoring();
       } catch {
         /* anonymous may 401; session token may still work */
+      }
+      const after = expatsStore.getState().scoringResult?.scores ?? [];
+      if (!after.length) {
+        await expatsActions.tryHydrateScoringFromHistory().catch(() => {});
       }
     })();
   }, [session]);
@@ -831,6 +885,29 @@ export default function WowPage() {
       cancelled = true;
     };
   }, [comparison?.targetCity?.id]);
+
+  useEffect(() => {
+    const cid = comparison?.currentCity?.id;
+    let cancelled = false;
+    if (!cid) {
+      queueMicrotask(() => {
+        if (!cancelled) setComparisonCurrentDistricts([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    getCityById(cid)
+      .then((d) => {
+        if (!cancelled) setComparisonCurrentDistricts(d.districts ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setComparisonCurrentDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [comparison?.currentCity?.id]);
 
   const primaryScore = useMemo(() => {
     const scores = scoringResult?.scores ?? [];
@@ -924,6 +1001,7 @@ export default function WowPage() {
           currentCityName={comparison?.currentCity.name ?? funnelCurrent}
           targetCityName={comparison?.targetCity.name ?? funnelTarget}
           targetScore={primaryScore}
+          currentDistricts={comparisonCurrentDistricts}
           targetDistricts={comparisonTargetDistricts}
         />
       );

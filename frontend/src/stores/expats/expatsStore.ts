@@ -303,11 +303,63 @@ export const expatsActions = {
   loadOnboarding: async (): Promise<void> => {
     expatsStore.setState({ status: "loading" });
     try {
-      const onboarding = await getOnboarding();
-      expatsStore.setState({ onboarding, status: "idle" });
+      const [onboarding, status] = await Promise.all([
+        getOnboarding(),
+        getOnboardingStatus().catch(() => null),
+      ]);
+      const merged =
+        status && onboarding
+          ? {
+              ...onboarding,
+              completionPercent: status.completionPercent ?? onboarding.completionPercent,
+              completedSteps: status.completedSteps ?? onboarding.completedSteps,
+            }
+          : onboarding;
+      expatsStore.setState({ onboarding: merged, status: "idle" });
     } catch (e) {
       expatsStore.setState({ status: "error", error: "Failed to load onboarding" });
       throw e;
+    }
+  },
+
+  /**
+   * When compute scoring returns nothing (e.g. no snapshot yet), load last run from GET /relocation/city-scoring/history.
+   */
+  tryHydrateScoringFromHistory: async (): Promise<boolean> => {
+    try {
+      const hist = await getScoringHistory();
+      if (!hist.length) return false;
+      const bySnap = new Map<string, typeof hist>();
+      for (const row of hist) {
+        const k = row.snapshotId;
+        if (!bySnap.has(k)) bySnap.set(k, []);
+        bySnap.get(k)!.push(row);
+      }
+      let bestSnap = "";
+      let bestTime = 0;
+      for (const [snap, arr] of bySnap) {
+        const maxT = Math.max(...arr.map((s) => new Date(s.computedAt).getTime()));
+        if (maxT > bestTime) {
+          bestTime = maxT;
+          bestSnap = snap;
+        }
+      }
+      const batch = bySnap.get(bestSnap)!;
+      batch.sort((a, b) => (a.rankingPosition ?? 999) - (b.rankingPosition ?? 999));
+      const { onboarding } = expatsStore.getState();
+      const userType = onboarding?.userType ?? "planning_move";
+      expatsStore.setState({
+        scoringResult: {
+          snapshotId: bestSnap,
+          analysisType: batch[0]?.analysisType ?? "CITY_RANKING",
+          userType,
+          scores: batch,
+          algorithmVersion: batch[0]?.algorithmVersion ?? "",
+        },
+      });
+      return true;
+    } catch {
+      return false;
     }
   },
 
