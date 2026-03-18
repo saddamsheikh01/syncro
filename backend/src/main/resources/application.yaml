@@ -3,6 +3,10 @@ spring:
     name: backend
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 app:
   auth:
