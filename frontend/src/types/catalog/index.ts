@@ -125,6 +125,21 @@ export type ExperienceSummaryResponse = {
   isActive: boolean;
 };
 
+/** Job status from GET /experiences/jobs/:jobId (and 202 accept response). */
+export type ExperienceJobStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "COMPLETED"
+  | "FAILED"
+  | "NOT_FOUND";
+
+/** Response body when GET /experiences returns 202 (job accepted). */
+export type JobAcceptedResponse = {
+  jobId: Uuid;
+  status: ExperienceJobStatus;
+  message: string;
+};
+
 /** Unified catalog response: places and experiences in one API call (All tab). */
 export type CatalogResponse = {
   places: PlaceSummaryResponse[];

@@ -56,15 +56,22 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR (
                       COALESCE(e.latitude, p.latitude) IS NOT NULL
                       AND COALESCE(e.longitude, p.longitude) IS NOT NULL
-                      AND (
-                          6371 * acos(least(1, greatest(-1,
+                      -- Bounding box pre-filter: allows index on latitude/longitude to skip distant rows
+                      -- before the expensive haversine formula is evaluated
+                      AND COALESCE(e.latitude, p.latitude)
+                              BETWEEN (:lat - :radiusKm / 111.0) AND (:lat + :radiusKm / 111.0)
+                      AND COALESCE(e.longitude, p.longitude)
+                              BETWEEN (:lng - :radiusKm / (111.0 * cos(radians(:lat))))
+                                  AND (:lng + :radiusKm / (111.0 * cos(radians(:lat))))
+                      -- Exact haversine check on the pre-filtered candidate set
+                      AND 6371 * acos(least(1, greatest(-1,
                               cos(radians(:lat)) * cos(radians(COALESCE(e.latitude, p.latitude)))
                               * cos(radians(COALESCE(e.longitude, p.longitude)) - radians(:lng))
                               + sin(radians(:lat)) * sin(radians(COALESCE(e.latitude, p.latitude)))
-                          )))
-                      ) <= :radiusKm
+                          ))) <= :radiusKm
                   )
               )
+              AND (:locale IS NULL OR (e.locale IS NOT NULL AND e.locale = :locale))
             ORDER BY
               CASE WHEN :tagFilter = true AND EXISTS (
                   SELECT 1
@@ -127,15 +134,19 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
                   OR (
                       COALESCE(e.latitude, p.latitude) IS NOT NULL
                       AND COALESCE(e.longitude, p.longitude) IS NOT NULL
-                      AND (
-                          6371 * acos(least(1, greatest(-1,
+                      AND COALESCE(e.latitude, p.latitude)
+                              BETWEEN (:lat - :radiusKm / 111.0) AND (:lat + :radiusKm / 111.0)
+                      AND COALESCE(e.longitude, p.longitude)
+                              BETWEEN (:lng - :radiusKm / (111.0 * cos(radians(:lat))))
+                                  AND (:lng + :radiusKm / (111.0 * cos(radians(:lat))))
+                      AND 6371 * acos(least(1, greatest(-1,
                               cos(radians(:lat)) * cos(radians(COALESCE(e.latitude, p.latitude)))
                               * cos(radians(COALESCE(e.longitude, p.longitude)) - radians(:lng))
                               + sin(radians(:lat)) * sin(radians(COALESCE(e.latitude, p.latitude)))
-                          )))
-                      ) <= :radiusKm
+                          ))) <= :radiusKm
                   )
               )
+              AND (:locale IS NULL OR (e.locale IS NOT NULL AND e.locale = :locale))
             """,
         nativeQuery = true
     )
@@ -150,11 +161,16 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
         @Param("locationRefs") List<String> locationRefs,
         @Param("locationRefFilter") boolean locationRefFilter,
         @Param("source") String source,
+        @Param("locale") String locale,
         Pageable pageable
     );
 
     // Metodi per provider esterni
     Optional<Experience> findByProviderAndExternalId(String provider, String externalId);
+
+    Optional<Experience> findByProviderAndExternalIdAndLocale(String provider, String externalId, String locale);
+
+    List<Experience> findByProviderAndLocaleAndExternalIdIn(String provider, String locale, List<String> externalIds);
 
     List<Experience> findByProviderAndIsActiveTrue(String provider);
 

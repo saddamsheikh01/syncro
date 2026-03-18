@@ -17,4 +17,6 @@ public interface AffiliationLinkRepository extends JpaRepository<AffiliationLink
     Optional<AffiliationLink> findByIdAndExperience_Id(UUID id, UUID experienceId);
 
     Optional<AffiliationLink> findFirstByExperience_IdAndProviderIgnoreCase(UUID experienceId, String provider);
+
+    List<AffiliationLink> findByExperience_IdInAndProviderIgnoreCase(List<UUID> experienceIds, String provider);
 }

@@ -19,9 +19,14 @@ import { cx } from "@/lib/classNames";
 import { isViatorUnavailableError } from "@/lib/viatorErrors";
 import type { PlaceListItemProps } from "@/features/catalog/cards/PlaceListItem";
 import type { ExperienceListItemProps } from "@/features/catalog/cards/ExperienceListItem";
-import type { ExperienceSummaryResponse } from "@/types/catalog";
+import type { ExperienceSummaryResponse, PlaceSummaryResponse } from "@/types/catalog";
 
 const PAGE_SIZE = 10;
+const DEFAULT_RADIUS_KM = 100;
+
+// Manual lat/lng input replaces the "Near me" button in development only.
+// Dead-code eliminated by the bundler in production builds (NODE_ENV !== 'development').
+const MANUAL_COORDS_TESTING: boolean = process.env.NODE_ENV === "development";
 
 const formatDuration = (minutes: number | null): string | undefined => {
   if (!minutes) return undefined;
@@ -31,13 +36,61 @@ const formatDuration = (minutes: number | null): string | undefined => {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 };
 
+// Cache Intl.NumberFormat instances by currency — construction is expensive
+const numberFormatCache = new Map<string, Intl.NumberFormat>();
+const getNumberFormat = (currency: string) => {
+  if (!numberFormatCache.has(currency)) {
+    numberFormatCache.set(currency, new Intl.NumberFormat(undefined, { style: "currency", currency }));
+  }
+  return numberFormatCache.get(currency)!;
+};
+
 const formatPrice = (price: number | null, currency: string | null): string | undefined => {
   if (price == null) return undefined;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: currency ?? "EUR",
-  }).format(price);
+  return getNumberFormat(currency ?? "EUR").format(price);
 };
+
+// Pure helpers defined outside the component — no closure needed over component state
+
+const buildPlaceItem = (
+  place: PlaceSummaryResponse,
+  position: { latitude: number | null; longitude: number | null } | null | undefined,
+  hasPosition: boolean
+): PlaceListItemProps => {
+  let distanceKm: number | undefined;
+  if (hasPosition && position?.latitude != null && position?.longitude != null && place.latitude != null && place.longitude != null) {
+    distanceKm = calculateDistanceKm(position.latitude, position.longitude, place.latitude, place.longitude);
+  }
+  return {
+    title: place.name,
+    subtitle: place.description ?? undefined,
+    address: place.address ?? undefined,
+    category: place.category?.name ?? undefined,
+    metaItems: [],
+    href: `/places/${place.id}`,
+    distanceKm,
+    imageUrl: place.imageUrl ?? undefined,
+    rating: place.googleRating ?? undefined,
+    reviewCount: place.googleReviewCount ?? undefined,
+  };
+};
+
+const buildExperienceItem = (exp: ExperienceSummaryResponse): ExperienceListItemProps => ({
+  title: exp.name,
+  subtitle: exp.locationName ?? exp.place?.name ?? undefined,
+  category: exp.category?.name ?? undefined,
+  href: getExperienceDetailPath(exp),
+  imageUrl: exp.imageUrl ?? undefined,
+  priceLabel: formatPrice(exp.price, exp.priceCurrency),
+  originalPriceLabel:
+    exp.originalPrice && exp.price && exp.originalPrice > exp.price
+      ? formatPrice(exp.originalPrice, exp.priceCurrency)
+      : undefined,
+  rating: exp.rating ?? undefined,
+  reviewCount: exp.reviewCount ?? undefined,
+  durationLabel: formatDuration(exp.durationMinutes),
+  provider: exp.provider ?? undefined,
+});
 
 type TabFilter = "all" | "places" | "experiences";
 
@@ -59,8 +112,19 @@ export const PlacesOverview = () => {
   const [citySearch, setCitySearch] = useState("");
   const [citySearchApplied, setCitySearchApplied] = useState("");
   const [searchTrigger, setSearchTrigger] = useState(0);
+  const radiusKm = DEFAULT_RADIUS_KM;
+
+  // ---- Near Me (production mode) ----
   const [nearMe, setNearMe] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const locationRequestedRef = useRef(false);
+  const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
+
+  // ---- Manual Coords (testing mode: MANUAL_COORDS_TESTING = true) ----
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [appliedCoords, setAppliedCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   const {
     places,
     placesPage,
@@ -80,33 +144,48 @@ export const PlacesOverview = () => {
     hasMoreCatalog,
     actions,
   } = useCatalog();
-  const { position, hasPosition, permission: positionPermission, actions: positionActions } = usePosition();
-  const [locationLoading, setLocationLoading] = useState(false);
   const showViatorUnavailable = isViatorUnavailableError(error);
 
-  const hasLatLng = nearMe && hasPosition && position?.latitude != null && position?.longitude != null;
-  // When "near me" is active (hasLatLng), never send text search — use only lat/lng so previous search (e.g. "Malta") is not sent
+  // Hydrate saved position on mount (production mode only).
+  useEffect(() => {
+    if (!MANUAL_COORDS_TESTING) positionActions.hydrate();
+  }, [positionActions]);
+
+  // Unified active coordinates — source depends on the testing toggle.
+  const activeCoords = useMemo<{ lat: number; lng: number } | null>(() => {
+    if (MANUAL_COORDS_TESTING) {
+      return appliedCoords;
+    }
+    if (nearMe && hasPosition && position?.latitude != null && position?.longitude != null) {
+      return { lat: position.latitude, lng: position.longitude };
+    }
+    return null;
+  }, [appliedCoords, nearMe, hasPosition, position?.latitude, position?.longitude]);
+
+  const hasLatLng = activeCoords != null;
+
+  // When coords are active, never send text search — use only lat/lng
   const placeParams = useMemo(
     () => ({
       source: "GOOGLE" as const,
       size: PAGE_SIZE,
       q: hasLatLng ? undefined : (citySearchApplied || undefined),
-      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
-      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
-      radiusKm: hasLatLng ? 100 : undefined,
+      lat: activeCoords?.lat,
+      lng: activeCoords?.lng,
+      radiusKm: hasLatLng ? radiusKm : undefined,
     }),
-    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, activeCoords, radiusKm]
   );
 
   const catalogParams = useMemo(
     () => ({
       size: PAGE_SIZE,
       q: hasLatLng ? undefined : (citySearchApplied || undefined),
-      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
-      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
-      radiusKm: hasLatLng ? 100 : undefined,
+      lat: activeCoords?.lat,
+      lng: activeCoords?.lng,
+      radiusKm: hasLatLng ? radiusKm : undefined,
     }),
-    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, activeCoords, radiusKm]
   );
 
   const experienceParams = useMemo(
@@ -114,15 +193,16 @@ export const PlacesOverview = () => {
       source: "VIATOR" as const,
       size: PAGE_SIZE,
       q: hasLatLng ? undefined : (citySearchApplied || undefined),
-      lat: hasLatLng ? position?.latitude ?? undefined : undefined,
-      lng: hasLatLng ? position?.longitude ?? undefined : undefined,
-      radiusKm: hasLatLng ? 100 : undefined,
+      lat: activeCoords?.lat,
+      lng: activeCoords?.lng,
+      radiusKm: hasLatLng ? radiusKm : undefined,
     }),
-    [citySearchApplied, hasLatLng, position?.latitude, position?.longitude]
+    [citySearchApplied, hasLatLng, activeCoords, radiusKm]
   );
 
-  // On section entry: request location once if permission unknown; default to "near me" when we have position.
+  // Auto-request geolocation once on entry (production mode only).
   useEffect(() => {
+    if (MANUAL_COORDS_TESTING) return;
     if (citySearchApplied) return;
     if (hasPosition && position?.latitude != null && position?.longitude != null) {
       setNearMe(true);
@@ -167,12 +247,13 @@ export const PlacesOverview = () => {
     } else if (filter === "experiences") {
       actions.fetchExperiences(experienceParams).catch(() => undefined);
     }
-  }, [filter, citySearchApplied, hasLatLng, position?.latitude, position?.longitude, searchTrigger]);
+  }, [filter, citySearchApplied, hasLatLng, activeCoords, searchTrigger]);
 
   const clearFilters = useCallback(() => {
     setCitySearch("");
     setCitySearchApplied("");
-    setNearMe(false);
+    if (MANUAL_COORDS_TESTING) setAppliedCoords(null);
+    else setNearMe(false);
   }, []);
 
   const clearCitySearchOnly = useCallback(() => {
@@ -197,10 +278,14 @@ export const PlacesOverview = () => {
   const handleSearchApply = useCallback(() => {
     const applied = citySearch.trim() || "";
     setCitySearchApplied(applied);
-    if (applied) setNearMe(false);
+    if (applied) {
+      if (MANUAL_COORDS_TESTING) setAppliedCoords(null);
+      else setNearMe(false);
+    }
     setSearchTrigger((t) => t + 1);
   }, [citySearch]);
 
+  // ---- Near Me handler (production mode) ----
   const handleNearMeClick = useCallback(() => {
     if (nearMe) {
       setNearMe(false);
@@ -213,9 +298,7 @@ export const PlacesOverview = () => {
       setNearMe(true);
       return;
     }
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      return;
-    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -242,6 +325,22 @@ export const PlacesOverview = () => {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [filter, nearMe, hasPosition, positionActions, actions]);
+
+  // ---- Manual coords handlers (testing mode) ----
+  const handleApplyCoords = useCallback(() => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    if (isNaN(lat) || isNaN(lng)) return;
+    setCitySearch("");
+    setCitySearchApplied("");
+    setAppliedCoords({ lat, lng });
+    setSearchTrigger((t) => t + 1);
+  }, [manualLat, manualLng]);
+
+  const handleClearCoords = useCallback(() => {
+    setAppliedCoords(null);
+    setSearchTrigger((t) => t + 1);
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!hasMorePlaces || loading) return;
@@ -271,92 +370,23 @@ export const PlacesOverview = () => {
       .catch(() => undefined);
   }, [actions, experienceParams, experiencesPage.page, hasMoreExperiences, loading]);
 
-  const placeItems: PlaceListItemProps[] = useMemo(
-    () =>
-      places.map((place) => {
-        let distanceKm: number | undefined;
-        if (
-          hasPosition &&
-          position?.latitude != null &&
-          position?.longitude != null &&
-          place.latitude != null &&
-          place.longitude != null
-        ) {
-          distanceKm = calculateDistanceKm(
-            position.latitude,
-            position.longitude,
-            place.latitude,
-            place.longitude
-          );
-        }
-        return {
-          title: place.name,
-          subtitle: place.description ?? undefined,
-          address: place.address ?? undefined,
-          category: place.category?.name ?? undefined,
-          metaItems: [],
-          href: `/places/${place.id}`,
-          distanceKm,
-          imageUrl: place.imageUrl ?? undefined,
-          rating: place.googleRating ?? undefined,
-          reviewCount: place.googleReviewCount ?? undefined,
-        };
-      }),
-    [places, hasPosition, position]
+  const coordsAsPosition = useMemo(
+    () => activeCoords ? { latitude: activeCoords.lat, longitude: activeCoords.lng } : null,
+    [activeCoords]
   );
 
-  const catalogPlaceItems: PlaceListItemProps[] = useMemo(
-    () =>
-      catalogPlaces.map((place) => {
-        let distanceKm: number | undefined;
-        if (
-          hasPosition &&
-          position?.latitude != null &&
-          position?.longitude != null &&
-          place.latitude != null &&
-          place.longitude != null
-        ) {
-          distanceKm = calculateDistanceKm(
-            position.latitude,
-            position.longitude,
-            place.latitude,
-            place.longitude
-          );
-        }
-        return {
-          title: place.name,
-          subtitle: place.description ?? undefined,
-          address: place.address ?? undefined,
-          category: place.category?.name ?? undefined,
-          metaItems: [],
-          href: `/places/${place.id}`,
-          distanceKm,
-          imageUrl: place.imageUrl ?? undefined,
-          rating: place.googleRating ?? undefined,
-          reviewCount: place.googleReviewCount ?? undefined,
-        };
-      }),
-    [catalogPlaces, hasPosition, position]
+  const placeItems = useMemo(
+    () => places.map((place) => buildPlaceItem(place, coordsAsPosition, hasLatLng)),
+    [places, coordsAsPosition, hasLatLng]
   );
 
-  const catalogExperienceItems: ExperienceListItemProps[] = useMemo(
-    () =>
-      catalogExperiences.map((exp: ExperienceSummaryResponse) => ({
-        title: exp.name,
-        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
-        category: exp.category?.name ?? undefined,
-        href: getExperienceDetailPath(exp),
-        imageUrl: exp.imageUrl ?? undefined,
-        priceLabel: formatPrice(exp.price, exp.priceCurrency),
-        originalPriceLabel:
-          exp.originalPrice && exp.price && exp.originalPrice > exp.price
-            ? formatPrice(exp.originalPrice, exp.priceCurrency)
-            : undefined,
-        rating: exp.rating ?? undefined,
-        reviewCount: exp.reviewCount ?? undefined,
-        durationLabel: formatDuration(exp.durationMinutes),
-        provider: exp.provider ?? undefined,
-      })),
+  const catalogPlaceItems = useMemo(
+    () => catalogPlaces.map((place) => buildPlaceItem(place, coordsAsPosition, hasLatLng)),
+    [catalogPlaces, coordsAsPosition, hasLatLng]
+  );
+
+  const catalogExperienceItems = useMemo(
+    () => catalogExperiences.map(buildExperienceItem),
     [catalogExperiences]
   );
 
@@ -377,24 +407,8 @@ export const PlacesOverview = () => {
     return result;
   }, [catalogPlaceItems, catalogExperienceItems]);
 
-  const experienceItems: ExperienceListItemProps[] = useMemo(
-    () =>
-      experiences.map((exp: ExperienceSummaryResponse) => ({
-        title: exp.name,
-        subtitle: exp.locationName ?? exp.place?.name ?? undefined,
-        category: exp.category?.name ?? undefined,
-        href: getExperienceDetailPath(exp),
-        imageUrl: exp.imageUrl ?? undefined,
-        priceLabel: formatPrice(exp.price, exp.priceCurrency),
-        originalPriceLabel:
-          exp.originalPrice && exp.price && exp.originalPrice > exp.price
-            ? formatPrice(exp.originalPrice, exp.priceCurrency)
-            : undefined,
-        rating: exp.rating ?? undefined,
-        reviewCount: exp.reviewCount ?? undefined,
-        durationLabel: formatDuration(exp.durationMinutes),
-        provider: exp.provider ?? undefined,
-      })),
+  const experienceItems = useMemo(
+    () => experiences.map(buildExperienceItem),
     [experiences]
   );
 
@@ -470,26 +484,70 @@ export const PlacesOverview = () => {
             {t("Search")}
           </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleNearMeClick}
-            disabled={locationLoading || (nearMe && (loading || loadingCatalog))}
-            className={cx(
-              "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-              nearMe
-                ? "border-accent bg-accent text-accent-foreground"
-                : "border-border bg-surface text-foreground hover:bg-border",
-              (locationLoading || (nearMe && (loading || loadingCatalog))) && "cursor-wait opacity-70"
+        {MANUAL_COORDS_TESTING ? (
+          /* ---- Testing mode: manual lat/lng inputs ---- */
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-subtle">{t("Coordinates (testing)")}</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-36">
+                <Input
+                  label={t("Latitude")}
+                  placeholder="e.g. 35.89"
+                  value={manualLat}
+                  onChange={(e) => setManualLat(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoords()}
+                />
+              </div>
+              <div className="w-36">
+                <Input
+                  label={t("Longitude")}
+                  placeholder="e.g. 14.51"
+                  value={manualLng}
+                  onChange={(e) => setManualLng(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoords()}
+                />
+              </div>
+              <Button
+                onClick={handleApplyCoords}
+                disabled={loading || loadingCatalog || !manualLat.trim() || !manualLng.trim()}
+              >
+                {loading || loadingCatalog ? t("Loading…") : t("Apply coords")}
+              </Button>
+              {appliedCoords && (
+                <Button variant="secondary" onClick={handleClearCoords}>
+                  {t("Clear")}
+                </Button>
+              )}
+            </div>
+            {appliedCoords && (
+              <p className="text-xs text-subtle">
+                {t("Using:")} {appliedCoords.lat}, {appliedCoords.lng}
+              </p>
             )}
-          >
-            {locationLoading
-              ? t("Getting location…")
-              : nearMe && (loading || loadingCatalog)
-                ? t("Loading…")
-                : t("Near me")}
-          </button>
-        </div>
+          </div>
+        ) : (
+          /* ---- Production mode: Near me button ---- */
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNearMeClick}
+              disabled={locationLoading || (nearMe && (loading || loadingCatalog))}
+              className={cx(
+                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                nearMe
+                  ? "border-accent bg-accent text-accent-foreground"
+                  : "border-border bg-surface text-foreground hover:bg-border",
+                (locationLoading || (nearMe && (loading || loadingCatalog))) && "cursor-wait opacity-70"
+              )}
+            >
+              {locationLoading
+                ? t("Getting location…")
+                : nearMe && (loading || loadingCatalog)
+                  ? t("Loading…")
+                  : t("Near me")}
+            </button>
+          </div>
+        )}
       </Card>
 
       <div className="relative min-h-[320px]">
