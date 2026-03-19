@@ -14,6 +14,8 @@ public class RelocationMapper {
                 profile.getTargetCityName(),
                 profile.getTargetCountry(),
                 profile.getTargetCity() != null ? profile.getTargetCity().getId() : null,
+                profile.getCurrentCity() != null ? profile.getCurrentCity().getId() : null,
+                profile.getCurrentCityName(),
                 profile.getHousehold(),
                 profile.getHasPets(),
                 profile.getChildrenAgeRange(),

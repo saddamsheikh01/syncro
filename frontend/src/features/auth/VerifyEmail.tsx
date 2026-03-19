@@ -7,6 +7,7 @@ import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 import { expatsActions } from "../../stores/expats/expatsStore";
+import { expatsModeActions } from "../../stores/expatsMode/expatsModeStore";
 
 const MailIcon = () => (
   <svg
@@ -56,6 +57,7 @@ export const VerifyEmail = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      if (fromExpats) expatsModeActions.setActive(true);
       router.replace(fromExpats ? "/expats/activation" : "/home");
     }
   }, [isAuthenticated, router, fromExpats]);
@@ -77,6 +79,7 @@ export const VerifyEmail = () => {
     try {
       await actions.verifyEmail(normalizedEmail, normalizedOtp);
       if (fromExpats) {
+        expatsModeActions.setActive(true);
         await expatsActions.convertAndSync().catch(() => null);
         router.push("/expats/activation");
       } else {

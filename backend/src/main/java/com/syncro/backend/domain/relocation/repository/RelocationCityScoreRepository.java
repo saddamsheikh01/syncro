@@ -18,4 +18,9 @@ public interface RelocationCityScoreRepository extends JpaRepository<RelocationC
     List<RelocationCityScore> findBySnapshotIdOrderByRankingPositionAsc(UUID snapshotId);
 
     List<RelocationCityScore> findByUserIdAndAnalysisTypeOrderByCreatedAtDesc(UUID userId, String analysisType);
+
+    List<RelocationCityScore> findByAnonymousSession_IdOrderByCreatedAtDesc(UUID anonymousSessionId);
+
+    List<RelocationCityScore> findByAnonymousSession_IdAndSnapshot_IdOrderByRankingPositionAsc(
+            UUID anonymousSessionId, UUID snapshotId);
 }

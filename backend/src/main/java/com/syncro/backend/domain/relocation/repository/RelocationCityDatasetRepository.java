@@ -13,6 +13,9 @@ public interface RelocationCityDatasetRepository extends JpaRepository<Relocatio
 
     Optional<RelocationCityDataset> findByCitySlugAndActiveTrue(String citySlug);
 
+    /** First active city in the given country (by name, case-insensitive). Used when user enters a country name. */
+    Optional<RelocationCityDataset> findFirstByCountryIgnoreCaseAndActiveTrueOrderByCityNameAsc(String country);
+
     List<RelocationCityDataset> findByActiveTrue();
 
     List<RelocationCityDataset> findByActiveTrueOrderByCityNameAsc();

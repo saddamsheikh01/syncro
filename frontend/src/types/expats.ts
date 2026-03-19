@@ -311,6 +311,11 @@ export interface CityComparisonResponse {
     monthlySaving: number;
     isFamily: boolean;
     summary: string;
+    /** Living costs ex-rent (single or family) */
+    currentLivingExRent?: number;
+    currentRentHousing?: number;
+    targetLivingExRent?: number;
+    targetRentHousing?: number;
   };
   priorityAlignment: {
     alignedPriorities: string[];

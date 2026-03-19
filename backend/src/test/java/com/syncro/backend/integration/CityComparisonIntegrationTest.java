@@ -34,9 +34,9 @@ class CityComparisonIntegrationTest extends Sprint1IntegrationBaseTest {
     @BeforeEach
     void setUpCities() {
         // Ensure scoring config exists
-        if (configRepository.findByConfigKeyAndActiveTrue("scoring_v1").isEmpty()) {
+        if (configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1").isEmpty()) {
             RelocationScoringConfig config = new RelocationScoringConfig();
-            config.setConfigKey("scoring_v1");
+            config.setConfigKey("city_scoring_v1");
             config.setActive(true);
             config.setThresholds(Map.of(
                     "very_strong_fit", 80, "good_fit", 70, "moderate_fit", 60, "weak_fit", 50, "low_fit", 0));

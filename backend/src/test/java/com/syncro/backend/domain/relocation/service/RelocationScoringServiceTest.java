@@ -77,7 +77,7 @@ class RelocationScoringServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findByActiveTrue()).thenReturn(List.of(testCity, city2));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -124,7 +124,7 @@ class RelocationScoringServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(testCity.getId())).thenReturn(Optional.of(testCity));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -211,7 +211,7 @@ class RelocationScoringServiceTest {
     private RelocationScoringConfig buildTestConfig() {
         RelocationScoringConfig config = new RelocationScoringConfig();
         config.setId(UUID.randomUUID());
-        config.setConfigKey("scoring_v1");
+        config.setConfigKey("city_scoring_v1");
         config.setActive(true);
         config.setThresholds(Map.of(
                 "very_strong_fit", 80, "good_fit", 70, "moderate_fit", 60, "weak_fit", 50, "low_fit", 0));

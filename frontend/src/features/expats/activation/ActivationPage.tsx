@@ -2,10 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/hooks";
 import { useExpats } from "../../../hooks/expats/useExpats";
 import RadarChart from "../wow/RadarChart";
 import type { CityScoreResponse } from "../../../types/expats";
 
+const RADAR_VALUES = [48, 72, 73, 52, 89, 87];
+const RADAR_LABEL_KEYS = [
+  "Expats.wow.costOfLivingLabel", "Expats.wow.economicPower", "Expats.wow.qualityOfLife",
+  "Expats.wow.housingMarket", "Expats.wow.socialIntegration", "Expats.wow.workOpportunities",
+];
+/** Build radar data with translated labels (use inside a component that has useT). */
+function buildRadarData(t: (k: string) => string) {
+  return RADAR_LABEL_KEYS.map((key, i) => {
+    const label = t(key);
+    return { label, shortLabel: label.replace(/ Of /g, "\nOf ").replace(/ /g, "\n").slice(0, 15), value: RADAR_VALUES[i] };
+  });
+}
+
+/** Static fallback for variants that don't use useT yet. */
 const RADAR_DATA = [
   { label: "Cost Of Living", shortLabel: "Cost\nOf Living", value: 48 },
   { label: "Economic Power", shortLabel: "Economic\nPower", value: 72 },
@@ -16,43 +31,37 @@ const RADAR_DATA = [
 ];
 
 const STRATEGY_MONTHS = [
-  {
-    icon: "📋",
-    title: "Month 1 – Set Your Foundations",
-    body: "Identify The Right Neighborhoods, Validate Housing Options And Understand Local Costs.",
-  },
-  {
-    icon: "🏗️",
-    title: "Month 2 – Build Your Local Structure",
-    body: "Secure Housing, Organize Banking And Paperwork, And Start Exploring Communities.",
-  },
-  {
-    icon: "🌐",
-    title: "Month 3 – Integrate And Expand",
-    body: "Strengthen Your Network, Optimize Lifestyle And Unlock Local Opportunities.",
-  },
+  { icon: "📋", title: "Month 1 – Set Your Foundations", body: "Identify The Right Neighborhoods, Validate Housing Options And Understand Local Costs." },
+  { icon: "🏗️", title: "Month 2 – Build Your Local Structure", body: "Secure Housing, Organize Banking And Paperwork, And Start Exploring Communities." },
+  { icon: "🌐", title: "Month 3 – Integrate And Expand", body: "Strengthen Your Network, Optimize Lifestyle And Unlock Local Opportunities." },
 ];
 
-const PROFESSIONALS = [
-  { icon: "🏠", label: "Real Estate Agent" },
-  { icon: "⚖️", label: "Lawyer / Tax Advisor" },
-  { icon: "📊", label: "Accountant" },
-  { icon: "🏋️", label: "Personal Trainer" },
-  { icon: "🗣️", label: "Language School" },
-  { icon: "🧳", label: "Relocation Consultant" },
+const STRATEGY_MONTH_KEYS = [
+  { icon: "📋", titleKey: "Expats.activation.month1.title", bodyKey: "Expats.activation.month1.body" },
+  { icon: "🏗️", titleKey: "Expats.activation.month2.title", bodyKey: "Expats.activation.month2.body" },
+  { icon: "🌐", titleKey: "Expats.activation.month3.title", bodyKey: "Expats.activation.month3.body" },
 ];
 
-const STARTER_KIT = [
-  "City-Person Compatibility Explanation",
-  "Relocation Risk Level",
-  "Typical Mistakes For Your Profile",
-  "Local Cultural Insights",
+const PROFESSIONAL_KEYS = [
+  { icon: "🏠", labelKey: "Expats.activation.professionals.realEstate" },
+  { icon: "⚖️", labelKey: "Expats.activation.professionals.lawyer" },
+  { icon: "📊", labelKey: "Expats.activation.professionals.accountant" },
+  { icon: "🏋️", labelKey: "Expats.activation.professionals.trainer" },
+  { icon: "🗣️", labelKey: "Expats.activation.professionals.language" },
+  { icon: "🧳", labelKey: "Expats.activation.professionals.relocation" },
 ];
 
-const EVENTS = [
-  "Online Sessions With Experts",
-  "Local Meetups And Community Gatherings",
-  "Practical Insights About Life In The City",
+const STARTER_KIT_KEYS = [
+  "Expats.activation.starterKit1",
+  "Expats.activation.starterKit2",
+  "Expats.activation.starterKit3",
+  "Expats.activation.starterKit4",
+];
+
+const EVENTS_KEYS = [
+  "Expats.activation.events1",
+  "Expats.activation.events2",
+  "Expats.activation.events3",
 ];
 
 // ─── Variant: Planning Move ───────────────────────────────────────────────────
@@ -61,21 +70,26 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
   cityName?: string; budget?: number; estimatedCost?: number;
 }) {
   const router = useRouter();
+  const { t } = useT();
   const margin = budget - estimatedCost;
+  const titleLines = t("Expats.activation.planning.title", { city: cityName }).split("\n");
+  const subLines = t("Expats.activation.planning.sub", { city: cityName }).split("\n");
   return (
     <div className="activation-main">
       {/* Top banner */}
       <div className="activation-banner">
         <div className="activation-logo">
           <span className="activation-logo__icon">∞</span>
-          <span className="activation-logo__text"><strong>EXPATS</strong> MODE</span>
+          <span className="activation-logo__text">{t("Expats.activation.banner")}</span>
         </div>
       </div>
       <div className="activation-header">
-        <h1 className="activation-title">Your {cityName} Move Is Feasible<br />But 3 Decisions Will Determine If It Works</h1>
+        <h1 className="activation-title">
+          {titleLines[0]}<br />{titleLines[1]}
+        </h1>
         <p className="activation-subtitle">
-          Based On Your Profile, {cityName} Is A Strong Match.<br />
-          But Housing Timing, Budget Margin And Social Network Will Determine Your Success.
+          {subLines[0]}<br />
+          {subLines[1]}
         </p>
       </div>
 
@@ -85,10 +99,10 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
           <div className="act-card">
             <div className="act-card__img-area"><span style={{ fontSize: '4rem' }}>📓</span></div>
             <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
-            {STRATEGY_MONTHS.map((m) => (
-              <div key={m.title} className="act-month">
-                <p className="act-month__title"><span>{m.icon}</span> <strong>{m.title}</strong></p>
-                <p className="act-month__body">{m.body}</p>
+            {STRATEGY_MONTH_KEYS.map((m) => (
+              <div key={m.titleKey} className="act-month">
+                <p className="act-month__title"><span>{m.icon}</span> <strong>{t(m.titleKey)}</strong></p>
+                <p className="act-month__body">{t(m.bodyKey)}</p>
               </div>
             ))}
           </div>
@@ -111,8 +125,8 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
             <div className="act-card__img-area"><span style={{ fontSize: '4rem' }}>🛡️</span></div>
             <h3 className="act-card__title">🛡️ Verified Professionals Network</h3>
             <p className="act-card__subtitle">Real Local Support, Not A Marketplace.</p>
-            {PROFESSIONALS.map((p) => (
-              <p key={p.label} className="act-pro-item">{p.icon} {p.label}</p>
+            {PROFESSIONAL_KEYS.map((p) => (
+              <p key={p.labelKey} className="act-pro-item">{p.icon} {t(p.labelKey)}</p>
             ))}
           </div>
 
@@ -120,8 +134,8 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
             <div className="act-card__img-area"><span style={{ fontSize: '4rem' }}>🧳</span></div>
             <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
             <p className="act-card__subtitle">Your Relocation Profile Analysis.</p>
-            {STARTER_KIT.map((item) => (
-              <p key={item} className="act-check-item">✓ {item}</p>
+            {STARTER_KIT_KEYS.map((key) => (
+              <p key={key} className="act-check-item">✓ {t(key)}</p>
             ))}
             <p className="act-kit-footer">Understand How To Approach Your Move Correctly.</p>
           </div>
@@ -130,8 +144,8 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
             <div className="act-card__img-area"><span style={{ fontSize: '4rem' }}>🎉</span></div>
             <h3 className="act-card__title">📺 EVENTS</h3>
             <p className="act-card__subtitle">Learn, Connect And Meet People In The Community.</p>
-            {EVENTS.map((e) => (
-              <p key={e} className="act-check-item">✓ {e}</p>
+            {EVENTS_KEYS.map((key) => (
+              <p key={key} className="act-check-item">✓ {t(key)}</p>
             ))}
           </div>
 
@@ -193,12 +207,13 @@ function ActivationPlanningMove({ cityName = "Lisbon", budget = 2500, estimatedC
 
 function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
   const router = useRouter();
+  const { t } = useT();
   return (
     <div className="activation-main">
       <div className="activation-banner">
         <div className="activation-logo">
           <span className="activation-logo__icon">∞</span>
-          <span className="activation-logo__text"><strong>EXPATS</strong> MODE</span>
+          <span className="activation-logo__text">{t("Expats.activation.banner")}</span>
         </div>
       </div>
       <div className="activation-header">
@@ -212,10 +227,10 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
         <div className="act-col">
           <div className="act-card">
             <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
-            {STRATEGY_MONTHS.map((m) => (
-              <div key={m.title} className="act-month">
-                <p className="act-month__title"><strong>{m.title}</strong></p>
-                <p className="act-month__body">{m.body}</p>
+            {STRATEGY_MONTH_KEYS.map((m) => (
+              <div key={m.titleKey} className="act-month">
+                <p className="act-month__title"><strong>{t(m.titleKey)}</strong></p>
+                <p className="act-month__body">{t(m.bodyKey)}</p>
               </div>
             ))}
           </div>
@@ -239,17 +254,17 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             <span style={{ fontSize: '3rem', display: 'block', textAlign: 'center', marginBottom: 8 }}>🛡️</span>
             <h3 className="act-card__title">🛡️ Verified Professionals Network</h3>
             <p className="act-card__subtitle">Real Local Support, Not A Marketplace.</p>
-            {PROFESSIONALS.map((p) => <p key={p.label} className="act-pro-item">{p.icon} {p.label}</p>)}
+            {PROFESSIONAL_KEYS.map((p) => <p key={p.labelKey} className="act-pro-item">{p.icon} {t(p.labelKey)}</p>)}
           </div>
           <div className="act-card">
             <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
             <p className="act-card__subtitle">Your Relocation Profile Analysis.</p>
-            {STARTER_KIT.map((item) => <p key={item} className="act-check-item">✓ {item}</p>)}
+            {STARTER_KIT_KEYS.map((key) => <p key={key} className="act-check-item">✓ {t(key)}</p>)}
             <p className="act-kit-footer">Understand How To Approach Your Move Correctly.</p>
           </div>
           <div className="act-card">
             <h3 className="act-card__title">📺 EVENTS</h3>
-            {EVENTS.map((e) => <p key={e} className="act-check-item">✓ {e}</p>)}
+            {EVENTS_KEYS.map((key) => <p key={key} className="act-check-item">✓ {t(key)}</p>)}
           </div>
           <button onClick={() => router.push("/expats/subscriptions")} className="act-cta-btn">
             Start My {topCity} Plan
@@ -292,12 +307,13 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
 
 function ActivationAlreadyThere({ cityName = "Lisbon" }: { cityName?: string }) {
   const router = useRouter();
+  const { t } = useT();
   return (
     <div className="activation-main">
       <div className="activation-banner">
         <div className="activation-logo">
           <span className="activation-logo__icon">∞</span>
-          <span className="activation-logo__text"><strong>EXPATS</strong> MODE</span>
+          <span className="activation-logo__text">{t("Expats.activation.banner")}</span>
         </div>
       </div>
       <div className="activation-header">
@@ -310,7 +326,7 @@ function ActivationAlreadyThere({ cityName = "Lisbon" }: { cityName?: string }) 
       <div className="activation-grid">
         <div className="act-col">
           <div className="act-card">
-            <div className="act-card--radar"><RadarChart data={RADAR_DATA} size={200} /></div>
+            <div className="act-card--radar"><RadarChart data={buildRadarData(t)} size={200} /></div>
             <h3 className="act-card__title" style={{ marginTop: 12 }}>Your {cityName} Alignment Score</h3>
             <p className="act-month__body">Six layers define your positioning inside the city. Right now, some aspects are not in sync.</p>
           </div>
@@ -325,16 +341,16 @@ function ActivationAlreadyThere({ cityName = "Lisbon" }: { cityName?: string }) 
         <div className="act-col">
           <div className="act-card">
             <h3 className="act-card__title">📅 Your 90-Day Integration Boost</h3>
-            {STRATEGY_MONTHS.map((m) => (
-              <div key={m.title} className="act-month">
-                <p className="act-month__title"><strong>{m.title}</strong></p>
-                <p className="act-month__body">{m.body}</p>
+            {STRATEGY_MONTH_KEYS.map((m) => (
+              <div key={m.titleKey} className="act-month">
+                <p className="act-month__title"><strong>{t(m.titleKey)}</strong></p>
+                <p className="act-month__body">{t(m.bodyKey)}</p>
               </div>
             ))}
           </div>
           <div className="act-card">
             <h3 className="act-card__title">📦 EXPAT STARTER KIT</h3>
-            {STARTER_KIT.map((item) => <p key={item} className="act-check-item">✓ {item}</p>)}
+            {STARTER_KIT_KEYS.map((key) => <p key={key} className="act-check-item">✓ {t(key)}</p>)}
           </div>
           <button onClick={() => router.push("/expats/subscriptions")} className="act-cta-btn">
             Unlock My Full {cityName} Plan
@@ -373,6 +389,7 @@ function ActivationComparison({ currentCity = "Milan", targetCity = "Valencia", 
   currentCity?: string; targetCity?: string; budget?: number; estimatedCost?: number; score?: number;
 }) {
   const router = useRouter();
+  const { t } = useT();
   const margin = budget - estimatedCost;
   const MACRO_COMPARISON = [
     { label: "Cost Of Living", currentScore: 25, targetScore: 60, direction: "improvement" },
@@ -388,7 +405,7 @@ function ActivationComparison({ currentCity = "Milan", targetCity = "Valencia", 
         <div className="act-lang-pill">🇮🇹 ▾</div>
         <div className="activation-logo">
           <span className="activation-logo__icon">∞</span>
-          <span className="activation-logo__text"><strong>EXPATS</strong> MODE</span>
+          <span className="activation-logo__text">{t("Expats.activation.banner")}</span>
         </div>
       </div>
       <div className="activation-header">
@@ -403,10 +420,10 @@ function ActivationComparison({ currentCity = "Milan", targetCity = "Valencia", 
           <div className="act-card">
             <div className="act-card__img-area"><span style={{ fontSize: '3.5rem' }}>📓</span></div>
             <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
-            {STRATEGY_MONTHS.map((m) => (
-              <div key={m.title} className="act-month">
-                <p className="act-month__title"><span>{m.icon}</span> <strong>{m.title}</strong></p>
-                <p className="act-month__body">{m.body}</p>
+            {STRATEGY_MONTH_KEYS.map((m) => (
+              <div key={m.titleKey} className="act-month">
+                <p className="act-month__title"><span>{m.icon}</span> <strong>{t(m.titleKey)}</strong></p>
+                <p className="act-month__body">{t(m.bodyKey)}</p>
               </div>
             ))}
           </div>
@@ -434,22 +451,22 @@ function ActivationComparison({ currentCity = "Milan", targetCity = "Valencia", 
             <div className="act-card__img-area"><span style={{ fontSize: '3rem' }}>👥</span></div>
             <h3 className="act-card__title">🏅 Verified Professionals Network</h3>
             <p className="act-card__subtitle">Real Local Support, Not A Marketplace.</p>
-            {PROFESSIONALS.map((p) => (
-              <p key={p.label} className="act-pro-item">{p.icon} {p.label}</p>
+            {PROFESSIONAL_KEYS.map((p) => (
+              <p key={p.labelKey} className="act-pro-item">{p.icon} {t(p.labelKey)}</p>
             ))}
           </div>
           <div className="act-card">
             <div className="act-card__img-area"><span style={{ fontSize: '3rem' }}>🌍</span></div>
             <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
             <p className="act-card__subtitle">Your Relocation Profile Analysis.</p>
-            {STARTER_KIT.map((item) => <p key={item} className="act-check-item">✓ {item}</p>)}
+            {STARTER_KIT_KEYS.map((key) => <p key={key} className="act-check-item">✓ {t(key)}</p>)}
             <p className="act-kit-footer">Understand How To Approach Your Move Correctly.</p>
           </div>
           <div className="act-card">
             <div className="act-card__img-area"><span style={{ fontSize: '3rem' }}>🎓</span></div>
             <h3 className="act-card__title">🎯 EVENTS</h3>
             <p className="act-card__subtitle">Learn, Connect And Meet People In The Community.</p>
-            {EVENTS.map((e) => <p key={e} className="act-check-item">✓ {e}</p>)}
+            {EVENTS_KEYS.map((key) => <p key={key} className="act-check-item">✓ {t(key)}</p>)}
           </div>
           <button onClick={() => router.push("/expats/subscriptions")} className="act-cta-btn">
             Start My {targetCity} Plan

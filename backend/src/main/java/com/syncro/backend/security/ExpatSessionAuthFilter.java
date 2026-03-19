@@ -6,7 +6,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -14,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,8 +42,8 @@ public class ExpatSessionAuthFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (SecurityContextHolder.getContext().getAuthentication() != null
-                && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
+        Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+        if (existing != null && existing.getPrincipal() instanceof UserPrincipal) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -58,20 +61,27 @@ public class ExpatSessionAuthFilter extends OncePerRequestFilter {
         }
 
         ExpatsAnonymousSession session = sessionOpt.get();
-        if (session.getConvertedUser() == null) {
-            filterChain.doFilter(request, response);
-            return;
+        if (session.getConvertedUser() != null) {
+            UserPrincipal principal = new UserPrincipal(session.getConvertedUser().getId());
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    principal,
+                    null,
+                    Collections.emptyList()
+            );
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } else {
+            AnonymousExpatPrincipal principal = new AnonymousExpatPrincipal(session.getId());
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    principal,
+                    null,
+                    List.of(new SimpleGrantedAuthority("ROLE_EXPAT_ANONYMOUS"))
+            );
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
-
-        UserPrincipal principal = new UserPrincipal(session.getConvertedUser().getId());
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                principal,
-                null,
-                Collections.emptyList()
-        );
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }
 }
+

@@ -45,7 +45,7 @@ export default function OnboardingPreferences({
       if (onComplete) {
         onComplete();
       } else {
-        router.push("/expats/activation");
+        router.push("/expats/wow");
       }
     } catch {
       // Error handled by store

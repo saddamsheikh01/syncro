@@ -81,6 +81,7 @@ class RelocationOnboardingServiceTest {
     void getOnboarding_returnsProfile() {
         OnboardingResponse expected = new OnboardingResponse(
                 testProfile.getId(), "planning_move", null, null, null,
+                null, null,
                 "single", false, null, BigDecimal.valueOf(2000),
                 "career", "medium", "balanced", "employed", false,
                 "monthly_costs", null, 5, 50, "IN_PROGRESS",

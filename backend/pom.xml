@@ -198,6 +198,17 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Exclude Docker-dependent tests by default so mvn test passes without Docker. Use -Pintegration to run all. -->
+					<excludes>
+						<exclude>**/*IntegrationTest.java</exclude>
+						<exclude>**/FlywaySchemaSmokeTest.java</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
@@ -212,4 +223,23 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>integration</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!-- Override: exclude only a non-existent pattern so all tests run (requires Docker). -->
+							<excludes>
+								<exclude>**/$$NoSuchIntegrationTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

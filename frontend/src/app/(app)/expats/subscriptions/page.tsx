@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/layout/MainLayout";
 import SubscriptionsPage from "@/features/expats/subscriptions/SubscriptionsPage";
 
 export const metadata = {
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function SubscriptionsPageRoute() {
-  return <SubscriptionsPage />;
+  return (
+    <MainLayout>
+      <SubscriptionsPage />
+    </MainLayout>
+  );
 }

@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/layout/MainLayout";
 import OnboardingPreferences from "@/features/expats/onboarding/OnboardingPreferences";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function OnboardingPreferencesPage() {
-  return <OnboardingPreferences />;
+  return (
+    <MainLayout>
+      <OnboardingPreferences />
+    </MainLayout>
+  );
 }

@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.entity;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -17,9 +18,13 @@ public class RelocationCityScore {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "anonymous_session_id")
+    private ExpatsAnonymousSession anonymousSession;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "snapshot_id", nullable = false)
@@ -92,6 +97,9 @@ public class RelocationCityScore {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+    public ExpatsAnonymousSession getAnonymousSession() { return anonymousSession; }
+    public void setAnonymousSession(ExpatsAnonymousSession anonymousSession) { this.anonymousSession = anonymousSession; }
 
     public RelocationOnboardingSnapshot getSnapshot() { return snapshot; }
     public void setSnapshot(RelocationOnboardingSnapshot snapshot) { this.snapshot = snapshot; }

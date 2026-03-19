@@ -3,6 +3,7 @@ package com.syncro.backend.domain.relocation.service;
 import com.syncro.backend.domain.auth.entity.AdminUser;
 import com.syncro.backend.domain.relocation.dto.ScoringConfigResponse;
 import com.syncro.backend.domain.relocation.dto.UpdateScoringConfigRequest;
+import com.syncro.backend.domain.relocation.RelocationScoringConfigKeys;
 import com.syncro.backend.domain.relocation.entity.RelocationScoringConfig;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.RelocationScoringConfigRepository;
@@ -27,7 +28,7 @@ public class ScoringConfigService {
 
     @Transactional(readOnly = true)
     public ScoringConfigResponse getActiveConfig() {
-        RelocationScoringConfig config = scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")
+        RelocationScoringConfig config = scoringConfigRepository.findByConfigKeyAndActiveTrue(RelocationScoringConfigKeys.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scoring config not found"));
         return mapper.toScoringConfigResponse(config);
     }

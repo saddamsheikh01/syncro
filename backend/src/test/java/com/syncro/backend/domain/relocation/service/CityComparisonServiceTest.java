@@ -188,7 +188,7 @@ class CityComparisonServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(fakeCityId)).thenReturn(Optional.empty());
 
         CityComparisonRequest request = new CityComparisonRequest(fakeCityId, targetCity.getId());
@@ -216,7 +216,7 @@ class CityComparisonServiceTest {
     private void stubCommonDependencies() {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(currentCity.getId())).thenReturn(Optional.of(currentCity));
         when(cityRepository.findById(targetCity.getId())).thenReturn(Optional.of(targetCity));
 
@@ -289,7 +289,7 @@ class CityComparisonServiceTest {
     private RelocationScoringConfig buildTestConfig() {
         RelocationScoringConfig config = new RelocationScoringConfig();
         config.setId(UUID.randomUUID());
-        config.setConfigKey("scoring_v1");
+        config.setConfigKey("city_scoring_v1");
         config.setActive(true);
         config.setThresholds(Map.of(
                 "very_strong_fit", 80, "good_fit", 70, "moderate_fit", 60, "weak_fit", 50, "low_fit", 0));

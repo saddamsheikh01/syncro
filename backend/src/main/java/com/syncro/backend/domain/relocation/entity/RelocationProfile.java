@@ -16,9 +16,13 @@ public class RelocationProfile {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "anonymous_session_id")
+    private ExpatsAnonymousSession anonymousSession;
 
     @Column(name = "user_type", nullable = false, length = 30)
     private String userType;
@@ -116,6 +120,9 @@ public class RelocationProfile {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+    public ExpatsAnonymousSession getAnonymousSession() { return anonymousSession; }
+    public void setAnonymousSession(ExpatsAnonymousSession anonymousSession) { this.anonymousSession = anonymousSession; }
 
     public String getUserType() { return userType; }
     public void setUserType(String userType) { this.userType = userType; }

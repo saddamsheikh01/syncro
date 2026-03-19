@@ -11,10 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Smoke test: verifies the Spring context loads successfully
- * and Flyway migrations through V20 executed correctly.
- * Sprint1 block: V11–V20.
+ * and Flyway migrations through the current version executed correctly.
+ * Expected versions must match db/README-FLYWAY.md (baseline 8, then 9..current).
  */
 class FlywaySchemaSmokeTest extends Sprint1IntegrationBaseTest {
+
+    /** Current latest migration version; update when adding a new V*.sql (see db/README-FLYWAY.md). */
+    private static final int CURRENT_FLYWAY_VERSION = 25;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -28,7 +31,7 @@ class FlywaySchemaSmokeTest extends Sprint1IntegrationBaseTest {
     }
 
     @Test
-    @DisplayName("Flyway migrations V8–V20 present in schema history")
+    @DisplayName("Flyway migrations V8 through current version present in schema history")
     void flywayMigrations_executed() {
         List<String> versions = jdbcTemplate.queryForList(
                 "SELECT version FROM syncro_test.flyway_schema_history WHERE success = true ORDER BY installed_rank",
@@ -36,7 +39,9 @@ class FlywaySchemaSmokeTest extends Sprint1IntegrationBaseTest {
         );
 
         assertThat(versions).contains("8"); // baseline
-        assertThat(versions).contains("9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+        for (int v = 9; v <= CURRENT_FLYWAY_VERSION; v++) {
+            assertThat(versions).contains(String.valueOf(v));
+        }
     }
 
     @Test

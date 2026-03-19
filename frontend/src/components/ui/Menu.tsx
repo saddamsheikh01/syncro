@@ -7,6 +7,7 @@ import { cx } from "@/lib/classNames";
 import { SidebarIcon } from "@/components/ui/SidebarIcon";
 import type { SidebarIconName } from "@/components/ui/SidebarIcon";
 import { useT } from "@/hooks";
+import { useExpatsModeStore } from "@/stores/expatsMode/useExpatsModeStore";
 
 export type MenuItem = {
   id: string;
@@ -41,6 +42,14 @@ export const MENU_ITEMS: MenuItem[] = [
   { id: "support", labelKey: "Support", href: "/support", icon: "support" },
 ];
 
+/** Shown only when Expats Mode is active (sidebar section). */
+export const EXPATS_MENU_ITEMS: MenuItem[] = [
+  { id: "expats-activation", labelKey: "Activation Page", href: "/expats/activation", icon: "home" },
+  { id: "expats-subscription", labelKey: "Subscription", href: "/expats/subscriptions", icon: "profile" },
+  { id: "expats-roadmap", labelKey: "Roadmap", href: "/expats/roadmap", icon: "places" },
+  { id: "expats-professionals", labelKey: "Professionals", href: "/expats/professionals", icon: "people" },
+];
+
 const normalizePath = (path: string) =>
   path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
 
@@ -60,6 +69,45 @@ export interface MenuProps extends HTMLAttributes<HTMLElement> {
   items?: MenuItem[];
 }
 
+const renderItem = (
+  item: MenuItem,
+  pathname: string,
+  collapsed: boolean,
+  onItemClick?: () => void,
+  t: (key: string) => string
+) => {
+  const active = isItemActive(pathname, item.href);
+  const label = t(item.labelKey);
+  return (
+    <Link
+      key={item.id}
+      href={item.href}
+      onClick={onItemClick}
+      className={cx(
+        "group flex items-center gap-3 rounded-[var(--radius-xl)] px-3 py-2.5 text-sm font-semibold transition",
+        active
+          ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_12px_24px_var(--accent-glow)]"
+          : "text-muted hover:bg-surface-muted hover:text-foreground",
+        collapsed && "justify-center px-2",
+      )}
+      aria-current={active ? "page" : undefined}
+      aria-label={label}
+    >
+      <span
+        className={cx(
+          "flex h-10 w-10 shrink-0 items-center justify-center transition",
+          active && "drop-shadow-[0_8px_16px_rgba(255,255,255,0.35)]",
+        )}
+      >
+        {item.customIcon ?? (
+          item.icon && <SidebarIcon name={item.icon} size={36} />
+        )}
+      </span>
+      <span className={cx(collapsed ? "sr-only" : "truncate")}>{label}</span>
+    </Link>
+  );
+};
+
 export const Menu = ({
   className,
   collapsed = false,
@@ -69,6 +117,7 @@ export const Menu = ({
 }: MenuProps) => {
   const pathname = usePathname();
   const { t } = useT();
+  const isExpatsModeActive = useExpatsModeStore((s) => s.isExpatsModeActive);
   const menuItems = items ?? MENU_ITEMS;
 
   return (
@@ -77,45 +126,17 @@ export const Menu = ({
       aria-label={t("Main navigation")}
       {...props}
     >
-      {menuItems.map((item) => {
-        const active = isItemActive(pathname, item.href);
-        const label = t(item.labelKey);
-
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            onClick={onItemClick}
-            className={cx(
-              "group flex items-center gap-3 rounded-[var(--radius-xl)] px-3 py-2.5 text-sm font-semibold transition",
-              active
-                ? "bg-gradient-to-r from-[var(--accent-gradient-start)] to-[var(--accent-gradient-end)] text-white shadow-[0_12px_24px_var(--accent-glow)]"
-                : "text-muted hover:bg-surface-muted hover:text-foreground",
-              collapsed && "justify-center px-2",
-            )}
-            aria-current={active ? "page" : undefined}
-            aria-label={label}
-          >
-            <span
-              className={cx(
-                "flex h-10 w-10 shrink-0 items-center justify-center transition",
-                active && "drop-shadow-[0_8px_16px_rgba(255,255,255,0.35)]",
-              )}
-            >
-              {item.customIcon ?? (
-                item.icon && <SidebarIcon name={item.icon} size={36} />
-              )}
-            </span>
-            <span
-              className={cx(
-                collapsed ? "sr-only" : "truncate"
-              )}
-            >
-              {label}
-            </span>
-          </Link>
-        );
-      })}
+      {menuItems.map((item) => renderItem(item, pathname, collapsed, onItemClick, t))}
+      {isExpatsModeActive && (
+        <>
+          {!collapsed && (
+            <p className="mt-4 mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">
+              {t("Expats Mode")}
+            </p>
+          )}
+          {EXPATS_MENU_ITEMS.map((item) => renderItem(item, pathname, collapsed, onItemClick, t))}
+        </>
+      )}
     </nav>
   );
 };

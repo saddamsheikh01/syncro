@@ -33,12 +33,17 @@ public record CityComparisonResponse(
             String direction
     ) {}
 
+    /** Total monthly estimate = living ex-rent + rent (1BR single / 3BR family). */
     public record EconomicImpact(
             BigDecimal currentCityCost,
             BigDecimal targetCityCost,
             BigDecimal monthlySaving,
             boolean isFamily,
-            String summary
+            String summary,
+            BigDecimal currentLivingExRent,
+            BigDecimal currentRentHousing,
+            BigDecimal targetLivingExRent,
+            BigDecimal targetRentHousing
     ) {}
 
     public record PriorityAlignment(

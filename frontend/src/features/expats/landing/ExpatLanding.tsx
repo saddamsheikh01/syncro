@@ -2,78 +2,32 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/hooks";
 import { useExpats } from "../../../hooks/expats/useExpats";
 import { getFunnelConfig } from "../../../services/expats";
 
 const FEATURES = [
-  {
-    icon: "/images/landing/icon-profile.svg",
-    title: "Guided 1:1 Match",
-    desc: "Connect With Locals Who Already Know The City",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-location.svg",
-    title: "City & Neighborhood Fit",
-    desc: "Understand Where You Actually Fit",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-timetable.svg",
-    title: "90-Day Integration Roadmap",
-    desc: "A Structured Path To Settle, Adapt And Thrive.",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-seo.svg",
-    title: "Smart Housing Targeting",
-    desc: "Avoid The Most Common Housing Mistakes",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-teamwork.svg",
-    title: "Community Lounge",
-    desc: "Meaningful Conversations With People In The Same Relocation Phase.",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-teamwork2.svg",
-    title: "Access Verified Local Experts",
-    desc: "Talk To Mentors Who Know The City Beyond Tourist Advice.",
-    bullets: null,
-  },
-  {
-    icon: "/images/landing/icon-cityscore.png",
-    title: "Your City Fit Score",
-    desc: null,
-    bullets: [
-      "Cost Of Living Compatibility",
-      "Work Opportunities",
-      "Social Integration",
-    ],
-  },
-  {
-    icon: "/images/landing/icon-forecast.png",
-    title: "Life Impact Forecast",
-    desc: null,
-    bullets: [
-      "Monthly Cost Difference",
-      "Social Integration Difficulty",
-      "Work Opportunity Impact",
-    ],
-  },
+  { icon: "/images/landing/icon-profile.svg", titleKey: "Expats.landing.feature.guidedMatch", descKey: "Expats.landing.feature.guidedMatchDesc", bullets: null },
+  { icon: "/images/landing/icon-location.svg", titleKey: "Expats.landing.feature.cityFit", descKey: "Expats.landing.feature.cityFitDesc", bullets: null },
+  { icon: "/images/landing/icon-timetable.svg", titleKey: "Expats.landing.feature.roadmap", descKey: "Expats.landing.feature.roadmapDesc", bullets: null },
+  { icon: "/images/landing/icon-seo.svg", titleKey: "Expats.landing.feature.housing", descKey: "Expats.landing.feature.housingDesc", bullets: null },
+  { icon: "/images/landing/icon-teamwork.svg", titleKey: "Expats.landing.feature.community", descKey: "Expats.landing.feature.communityDesc", bullets: null },
+  { icon: "/images/landing/icon-teamwork2.svg", titleKey: "Expats.landing.feature.experts", descKey: "Expats.landing.feature.expertsDesc", bullets: null },
+  { icon: "/images/landing/icon-cityscore.png", titleKey: "Expats.landing.feature.cityScore", descKey: null, bullets: ["Expats.landing.feature.costOfLiving", "Expats.landing.feature.work", "Expats.landing.feature.social"] },
+  { icon: "/images/landing/icon-forecast.png", titleKey: "Expats.landing.feature.forecast", descKey: null, bullets: ["Expats.landing.feature.monthlyCost", "Expats.landing.feature.socialDiff", "Expats.landing.feature.workImpact"] },
 ];
 
 const NOISE_SOURCES = [
-  { icon: "/images/landing/icon-house.svg", label: "Housing Blogs" },
-  { icon: "/images/landing/icon-house.svg", label: "Housing Blogs" },
-  { icon: "/images/landing/icon-facebook.svg", label: "Facebook Groups" },
-  { icon: "/images/landing/icon-tiktok.svg", label: "Random Tiktok Advice" },
-  { icon: "/images/landing/icon-whatsapp.svg", label: "Whatsapp. Chats" },
+  { icon: "/images/landing/icon-house.svg", labelKey: "Expats.landing.noise.housingBlogs" },
+  { icon: "/images/landing/icon-house.svg", labelKey: "Expats.landing.noise.housingBlogs" },
+  { icon: "/images/landing/icon-facebook.svg", labelKey: "Expats.landing.noise.facebook" },
+  { icon: "/images/landing/icon-tiktok.svg", labelKey: "Expats.landing.noise.tiktok" },
+  { icon: "/images/landing/icon-whatsapp.svg", labelKey: "Expats.landing.noise.whatsapp" },
 ];
 
 export default function ExpatLanding() {
   const router = useRouter();
+  const { t } = useT();
   const { initSession, isLoading } = useExpats();
   const initialized = useRef(false);
   const [funnelConfig, setFunnelConfig] = useState<{
@@ -91,7 +45,7 @@ export default function ExpatLanding() {
     }
   }, [initSession]);
 
-  const ctaLabel = funnelConfig?.content?.cta_text ?? "Get My Free Snapshot";
+  const ctaLabel = funnelConfig?.content?.cta_text ?? t("Expats.landing.hero.cta");
 
   const handleStart = () => {
     router.push("/expats/funnel/1");
@@ -134,13 +88,12 @@ export default function ExpatLanding() {
 
         <div className="expat-hero__content">
           <h1 className="expat-hero__headline">
-            Stop Guessing.
-            <br />
-            Start Living Anywhere With Clarity.
+            {t("Expats.landing.hero.title").split("\n").map((line, i) => (
+              <span key={i}>{line}{i === 0 ? <br /> : null}</span>
+            ))}
           </h1>
           <p className="expat-hero__sub">
-            Understand How Cities Truly Fit Your Budget, Lifestyle, Work And
-            Social Life — Before Or After You Move.
+            {t("Expats.landing.hero.sub")}
           </p>
           <ul className="expat-hero__bullets">
             <li>
@@ -149,7 +102,7 @@ export default function ExpatLanding() {
                 alt=""
                 className="expat-bullet-dot"
               />
-              Get Your Personal City Snapshot (Fit + Risk Level)
+              {t("Expats.landing.hero.bullet1")}
             </li>
             <li>
               <img
@@ -157,7 +110,7 @@ export default function ExpatLanding() {
                 alt=""
                 className="expat-bullet-dot"
               />
-              Test Your Budget Against Real Local Data
+              {t("Expats.landing.hero.bullet2")}
             </li>
             <li>
               <img
@@ -165,7 +118,7 @@ export default function ExpatLanding() {
                 alt=""
                 className="expat-bullet-dot"
               />
-              Preview Your 90-Day Integration Path
+              {t("Expats.landing.hero.bullet3")}
             </li>
           </ul>
           <button
@@ -173,10 +126,10 @@ export default function ExpatLanding() {
             disabled={isLoading}
             className="expat-cta-btn expat-cta-btn--orange"
           >
-            {isLoading ? "Setting up…" : ctaLabel}
+            {isLoading ? t("Expats.landing.hero.settingUp") : ctaLabel}
           </button>
           <p className="expat-hero__disclaimer">
-            Free Account. Personalized Results In Minutes.
+            {t("Expats.landing.hero.disclaimer")}
           </p>
         </div>
       </section>
@@ -184,24 +137,24 @@ export default function ExpatLanding() {
       {/* ── Pain Section ────────────────────────────────── */}
       <section className="expat-pain">
         <h2 className="expat-pain__title">
-          Planning — Or Living — Abroad Shouldn&apos;t Feel Chaotic.
+          {t("Expats.landing.pain.title")}
         </h2>
         <p className="expat-pain__sub">
           <span className="expat-pain__sub-muted">
-            Too Many Opinions. Too Much Noise.
+            {t("Expats.landing.pain.muted")}
           </span>{" "}
-          <strong className="expat-pain__sub-bold">No Real Direction.</strong>
+          <strong className="expat-pain__sub-bold">{t("Expats.landing.pain.bold")}</strong>
         </p>
         <div className="expat-noise-grid">
           {NOISE_SOURCES.map((s, i) => (
-            <div key={`${s.label}-${i}`} className="expat-noise-card">
+            <div key={`${s.labelKey}-${i}`} className="expat-noise-card">
               <img src={s.icon} alt="" className="expat-noise-card__icon" />
-              <span className="expat-noise-card__label">{s.label}</span>
+              <span className="expat-noise-card__label">{t(s.labelKey)}</span>
             </div>
           ))}
         </div>
         <p className="expat-pain__tagline">
-          Information Is Everywhere, Clarity Is Not.
+          {t("Expats.landing.pain.tagline")}
         </p>
       </section>
 
@@ -216,19 +169,18 @@ export default function ExpatLanding() {
         <div className="expat-solution__overlay" />
         <div className="expat-solution__content">
           <div className="expat-solution__text">
-            <h2 className="expat-solution__headline">One Structured Path</h2>
+            <h2 className="expat-solution__headline">{t("Expats.landing.solution.headline")}</h2>
             <p className="expat-solution__tagline">
-              From Uncertainty To Real Integration
+              {t("Expats.landing.solution.tagline")}
             </p>
             <p className="expat-solution__desc">
-              Syncro Connects Your Compatibility With Cities, Neighborhoods,
-              People And Real Local Support.
+              {t("Expats.landing.solution.desc")}
             </p>
             <button
               onClick={handleStart}
               className="expat-cta-btn expat-cta-btn--white"
             >
-              Create My Free Account
+              {t("Expats.landing.solution.cta")}
             </button>
           </div>
           <div className="expat-solution__img-wrap">
@@ -245,14 +197,14 @@ export default function ExpatLanding() {
       {/* ── Features Grid ──────────────────────────────── */}
       <section className="expat-features">
         <h2 className="expat-features__title">
-          Everything You Need To Live Smarter Abroad
+          {t("Expats.landing.features.title")}
         </h2>
         <p className="expat-features__sub">
-          Personalized Insights. Real Data. Compatible Connections.
+          {t("Expats.landing.features.sub")}
         </p>
         <div className="expat-features__grid">
           {FEATURES.map((f) => (
-            <div key={f.title} className="expat-feature-card">
+            <div key={f.titleKey} className="expat-feature-card">
               <img
                 src={f.icon}
                 alt=""
@@ -260,14 +212,14 @@ export default function ExpatLanding() {
                 loading="lazy"
               />
               <div className="expat-feature-card__body">
-                <h3 className="expat-feature-card__title">{f.title}</h3>
-                {f.desc && (
-                  <p className="expat-feature-card__desc">{f.desc}</p>
+                <h3 className="expat-feature-card__title">{t(f.titleKey)}</h3>
+                {f.descKey && (
+                  <p className="expat-feature-card__desc">{t(f.descKey)}</p>
                 )}
                 {f.bullets && (
                   <ul className="expat-feature-card__bullets">
-                    {f.bullets.map((b) => (
-                      <li key={b}>✔ {b}</li>
+                    {f.bullets.map((key) => (
+                      <li key={key}>✔ {t(key)}</li>
                     ))}
                   </ul>
                 )}
@@ -280,7 +232,7 @@ export default function ExpatLanding() {
             onClick={handleStart}
             className="expat-cta-btn expat-cta-btn--teal"
           >
-            Discover My City Fit
+            {t("Expats.landing.features.cta")}
           </button>
         </div>
       </section>

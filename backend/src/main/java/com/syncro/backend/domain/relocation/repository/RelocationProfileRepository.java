@@ -13,4 +13,6 @@ public interface RelocationProfileRepository extends JpaRepository<RelocationPro
     boolean existsByUserId(UUID userId);
 
     Optional<RelocationProfile> findByConvertedFromSessionId(UUID sessionId);
+
+    Optional<RelocationProfile> findByAnonymousSession_Id(UUID anonymousSessionId);
 }

@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/layout/MainLayout";
 import ActivationPage from "@/features/expats/activation/ActivationPage";
 
 export const metadata = {
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function ActivationPageRoute() {
-  return <ActivationPage />;
+  return (
+    <MainLayout>
+      <ActivationPage />
+    </MainLayout>
+  );
 }

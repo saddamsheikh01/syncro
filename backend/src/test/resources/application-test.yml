@@ -19,6 +19,7 @@ spring:
     schemas: syncro_test
     baseline-on-migrate: true
     baseline-version: 8
+    out-of-order: true
   servlet:
     multipart:
       max-file-size: 10MB

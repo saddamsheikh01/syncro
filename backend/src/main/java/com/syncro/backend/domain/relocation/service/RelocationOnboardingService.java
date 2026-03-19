@@ -102,6 +102,7 @@ public class RelocationOnboardingService {
         }
         if (request.currentCityName() != null && request.currentCityId() == null) {
             profile.setCurrentCityName(request.currentCityName());
+            resolveCurrentCity(profile, request.currentCityName());
         }
 
         // Update completed steps and completion percent
@@ -309,13 +310,34 @@ public class RelocationOnboardingService {
     }
 
     private void resolveTargetCity(RelocationProfile profile, String cityName) {
-        // Try to match city by slug (lowercase, hyphens)
-        String slug = cityName.toLowerCase().replaceAll("\\s+", "-");
-        cityDatasetRepository.findByCitySlugAndActiveTrue(slug)
+        if (cityName == null || cityName.isBlank()) return;
+        String slug = cityName.trim().toLowerCase().replaceAll("\\s+", "-");
+        Optional<RelocationCityDataset> bySlug = cityDatasetRepository.findByCitySlugAndActiveTrue(slug);
+        if (bySlug.isPresent()) {
+            profile.setTargetCity(bySlug.get());
+            return;
+        }
+        // Fallback: user may have entered a country name (e.g. "India", "Pakistan")
+        cityDatasetRepository.findFirstByCountryIgnoreCaseAndActiveTrueOrderByCityNameAsc(cityName.trim())
                 .ifPresent(profile::setTargetCity);
     }
 
-    private Map<String, Object> buildSnapshotPayload(RelocationProfile profile) {
+    private void resolveCurrentCity(RelocationProfile profile, String cityName) {
+        if (cityName == null || cityName.isBlank()) return;
+        String slug = cityName.trim().toLowerCase().replaceAll("\\s+", "-");
+        Optional<RelocationCityDataset> bySlug = cityDatasetRepository.findByCitySlugAndActiveTrue(slug);
+        if (bySlug.isPresent()) {
+            RelocationCityDataset c = bySlug.get();
+            profile.setCurrentCity(c);
+            profile.setCurrentCityName(c.getCityName());
+            return;
+        }
+        // Fallback: user may have entered a country name (e.g. "Pakistan")
+        cityDatasetRepository.findFirstByCountryIgnoreCaseAndActiveTrueOrderByCityNameAsc(cityName.trim())
+                .ifPresent(profile::setCurrentCity);
+    }
+
+    public Map<String, Object> buildSnapshotPayload(RelocationProfile profile) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("userType", profile.getUserType());
         payload.put("targetCityName", profile.getTargetCityName());

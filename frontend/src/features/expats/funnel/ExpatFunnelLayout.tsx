@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type ReactNode } from "react";
+import { useT } from "@/hooks";
 
 interface Props {
   step: number;
@@ -25,6 +26,7 @@ export default function ExpatFunnelLayout({
   children,
 }: Props) {
   const router = useRouter();
+  const { t } = useT();
 
   const handleBack = () => {
     if (onBack) {
@@ -38,7 +40,7 @@ export default function ExpatFunnelLayout({
 
   const progressPct = (step / totalSteps) * 100;
   const label =
-    continueLabel ?? (step === totalSteps ? "Generate My Strategy" : "Continue");
+    continueLabel ?? (step === totalSteps ? t("Expats.funnel.generate") : t("Expats.funnel.continue"));
 
   return (
     <div className="funnel-shell">
@@ -94,20 +96,20 @@ export default function ExpatFunnelLayout({
         <div className="funnel-footer__nav">
           {step > 1 ? (
             <button onClick={handleBack} className="funnel-btn-back">
-              ← Back
+              {t("Expats.funnel.back")}
             </button>
           ) : (
             <div />
           )}
           <span className="funnel-footer__step">
-            Step {step} Of {totalSteps}
+            {t("Expats.funnel.stepOf", { step: String(step), total: String(totalSteps) })}
           </span>
           <button
             onClick={onContinue}
             disabled={continueDisabled || isLoading}
             className="funnel-btn-continue"
           >
-            {isLoading ? "Saving…" : label}
+            {isLoading ? t("Expats.funnel.saving") : label}
           </button>
         </div>
       </div>
