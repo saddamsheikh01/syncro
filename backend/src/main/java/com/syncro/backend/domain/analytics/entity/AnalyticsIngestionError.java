@@ -28,17 +28,17 @@ public class AnalyticsIngestionError {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(name = "idempotency_key")
+    @Column(name = "idempotency_key", columnDefinition = "text")
     private String idempotencyKey;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_event", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> rawEvent;
 
-    @Column(name = "error_code", nullable = false)
+    @Column(name = "error_code", nullable = false, columnDefinition = "text")
     private String errorCode;
 
-    @Column(name = "error_message", nullable = false)
+    @Column(name = "error_message", nullable = false, columnDefinition = "text")
     private String errorMessage;
 
     @PrePersist

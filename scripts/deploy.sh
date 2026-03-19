@@ -72,7 +72,7 @@ if [ "$DEPLOY_BACKEND" = true ]; then
   echo "♻️ Restart backend via PM2"
   pm2 describe syncro-backend >/dev/null 2>&1 && \
     pm2 restart syncro-backend --update-env || \
-    pm2 start "java -jar target/backend-0.0.1-SNAPSHOT.jar" \
+    pm2 start "java -jar target/backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod" \
       --name syncro-backend
 fi
 

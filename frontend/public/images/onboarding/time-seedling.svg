@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Pot -->
+  <path d="M65 130L75 170H125L135 130Z" fill="#D4A574"/>
+  <rect x="60" y="124" width="80" height="12" rx="4" fill="#E0B888"/>
+  <!-- Soil -->
+  <ellipse cx="100" cy="130" rx="35" ry="6" fill="#8B6F47"/>
+  <!-- Small seedling -->
+  <path d="M100 125V100" stroke="#4CAF50" stroke-width="3"/>
+  <path d="M100 110C90 105 85 95 92 90C96 88 100 92 100 100" fill="#66BB6A"/>
+  <path d="M100 105C110 100 115 92 108 88C104 86 100 90 100 98" fill="#81C784"/>
+  <!-- Label -->
+  <text x="100" y="192" text-anchor="middle" font-size="11" font-weight="600" fill="#6c778a">Still Settling In</text>
+</svg>

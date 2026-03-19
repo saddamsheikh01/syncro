@@ -29,6 +29,8 @@ spring:
     schemas: ${POSTGRES_SCHEMA:syncro_dev}
     baseline-on-migrate: true
     baseline-version: 8
+    out-of-order: true
+    placeholder-replacement: false
   servlet:
     multipart:
       max-file-size: 50MB

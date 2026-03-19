@@ -1,5 +1,6 @@
 package com.syncro.backend.config;
 
+import com.syncro.backend.security.ExpatSessionAuthFilter;
 import com.syncro.backend.security.Http401UnauthorizedEntryPoint;
 import com.syncro.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            ExpatSessionAuthFilter expatSessionAuthFilter,
             Http401UnauthorizedEntryPoint http401UnauthorizedEntryPoint,
             @Qualifier("syncroCorsConfigurationSource") CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
@@ -48,11 +50,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/admin/register",
                                 "/api/v1/auth/admin/refresh",
                                 "/api/v1/auth/admin/logout",
-                                "/api/v1/astrology/calculate"
+                                "/api/v1/astrology/calculate",
+                                "/api/v1/expats/funnel/config",
+                                "/api/v1/expats/anonymous/sessions",
+                                "/api/v1/expats/anonymous/sessions/**",
+                                "/api/v1/relocation/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(expatSessionAuthFilter, JwtAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();

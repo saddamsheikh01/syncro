@@ -98,8 +98,8 @@
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
@@ -142,10 +142,49 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<version>2.0.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<version>2.0.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.14.1</version>
+				<configuration>
+					<!-- Use env: FLYWAY_URL, FLYWAY_USER, FLYWAY_PASSWORD (no defaults for password) -->
+					<url>${env.FLYWAY_URL:-jdbc:postgresql://localhost:5432/syncro_db?currentSchema=syncro_dev}</url>
+					<user>${env.FLYWAY_USER:-postgres}</user>
+					<password>${env.FLYWAY_PASSWORD}</password>
+					<schemas>syncro_dev</schemas>
+					<locations>filesystem:src/main/resources/db/migration</locations>
+					<outOfOrder>true</outOfOrder>
+					<placeholderReplacement>false</placeholderReplacement>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>42.7.5</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -156,6 +195,17 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Exclude Docker-dependent tests by default so mvn test passes without Docker. Use -Pintegration to run all. -->
+					<excludes>
+						<exclude>**/*IntegrationTest.java</exclude>
+						<exclude>**/FlywaySchemaSmokeTest.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -173,4 +223,23 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>integration</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!-- Override: exclude only a non-existent pattern so all tests run (requires Docker). -->
+							<excludes>
+								<exclude>**/$$NoSuchIntegrationTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Map background -->
+  <rect x="30" y="40" width="140" height="110" rx="12" fill="#FFF8E8"/>
+  <rect x="30" y="40" width="140" height="110" rx="12" stroke="#E8D5A8" stroke-width="2"/>
+  <!-- Map grid lines -->
+  <line x1="70" y1="40" x2="70" y2="150" stroke="#E8D5A8" stroke-width="1" opacity="0.5"/>
+  <line x1="120" y1="40" x2="120" y2="150" stroke="#E8D5A8" stroke-width="1" opacity="0.5"/>
+  <line x1="30" y1="75" x2="170" y2="75" stroke="#E8D5A8" stroke-width="1" opacity="0.5"/>
+  <line x1="30" y1="110" x2="170" y2="110" stroke="#E8D5A8" stroke-width="1" opacity="0.5"/>
+  <!-- Route path -->
+  <path d="M55 120 Q80 85 100 90 Q130 95 145 65" stroke="#3B6BDC" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 4" fill="none"/>
+  <!-- Start dot -->
+  <circle cx="55" cy="120" r="6" fill="#3B6BDC" opacity="0.3"/>
+  <circle cx="55" cy="120" r="3" fill="#3B6BDC"/>
+  <!-- Location pin at destination -->
+  <g transform="translate(145, 40)">
+    <path d="M0 25C0 25-15 12-15 7C-15-1-8-8 0-8C8-8 15-1 15 7C15 12 0 25 0 25Z" fill="#E74C3C"/>
+    <circle cx="0" cy="6" r="5" fill="white"/>
+    <circle cx="0" cy="6" r="3" fill="#E74C3C"/>
+  </g>
+  <!-- Compass rose -->
+  <g transform="translate(55, 55)">
+    <circle cx="0" cy="0" r="10" fill="white" stroke="#E8D5A8" stroke-width="1"/>
+    <polygon points="0,-7 2,0 0,3 -2,0" fill="#E74C3C"/>
+    <polygon points="0,7 2,0 0,-3 -2,0" fill="#999"/>
+  </g>
+  <!-- Plane icon -->
+  <g transform="translate(115, 68) rotate(-30)">
+    <path d="M-8 0L-2-3L6-1L10-4L13-2L8 2L10 8L7 7L5 3L-2 5Z" fill="#3B6BDC" opacity="0.7"/>
+  </g>
+</svg>

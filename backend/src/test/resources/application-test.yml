@@ -1,0 +1,119 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    # Managed by Testcontainers @ServiceConnection
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: syncro_test
+        type:
+          json_format_mapper: org.hibernate.type.format.jackson.JacksonJsonFormatMapper
+  flyway:
+    enabled: true
+    schemas: syncro_test
+    baseline-on-migrate: true
+    baseline-version: 8
+    out-of-order: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+app:
+  api:
+    base-url: http://localhost:0
+  jwt:
+    secret: test-jwt-secret-that-is-at-least-256-bits-long-for-hs256-signing-algorithm
+    issuer: syncro-test
+    access-ttl-minutes: 60
+    refresh-ttl-days: 1
+  admin:
+    bootstrap-secret: test-admin-bootstrap-secret
+  media:
+    storage-dir: ${java.io.tmpdir}/syncro-test-media
+    base-url: http://localhost:0/media
+  google-maps:
+    api-key: ""
+    base-url: https://maps.googleapis.com/maps/api
+    timeout-seconds: 5
+  viator:
+    api-key: ""
+    base-url: https://api.sandbox.viator.com/partner
+    accept-version: application/json;version=2.0
+    default-language: en-US
+    timeout-seconds: 5
+    sync:
+      enabled: false
+      use-search-only: false
+      nearby-enabled: false
+      nearby-max-destinations: 1
+      nearby-count-per-destination: 1
+      nearby-max-pages: 1
+      nearby-resync-minutes: 9999
+  email:
+    jobs:
+      no-chat-reminder-cron: "-"
+      weekly-match-digest-cron: "-"
+      test-not-completed-cron: "-"
+      incomplete-profile-cron: "-"
+      saved-event-reminder-cron: "-"
+      weekly-events-digest-cron: "-"
+  brevo:
+    api-key: ""
+    base-url: https://api.brevo.com/v3
+    timeout-seconds: 5
+    sender-email: test@syncro.test
+    sender-name: Syncro Test
+    password-reset-template-id: 0
+    password-reset-url-base: http://localhost:3000/reset-password
+    frontend-base-url: http://localhost:3000
+    template-ids:
+      WELCOME: 0
+      REGISTRATION_CONFIRMATION: 0
+      EMAIL_VERIFICATION: 0
+      PASSWORD_CHANGE: 0
+      EMAIL_CHANGE: 0
+      CONNECTION_REQUEST_RECEIVED: 0
+      CONNECTION_ACCEPTED: 0
+      NEW_MESSAGE_OFFLINE: 0
+      NO_CHAT_REMINDER_24H: 0
+      NEW_MATCH: 0
+      IMPROVED_MATCH: 0
+      WEEKLY_MATCH_DIGEST: 0
+      NEW_TEST_AVAILABLE: 0
+      TEST_STARTED_NOT_COMPLETED: 0
+      INCOMPLETE_PROFILE_REMINDER: 0
+      NEW_EVENT_NEARBY: 0
+      SAVED_EVENT_REMINDER: 0
+      WEEKLY_EVENTS_DIGEST: 0
+      COMMENT_RECEIVED: 0
+      REACTION_RECEIVED: 0
+      MENTION_TAG: 0
+      NEW_LOGIN_DEVICE_COUNTRY: 0
+      EMAIL_VERIFICATION_OTP: 0
+    password-reset-template-ids:
+      en: 0
+  astrology:
+    ephemeris-path: ${java.io.tmpdir}/syncro-test-ephe
+  zyra:
+    provider: OLLAMA
+    base-url: http://localhost:11434
+    model: test-model
+    api-key: ""
+    max-history: 5
+    profile-recap-cache-ttl-minutes: 1
+    place-recap-cache-ttl-minutes: 1
+    chat-recap-cache-ttl-minutes: 1
+    recap-cache-max-entries: 10
