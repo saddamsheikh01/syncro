@@ -11,8 +11,11 @@ import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepo
 import com.syncro.backend.domain.relocation.repository.RelocationOnboardingSnapshotRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationCityScoreRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -33,6 +36,7 @@ public class AnonymousRelocationService {
     private final RelocationMapper mapper;
     private final ExpatsFunnelToRelocationProfileMapper funnelMapper;
     private final RelocationCityDatasetRepository cityDatasetRepository;
+    private final AnonymousRelocationService self;
 
     public AnonymousRelocationService(ExpatsAnonymousSessionRepository sessionRepository,
                                       ExpatsAnonymousAnswerRepository answerRepository,
@@ -42,7 +46,8 @@ public class AnonymousRelocationService {
                                       RelocationOnboardingService onboardingService,
                                       RelocationMapper mapper,
                                       ExpatsFunnelToRelocationProfileMapper funnelMapper,
-                                      RelocationCityDatasetRepository cityDatasetRepository) {
+                                      RelocationCityDatasetRepository cityDatasetRepository,
+                                      @Lazy AnonymousRelocationService self) {
         this.sessionRepository = sessionRepository;
         this.answerRepository = answerRepository;
         this.profileRepository = profileRepository;
@@ -52,6 +57,7 @@ public class AnonymousRelocationService {
         this.mapper = mapper;
         this.funnelMapper = funnelMapper;
         this.cityDatasetRepository = cityDatasetRepository;
+        this.self = self;
     }
 
     @Transactional
@@ -68,7 +74,18 @@ public class AnonymousRelocationService {
             return p;
         });
         funnelMapper.applyAnswers(profile, answers);
-        return profileRepository.save(profile);
+        try {
+            return profileRepository.save(profile);
+        } catch (DataIntegrityViolationException e) {
+            // Duplicate key (uq_relocation_profiles_anon_session): another request created the profile; find in new tx
+            return self.findProfileBySessionIdInNewTx(sessionId);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public RelocationProfile findProfileBySessionIdInNewTx(UUID sessionId) {
+        return profileRepository.findByAnonymousSession_Id(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Profile race; retry"));
     }
 
     @Transactional

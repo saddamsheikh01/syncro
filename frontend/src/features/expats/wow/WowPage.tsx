@@ -1158,14 +1158,16 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
     return (
       <>
         <div className="wow-header">
-          <h1 className="wow-title">{t("Expats.wow.cityRankings")}</h1>
-          <p className="wow-muted-sm">
-            After you sign in, complete your profile, create a snapshot, and run scoring {EM} your ranked cities will show here.
+          <h1 className="wow-title">{t("Expats.wow.titleUnsure")}</h1>
+          <p className="wow-sub">{t("Expats.wow.subtitleUnsure")}</p>
+          <p className="wow-muted-sm" style={{ marginTop: 12 }}>
+            Complete the funnel and run scoring to see your top compatible cities here.
           </p>
         </div>
         <button type="button" onClick={handleCta} className="wow-cta" style={{ marginTop: 32 }}>
-          Register to unlock rankings
+          {t("Expats.wow.seeFullAnalysis")}
         </button>
+        <p className="wow-cta-sub">{t("Expats.wow.ctaSub")}</p>
       </>
     );
   }
