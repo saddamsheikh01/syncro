@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Compass body -->
+  <circle cx="100" cy="95" r="55" fill="white" stroke="#D5DDEA" stroke-width="3"/>
+  <circle cx="100" cy="95" r="48" fill="white" stroke="#E4E9F2" stroke-width="1.5"/>
+  <!-- Cardinal markers -->
+  <text x="100" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#E74C3C">N</text>
+  <text x="100" y="145" text-anchor="middle" font-size="12" font-weight="600" fill="#999">S</text>
+  <text x="55" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#999">W</text>
+  <text x="145" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#999">E</text>
+  <!-- Compass needle -->
+  <polygon points="100,60 105,95 100,100 95,95" fill="#E74C3C"/>
+  <polygon points="100,130 105,95 100,90 95,95" fill="#CCC"/>
+  <!-- Center dot -->
+  <circle cx="100" cy="95" r="4" fill="#3B6BDC"/>
+  <!-- Question marks around -->
+  <text x="40" y="55" font-size="18" fill="#3B6BDC" opacity="0.4">?</text>
+  <text x="155" y="60" font-size="16" fill="#3B6BDC" opacity="0.3">?</text>
+  <text x="30" y="140" font-size="14" fill="#3B6BDC" opacity="0.25">?</text>
+  <text x="160" y="145" font-size="20" fill="#3B6BDC" opacity="0.35">?</text>
+</svg>

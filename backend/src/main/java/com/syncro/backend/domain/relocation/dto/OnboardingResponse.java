@@ -10,6 +10,8 @@ public record OnboardingResponse(
         String targetCityName,
         String targetCountry,
         UUID targetCityId,
+        UUID currentCityId,
+        String currentCityName,
         String household,
         Boolean hasPets,
         String childrenAgeRange,

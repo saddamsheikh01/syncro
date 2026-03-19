@@ -17,4 +17,11 @@ public interface RelocationOnboardingSnapshotRepository extends JpaRepository<Re
 
     @Query("SELECT COALESCE(MAX(s.version), 0) FROM RelocationOnboardingSnapshot s WHERE s.user.id = :userId")
     int findMaxVersionByUserId(@Param("userId") UUID userId);
+
+    Optional<RelocationOnboardingSnapshot> findByAnonymousSession_IdAndIsActiveTrue(UUID anonymousSessionId);
+
+    @Query("SELECT COALESCE(MAX(s.version), 0) FROM RelocationOnboardingSnapshot s WHERE s.anonymousSession.id = :sid")
+    int findMaxVersionByAnonymousSessionId(@Param("sid") UUID sid);
+
+    List<RelocationOnboardingSnapshot> findByAnonymousSession_IdOrderByVersionDesc(UUID anonymousSessionId);
 }

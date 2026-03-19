@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.ComputeScoringRequest;
 import com.syncro.backend.domain.relocation.dto.ScoringResultResponse;
 import com.syncro.backend.domain.relocation.entity.*;
@@ -31,6 +32,7 @@ class RelocationScoringServiceTest {
     @Mock private RelocationCityDatasetRepository cityRepository;
     @Mock private RelocationCityScoreRepository scoreRepository;
     @Mock private RelocationScoringConfigRepository configRepository;
+    @Mock private UserRepository userRepository;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
     @Mock private ScoringCalculationHelper helper;
@@ -75,13 +77,14 @@ class RelocationScoringServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findByActiveTrue()).thenReturn(List.of(testCity, city2));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         stubHelperDefaults();
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
 
-        ScoringResultResponse result = service.computeScoring(testUser, null);
+        ScoringResultResponse result = service.computeScoring(testUser.getId(), null);
 
         assertThat(result).isNotNull();
         assertThat(result.analysisType()).isEqualTo("planning_move");
@@ -96,7 +99,7 @@ class RelocationScoringServiceTest {
     void computeScoring_noProfile_throwsNotFound() {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.computeScoring(testUser, null))
+        assertThatThrownBy(() -> service.computeScoring(testUser.getId(), null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Relocation profile not found");
     }
@@ -107,7 +110,7 @@ class RelocationScoringServiceTest {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.computeScoring(testUser, null))
+        assertThatThrownBy(() -> service.computeScoring(testUser.getId(), null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("No active snapshot found");
     }
@@ -121,14 +124,15 @@ class RelocationScoringServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(testCity.getId())).thenReturn(Optional.of(testCity));
         when(scoreRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         stubHelperDefaults();
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
 
         ComputeScoringRequest request = new ComputeScoringRequest(testCity.getId(), "chosen_city");
-        ScoringResultResponse result = service.computeScoring(testUser, request);
+        ScoringResultResponse result = service.computeScoring(testUser.getId(), request);
 
         assertThat(result).isNotNull();
         assertThat(result.analysisType()).isEqualTo("chosen_city");
@@ -141,7 +145,7 @@ class RelocationScoringServiceTest {
     void getHistory_returnsOrdered() {
         when(scoreRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId())).thenReturn(List.of());
 
-        var result = service.getHistory(testUser);
+        var result = service.getHistory(testUser.getId());
 
         assertThat(result).isEmpty();
         verify(scoreRepository).findByUserIdOrderByCreatedAtDesc(testUser.getId());
@@ -157,7 +161,7 @@ class RelocationScoringServiceTest {
         when(scoreRepository.findByUserIdAndSnapshotIdOrderByRankingPositionAsc(testUser.getId(), snapshotId))
                 .thenReturn(List.of());
 
-        var result = service.getLatestScores(testUser, snapshotId);
+        var result = service.getLatestScores(testUser.getId(), snapshotId);
 
         assertThat(result).isEmpty();
         verify(scoreRepository).findByUserIdAndSnapshotIdOrderByRankingPositionAsc(testUser.getId(), snapshotId);
@@ -207,7 +211,7 @@ class RelocationScoringServiceTest {
     private RelocationScoringConfig buildTestConfig() {
         RelocationScoringConfig config = new RelocationScoringConfig();
         config.setId(UUID.randomUUID());
-        config.setConfigKey("scoring_v1");
+        config.setConfigKey("city_scoring_v1");
         config.setActive(true);
         config.setThresholds(Map.of(
                 "very_strong_fit", 80, "good_fit", 70, "moderate_fit", 60, "weak_fit", 50, "low_fit", 0));

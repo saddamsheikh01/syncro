@@ -7,6 +7,7 @@ import { useAuth, useT } from "../../hooks";
 import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 import { GoogleAuthButton } from "@/features/auth/components/GoogleAuthButton";
+import { expatsActions } from "../../stores/expats/expatsStore";
 
 const CheckIcon = () => (
   <svg
@@ -113,6 +114,7 @@ export const Login = () => {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
   const safeRedirect = isSafeRedirect(redirectTo) ? redirectTo : null;
+  const fromExpats = searchParams.get("from") === "expats";
   const { status, error, isAuthenticated, user, actions } = useAuth();
   const { t } = useT();
   const [email, setEmail] = useState(() =>
@@ -130,9 +132,13 @@ export const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated && status !== "loading") {
-      router.replace(safeRedirect ?? "/home");
+      if (fromExpats) {
+        router.replace("/expats/activation");
+      } else {
+        router.replace(safeRedirect ?? "/home");
+      }
     }
-  }, [isAuthenticated, status, router, safeRedirect]);
+  }, [isAuthenticated, status, router, safeRedirect, fromExpats]);
 
   const isSubmitting = status === "loading";
 
@@ -142,9 +148,15 @@ export const Login = () => {
     try {
       const response = await actions.login({ email, password });
       if (response.requiresVerification) {
-        router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        const verifyUrl = `/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}${fromExpats ? "&from=expats" : ""}`;
+        router.push(verifyUrl);
       } else if (response.authResponse) {
-        router.push(safeRedirect ?? "/home");
+        if (fromExpats) {
+          await expatsActions.convertAndSync().catch(() => null);
+          router.push("/expats/activation");
+        } else {
+          router.push(safeRedirect ?? "/home");
+        }
       }
     } catch {}
   };
@@ -153,7 +165,12 @@ export const Login = () => {
     setGoogleError(null);
     try {
       await actions.loginWithGoogle({ idToken });
-      router.push(safeRedirect ?? "/home");
+      if (fromExpats) {
+        await expatsActions.convertAndSync().catch(() => null);
+        router.push("/expats/activation");
+      } else {
+        router.push(safeRedirect ?? "/home");
+      }
     } catch (requestError) {
       const message =
         requestError &&

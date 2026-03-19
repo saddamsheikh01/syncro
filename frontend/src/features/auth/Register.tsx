@@ -8,6 +8,8 @@ import { Logo } from "@/components/elements/Logo";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { GoogleAuthButton } from "@/features/auth/components/GoogleAuthButton";
+import { expatsActions } from "../../stores/expats/expatsStore";
+import { expatsModeActions } from "../../stores/expatsMode/expatsModeStore";
 
 const CheckIcon = () => (
   <svg
@@ -124,6 +126,7 @@ export const Register = () => {
   const [googleError, setGoogleError] = useState<string | null>(null);
 
   const refCode = searchParams.get("ref")?.trim() || undefined;
+  const fromExpats = searchParams.get("from") === "expats";
 
   useEffect(() => {
     actions.hydrate();
@@ -131,9 +134,10 @@ export const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated && status !== "loading") {
-      router.replace("/home");
+      if (fromExpats) expatsModeActions.setActive(true);
+      router.replace(fromExpats ? "/expats/activation" : "/home");
     }
-  }, [isAuthenticated, status, router]);
+  }, [isAuthenticated, status, router, fromExpats]);
 
   const isSubmitting = status === "loading";
 
@@ -156,9 +160,16 @@ export const Register = () => {
         language: locale,
       });
       if (response.requiresVerification) {
-        router.push(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        const verifyUrl = `/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}${fromExpats ? "&from=expats" : ""}`;
+        router.push(verifyUrl);
       } else if (response.authResponse) {
-        router.push("/home");
+        if (fromExpats) {
+          expatsModeActions.setActive(true);
+          await expatsActions.convertAndSync().catch(() => null);
+          router.push("/expats/activation");
+        } else {
+          router.push("/home");
+        }
       }
     } catch {}
   };
@@ -171,7 +182,13 @@ export const Register = () => {
         refCode,
         language: locale,
       });
-      router.push("/home");
+      if (fromExpats) {
+        expatsModeActions.setActive(true);
+        await expatsActions.convertAndSync().catch(() => null);
+        router.push("/expats/activation");
+      } else {
+        router.push("/home");
+      }
     } catch (requestError) {
       const message =
         requestError &&

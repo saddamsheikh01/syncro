@@ -1,6 +1,6 @@
 package com.syncro.backend.domain.expats.service;
 
-import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousAnswer;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousAnswerRepository;
@@ -21,13 +21,16 @@ public class ExpatsConversionService {
 
     private final ExpatsAnonymousSessionRepository sessionRepository;
     private final ExpatsAnonymousAnswerRepository answerRepository;
+    private final UserRepository userRepository;
     private final AnalyticsService analyticsService;
 
     public ExpatsConversionService(ExpatsAnonymousSessionRepository sessionRepository,
                                    ExpatsAnonymousAnswerRepository answerRepository,
+                                   UserRepository userRepository,
                                    AnalyticsService analyticsService) {
         this.sessionRepository = sessionRepository;
         this.answerRepository = answerRepository;
+        this.userRepository = userRepository;
         this.analyticsService = analyticsService;
     }
 
@@ -37,14 +40,13 @@ public class ExpatsConversionService {
      * Atomic and idempotent: if already converted, returns silently.
      */
     @Transactional
-    public void convertSession(String sessionToken, User user) {
+    public void convertSession(String sessionToken, UUID userId) {
         ExpatsAnonymousSession session = sessionRepository.findBySessionToken(sessionToken)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Session not found"));
 
-        // Idempotent: if already converted to same user, skip
         if ("CONVERTED".equals(session.getStatus())) {
-            if (session.getConvertedUser() != null && session.getConvertedUser().getId().equals(user.getId())) {
-                return; // Already converted to this user
+            if (session.getConvertedUser() != null && session.getConvertedUser().getId().equals(userId)) {
+                return;
             }
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Session already converted to another user");
         }
@@ -54,12 +56,12 @@ public class ExpatsConversionService {
         }
 
         session.setStatus("CONVERTED");
-        session.setConvertedUser(user);
+        session.setConvertedUser(userRepository.getReferenceById(userId));
         session.setConvertedAt(Instant.now());
         session.setLastSeenAt(Instant.now());
         sessionRepository.save(session);
 
-        analyticsService.trackServerEventSafe(user.getId(), "EXPATS_ANON_CONVERTED",
+        analyticsService.trackServerEventSafe(userId, "EXPATS_ANON_CONVERTED",
                 Map.of("sessionId", session.getId().toString()));
     }
 

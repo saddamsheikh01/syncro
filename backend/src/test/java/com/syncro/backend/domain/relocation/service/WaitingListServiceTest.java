@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.CityDatasetSummaryResponse;
 import com.syncro.backend.domain.relocation.dto.WaitingListRequest;
 import com.syncro.backend.domain.relocation.dto.WaitingListResponse;
@@ -33,6 +34,7 @@ class WaitingListServiceTest {
 
     @Mock private RelocationCityWaitingListRepository waitingListRepository;
     @Mock private RelocationCityDatasetRepository cityRepository;
+    @Mock private UserRepository userRepository;
     @Mock private RelocationMapper mapper;
 
     @InjectMocks
@@ -59,11 +61,12 @@ class WaitingListServiceTest {
             return e;
         });
         when(cityRepository.findByActiveTrueOrderByCityNameAsc()).thenReturn(List.of());
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(mapper.toWaitingListResponse(any())).thenReturn(
                 new WaitingListResponse(UUID.randomUUID(), "user@test.com", "Vienna", false, Instant.now())
         );
 
-        Map<String, Object> result = service.joinWaitingList(request, testUser);
+        Map<String, Object> result = service.joinWaitingList(request, testUser.getId());
 
         assertThat(result).containsKey("waitingListEntry");
         assertThat(result).containsKey("message");
@@ -84,7 +87,7 @@ class WaitingListServiceTest {
         RelocationCityDataset existingCity = new RelocationCityDataset();
         when(cityRepository.findByCitySlugAndActiveTrue("lisbon")).thenReturn(Optional.of(existingCity));
 
-        assertThatThrownBy(() -> service.joinWaitingList(request, testUser))
+        assertThatThrownBy(() -> service.joinWaitingList(request, testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("City already available in dataset");
     }
@@ -97,7 +100,7 @@ class WaitingListServiceTest {
         when(cityRepository.findByCitySlugAndActiveTrue("vienna")).thenReturn(Optional.empty());
         when(waitingListRepository.existsByEmailAndCityName("user@test.com", "Vienna")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.joinWaitingList(request, testUser))
+        assertThatThrownBy(() -> service.joinWaitingList(request, testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Already on the waiting list");
     }

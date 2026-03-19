@@ -1,6 +1,6 @@
 package com.syncro.backend.domain.relocation.service;
 
-import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.CityDatasetSummaryResponse;
 import com.syncro.backend.domain.relocation.dto.WaitingListRequest;
 import com.syncro.backend.domain.relocation.dto.WaitingListResponse;
@@ -15,24 +15,28 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class WaitingListService {
 
     private final RelocationCityWaitingListRepository waitingListRepository;
     private final RelocationCityDatasetRepository cityRepository;
+    private final UserRepository userRepository;
     private final RelocationMapper mapper;
 
     public WaitingListService(RelocationCityWaitingListRepository waitingListRepository,
                               RelocationCityDatasetRepository cityRepository,
+                              UserRepository userRepository,
                               RelocationMapper mapper) {
         this.waitingListRepository = waitingListRepository;
         this.cityRepository = cityRepository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
     }
 
     @Transactional
-    public Map<String, Object> joinWaitingList(WaitingListRequest request, User user) {
+    public Map<String, Object> joinWaitingList(WaitingListRequest request, UUID userId) {
         // Check if city already exists in dataset
         String slug = request.cityName().toLowerCase().replaceAll("\\s+", "-");
         boolean cityExists = cityRepository.findByCitySlugAndActiveTrue(slug).isPresent();
@@ -50,7 +54,7 @@ public class WaitingListService {
         RelocationCityWaitingList entry = new RelocationCityWaitingList();
         entry.setEmail(request.email());
         entry.setCityName(request.cityName());
-        if (user != null) entry.setUser(user);
+        if (userId != null) entry.setUser(userRepository.getReferenceById(userId));
 
         entry = waitingListRepository.save(entry);
 

@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.CityComparisonRequest;
 import com.syncro.backend.domain.relocation.dto.CityComparisonResponse;
 import com.syncro.backend.domain.relocation.entity.*;
@@ -29,6 +30,7 @@ class CityComparisonServiceTest {
     @Mock private RelocationCityDatasetRepository cityRepository;
     @Mock private RelocationCityScoreRepository scoreRepository;
     @Mock private RelocationScoringConfigRepository configRepository;
+    @Mock private UserRepository userRepository;
     @Mock private ScoringCalculationHelper helper;
 
     @InjectMocks
@@ -79,7 +81,7 @@ class CityComparisonServiceTest {
         stubCommonDependencies();
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response).isNotNull();
         assertThat(response.currentCity().name()).isEqualTo("Milano");
@@ -105,7 +107,7 @@ class CityComparisonServiceTest {
         when(helper.computeCityCost(targetCity, false)).thenReturn(new BigDecimal("1200.00"));
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response.economicImpact()).isNotNull();
         assertThat(response.economicImpact().isFamily()).isFalse();
@@ -123,7 +125,7 @@ class CityComparisonServiceTest {
         when(helper.computeCityCost(targetCity, true)).thenReturn(new BigDecimal("2400.00"));
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response.economicImpact().isFamily()).isTrue();
         assertThat(response.economicImpact().monthlySaving()).isEqualByComparingTo(new BigDecimal("1600.00"));
@@ -137,7 +139,7 @@ class CityComparisonServiceTest {
         // costo_vita is VERY_HIGH and target(60) > current(25) → aligned
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response.priorityAlignment()).isNotNull();
         assertThat(response.priorityAlignment().alignedPriorities()).isNotNull();
@@ -151,7 +153,7 @@ class CityComparisonServiceTest {
         // opportunita_lavorative: current=65, target=50 → diff=15 >= 5 → trade-off
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response.tradeOffs()).isNotNull();
         List<String> tradeOffKeys = response.tradeOffs().stream()
@@ -170,7 +172,7 @@ class CityComparisonServiceTest {
         when(helper.classifyCompatibility(75, testConfig)).thenReturn("GOOD_FIT");
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
-        CityComparisonResponse response = service.compareCities(testUser, request);
+        CityComparisonResponse response = service.compareCities(testUser.getId(), request);
 
         assertThat(response.overallImpact()).isNotNull();
         assertThat(response.overallImpact().scoreCurrentCity()).isEqualTo(62);
@@ -186,12 +188,12 @@ class CityComparisonServiceTest {
 
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(fakeCityId)).thenReturn(Optional.empty());
 
         CityComparisonRequest request = new CityComparisonRequest(fakeCityId, targetCity.getId());
 
-        assertThatThrownBy(() -> service.compareCities(testUser, request))
+        assertThatThrownBy(() -> service.compareCities(testUser.getId(), request))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Current city not found");
     }
@@ -204,7 +206,7 @@ class CityComparisonServiceTest {
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
 
-        assertThatThrownBy(() -> service.compareCities(testUser, request))
+        assertThatThrownBy(() -> service.compareCities(testUser.getId(), request))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("No active snapshot found");
     }
@@ -214,7 +216,7 @@ class CityComparisonServiceTest {
     private void stubCommonDependencies() {
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
-        when(configRepository.findByConfigKeyAndActiveTrue("scoring_v1")).thenReturn(Optional.of(testConfig));
+        when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(currentCity.getId())).thenReturn(Optional.of(currentCity));
         when(cityRepository.findById(targetCity.getId())).thenReturn(Optional.of(targetCity));
 
@@ -260,6 +262,7 @@ class CityComparisonServiceTest {
         lenient().when(helper.computeCityFitScore(eq(targetCity), anyMap(), any(), anyMap())).thenReturn(70);
         lenient().when(helper.classifyCompatibility(anyInt(), any())).thenReturn("GOOD_FIT");
 
+        when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(scoreRepository.save(any(RelocationCityScore.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -286,7 +289,7 @@ class CityComparisonServiceTest {
     private RelocationScoringConfig buildTestConfig() {
         RelocationScoringConfig config = new RelocationScoringConfig();
         config.setId(UUID.randomUUID());
-        config.setConfigKey("scoring_v1");
+        config.setConfigKey("city_scoring_v1");
         config.setActive(true);
         config.setThresholds(Map.of(
                 "very_strong_fit", 80, "good_fit", 70, "moderate_fit", 60, "weak_fit", 50, "low_fit", 0));

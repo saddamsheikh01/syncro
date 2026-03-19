@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
@@ -27,6 +28,7 @@ public class RelocationOnboardingService {
     private final RelocationOnboardingSnapshotRepository snapshotRepository;
     private final RelocationCityDatasetRepository cityDatasetRepository;
     private final RelocationCityScoreRepository cityScoreRepository;
+    private final UserRepository userRepository;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
 
@@ -34,28 +36,30 @@ public class RelocationOnboardingService {
                                        RelocationOnboardingSnapshotRepository snapshotRepository,
                                        RelocationCityDatasetRepository cityDatasetRepository,
                                        RelocationCityScoreRepository cityScoreRepository,
+                                       UserRepository userRepository,
                                        RelocationMapper mapper,
                                        AnalyticsService analyticsService) {
         this.profileRepository = profileRepository;
         this.snapshotRepository = snapshotRepository;
         this.cityDatasetRepository = cityDatasetRepository;
         this.cityScoreRepository = cityScoreRepository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
     }
 
     @Transactional(readOnly = true)
-    public OnboardingResponse getOnboarding(User user) {
-        RelocationProfile profile = findProfileOrThrow(user.getId());
+    public OnboardingResponse getOnboarding(UUID userId) {
+        RelocationProfile profile = findProfileOrThrow(userId);
         return mapper.toOnboardingResponse(profile);
     }
 
     @Transactional
-    public OnboardingResponse updateOnboarding(User user, UpdateOnboardingRequest request) {
-        RelocationProfile profile = profileRepository.findByUserId(user.getId())
+    public OnboardingResponse updateOnboarding(UUID userId, UpdateOnboardingRequest request) {
+        RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     RelocationProfile p = new RelocationProfile();
-                    p.setUser(user);
+                    p.setUser(userRepository.getReferenceById(userId));
                     p.setUserType("planning_move"); // default
                     p.setHousehold("single");
                     p.setMonthlyBudget(java.math.BigDecimal.ZERO);
@@ -98,6 +102,7 @@ public class RelocationOnboardingService {
         }
         if (request.currentCityName() != null && request.currentCityId() == null) {
             profile.setCurrentCityName(request.currentCityName());
+            resolveCurrentCity(profile, request.currentCityName());
         }
 
         // Update completed steps and completion percent
@@ -112,7 +117,7 @@ public class RelocationOnboardingService {
             profile.setStatus("COMPLETED");
             profile.setCompletionPercent(100);
 
-            analyticsService.trackServerEventSafe(user.getId(), "RELOCATION_ONBOARDING_COMPLETED",
+            analyticsService.trackServerEventSafe(userId, "RELOCATION_ONBOARDING_COMPLETED",
                     Map.of("userType", profile.getUserType()));
         }
 
@@ -121,13 +126,13 @@ public class RelocationOnboardingService {
     }
 
     @Transactional(readOnly = true)
-    public OnboardingStatusResponse getOnboardingStatus(User user) {
-        RelocationProfile profile = findProfileOrThrow(user.getId());
+    public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
+        RelocationProfile profile = findProfileOrThrow(userId);
 
         Optional<RelocationOnboardingSnapshot> activeSnapshot =
-                snapshotRepository.findByUserIdAndIsActiveTrue(user.getId());
+                snapshotRepository.findByUserIdAndIsActiveTrue(userId);
 
-        int maxVersion = snapshotRepository.findMaxVersionByUserId(user.getId());
+        int maxVersion = snapshotRepository.findMaxVersionByUserId(userId);
 
         return mapper.toOnboardingStatusResponse(
                 profile,
@@ -141,8 +146,8 @@ public class RelocationOnboardingService {
      * Deactivates any existing active snapshot.
      */
     @Transactional
-    public SnapshotResponse createSnapshot(User user) {
-        RelocationProfile profile = findProfileOrThrow(user.getId());
+    public SnapshotResponse createSnapshot(UUID userId) {
+        RelocationProfile profile = findProfileOrThrow(userId);
 
         if (!"COMPLETED".equals(profile.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -150,7 +155,7 @@ public class RelocationOnboardingService {
         }
 
         // Deactivate current active snapshot
-        snapshotRepository.findByUserIdAndIsActiveTrue(user.getId())
+        snapshotRepository.findByUserIdAndIsActiveTrue(userId)
                 .ifPresent(s -> {
                     s.setIsActive(false);
                     snapshotRepository.save(s);
@@ -159,10 +164,10 @@ public class RelocationOnboardingService {
         // Build payload from profile fields
         Map<String, Object> payload = buildSnapshotPayload(profile);
 
-        int nextVersion = snapshotRepository.findMaxVersionByUserId(user.getId()) + 1;
+        int nextVersion = snapshotRepository.findMaxVersionByUserId(userId) + 1;
 
         RelocationOnboardingSnapshot snapshot = new RelocationOnboardingSnapshot();
-        snapshot.setUser(user);
+        snapshot.setUser(userRepository.getReferenceById(userId));
         snapshot.setRelocationProfile(profile);
         snapshot.setVersion(nextVersion);
         snapshot.setPayload(payload);
@@ -173,8 +178,8 @@ public class RelocationOnboardingService {
     }
 
     @Transactional(readOnly = true)
-    public List<SnapshotResponse> getSnapshots(User user) {
-        return snapshotRepository.findByUserIdOrderByVersionDesc(user.getId())
+    public List<SnapshotResponse> getSnapshots(UUID userId) {
+        return snapshotRepository.findByUserIdOrderByVersionDesc(userId)
                 .stream()
                 .map(mapper::toSnapshotResponse)
                 .toList();
@@ -185,8 +190,8 @@ public class RelocationOnboardingService {
      * Usato dalla activation page per guidare l'utente dopo la conversione anonimo → registrato.
      */
     @Transactional(readOnly = true)
-    public ActivationStateResponse getActivationState(User user) {
-        RelocationProfile profile = findProfileOrThrow(user.getId());
+    public ActivationStateResponse getActivationState(UUID userId) {
+        RelocationProfile profile = findProfileOrThrow(userId);
 
         List<String> completedFields = new ArrayList<>();
         List<String> missingFields = new ArrayList<>();
@@ -202,8 +207,8 @@ public class RelocationOnboardingService {
         checkField(profile.getPriorityProblem(), "priority_problem", completedFields, missingFields);
         checkField(profile.getFreeNotes(), "free_notes", completedFields, missingFields);
 
-        boolean hasActiveSnapshot = snapshotRepository.findByUserIdAndIsActiveTrue(user.getId()).isPresent();
-        boolean hasScoringResults = !cityScoreRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).isEmpty();
+        boolean hasActiveSnapshot = snapshotRepository.findByUserIdAndIsActiveTrue(userId).isPresent();
+        boolean hasScoringResults = !cityScoreRepository.findByUserIdOrderByCreatedAtDesc(userId).isEmpty();
 
         // Costruisci next actions in base allo stato
         List<Map<String, String>> nextActions = buildNextActions(profile, missingFields, hasActiveSnapshot, hasScoringResults);
@@ -289,13 +294,13 @@ public class RelocationOnboardingService {
      * Called by ExpatsConversionService after session conversion.
      */
     @Transactional
-    public RelocationProfile initFromConversion(User user, UUID sessionId, Map<String, Object> answers) {
-        if (profileRepository.existsByUserId(user.getId())) {
-            return profileRepository.findByUserId(user.getId()).orElseThrow();
+    public RelocationProfile initFromConversion(UUID userId, UUID sessionId, Map<String, Object> answers) {
+        if (profileRepository.existsByUserId(userId)) {
+            return profileRepository.findByUserId(userId).orElseThrow();
         }
 
         RelocationProfile profile = new RelocationProfile();
-        profile.setUser(user);
+        profile.setUser(userRepository.getReferenceById(userId));
 
         // Map answers from anonymous session to profile fields
         mapAnswersToProfile(profile, answers);
@@ -305,13 +310,34 @@ public class RelocationOnboardingService {
     }
 
     private void resolveTargetCity(RelocationProfile profile, String cityName) {
-        // Try to match city by slug (lowercase, hyphens)
-        String slug = cityName.toLowerCase().replaceAll("\\s+", "-");
-        cityDatasetRepository.findByCitySlugAndActiveTrue(slug)
+        if (cityName == null || cityName.isBlank()) return;
+        String slug = cityName.trim().toLowerCase().replaceAll("\\s+", "-");
+        Optional<RelocationCityDataset> bySlug = cityDatasetRepository.findByCitySlugAndActiveTrue(slug);
+        if (bySlug.isPresent()) {
+            profile.setTargetCity(bySlug.get());
+            return;
+        }
+        // Fallback: user may have entered a country name (e.g. "India", "Pakistan")
+        cityDatasetRepository.findFirstByCountryIgnoreCaseAndActiveTrueOrderByCityNameAsc(cityName.trim())
                 .ifPresent(profile::setTargetCity);
     }
 
-    private Map<String, Object> buildSnapshotPayload(RelocationProfile profile) {
+    private void resolveCurrentCity(RelocationProfile profile, String cityName) {
+        if (cityName == null || cityName.isBlank()) return;
+        String slug = cityName.trim().toLowerCase().replaceAll("\\s+", "-");
+        Optional<RelocationCityDataset> bySlug = cityDatasetRepository.findByCitySlugAndActiveTrue(slug);
+        if (bySlug.isPresent()) {
+            RelocationCityDataset c = bySlug.get();
+            profile.setCurrentCity(c);
+            profile.setCurrentCityName(c.getCityName());
+            return;
+        }
+        // Fallback: user may have entered a country name (e.g. "Pakistan")
+        cityDatasetRepository.findFirstByCountryIgnoreCaseAndActiveTrueOrderByCityNameAsc(cityName.trim())
+                .ifPresent(profile::setCurrentCity);
+    }
+
+    public Map<String, Object> buildSnapshotPayload(RelocationProfile profile) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("userType", profile.getUserType());
         payload.put("targetCityName", profile.getTargetCityName());

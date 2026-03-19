@@ -3,6 +3,7 @@
 import type { HTMLAttributes } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/elements/Card";
 import { Avatar } from "@/components/elements/Avatar";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -16,6 +17,9 @@ import {
   PROFILE_AVATAR_UPDATED_EVENT,
   type ProfileAvatarUpdatedDetail,
 } from "@/lib/mediaEvents";
+import { useExpatsModeStore } from "@/stores/expatsMode/useExpatsModeStore";
+import { expatsModeActions } from "@/stores/expatsMode/expatsModeStore";
+import { getActivationState } from "@/services/expats";
 
 const HeaderProfile = () => {
   const { t } = useT();
@@ -149,6 +153,54 @@ const SuperAdminRedirect = () => {
   );
 };
 
+const ExpatsModeToggle = () => {
+  const { t } = useT();
+  const router = useRouter();
+  const isExpatsModeActive = useExpatsModeStore((s) => s.isExpatsModeActive);
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    expatsModeActions.rehydrate();
+  }, []);
+
+  const handleClick = async () => {
+    if (isExpatsModeActive) {
+      expatsModeActions.setActive(false);
+      return;
+    }
+    setIsChecking(true);
+    try {
+      const state = await getActivationState();
+      const completed = (state?.completedSteps ?? 0) >= (state?.totalSteps ?? 10);
+      expatsModeActions.setActive(true);
+      router.push(completed ? "/expats/wow" : "/expats");
+    } catch {
+      expatsModeActions.setActive(true);
+      router.push("/expats");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={isChecking}
+      className={cx(
+        "rounded-full border px-3 py-2 text-xs font-semibold transition",
+        isExpatsModeActive
+          ? "border-accent/60 bg-accent/15 text-accent"
+          : "border-border/70 bg-surface text-foreground hover:border-accent/40 hover:bg-accent-soft"
+      )}
+      aria-pressed={isExpatsModeActive}
+      aria-label={t("Expats Mode")}
+    >
+      {isChecking ? t("…") : t("Expats Mode")}
+    </button>
+  );
+};
+
 export interface NavbarProps extends HTMLAttributes<HTMLElement> {
   position?: "fixed" | "absolute";
 }
@@ -175,6 +227,7 @@ export const Navbar = ({
         </div>
 
         <div className="flex items-center gap-3 pr-2">
+          <ExpatsModeToggle />
           <SuperAdminRedirect />
           <LanguageSwitch />
           <NotificationBell />

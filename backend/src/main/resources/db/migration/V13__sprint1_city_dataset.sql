@@ -70,8 +70,17 @@ COMMENT ON COLUMN relocation_city_dataset.districts IS 'Suggested districts: [{n
 CREATE INDEX IF NOT EXISTS idx_city_dataset_slug ON relocation_city_dataset (city_slug);
 CREATE INDEX IF NOT EXISTS idx_city_dataset_active ON relocation_city_dataset (active);
 
--- Add FK from relocation_profiles.target_city_id -> relocation_city_dataset
--- (relocation_profiles was created in V12, city_dataset now exists)
-ALTER TABLE relocation_profiles
-    ADD CONSTRAINT fk_relocation_profiles_target_city
-    FOREIGN KEY (target_city_id) REFERENCES relocation_city_dataset(id);
+-- FK relocation_profiles.target_city_id -> relocation_city_dataset (V12 created profiles without FK)
+-- Guard: V14 catch-up or out-of-order runs may have added this constraint already.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_relocation_profiles_target_city'
+          AND conrelid = 'relocation_profiles'::regclass
+    ) THEN
+        ALTER TABLE relocation_profiles
+            ADD CONSTRAINT fk_relocation_profiles_target_city
+            FOREIGN KEY (target_city_id) REFERENCES relocation_city_dataset(id);
+    END IF;
+END $$;
