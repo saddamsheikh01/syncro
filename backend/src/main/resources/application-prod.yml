@@ -19,6 +19,7 @@ spring:
     schemas: ${POSTGRES_SCHEMA:public}
     baseline-on-migrate: true
     baseline-version: 8
+    placeholder-replacement: false
   servlet:
     multipart:
       max-file-size: 50MB
