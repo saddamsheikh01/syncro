@@ -6,7 +6,7 @@ import { AdminWeightRulesOverview } from "@/features/admin/flows/expats/AdminWei
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
   return {
-    title: t("Weight rules | Syncro Admin"),
+    title: `${t("Weight rules")} | ${t("Syncro Admin")}`,
     description: t("Expat scoring weight rules."),
   };
 };

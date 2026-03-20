@@ -119,6 +119,14 @@ export const normalizeApiError = (error: unknown): ApiError => {
     };
   }
 
+  if (error instanceof Error) {
+    return {
+      code: "UNKNOWN",
+      status: 0,
+      message: error.message || "Unexpected error",
+    };
+  }
+
   return {
     code: "UNKNOWN",
     status: 0,

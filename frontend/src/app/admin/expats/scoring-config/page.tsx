@@ -6,7 +6,7 @@ import { AdminScoringConfigOverview } from "@/features/admin/flows/expats/AdminS
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
   return {
-    title: t("Scoring config | Syncro Admin"),
+    title: `${t("Scoring config")} | ${t("Syncro Admin")}`,
     description: t("Relocation scoring configuration."),
   };
 };

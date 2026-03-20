@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "@/hooks";
 import { getCities } from "@/services/expats";
 import type { CityListItem } from "@/types/expats";
+import styles from "./Step2CitySelection.module.css";
 
 interface Props {
   defaultCurrentCity?: string;
@@ -19,30 +21,6 @@ interface Props {
   }) => void;
 }
 
-const TARGET_OPTIONS: {
-  value: "specific_city" | "already_live" | "not_sure";
-  label: string;
-  sublabel?: string;
-  image: string;
-}[] = [
-  {
-    value: "already_live",
-    label: "I Already Live Here",
-    image: "/images/onboarding/assests/image%202322%20(1).png",
-  },
-  {
-    value: "specific_city",
-    label: "Where Would You Like To Go?",
-    image: "/images/onboarding/assests/image%202333.png",
-  },
-  {
-    value: "not_sure",
-    label: "I'm Not Sure Yet",
-    sublabel: "Help Me Choose The Right City",
-    image: "/images/onboarding/assests/image%202325%20(1).png",
-  },
-];
-
 function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -53,6 +31,8 @@ function CityCatalogCombo({
   cityId,
   cities,
   placeholder,
+  hintMatched,
+  hintPick,
   onPick,
 }: {
   label: string;
@@ -60,6 +40,8 @@ function CityCatalogCombo({
   cityId?: string;
   cities: CityListItem[];
   placeholder: string;
+  hintMatched: string;
+  hintPick: string;
   onPick: (name: string, id?: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -96,13 +78,13 @@ function CityCatalogCombo({
   };
 
   return (
-    <div ref={wrapRef} className="city-catalog-combo">
-      <p className="city-catalog-combo__label">{label}</p>
-      <div className="city-origin-card__input-row">
+    <div ref={wrapRef} className={styles.cityCatalogCombo}>
+      <p className={styles.cityCatalogComboLabel}>{label}</p>
+      <div className={styles.cityOriginCardInputRow}>
         <img
           src="/images/onboarding/assests/image%202334.png"
           alt=""
-          className="city-origin-card__input-icon"
+          className={styles.cityOriginCardInputIcon}
         />
         <input
           type="text"
@@ -114,21 +96,21 @@ function CityCatalogCombo({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="city-origin-card__input"
+          className={styles.cityOriginCardInput}
           aria-expanded={open}
           aria-haspopup="listbox"
         />
       </div>
       {cityId ? (
-        <p className="city-catalog-combo__hint">Catalog match — scoring will use city ID.</p>
+        <p className={styles.cityCatalogComboHint}>{hintMatched}</p>
       ) : (
-        <p className="city-catalog-combo__hint subtle">Pick from list or type a name (best match from catalog).</p>
+        <p className={styles.cityCatalogComboHintSubtle}>{hintPick}</p>
       )}
       {open && filtered.length > 0 ? (
-        <ul className="city-catalog-combo__list" role="listbox">
+        <ul className={styles.cityCatalogComboList} role="listbox">
           {filtered.map((c) => (
             <li key={c.id}>
-              <button type="button" className="city-catalog-combo__opt" onClick={() => selectCity(c)}>
+              <button type="button" className={styles.cityCatalogComboOpt} onClick={() => selectCity(c)}>
                 <strong>{c.cityName}</strong>
                 <span>{c.country}</span>
               </button>
@@ -136,23 +118,6 @@ function CityCatalogCombo({
           ))}
         </ul>
       ) : null}
-      <style>{`
-        .city-catalog-combo { position: relative; width: 100%; }
-        .city-catalog-combo__label { font-size: 0.72rem; font-weight: 600; color: #6c778a; margin-bottom: 6px; }
-        .city-catalog-combo__hint { font-size: 0.68rem; color: #3b6bdc; margin-top: 6px; }
-        .city-catalog-combo__hint.subtle { color: #6c778a; }
-        .city-catalog-combo__list {
-          position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin-top: 4px;
-          max-height: 220px; overflow-y: auto; background: #fff; border: 1px solid #e4e9f2;
-          border-radius: 10px; box-shadow: 0 8px 24px rgba(13,27,54,.12); padding: 4px 0; list-style: none;
-        }
-        .city-catalog-combo__opt {
-          width: 100%; text-align: left; padding: 8px 12px; border: none; background: transparent;
-          cursor: pointer; font-size: 0.82rem; display: flex; flex-direction: column; gap: 2px;
-        }
-        .city-catalog-combo__opt:hover { background: #f3f6fb; }
-        .city-catalog-combo__opt span { font-size: 0.72rem; color: #6c778a; }
-      `}</style>
     </div>
   );
 }
@@ -165,6 +130,7 @@ export default function Step2CitySelection({
   defaultTargetType = "",
   onChange,
 }: Props) {
+  const { t } = useT();
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [currentCity, setCurrentCity] = useState(defaultCurrentCity);
   const [currentCityId, setCurrentCityId] = useState(defaultCurrentCityId);
@@ -173,6 +139,34 @@ export default function Step2CitySelection({
   const [targetType, setTargetType] = useState<"specific_city" | "already_live" | "not_sure" | "">(
     (defaultTargetType as "specific_city" | "already_live" | "not_sure") ?? ""
   );
+
+  const targetOptions = useMemo(() => {
+    type Opt = {
+      value: "specific_city" | "already_live" | "not_sure";
+      label: string;
+      image: string;
+      sublabel?: string;
+    };
+    const opts: Opt[] = [
+      {
+        value: "already_live",
+        label: t("Expats.funnel.step2.option.alreadyLive"),
+        image: "/images/onboarding/assests/image%202322%20(1).png",
+      },
+      {
+        value: "specific_city",
+        label: t("Expats.funnel.step2.option.specificCity"),
+        image: "/images/onboarding/assests/image%202333.png",
+      },
+      {
+        value: "not_sure",
+        label: t("Expats.funnel.step2.option.notSure"),
+        sublabel: t("Expats.funnel.step2.option.notSureSub"),
+        image: "/images/onboarding/assests/image%202325%20(1).png",
+      },
+    ];
+    return opts;
+  }, [t]);
 
   useEffect(() => {
     getCities()
@@ -205,25 +199,34 @@ export default function Step2CitySelection({
     emit(currentCity, currentCityId, targetCity, val === "specific_city" ? targetCityId : "", val);
   };
 
+  const titleLines = t("Expats.funnel.step2.title").split("\n");
+
   return (
     <div className="funnel-step">
       <h1 className="funnel-step__title">
-        Where Are You Now And<br />Where Would You Like To Go?
+        {titleLines.map((line, i) => (
+          <Fragment key={i}>
+            {i > 0 ? <br /> : null}
+            {line}
+          </Fragment>
+        ))}
       </h1>
-      <p className="funnel-step__sub">We&apos;ll Show How Your Life Could Change There.</p>
+      <p className="funnel-step__sub">{t("Expats.funnel.step2.subtitle")}</p>
 
-      <div className="city-origin-card">
+      <div className={styles.cityOriginCard}>
         <img
           src="/images/onboarding/assests/image%202334.png"
-          alt="City"
-          className="city-origin-card__img"
+          alt={t("Expats.funnel.step2.cityIllustrationAlt")}
+          className={styles.cityOriginCardImg}
         />
         <CityCatalogCombo
-          label="Where are you now?"
+          label={t("Expats.funnel.step2.currentLabel")}
           value={currentCity}
           cityId={currentCityId}
           cities={cities}
-          placeholder="Search city (e.g. Lisbon)..."
+          placeholder={t("Expats.funnel.step2.currentPlaceholder")}
+          hintMatched={t("Expats.funnel.step2.hint.catalogMatch")}
+          hintPick={t("Expats.funnel.step2.hint.typeOrPick")}
           onPick={(name, id) => {
             setCurrentCity(name);
             setCurrentCityId(id ?? "");
@@ -232,25 +235,30 @@ export default function Step2CitySelection({
         />
       </div>
 
-      <div className="city-dest-grid">
-        {TARGET_OPTIONS.map((opt) => (
+      <div className={styles.cityDestGrid}>
+        {targetOptions.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => selectTargetType(opt.value)}
-            className={`city-dest-card ${targetType === opt.value ? "city-dest-card--selected" : ""}`}
+            className={`${styles.cityDestCard} ${targetType === opt.value ? styles.cityDestCardSelected : ""}`}
           >
-            <div className="city-dest-card__visual">
-              <img src={opt.image} alt={opt.label} className="city-dest-card__img" />
+            <div className={styles.cityDestCardVisual}>
+              <img src={opt.image} alt="" className={styles.cityDestCardImg} />
             </div>
             {opt.value === "specific_city" && targetType === "specific_city" && (
-              <div className="city-dest-card__input-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
+              <div
+                className={styles.cityDestCardInputRow}
+                style={{ flexDirection: "column", alignItems: "stretch" }}
+              >
                 <CityCatalogCombo
-                  label="Destination city"
+                  label={t("Expats.funnel.step2.destinationLabel")}
                   value={targetCity}
                   cityId={targetCityId}
                   cities={cities}
-                  placeholder="Search destination..."
+                  placeholder={t("Expats.funnel.step2.destinationPlaceholder")}
+                  hintMatched={t("Expats.funnel.step2.hint.catalogMatch")}
+                  hintPick={t("Expats.funnel.step2.hint.typeOrPick")}
                   onPick={(name, id) => {
                     setTargetCity(name);
                     setTargetCityId(id ?? "");
@@ -259,133 +267,11 @@ export default function Step2CitySelection({
                 />
               </div>
             )}
-            <span className="city-dest-card__label">{opt.label}</span>
-            {opt.sublabel && <span className="city-dest-card__sublabel">{opt.sublabel}</span>}
+            <span className={styles.cityDestCardLabel}>{opt.label}</span>
+            {opt.sublabel ? <span className={styles.cityDestCardSublabel}>{opt.sublabel}</span> : null}
           </button>
         ))}
       </div>
-
-      <style>{`
-        .city-origin-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          background: #fff;
-          border: 1.5px solid #e4e9f2;
-          border-radius: 16px;
-          padding: 24px 32px 20px;
-          max-width: 360px;
-          width: 100%;
-          margin-bottom: 24px;
-          transition: border-color 0.15s;
-        }
-        .city-origin-card:focus-within {
-          border-color: #3b6bdc;
-        }
-        .city-origin-card__img {
-          width: 110px;
-          height: 110px;
-          object-fit: contain;
-        }
-        .city-origin-card__input-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #f8fafd;
-          border: 1px solid #e4e9f2;
-          border-radius: 10px;
-          padding: 8px 12px;
-          width: 100%;
-        }
-        .city-origin-card__input-icon {
-          width: 20px;
-          height: 20px;
-          object-fit: contain;
-          opacity: 0.6;
-        }
-        .city-origin-card__input {
-          border: none;
-          outline: none;
-          width: 100%;
-          font-size: 0.85rem;
-          color: #1a2433;
-          background: transparent;
-          font-family: inherit;
-        }
-        .city-origin-card__input::placeholder { color: #aab5c8; }
-
-        .city-dest-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-          max-width: 900px;
-          width: 100%;
-        }
-        .city-dest-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          padding: 24px 18px 22px;
-          background: #fff;
-          border: 2px solid #e4e9f2;
-          border-radius: 16px;
-          cursor: pointer;
-          width: 100%;
-          min-height: 260px;
-          text-align: center;
-          transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-        }
-        .city-dest-card:hover {
-          border-color: #3b6bdc;
-          box-shadow: 0 4px 20px rgba(59, 107, 220, 0.12);
-          transform: translateY(-2px);
-        }
-        .city-dest-card--selected {
-          border-color: #3b6bdc;
-          box-shadow: 0 4px 20px rgba(59, 107, 220, 0.18);
-        }
-        .city-dest-card__visual {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 120px;
-        }
-        .city-dest-card__img {
-          max-width: 160px;
-          max-height: 160px;
-          object-fit: contain;
-        }
-        .city-dest-card__input-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: #f8fafd;
-          border: 1px solid #e4e9f2;
-          border-radius: 8px;
-          padding: 8px 10px;
-          width: 100%;
-        }
-        .city-dest-card__label {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #0d1b36;
-          line-height: 1.3;
-        }
-        .city-dest-card__sublabel {
-          font-size: 0.8rem;
-          color: #6c778a;
-          margin-top: -4px;
-        }
-
-        @media (max-width: 600px) {
-          .city-dest-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 }

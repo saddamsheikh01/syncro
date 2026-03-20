@@ -160,9 +160,23 @@ export const compareCities = async (
 
 // ─── City Catalog ─────────────────────────────────────────────────────────────
 
+/** In-memory cache so funnel navigation does not refetch the catalog on every step mount. */
+let citiesListCache: { data: CityListItem[]; fetchedAt: number } | null = null;
+const CITIES_LIST_TTL_MS = 5 * 60 * 1000;
+
 export const getCities = async (): Promise<CityListItem[]> => {
+  const now = Date.now();
+  if (citiesListCache && now - citiesListCache.fetchedAt < CITIES_LIST_TTL_MS) {
+    return citiesListCache.data;
+  }
   const { data } = await apiClient.get<CityListItem[]>("/relocation/cities");
+  citiesListCache = { data, fetchedAt: now };
   return data;
+};
+
+/** Call after admin mutations if the public catalog must refresh in the same session (optional). */
+export const invalidateExpatsCitiesCache = () => {
+  citiesListCache = null;
 };
 
 export const getCityById = async (cityId: string): Promise<CityDetail> => {

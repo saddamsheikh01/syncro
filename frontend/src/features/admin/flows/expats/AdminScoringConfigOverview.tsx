@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/buttons/Button";
 import { Card } from "@/components/elements/Card";
 import { Loader } from "@/components/elements/Loader";
 import { AdminPageHeader } from "@/features/admin/sections/AdminPageHeader";
 import { useT } from "@/hooks";
 import { adminGetScoringConfig, adminUpdateScoringConfig } from "@/services/admin";
+import { normalizeApiError } from "@/services/axiosConfig";
 import type { ApiError } from "@/types/api";
 import type { AdminScoringConfigResponse, AdminUpdateScoringConfigPayload } from "@/types/adminExpats";
 
@@ -37,6 +38,9 @@ export const AdminScoringConfigOverview = () => {
   const [error, setError] = useState<ApiError | null>(null);
   const [config, setConfig] = useState<AdminScoringConfigResponse | null>(null);
   const [jsonByKey, setJsonByKey] = useState<Record<MapKey, string> | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<MapKey, string>>>({});
+
+  const labelByKey = useMemo(() => Object.fromEntries(MAP_LABELS.map(({ key, label }) => [key, label])) as Record<MapKey, string>, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,7 +50,7 @@ export const AdminScoringConfigOverview = () => {
       setConfig(data);
       setJsonByKey(responseToStrings(data));
     } catch (e) {
-      setError(e as ApiError);
+      setError(normalizeApiError(e));
     } finally {
       setLoading(false);
     }
@@ -61,20 +65,41 @@ export const AdminScoringConfigOverview = () => {
     if (!config || !jsonByKey) return;
     setSaving(true);
     setError(null);
-    try {
-      const payload: AdminUpdateScoringConfigPayload = {};
-      for (const { key } of MAP_LABELS) {
-        const raw = jsonByKey[key];
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
-          payload[key] = parsed;
-        }
+    const nextFieldErrors: Partial<Record<MapKey, string>> = {};
+    const payload: AdminUpdateScoringConfigPayload = {};
+
+    for (const { key } of MAP_LABELS) {
+      const raw = jsonByKey[key];
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw) as unknown;
+      } catch {
+        nextFieldErrors[key] = t("Admin.scoringConfig.invalidJson", { section: labelByKey[key] });
+        continue;
       }
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        Object.keys(parsed as object).length > 0
+      ) {
+        payload[key] = parsed as Record<string, unknown>;
+      }
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setSaving(false);
+      return;
+    }
+
+    setFieldErrors({});
+    try {
       const updated = await adminUpdateScoringConfig(config.id, payload);
       setConfig(updated);
       setJsonByKey(responseToStrings(updated));
     } catch (err) {
-      setError(err as ApiError);
+      setError(normalizeApiError(err));
     } finally {
       setSaving(false);
     }
@@ -108,8 +133,20 @@ export const AdminScoringConfigOverview = () => {
                 <textarea
                   className="min-h-[100px] w-full rounded-[var(--radius-md)] border border-border bg-card p-3 font-mono text-xs"
                   value={jsonByKey[key]}
-                  onChange={(e) => setJsonByKey((prev) => (prev ? { ...prev, [key]: e.target.value } : prev))}
+                  onChange={(e) => {
+                    setFieldErrors((prev) => {
+                      if (!prev[key]) return prev;
+                      const next = { ...prev };
+                      delete next[key];
+                      return next;
+                    });
+                    setJsonByKey((prev) => (prev ? { ...prev, [key]: e.target.value } : prev));
+                  }}
+                  aria-invalid={Boolean(fieldErrors[key])}
                 />
+                {fieldErrors[key] ? (
+                  <p className="mt-1 text-xs text-destructive">{fieldErrors[key]}</p>
+                ) : null}
               </div>
             ))}
             <Button type="submit" loading={saving}>

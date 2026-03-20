@@ -6,7 +6,7 @@ import { AdminCitiesOverview } from "@/features/admin/flows/expats/AdminCitiesOv
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
   return {
-    title: t("Expats cities | Syncro Admin"),
+    title: `${t("Expats cities")} | ${t("Syncro Admin")}`,
     description: t("Manage expat relocation city dataset."),
   };
 };

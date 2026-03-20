@@ -5,7 +5,7 @@ export const defaultCreateCityPayload = (): AdminCreateCityPayload => ({
   cityName: "",
   citySlug: "",
   country: "",
-  countryCode: "PT",
+  countryCode: "",
   expatCommunityIndex: 55,
   socialIntegrationIndex: 55,
   careerOpportunityIndex: 55,

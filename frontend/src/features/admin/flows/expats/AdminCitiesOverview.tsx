@@ -15,6 +15,8 @@ import {
   adminGetExpatsCity,
   adminUpdateExpatsCity,
 } from "@/services/admin";
+import { normalizeApiError } from "@/services/axiosConfig";
+import { invalidateExpatsCitiesCache } from "@/services/expats";
 import type { ApiError } from "@/types/api";
 import type { AdminCityDatasetResponse, AdminCreateCityPayload } from "@/types/adminExpats";
 import { defaultCreateCityPayload, slugify } from "./cityFormDefaults";
@@ -95,7 +97,7 @@ export const AdminCitiesOverview = () => {
       const data = await adminGetExpatsCities();
       setCities(data);
     } catch (e) {
-      setError(e as ApiError);
+      setError(normalizeApiError(e));
     } finally {
       setLoading(false);
     }
@@ -112,7 +114,7 @@ export const AdminCitiesOverview = () => {
     setMode("create");
   };
 
-  const openEdit = async (id: string) => {
+  const openEdit = useCallback(async (id: string) => {
     setError(null);
     setLoading(true);
     try {
@@ -122,11 +124,25 @@ export const AdminCitiesOverview = () => {
       setEditId(id);
       setMode("edit");
     } catch (e) {
-      setError(e as ApiError);
+      setError(normalizeApiError(e));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const toggleActive = useCallback(
+    async (c: AdminCityDatasetResponse) => {
+      setError(null);
+      try {
+        await adminUpdateExpatsCity(c.id, { active: !c.active });
+        invalidateExpatsCitiesCache();
+        await load();
+      } catch (err) {
+        setError(normalizeApiError(err));
+      }
+    },
+    [load]
+  );
 
   const parseDistricts = (): { name: string; description?: string }[] => {
     try {
@@ -156,10 +172,11 @@ export const AdminCitiesOverview = () => {
     };
     try {
       await adminCreateExpatsCity(payload);
+      invalidateExpatsCitiesCache();
       setMode("list");
       await load();
     } catch (err) {
-      setError(err as ApiError);
+      setError(normalizeApiError(err));
     } finally {
       setSaving(false);
     }
@@ -180,23 +197,14 @@ export const AdminCitiesOverview = () => {
         ) as Partial<AdminCreateCityPayload>,
         districts: parseDistricts(),
       });
+      invalidateExpatsCitiesCache();
       setMode("list");
       setEditId(null);
       await load();
     } catch (err) {
-      setError(err as ApiError);
+      setError(normalizeApiError(err));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const toggleActive = async (c: AdminCityDatasetResponse) => {
-    setError(null);
-    try {
-      await adminUpdateExpatsCity(c.id, { active: !c.active });
-      await load();
-    } catch (err) {
-      setError(err as ApiError);
     }
   };
 
@@ -224,7 +232,7 @@ export const AdminCitiesOverview = () => {
           </div>
         ),
       })),
-    [cities, t]
+    [cities, t, openEdit, toggleActive]
   );
 
   if (mode !== "list") {

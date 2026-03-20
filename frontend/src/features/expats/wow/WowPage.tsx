@@ -175,6 +175,7 @@ function lifeImpactOverviewLines(rows: { macroarea: string; direction: string; d
   for (const key of order) {
     const r = byMacro.get(key);
     if (!r || r.direction === "neutral") continue;
+    // Qualifier before comparatives: tiny deltas (0–4) read cleaner without "slightly"; mid deltas (5–11) get it; large swings stand alone.
     const ad =
       Math.abs(Number(r.delta)) < 5 ? "" : Math.abs(Number(r.delta)) < 12 ? tr("Expats.wow.lifeImpact.slightly") : "";
     if (key === "costo_vita") {

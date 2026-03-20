@@ -6,7 +6,7 @@ import { AdminWaitingListOverview } from "@/features/admin/flows/expats/AdminWai
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
   return {
-    title: t("Expats waiting list | Syncro Admin"),
+    title: `${t("Expats waiting list")} | ${t("Syncro Admin")}`,
     description: t("Users waiting for cities not yet in the relocation dataset."),
   };
 };
