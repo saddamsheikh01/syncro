@@ -6,3 +6,4 @@ export * from "./analytics";
 export * from "./referrals";
 export * from "./notifications";
 export * from "./sync";
+export * from "./expats";

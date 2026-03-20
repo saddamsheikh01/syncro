@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Logo } from "@/components/elements/Logo";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { AuthDesktopVisual } from "@/features/auth/components/AuthDesktopVisual";
 import { useT } from "@/hooks";
 import { requestPasswordReset } from "@/services/auth";
@@ -58,8 +59,9 @@ export const ForgotPassword = () => {
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center lg:min-h-[calc(100vh-80px)] lg:grid lg:grid-cols-[minmax(0,500px)_minmax(0,560px)] lg:items-center lg:justify-center lg:gap-10">
         <div className="w-full max-w-[480px] lg:max-w-[500px]">
           <div className="rounded-[28px] border border-[#eef2f8] bg-white p-8 shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
-            <div className="mb-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <Logo width={130} className="h-auto w-[120px]" priority />
+              <LanguageSwitch variant="full" align="right" />
             </div>
             <h1 className="text-3xl font-semibold text-[#2b4c8f]">
               {t("Reset password")}

@@ -91,6 +91,8 @@ function hydrateAnswersFromSession(session: AnonymousSession): FunnelAnswers {
         if (v && typeof v === "object") {
           if (v.currentCityName) answers.currentCityName = v.currentCityName as string;
           if (v.targetCityName) answers.targetCityName = v.targetCityName as string;
+          if (v.currentCityId) answers.currentCityId = v.currentCityId as string;
+          if (v.targetCityId) answers.targetCityId = v.targetCityId as string;
           if (v.targetType) answers.targetType = v.targetType as FunnelAnswers["targetType"];
         }
         break;
@@ -358,7 +360,8 @@ export const expatsActions = {
         },
       });
       return true;
-    } catch {
+    } catch (e) {
+      console.error("[expatsStore] tryHydrateScoringFromHistory", e);
       return false;
     }
   },

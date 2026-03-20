@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/classNames";
 
 export interface DropdownItem {
@@ -9,11 +9,13 @@ export interface DropdownItem {
   label: string;
   description?: string;
   disabled?: boolean;
+  /** Shown before the label (e.g. flag emoji). */
+  prefix?: ReactNode;
 }
 
 export interface DropdownProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onSelect"> {
-  label: string;
+  label: ReactNode;
   items: DropdownItem[];
   align?: "left" | "right";
   onSelect?: (id: string) => void;
@@ -68,7 +70,10 @@ export const Dropdown = ({
       <button
         type="button"
         id={buttonId}
-        aria-label={buttonAriaLabel ?? label}
+        aria-label={
+          buttonAriaLabel ??
+          (typeof label === "string" || typeof label === "number" ? String(label) : "Menu")
+        }
         aria-expanded={open}
         disabled={disabled}
         onClick={handleToggle}

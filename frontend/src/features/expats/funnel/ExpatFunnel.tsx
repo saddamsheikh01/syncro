@@ -82,6 +82,8 @@ export default function ExpatFunnel({ step }: Props) {
       case 2: return {
         currentCityName: answers.currentCityName,
         targetCityName: answers.targetCityName,
+        currentCityId: answers.currentCityId,
+        targetCityId: answers.targetCityId,
         targetType: answers.targetType,
       };
       case 3: return answers.relocationTime;
@@ -120,8 +122,8 @@ export default function ExpatFunnel({ step }: Props) {
 
     try {
       await saveAnswer(step, qGroup, qKey, val, localChanges);
-    } catch {
-      // Non-blocking — still advance
+    } catch (e) {
+      console.error("[ExpatFunnel] saveAnswer failed", { step, qKey, e });
     }
 
     setLocalChanges({});
@@ -151,6 +153,8 @@ export default function ExpatFunnel({ step }: Props) {
           <Step2CitySelection
             defaultCurrentCity={mergedAnswers.currentCityName}
             defaultTargetCity={mergedAnswers.targetCityName}
+            defaultCurrentCityId={mergedAnswers.currentCityId}
+            defaultTargetCityId={mergedAnswers.targetCityId}
             defaultTargetType={mergedAnswers.targetType}
             onChange={(data) => updateLocal(data)}
           />

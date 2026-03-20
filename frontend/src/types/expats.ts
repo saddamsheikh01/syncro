@@ -347,6 +347,9 @@ export interface FunnelAnswers {
   userPhase?: "planning_move" | "recently_moved" | "already_there";
   currentCityName?: string;
   targetCityName?: string;
+  /** When user picks from catalog in funnel (preferred for scoring resolution). */
+  currentCityId?: string;
+  targetCityId?: string;
   targetType?: "specific_city" | "already_live" | "not_sure";
   relocationTime?: string;
   ageRange?: string;
