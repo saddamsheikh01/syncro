@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useMemo, useState, type CSSProperties }
 import RadarChart from "./RadarChart";
 import { useAuth } from "../../../hooks";
 import { useT } from "@/hooks";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useExpats } from "../../../hooks/expats/useExpats";
 import { expatsActions, expatsStore } from "../../../stores/expats/expatsStore";
 import { expatsModeActions } from "../../../stores/expatsMode/expatsModeStore";
@@ -1278,6 +1279,7 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
 
 export default function WowPage() {
   const router = useRouter();
+  const { locale } = useT();
   const { isAuthenticated } = useAuth();
   const { funnelAnswers, scoringResult, initSession, session, onboarding, activationState } = useExpats();
   const initialized = useRef(false);
@@ -1302,10 +1304,10 @@ export default function WowPage() {
   const nextActionDescription = activationState?.nextActions?.[0]?.description ?? null;
 
   useEffect(() => {
-    getFunnelConfig()
+    getFunnelConfig("expats_landing_v1", locale)
       .then((cfg) => setStructuralTitleFromFunnel(extractFunnelWowCopy(cfg).structuralTitle ?? null))
       .catch(() => setStructuralTitleFromFunnel(null));
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!initialized.current) {
@@ -1628,10 +1630,7 @@ export default function WowPage() {
     <div className="wow-page">
       <header className="wow-topbar">
         <div className="wow-lang-btn">
-          <img src={`${IMG}/image%202424.png`} alt="" className="wow-lang-flag" />
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-            <path d="M1 1L5 5L9 1" stroke="#6c778a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <LanguageSwitch variant="expat" align="left" className="wow-lang-switch" />
         </div>
         <div className="wow-logo">
           <span className="wow-logo__sym" aria-hidden>{"\u221E"}</span>
@@ -1649,8 +1648,8 @@ export default function WowPage() {
         .wow-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:#fff;border-bottom:1px solid #e8ecf4;position:sticky;top:0;z-index:10}
         .wow-logo{display:flex;align-items:center;gap:8px;font-size:1.05rem;color:#0d1b36}
         .wow-logo__sym{font-size:1.6rem;color:#3b6bdc}
-        .wow-lang-btn{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4e9f2;border-radius:10px;padding:7px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-        .wow-lang-flag{width:30px;height:20px;object-fit:cover;border-radius:2px}
+        .wow-lang-btn{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4e9f2;border-radius:10px;padding:7px 12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+        .wow-lang-switch button svg{color:#6c778a}
         .wow-main{max-width:1180px;margin:0 auto;padding:36px 24px 80px}
         .wow-header{text-align:center;margin-bottom:36px}
         .wow-title{font-size:1.85rem;font-weight:800;line-height:1.25;margin-bottom:10px}
