@@ -32,9 +32,10 @@ public class ExpatsFunnelConfigService {
     @Transactional(readOnly = true)
     public FunnelConfigResponse getActiveConfig(String configKey, String language) {
         return configRepository.findByConfigKeyAndLanguageAndActiveTrue(configKey, language)
+                .or(() -> configRepository.findByConfigKeyAndLanguageAndActiveTrue(configKey, "en"))
                 .map(mapper::toFunnelConfigResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No active funnel config found for key=" + configKey + ", language=" + language));
+                        "No active funnel config found for key=" + configKey));
     }
 
     // ========== ADMIN CRUD ==========
