@@ -129,26 +129,31 @@ function resolveCityOrCountryId(
   return undefined;
 }
 
-const MACROAREA_LABELS: Record<keyof MacroareeScores, { label: string; short: string }> = {
-  costo_vita: { label: "Cost Of Living", short: "Cost\nOf Living" },
-  potere_economico: { label: "Economic Power", short: "Economic\nPower" },
-  qualita_vita: { label: "Quality Of Life", short: "Quality\nOf Life" },
-  mercato_immobiliare: { label: "Housing Market", short: "Housing\nMarket" },
-  integrazione_sociale: { label: "Social Integration", short: "Social\nIntegration" },
-  opportunita_lavorative: { label: "Work Opportunities", short: "Work\nOpportunities" },
-};
+type WowTranslate = (key: string, values?: Record<string, string | number>) => string;
 
-/** Display label for API macroarea key (underscores to spaces). */
-function macroareaLabelFromApi(macroarea: string): string {
-  return macroarea.replace(/_/g, " ");
+const MACRO_ORDER: (keyof MacroareeScores)[] = [
+  "costo_vita",
+  "potere_economico",
+  "qualita_vita",
+  "mercato_immobiliare",
+  "integrazione_sociale",
+  "opportunita_lavorative",
+];
+
+function macroLabel(t: WowTranslate, k: keyof MacroareeScores): string {
+  return t(`Expats.wow.macro.${k}.label`);
 }
 
-/** Short band for table (numeric macro score 0–100) */
-function macroScoreBand(score: number): string {
-  const n = Number(score);
-  if (n >= 72) return "Strong";
-  if (n >= 55) return "Moderate";
-  return "Developing";
+function macroShort(t: WowTranslate, k: keyof MacroareeScores): string {
+  return t(`Expats.wow.macro.${k}.short`);
+}
+
+/** Display label for API macroarea key. */
+function macroareaLabelFromApi(macroarea: string, tr: WowTranslate): string {
+  if ((MACRO_ORDER as readonly string[]).includes(macroarea)) {
+    return macroLabel(tr, macroarea as keyof MacroareeScores);
+  }
+  return macroarea.replace(/_/g, " ");
 }
 
 function formatEur(amount: number): string {
@@ -156,7 +161,7 @@ function formatEur(amount: number): string {
 }
 
 /** Life Impact Overview lines (macro index comparison, user-facing). */
-function lifeImpactOverviewLines(rows: { macroarea: string; direction: string; delta: number }[]): string[] {
+function lifeImpactOverviewLines(rows: { macroarea: string; direction: string; delta: number }[], tr: WowTranslate): string[] {
   const order = [
     "costo_vita",
     "qualita_vita",
@@ -170,19 +175,44 @@ function lifeImpactOverviewLines(rows: { macroarea: string; direction: string; d
   for (const key of order) {
     const r = byMacro.get(key);
     if (!r || r.direction === "neutral") continue;
-    const ad = Math.abs(Number(r.delta)) < 5 ? "" : Math.abs(Number(r.delta)) < 12 ? "slightly " : "";
+    const ad =
+      Math.abs(Number(r.delta)) < 5 ? "" : Math.abs(Number(r.delta)) < 12 ? tr("Expats.wow.lifeImpact.slightly") : "";
     if (key === "costo_vita") {
-      out.push(r.direction === "improvement" ? `Cost of living ↓ ${ad}lower` : `Cost of living ↑ ${ad}higher`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.costoImprove", { ad })
+          : tr("Expats.wow.lifeImpact.costoDecline", { ad })
+      );
     } else if (key === "qualita_vita") {
-      out.push(r.direction === "improvement" ? `Quality of life ↑ ${ad}higher` : `Quality of life ↓ ${ad}lower`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.qualitaImprove", { ad })
+          : tr("Expats.wow.lifeImpact.qualitaDecline", { ad })
+      );
     } else if (key === "integrazione_sociale") {
-      out.push(r.direction === "improvement" ? `Social integration ↑ ${ad}easier` : `Social integration ↓ ${ad}harder`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.socialImprove", { ad })
+          : tr("Expats.wow.lifeImpact.socialDecline", { ad })
+      );
     } else if (key === "opportunita_lavorative") {
-      out.push(r.direction === "improvement" ? `Career opportunities ↑ ${ad}stronger` : `Career opportunities ↓ ${ad}lower`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.careerImprove", { ad })
+          : tr("Expats.wow.lifeImpact.careerDecline", { ad })
+      );
     } else if (key === "potere_economico") {
-      out.push(r.direction === "improvement" ? `Economic power ↑ ${ad}stronger` : `Economic power ↓ ${ad}weaker`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.econImprove", { ad })
+          : tr("Expats.wow.lifeImpact.econDecline", { ad })
+      );
     } else if (key === "mercato_immobiliare") {
-      out.push(r.direction === "improvement" ? `Housing market ↑ ${ad}easier` : `Housing market ↓ ${ad}tighter`);
+      out.push(
+        r.direction === "improvement"
+          ? tr("Expats.wow.lifeImpact.housingImprove", { ad })
+          : tr("Expats.wow.lifeImpact.housingDecline", { ad })
+      );
     }
   }
   return out;
@@ -193,46 +223,48 @@ function extractFunnelWowCopy(config: unknown): { structuralTitle?: string } {
   const c = config as Record<string, unknown>;
   const content = c.content as Record<string, unknown> | undefined;
   const flow = content?.flow_config as Record<string, unknown> | undefined;
-  const t = flow?.wow_structural_plan_title ?? content?.wow_structural_plan_title;
-  return typeof t === "string" && t.trim() ? { structuralTitle: t.trim() } : {};
+  const rawTitle = flow?.wow_structural_plan_title ?? content?.wow_structural_plan_title;
+  return typeof rawTitle === "string" && rawTitle.trim() ? { structuralTitle: rawTitle.trim() } : {};
 }
 
-function radarFromScore(score: CityScoreResponse | null) {
-  const keys = Object.keys(MACROAREA_LABELS) as (keyof MacroareeScores)[];
+function radarFromScore(score: CityScoreResponse | null, tr: WowTranslate) {
+  const keys = MACRO_ORDER;
   if (!score?.radarValues) {
     return keys.map((k) => ({
-      label: MACROAREA_LABELS[k].label,
-      shortLabel: MACROAREA_LABELS[k].short,
+      label: macroLabel(tr, k),
+      shortLabel: macroShort(tr, k),
       value: 0,
     }));
   }
   const rv = score.radarValues;
   return keys.map((k) => ({
-    label: MACROAREA_LABELS[k].label,
-    shortLabel: MACROAREA_LABELS[k].short,
+    label: macroLabel(tr, k),
+    shortLabel: macroShort(tr, k),
     value: Math.round(Number(rv[k]) || 0),
   }));
 }
 
-function compatLabel(level: string | undefined, score: number) {
-  if (level === "VERY_STRONG_FIT") return { text: "Excellent Match", color: "#22a55f" };
-  if (level === "GOOD_FIT") return { text: "Very Strong Fit", color: "#3b6bdc" };
-  if (level === "MODERATE_FIT") return { text: "Good Fit", color: "#2f9e6a" };
-  if (level === "WEAK_FIT") return { text: "Moderate Fit", color: "#f2b203" };
-  if (level === "LOW_FIT") return { text: "Weak Fit", color: "#e05555" };
-  if (score >= 90) return { text: "Excellent Match", color: "#22a55f" };
-  if (score >= 80) return { text: "Very Strong Fit", color: "#3b6bdc" };
-  if (score >= 70) return { text: "Good Fit", color: "#2f9e6a" };
-  if (score >= 60) return { text: "Moderate Fit", color: "#f2b203" };
-  return { text: "Weak Fit", color: "#e05555" };
+function compatLabel(level: string | undefined, score: number, tr: WowTranslate) {
+  if (level === "VERY_STRONG_FIT") return { text: tr("Expats.wow.compat.excellentMatch"), color: "#22a55f" };
+  if (level === "GOOD_FIT") return { text: tr("Expats.wow.compat.veryStrongFit"), color: "#3b6bdc" };
+  if (level === "MODERATE_FIT") return { text: tr("Expats.wow.compat.goodFitLabel"), color: "#2f9e6a" };
+  if (level === "WEAK_FIT") return { text: tr("Expats.wow.compat.moderateFitLabel"), color: "#f2b203" };
+  if (level === "LOW_FIT") return { text: tr("Expats.wow.compat.weakFit"), color: "#e05555" };
+  if (score >= 90) return { text: tr("Expats.wow.compat.excellentMatch"), color: "#22a55f" };
+  if (score >= 80) return { text: tr("Expats.wow.compat.veryStrongFit"), color: "#3b6bdc" };
+  if (score >= 70) return { text: tr("Expats.wow.compat.goodFitLabel"), color: "#2f9e6a" };
+  if (score >= 60) return { text: tr("Expats.wow.compat.moderateFitLabel"), color: "#f2b203" };
+  return { text: tr("Expats.wow.compat.weakFit"), color: "#e05555" };
 }
 
-function budgetClassLabel(marginStatusOrClassification: string | undefined) {
-  if (marginStatusOrClassification === "sustainable") return { text: "Sustainable with your budget", color: "#22a55f" };
-  if (marginStatusOrClassification === "tight" || marginStatusOrClassification === "very_tight") return { text: "Tight, but manageable", color: "#f2b203" };
+function budgetClassLabel(marginStatusOrClassification: string | undefined, tr: WowTranslate) {
+  if (marginStatusOrClassification === "sustainable")
+    return { text: tr("Expats.wow.budget.sustainable"), color: "#22a55f" };
+  if (marginStatusOrClassification === "tight" || marginStatusOrClassification === "very_tight")
+    return { text: tr("Expats.wow.budget.tight"), color: "#f2b203" };
   if (marginStatusOrClassification === "unsustainable")
-    return { text: `Over budget ${EM} adjustments needed`, color: "#e05555" };
-  return { text: `Over budget ${EM} adjustments needed`, color: "#e05555" };
+    return { text: tr("Expats.wow.budget.overBudget"), color: "#e05555" };
+  return { text: tr("Expats.wow.budget.overBudget"), color: "#e05555" };
 }
 
 function structuralBulletsFromApi(score: CityScoreResponse | null): string[] {
@@ -383,14 +415,14 @@ function WowPlanningMove({
   const { t } = useT();
   const handleCta = onCtaClick ?? (() => router.push("/register?from=expats"));
   const totalScore = score?.scoreTotal ?? 0;
-  const compat = compatLabel(score?.compatibilityLevel, totalScore);
-  const radar = radarFromScore(score);
+  const compat = compatLabel(score?.compatibilityLevel, totalScore, t);
+  const radar = radarFromScore(score, t);
   const rawBudget = score?.budgetCheck;
   const hasBudget = rawBudget && (rawBudget.estimatedCityCost != null || rawBudget.estimatedCost != null);
   const estimatedCost = hasBudget ? rawBudget.estimatedCityCost ?? rawBudget.estimatedCost ?? 0 : 0;
   const declaredBudget = rawBudget?.declaredBudget != null ? Number(rawBudget.declaredBudget) : null;
   const margin = declaredBudget != null && estimatedCost > 0 ? declaredBudget - estimatedCost : null;
-  const budgetLabel = hasBudget && rawBudget ? budgetClassLabel(rawBudget.marginStatus ?? rawBudget.classification) : null;
+  const budgetLabel = hasBudget && rawBudget ? budgetClassLabel(rawBudget.marginStatus ?? rawBudget.classification, t) : null;
   const movingInsights = getMovingInsights(score);
   const profilePct = completionPercent != null ? Math.min(100, Math.max(0, completionPercent)) : null;
   const cityFitDisplay = totalScore > 0 ? totalScore : null;
@@ -398,7 +430,7 @@ function WowPlanningMove({
   const districtNames = districts.slice(0, 5).map((d) => d.name);
   const structuralCardTitle =
     structuralTitleFromConfig ||
-    (score?.rankingPosition != null ? `Match rank #${score.rankingPosition}` : null) ||
+    (score?.rankingPosition != null ? t("Expats.wow.matchRank", { rank: score.rankingPosition }) : null) ||
     nextActionDescription ||
     (structural.length > 0 ? movingInsights.strengths[0] : null);
 
@@ -435,12 +467,12 @@ function WowPlanningMove({
                   {profilePct != null ? (
                     <>
                       {profilePct}
-                      <span className="wow-big-num__sub">% profile</span>
+                      <span className="wow-big-num__sub">{t("Expats.wow.suffixProfilePercent")}</span>
                     </>
                   ) : cityFitDisplay != null ? (
                     <>
                       {cityFitDisplay}
-                      <span className="wow-big-num__sub">/100 city</span>
+                      <span className="wow-big-num__sub">{t("Expats.wow.suffixCityScore100")}</span>
                     </>
                   ) : (
                     EM
@@ -452,7 +484,7 @@ function WowPlanningMove({
             <p className="wow-muted-sm" style={{ marginTop: 8 }}>
               {score?.compatibilityLevel
                 ? `${compat.text.replace(/\n/g, " ")}`
-                : nextActionDescription || "Complete onboarding after sign-up for full metrics."}
+                : nextActionDescription || t("Expats.wow.completeOnboardingForMetrics")}
             </p>
             <span className="wow-badge-orange" style={{ background: `${compat.color}22`, color: compat.color }}>
               {compat.text}
@@ -469,16 +501,16 @@ function WowPlanningMove({
                 ))}
               </ul>
             ) : (
-              <p className="wow-muted-sm">{nextActionDescription || "More detail appears after registration and profile completion."}</p>
+              <p className="wow-muted-sm">{nextActionDescription || t("Expats.wow.moreDetailAfterSignup")}</p>
             )}
           </div>
         </div>
 
         <div className="wow-col">
           <div className="wow-city-hero">
-            <CityPlaceBanner label={cityName || "Your city"} height={210} className="wow-city-hero__img" />
+            <CityPlaceBanner label={cityName || t("Expats.wow.yourCityFallback")} height={210} className="wow-city-hero__img" />
             <span className="wow-compat-badge" style={{ background: compat.color }}>
-              {totalScore > 0 ? `${totalScore}% ${compat.text}` : `Score loading${ELL}`}
+              {totalScore > 0 ? `${totalScore}% ${compat.text}` : t("Expats.wow.scoreLoading")}
             </span>
           </div>
 
@@ -494,7 +526,9 @@ function WowPlanningMove({
           <div className="wow-card wow-card--center">
             <p className="wow-muted-sm" style={{ marginBottom: 6 }}>{t("Expats.wow.estimatedCostFormula")}</p>
             {estimatedCost > 0 && (
-              <p className="wow-bold" style={{ marginBottom: 4 }}>{formatEur(estimatedCost)}/mo</p>
+              <p className="wow-bold" style={{ marginBottom: 4 }}>
+                {t("Expats.wow.perMonthShort", { amount: formatEur(estimatedCost) })}
+              </p>
             )}
             {declaredBudget != null && margin != null && (
               <p className="wow-muted-sm">
@@ -519,7 +553,7 @@ function WowPlanningMove({
               )}
             </ul>
             {movingInsights.strengths.length === 0 && !movingInsights.friction && (
-              <p className="wow-muted-sm">{nextActionDescription || "Insights appear after scoring completes."}</p>
+              <p className="wow-muted-sm">{nextActionDescription || t("Expats.wow.insightsAfterScoring")}</p>
             )}
           </div>
 
@@ -564,7 +598,7 @@ function WowPlanningMove({
         <div className="wow-col">
           <div className="wow-card wow-card--center">
             <p className="wow-bold">
-              {cityName} Compatibility <span className="wow-accent">Breakdown</span>
+              {t("Expats.wow.compatibilityBreakdownTitle", { city: cityName })}
             </p>
             <RadarChart data={radar} size={240} color="#3b6bdc" />
           </div>
@@ -575,7 +609,9 @@ function WowPlanningMove({
             <p className="wow-muted-sm">{t("Expats.wow.estimatedMonthly")}</p>
             {estimatedCost > 0 && budgetLabel ? (
               <>
-                <p className="wow-budget-line">{formatEur(estimatedCost)} estimated monthly need (dataset + your lifestyle inputs)</p>
+                <p className="wow-budget-line">
+                  {t("Expats.wow.estimatedMonthlyNeedDetail", { amount: formatEur(estimatedCost) })}
+                </p>
                 <p className="wow-budget-check" style={{ color: budgetLabel.color }}>
                   {CHECK} {budgetLabel.text}
                 </p>
@@ -612,10 +648,10 @@ function WowAlreadyThere({
   const router = useRouter();
   const { t } = useT();
   const handleCta = onCtaClick ?? (() => router.push("/register?from=expats"));
-  const radar = radarFromScore(score);
+  const radar = radarFromScore(score, t);
   const rawBudget = score?.budgetCheck;
   const estimatedCost = rawBudget ? rawBudget.estimatedCityCost ?? rawBudget.estimatedCost ?? 0 : 0;
-  const budgetLabel = rawBudget ? budgetClassLabel(rawBudget?.marginStatus ?? rawBudget?.classification) : null;
+  const budgetLabel = rawBudget ? budgetClassLabel(rawBudget?.marginStatus ?? rawBudget?.classification, t) : null;
   const structural = structuralBulletsFromApi(score);
   const districtNames = districts.slice(0, 5).map((d) => d.name);
   const profilePct = completionPercent != null ? Math.min(100, Math.max(0, completionPercent)) : null;
@@ -646,11 +682,13 @@ function WowAlreadyThere({
           <div className="wow-card wow-card--center">
             <img src={`${IMG}/Rectangle%203465283.png`} alt="" className="wow-img-120" />
             {(structuralTitleFromConfig ||
-              (score?.rankingPosition != null ? `Rank #${score.rankingPosition}` : null) ||
+              (score?.rankingPosition != null ? t("Expats.wow.rankShort", { rank: score.rankingPosition }) : null) ||
               nextActionDescription) && (
               <p className="wow-bold">
                 {structuralTitleFromConfig ||
-                  (score?.rankingPosition != null ? `Match rank #${score.rankingPosition}` : nextActionDescription)}
+                  (score?.rankingPosition != null
+                    ? t("Expats.wow.matchRank", { rank: score.rankingPosition })
+                    : nextActionDescription)}
               </p>
             )}
             {structural.length > 0 ? (
@@ -660,7 +698,7 @@ function WowAlreadyThere({
                 ))}
               </ul>
             ) : (
-              <p className="wow-muted-sm">{nextActionDescription || "Additional recommendations after you sign in."}</p>
+              <p className="wow-muted-sm">{nextActionDescription || t("Expats.wow.recommendationsAfterSignIn")}</p>
             )}
           </div>
         </div>
@@ -670,7 +708,7 @@ function WowAlreadyThere({
             <h2 className="wow-section-title">{t("Expats.wow.alignmentMap", { city: cityName })}</h2>
             <img src={`${IMG}/image%202430.png`} alt="" className="wow-img-100" />
             <p className="wow-muted-sm" style={{ textAlign: "center", lineHeight: 1.6 }}>
-              Macro-area scores from your latest run (radar below).
+              {t("Expats.wow.macroScoresFromLatestRun")}
             </p>
           </div>
           <div className="wow-card">
@@ -698,7 +736,7 @@ function WowAlreadyThere({
         <div className="wow-col">
           <div className="wow-card wow-card--center">
             <p className="wow-bold">
-              {cityName} Compatibility <span className="wow-accent">Breakdown</span>
+              {t("Expats.wow.compatibilityBreakdownTitle", { city: cityName })}
             </p>
             <RadarChart data={radar} size={220} color="#3b6bdc" />
           </div>
@@ -707,7 +745,9 @@ function WowAlreadyThere({
             <p className="wow-bold">{t("Expats.wow.financialComfort")}</p>
             {estimatedCost > 0 && budgetLabel ? (
               <>
-                <p className="wow-budget-line">{formatEur(estimatedCost)} estimated monthly need</p>
+                <p className="wow-budget-line">
+                  {t("Expats.wow.estimatedMonthlyNeedShort", { amount: formatEur(estimatedCost) })}
+                </p>
                 <p className="wow-budget-check" style={{ color: budgetLabel.color }}>
                   {CHECK} {budgetLabel.text}
                 </p>
@@ -716,9 +756,9 @@ function WowAlreadyThere({
               <p className="wow-muted-sm">{t("Expats.wow.financialBreakdown")}</p>
             )}
             <div className="wow-insight-box">
-              <strong>Insight:</strong>{" "}
+              <strong>{t("Expats.wow.insightLabel")}</strong>{" "}
               {(Array.isArray(score?.insights?.suggestions) && score.insights.suggestions[0]) ||
-                "Re-run scoring after profile changes for updated numbers."}
+                t("Expats.wow.rerunScoringHint")}
             </div>
           </div>
         </div>
@@ -749,7 +789,7 @@ function WowComparison({
   const router = useRouter();
   const { t } = useT();
   const handleCta = onCtaClick ?? (() => router.push("/register?from=expats"));
-  const radar = radarFromScore(targetScore);
+  const radar = radarFromScore(targetScore, t);
   const cur = comparison?.currentCity?.name ?? currentCityName;
   const tgt = comparison?.targetCity?.name ?? targetCityName;
   const macroRows = comparison?.macroareeComparison ?? [];
@@ -781,14 +821,14 @@ function WowComparison({
             (targetScore?.insights && typeof targetScore.insights === "object" && "suggestions" in targetScore.insights
               ? (targetScore.insights as { suggestions?: string[] }).suggestions?.[0]
               : null) ||
-            `Comparing ${cur} and ${tgt} from your profile and city dataset.`
+            t("Expats.wow.comparingCitiesFallback", { cur, tgt })
           )}
         </p>
         {!comparison && (
           <p className="wow-muted-sm" style={{ marginTop: 8 }}>
             {cur && tgt
-              ? "We couldn’t load a comparison for these places yet. Make sure both match a city or country in our catalog, or complete your profile and try again."
-              : `Resolving both places against our city catalog${ELL} scores and macro comparison load when both match a city or country in the dataset.`}
+              ? t("Expats.wow.comparisonLoadFailed")
+              : t("Expats.wow.resolvingCatalog", { ell: ELL })}
           </p>
         )}
       </div>
@@ -802,7 +842,7 @@ function WowComparison({
             {t("Expats.wow.movingFromTo", { cur, tgt })}
           </p>
           <ul className="wow-life-impact-list">
-            {lifeImpactOverviewLines(macroRows).map((line) => (
+            {lifeImpactOverviewLines(macroRows, t).map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
@@ -817,22 +857,24 @@ function WowComparison({
             </p>
             {comparison?.overallImpact?.compatibilityLevelTarget && (
               <p className="wow-muted-sm" style={{ textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700, fontStyle: "italic" }}>
-                Target fit: {comparison.overallImpact.compatibilityLevelTarget.replace(/_/g, " ")}
+                {t("Expats.wow.targetFit", {
+                  level: comparison.overallImpact.compatibilityLevelTarget.replace(/_/g, " "),
+                })}
               </p>
             )}
             <img src={`${IMG}/image%202425.png`} alt="" className="wow-img-60" aria-hidden />
             <h2 className="wow-winner-city">{tgt.toUpperCase()}</h2>
             {oi != null && (oi.scoreCurrentCity > 0 || oi.scoreTargetCity > 0) && (
               <p className="wow-muted-sm" style={{ marginBottom: 10 }}>
-                <strong>{cur}</strong> fit {oi.scoreCurrentCity}/100
+                <strong>{cur}</strong> {t("Expats.wow.fitWord")} {oi.scoreCurrentCity}/100
                 {oi.compatibilityLevelCurrent ? ` (${oi.compatibilityLevelCurrent.replace(/_/g, " ")})` : ""} {MID}{" "}
-                <strong>{tgt}</strong> fit {oi.scoreTargetCity}/100
+                <strong>{tgt}</strong> {t("Expats.wow.fitWord")} {oi.scoreTargetCity}/100
                 {oi.compatibilityLevelTarget ? ` (${oi.compatibilityLevelTarget.replace(/_/g, " ")})` : ""}
               </p>
             )}
             {aligned.length > 0 && (
               <p className="wow-muted-sm" style={{ marginBottom: 8 }}>
-                Your priorities aligned: {aligned.join(` ${MID} `)}
+                {t("Expats.wow.prioritiesAligned", { list: aligned.join(` ${MID} `) })}
               </p>
             )}
             {tradeBullets.length > 0 ? (
@@ -877,7 +919,7 @@ function WowComparison({
           </div>
           <div className="wow-card">
             <p className="wow-bold" style={{ marginBottom: 8 }}>
-              {cur} {EM} areas ({currentDistricts.length || ELL})
+              {t("Expats.wow.areasLine", { city: cur, em: EM, count: currentDistricts.length || ELL })}
             </p>
             <CityPlaceBanner label={cur} height={100} style={{ margin: "8px auto" }} />
             {currentDistricts.length > 0 ? (
@@ -906,10 +948,10 @@ function WowComparison({
                 <div className="wow-compare-hdr__driver">{t("Expats.wow.driver")}</div>
                 <div className="wow-compare-hdr__city">{cur.toUpperCase()}</div>
                 <div className="wow-compare-hdr__city">{tgt.toUpperCase()}</div>
-                <div className="wow-compare-hdr__delta">Δ</div>
+                <div className="wow-compare-hdr__delta">{t("Expats.wow.deltaSymbol")}</div>
               </div>
               {macroRows.map((r) => {
-                const label = macroareaLabelFromApi(String(r.macroarea));
+                const label = macroareaLabelFromApi(String(r.macroarea), t);
                 const csc = Number(r.currentCityScore);
                 const tsc = Number(r.targetCityScore);
                 const delta = Math.round(tsc - csc);
@@ -945,14 +987,14 @@ function WowComparison({
                 <p className="wow-muted-sm">
                   {Object.entries(comparison.userPriorityClassification)
                     .slice(0, 6)
-                    .map(([k, v]) => `${macroareaLabelFromApi(k)}: ${v}`)
+                    .map(([k, v]) => `${macroareaLabelFromApi(k, t)}: ${v}`)
                     .join(` ${MID} `)}
                 </p>
               </div>
             )}
           {comparison?.algorithmVersion ? (
             <p className="wow-cta-sub" style={{ marginTop: 4 }}>
-              Comparison algorithm: {comparison.algorithmVersion}
+              {t("Expats.wow.comparisonAlgorithm", { version: comparison.algorithmVersion })}
             </p>
           ) : null}
           {econ && (
@@ -969,17 +1011,21 @@ function WowComparison({
                   {econ.currentLivingExRent != null && econ.currentRentHousing != null ? (
                     <>
                       <p className="wow-muted-sm">
-                        {econ.isFamily ? "Family" : "Single"} cost of living (excl. rent):{" "}
-                        <strong>{formatEur(Number(econ.currentLivingExRent))}</strong>
+                        {t("Expats.wow.costLivingExRentLine", {
+                          type: econ.isFamily ? t("Expats.wow.family") : t("Expats.wow.single"),
+                          amount: formatEur(Number(econ.currentLivingExRent)),
+                        })}
                       </p>
                       <p className="wow-muted-sm">
-                        Average {econ.isFamily ? "3BR" : "1BR"} rent:{" "}
-                        <strong>{formatEur(Number(econ.currentRentHousing))}</strong>
+                        {t("Expats.wow.averageRentLine", {
+                          br: econ.isFamily ? t("Expats.wow.br3") : t("Expats.wow.br1"),
+                          amount: formatEur(Number(econ.currentRentHousing)),
+                        })}
                       </p>
                     </>
                   ) : null}
                   <p className="wow-econ-total">
-                    Total: <strong>{formatEur(Number(econ.currentCityCost))}</strong>/mo
+                    {t("Expats.wow.totalPerMonthLine", { amount: formatEur(Number(econ.currentCityCost)) })}
                   </p>
                 </div>
                 <div className="wow-econ-city">
@@ -987,17 +1033,21 @@ function WowComparison({
                   {econ.targetLivingExRent != null && econ.targetRentHousing != null ? (
                     <>
                       <p className="wow-muted-sm">
-                        {econ.isFamily ? "Family" : "Single"} cost of living (excl. rent):{" "}
-                        <strong>{formatEur(Number(econ.targetLivingExRent))}</strong>
+                        {t("Expats.wow.costLivingExRentLine", {
+                          type: econ.isFamily ? t("Expats.wow.family") : t("Expats.wow.single"),
+                          amount: formatEur(Number(econ.targetLivingExRent)),
+                        })}
                       </p>
                       <p className="wow-muted-sm">
-                        Average {econ.isFamily ? "3BR" : "1BR"} rent:{" "}
-                        <strong>{formatEur(Number(econ.targetRentHousing))}</strong>
+                        {t("Expats.wow.averageRentLine", {
+                          br: econ.isFamily ? t("Expats.wow.br3") : t("Expats.wow.br1"),
+                          amount: formatEur(Number(econ.targetRentHousing)),
+                        })}
                       </p>
                     </>
                   ) : null}
                   <p className="wow-econ-total">
-                    Total: <strong>{formatEur(Number(econ.targetCityCost))}</strong>/mo
+                    {t("Expats.wow.totalPerMonthLine", { amount: formatEur(Number(econ.targetCityCost)) })}
                   </p>
                 </div>
               </div>
@@ -1006,13 +1056,13 @@ function WowComparison({
               </p>
               {econ.monthlySaving !== 0 && (
                 <p className="wow-muted-sm" style={{ marginTop: 8 }}>
-                  Monthly difference:{" "}
+                  {t("Expats.wow.monthlyDifference")}{" "}
                   <strong style={{ color: econ.monthlySaving > 0 ? "#22a55f" : "#e05555" }}>
                     {econ.monthlySaving > 0 ? "−" : "+"}
                     {formatEur(Math.abs(econ.monthlySaving))}/mo
                   </strong>
                   {" · "}
-                  Annual:{" "}
+                  {t("Expats.wow.annual")}:{" "}
                   <strong style={{ color: econ.monthlySaving > 0 ? "#22a55f" : "#e05555" }}>
                     {econ.monthlySaving > 0 ? "−" : "+"}
                     {formatEur(Math.abs(econ.monthlySaving * 12))}/yr
@@ -1029,8 +1079,9 @@ function WowComparison({
               <p className="wow-body-text">{comparison.priorityAlignment.summary}</p>
               {aligned.length > 0 && (
                 <p className="wow-muted-sm" style={{ marginTop: 8 }}>
-                  Aligned macro-areas:{" "}
-                  {aligned.map((k) => (MACROAREA_LABELS as Record<string, { label: string }>)[k]?.label ?? k).join(", ")}
+                  {t("Expats.wow.alignedMacroAreas", {
+                    list: aligned.map((k) => macroareaLabelFromApi(k, t)).join(", "),
+                  })}
                 </p>
               )}
             </div>
@@ -1045,8 +1096,8 @@ function WowComparison({
               </p>
               {tradeBullets.length > 1 && (
                 <ul className="wow-accent-list" style={{ textAlign: "left", marginTop: 8 }}>
-                  {tradeBullets.slice(1).map((t) => (
-                    <li key={t.macroarea}>{t.message}</li>
+                  {tradeBullets.slice(1).map((row) => (
+                    <li key={row.macroarea}>{row.message}</li>
                   ))}
                 </ul>
               )}
@@ -1064,8 +1115,7 @@ function WowComparison({
             const declines = macroRows.filter((r) => r.direction === "decline");
             const improvements = macroRows.filter((r) => r.direction === "improvement");
             if (declines.length === 0 && improvements.length === 0) return null;
-            const toLabel = (macroarea: string) =>
-              (MACROAREA_LABELS as Record<string, { label: string }>)[macroarea]?.label ?? macroareaLabelFromApi(macroarea);
+            const toLabel = (macroarea: string) => macroareaLabelFromApi(macroarea, t);
             return (
               <div className="wow-card wow-daily-life">
                 <p className="wow-bold-sm" style={{ marginBottom: 10 }}>{t("Expats.wow.dailyLifeDifference")}</p>
@@ -1124,7 +1174,7 @@ function WowComparison({
           ) : null}
           <div className="wow-card wow-card--center">
             <p className="wow-bold">
-              {tgt} Compatibility <span className="wow-accent">Breakdown</span>
+              {t("Expats.wow.compatibilityBreakdownTitle", { city: tgt })}
             </p>
             <RadarChart data={radar} size={200} color="#3b6bdc" />
           </div>
@@ -1137,7 +1187,7 @@ function WowComparison({
                 <p className="wow-big-num">
                   {comparison?.overallImpact?.scoreTargetCity ?? targetScore?.scoreTotal ?? EM}
                   {typeof (comparison?.overallImpact?.scoreTargetCity ?? targetScore?.scoreTotal) === "number" ? (
-                    <span className="wow-big-num__sub">/100</span>
+                    <span className="wow-big-num__sub">{t("Expats.wow.suffixOutOf100")}</span>
                   ) : null}
                 </p>
               </div>
@@ -1151,9 +1201,7 @@ function WowComparison({
           {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
             <div className="wow-card">
               <p className="wow-bold-sm">{t("Expats.wow.communityMentors")}</p>
-              <p className="wow-muted-sm">
-                Full mentor counts and compatible profiles unlock after registration {EM} this preview focuses on city data and scoring.
-              </p>
+              <p className="wow-muted-sm">{t("Expats.wow.mentorPreviewNote", { em: EM })}</p>
             </div>
           ) : null}
         </div>
@@ -1185,7 +1233,7 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
         name: s.cityName,
         country: s.country,
         score: s.scoreTotal,
-        radar: radarFromScore(s),
+        radar: radarFromScore(s, t),
         estimatedCost: typeof cost === "number" ? cost : null,
         shortInsight: shortInsightFromScore(s),
         img:
@@ -1196,7 +1244,7 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
               : `${IMG}/Rectangle%203465253.png`,
       };
     });
-  }, [scores]);
+  }, [scores, t]);
 
   if (TOP_CITIES.length === 0) {
     return (
@@ -1205,7 +1253,7 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
           <h1 className="wow-title">{t("Expats.wow.titleUnsure")}</h1>
           <p className="wow-sub">{t("Expats.wow.subtitleUnsure")}</p>
           <p className="wow-muted-sm" style={{ marginTop: 12 }}>
-            Complete the funnel and run scoring to see your top compatible cities here.
+            {t("Expats.wow.unsureEmptyHint")}
           </p>
         </div>
         <button type="button" onClick={handleCta} className="wow-cta" style={{ marginTop: 32 }}>
@@ -1216,7 +1264,6 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
     );
   }
 
-  const topNames = scores?.slice(0, 3).map((s) => s.cityName).filter(Boolean).join(", ") ?? "";
   const topScore = scores?.[0] ?? null;
 
   return (
@@ -1230,7 +1277,8 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
         <div className="wow-card" style={{ marginBottom: 24 }}>
           <h2 className="wow-section-title" style={{ marginTop: 0 }}>{t("Expats.wow.sectionCompatibilityFactor")}</h2>
           <p className="wow-muted-sm" style={{ marginBottom: 12 }}>
-            {t("Expats.wow.betterMatchForProfile")}: <strong>{topScore.cityName}</strong> ({topScore.scoreTotal}% match)
+            {t("Expats.wow.betterMatchForProfile")}: <strong>{topScore.cityName}</strong> (
+            {t("Expats.wow.percentMatch", { score: topScore.scoreTotal })})
           </p>
           <RelocationReadinessBlock score={topScore} />
         </div>
@@ -1248,11 +1296,14 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
                 <div className="wow-score-fill" style={{ width: `${Math.min(100, city.score)}%` }} />
               </div>
               <p className="wow-muted-sm">
-                <strong>{city.score}%</strong> Compatibility
+                {t("Expats.wow.cityCompatibilityPercent", { score: city.score })}
               </p>
               {city.estimatedCost != null && (
                 <p className="wow-muted-sm" style={{ marginTop: 4 }}>
-                  {t("Expats.wow.estimatedCostLabel")}: ~€{city.estimatedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo
+                  {t("Expats.wow.estimatedCostPerMonthApprox", {
+                    label: t("Expats.wow.estimatedCostLabel"),
+                    amount: `€${city.estimatedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                  })}
                 </p>
               )}
               {city.shortInsight && (
@@ -1279,7 +1330,7 @@ function WowUnsure({ scores, onCtaClick }: { scores: CityScoreResponse[] | undef
 
 export default function WowPage() {
   const router = useRouter();
-  const { locale } = useT();
+  const { locale, t } = useT();
   const { isAuthenticated } = useAuth();
   const { funnelAnswers, scoringResult, initSession, session, onboarding, activationState } = useExpats();
   const initialized = useRef(false);
@@ -1635,7 +1686,7 @@ export default function WowPage() {
         <div className="wow-logo">
           <span className="wow-logo__sym" aria-hidden>{"\u221E"}</span>
           <span className="wow-logo__txt">
-            <strong>EXPATS</strong> MODE
+            <strong>{t("Expats.wow.brandExpats")}</strong> {t("Expats.wow.brandMode")}
           </span>
         </div>
         <div style={{ width: 60 }} />
