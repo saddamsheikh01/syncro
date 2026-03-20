@@ -42,6 +42,26 @@ const NAV_ITEMS = [
     description: "Test configuration and status",
   },
   {
+    href: "/admin/expats/cities",
+    label: "Expats cities",
+    description: "Relocation city dataset",
+  },
+  {
+    href: "/admin/expats/weight-rules",
+    label: "Weight rules",
+    description: "Scoring weight rules",
+  },
+  {
+    href: "/admin/expats/scoring-config",
+    label: "Scoring config",
+    description: "Relocation scoring thresholds",
+  },
+  {
+    href: "/admin/expats/waiting-list",
+    label: "Expats waiting list",
+    description: "Notify users when a city is added",
+  },
+  {
     href: "/admin/categories",
     label: "Categories",
     description: "Catalog categories",

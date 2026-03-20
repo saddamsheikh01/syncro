@@ -13,6 +13,7 @@ import {
   getCities,
   getCityById,
   getFunnelConfig,
+  getOnboardingStatus,
 } from "../../../services/expats";
 import type {
   CityScoreResponse,
@@ -22,6 +23,9 @@ import type {
 } from "../../../types/expats";
 
 const IMG = "/images/WOW-Page";
+
+/** Sprint 3+ teaser blocks (Zyra card, community/mentors). Off until product is live. */
+const WOW_SHOW_ZYRA_AND_COMMUNITY = false;
 
 /** Stable UTF-8 punctuation (file was saved with mojibake before) */
 const EM = "\u2014";
@@ -76,25 +80,52 @@ function CityPlaceBanner({
   );
 }
 
+const CITY_NAME_ALIASES: Record<string, string> = {
+  roma: "rome",
+  rom: "rome",
+  milano: "milan",
+  münchen: "munich",
+  munchen: "munich",
+  köln: "cologne",
+  koln: "cologne",
+};
+
 function resolveCityOrCountryId(
   label: string,
   cities: { id: string; cityName: string; country: string; citySlug?: string }[]
 ): string | undefined {
-  const n = label.trim().toLowerCase();
-  if (!n) return undefined;
-  const byCity = cities.find(
+  const raw = label.trim().toLowerCase();
+  if (!raw) return undefined;
+  const n = CITY_NAME_ALIASES[raw] ?? raw;
+
+  const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+  const byExact = cities.find(
     (c) =>
       c.cityName.toLowerCase() === n ||
-      (c.citySlug && c.citySlug.toLowerCase() === n.replace(/\s+/g, "-"))
+      (c.citySlug && c.citySlug.toLowerCase() === slugify(n))
   );
-  if (byCity) return byCity.id;
+  if (byExact) return byExact.id;
+
+  let best: { id: string; score: number } | null = null;
+  for (const c of cities) {
+    const cn = c.cityName.toLowerCase();
+    const slug = (c.citySlug ?? "").toLowerCase();
+    const co = c.country.toLowerCase();
+    let score = 0;
+    if (cn === n) score = 100;
+    else if (slug === slugify(n)) score = 95;
+    else if (cn.startsWith(n) || n.startsWith(cn)) score = 70;
+    else if (cn.includes(n) || n.includes(cn)) score = 55;
+    else if (slug.includes(slugify(n)) || slugify(n).includes(slug)) score = 50;
+    else if (co === n) score = 40;
+    else if (co.includes(n) || n.includes(co)) score = 25;
+    if (score > 0 && (!best || score > best.score)) best = { id: c.id, score };
+  }
+  if (best && best.score >= 25) return best.id;
+
   const countryMatch = cities.filter((c) => c.country.toLowerCase() === n);
   if (countryMatch.length) return countryMatch[0].id;
-  return cities.find(
-    (c) =>
-      c.country.toLowerCase().includes(n) ||
-      n.includes(c.country.toLowerCase())
-  )?.id;
+  return undefined;
 }
 
 const MACROAREA_LABELS: Record<keyof MacroareeScores, { label: string; short: string }> = {
@@ -383,13 +414,15 @@ function WowPlanningMove({
 
       <div className="wow-grid wow-grid--3">
         <div className="wow-col">
-          <div className="wow-card wow-card--row">
-            <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
-            <div>
-              <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
-              <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+          {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
+            <div className="wow-card wow-card--row">
+              <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
+              <div>
+                <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
+                <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <h2 className="wow-section-title" style={{ marginTop: 0 }}>{t("Expats.wow.sectionCityCompatibility")}</h2>
           <div className="wow-card">
@@ -489,16 +522,20 @@ function WowPlanningMove({
             )}
           </div>
 
-          <h2 className="wow-section-title">{t("Expats.wow.sectionNetworkPreview")}</h2>
-          <div className="wow-card">
-            <p className="wow-bold" style={{ marginBottom: 8 }}>{t("Expats.wow.connectLocals")}</p>
-            <ul className="wow-accent-list">
-              <li>{t("Expats.wow.networkSimilarExpats")}</li>
-              <li>{t("Expats.wow.networkMentors")}</li>
-              <li>{t("Expats.wow.networkProfessionals")}</li>
-            </ul>
-            <img src={`${IMG}/Group%201686559670.png`} alt="Mentors" className="wow-mentors-row" style={{ marginTop: 12 }} />
-          </div>
+          {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
+            <>
+              <h2 className="wow-section-title">{t("Expats.wow.sectionNetworkPreview")}</h2>
+              <div className="wow-card">
+                <p className="wow-bold" style={{ marginBottom: 8 }}>{t("Expats.wow.connectLocals")}</p>
+                <ul className="wow-accent-list">
+                  <li>{t("Expats.wow.networkSimilarExpats")}</li>
+                  <li>{t("Expats.wow.networkMentors")}</li>
+                  <li>{t("Expats.wow.networkProfessionals")}</li>
+                </ul>
+                <img src={`${IMG}/Group%201686559670.png`} alt="Mentors" className="wow-mentors-row" style={{ marginTop: 12 }} />
+              </div>
+            </>
+          ) : null}
 
           <div className="wow-card">
             <p className="wow-bold" style={{ marginBottom: 8 }}>{t("Expats.wow.fullAnalysisIncludes")}</p>
@@ -590,13 +627,15 @@ function WowAlreadyThere({
       </div>
       <div className="wow-grid wow-grid--3">
         <div className="wow-col">
-          <div className="wow-card wow-card--row">
-            <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
-            <div>
-              <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
-              <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+          {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
+            <div className="wow-card wow-card--row">
+              <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
+              <div>
+                <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
+                <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="wow-card">
             {profilePct != null && <p className="wow-muted-sm">{t("Expats.wow.profileCompletion", { pct: profilePct })}</p>}
             {score?.compatibilityLevel && (
@@ -1073,13 +1112,15 @@ function WowComparison({
         </div>
 
         <div className="wow-col">
-          <div className="wow-card wow-card--row">
-            <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
-            <div>
-              <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
-              <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+          {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
+            <div className="wow-card wow-card--row">
+              <img src={`${IMG}/image%202308.png`} alt="Zyra" className="wow-avatar" />
+              <div>
+                <p className="wow-bold">{t("Expats.wow.zyraHello")}</p>
+                <p className="wow-muted-sm">{t("Expats.wow.zyraMentor")}</p>
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="wow-card wow-card--center">
             <p className="wow-bold">
               {tgt} Compatibility <span className="wow-accent">Breakdown</span>
@@ -1106,12 +1147,14 @@ function WowComparison({
               </p>
             )}
           </div>
-          <div className="wow-card">
-            <p className="wow-bold-sm">{t("Expats.wow.communityMentors")}</p>
-            <p className="wow-muted-sm">
-              Full mentor counts and compatible profiles unlock after registration {EM} this preview focuses on city data and scoring.
-            </p>
-          </div>
+          {WOW_SHOW_ZYRA_AND_COMMUNITY ? (
+            <div className="wow-card">
+              <p className="wow-bold-sm">{t("Expats.wow.communityMentors")}</p>
+              <p className="wow-muted-sm">
+                Full mentor counts and compatible profiles unlock after registration {EM} this preview focuses on city data and scoring.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </>
@@ -1277,24 +1320,31 @@ export default function WowPage() {
     if (!session || scoringPipeline.current) return;
     scoringPipeline.current = true;
     (async () => {
-      await expatsActions.loadOnboarding().catch(() => {});
-      await expatsActions.loadActivationState().catch(() => {});
+      try {
+        await expatsActions.loadOnboarding();
+      } catch (e) {
+        console.error("[WowPage] loadOnboarding", e);
+      }
+      try {
+        await expatsActions.loadActivationState();
+      } catch (e) {
+        console.error("[WowPage] loadActivationState", e);
+      }
       const state = expatsStore.getState();
       const ob = state.onboarding;
       const funnel = state.funnelAnswers;
-      let targetId: string | undefined = ob?.targetCityId ?? undefined;
+      let targetId: string | undefined =
+        ob?.targetCityId ?? funnel.targetCityId ?? undefined;
+
       const resolveCityId = async (name: string) => {
         const cities = await getCities();
-        const n = name.trim().toLowerCase();
-        return cities.find(
-          (c) => c.cityName.toLowerCase() === n || c.citySlug === n.replace(/\s+/g, "-").toLowerCase()
-        )?.id;
+        return resolveCityOrCountryId(name, cities);
       };
       if (!targetId && funnel.targetCityName?.trim()) {
         try {
           targetId = await resolveCityId(funnel.targetCityName);
-        } catch {
-          /* ignore */
+        } catch (e) {
+          console.error("[WowPage] resolve target city id", e);
         }
       }
       if (
@@ -1304,19 +1354,33 @@ export default function WowPage() {
       ) {
         try {
           targetId = await resolveCityId(funnel.currentCityName);
-        } catch {
-          /* ignore */
+        } catch (e) {
+          console.error("[WowPage] resolve current city id", e);
         }
       }
+
+      try {
+        const statusResp = await getOnboardingStatus();
+        if (!statusResp.hasActiveSnapshot) {
+          await expatsActions.createSnapshot();
+        }
+      } catch (e) {
+        console.error("[WowPage] ensure snapshot before compute", e);
+      }
+
       try {
         if (targetId) await expatsActions.computeScoring(targetId);
         else await expatsActions.computeScoring();
-      } catch {
-        /* anonymous may 401; session token may still work */
+      } catch (e) {
+        console.error("[WowPage] computeScoring", e);
       }
       const after = expatsStore.getState().scoringResult?.scores ?? [];
       if (!after.length) {
-        await expatsActions.tryHydrateScoringFromHistory().catch(() => {});
+        try {
+          await expatsActions.tryHydrateScoringFromHistory();
+        } catch (e) {
+          console.error("[WowPage] tryHydrateScoringFromHistory", e);
+        }
       }
     })();
   }, [session]);
@@ -1343,15 +1407,15 @@ export default function WowPage() {
     }
 
     const run = async () => {
-      let currentId = ob?.currentCityId ?? undefined;
-      let targetId = ob?.targetCityId ?? undefined;
+      let currentId = ob?.currentCityId ?? funnelAnswers.currentCityId ?? undefined;
+      let targetId = ob?.targetCityId ?? funnelAnswers.targetCityId ?? undefined;
       if (!currentId || !targetId) {
         try {
           const cities = await getCities();
           if (!currentId) currentId = resolveCityOrCountryId(curName, cities);
           if (!targetId) targetId = resolveCityOrCountryId(tgtName, cities);
-        } catch {
-          /* ignore */
+        } catch (e) {
+          console.error("[WowPage] compare resolve city ids", e);
         }
       }
       if (!currentId || !targetId || cancelled) {
@@ -1362,11 +1426,16 @@ export default function WowPage() {
         const c = await compareCities({ currentCityId: currentId, targetCityId: targetId });
         if (!cancelled && c && typeof c === "object" && (c.currentCity?.id || c.targetCity?.id)) {
           setComparison(c);
-          if (c.targetCity?.id) expatsActions.computeScoring(c.targetCity.id).catch(() => {});
+          if (c.targetCity?.id) {
+            expatsActions.computeScoring(c.targetCity.id).catch((e) =>
+              console.error("[WowPage] computeScoring after compareCities", e)
+            );
+          }
         } else if (!cancelled) {
           setComparison(null);
         }
-      } catch {
+      } catch (e) {
+        console.error("[WowPage] compareCities", e);
         if (!cancelled) setComparison(null);
       }
     };
@@ -1375,6 +1444,8 @@ export default function WowPage() {
       cancelled = true;
     };
   }, [
+    funnelAnswers.currentCityId,
+    funnelAnswers.targetCityId,
     onboarding?.currentCityId,
     onboarding?.targetCityId,
     onboarding?.currentCityName,
@@ -1433,8 +1504,9 @@ export default function WowPage() {
   const primaryScore = useMemo(() => {
     const scores = scoringResult?.scores ?? [];
     if (!scores.length) return null;
-    if (onboarding?.targetCityId) {
-      const s = scores.find((x) => x.cityId === onboarding.targetCityId);
+    const tid = funnelAnswers.targetCityId ?? onboarding?.targetCityId;
+    if (tid) {
+      const s = scores.find((x) => x.cityId === tid);
       if (s) return s;
     }
     if (funnelAnswers.targetCityName?.trim()) {
@@ -1443,7 +1515,7 @@ export default function WowPage() {
       if (s) return s;
     }
     return scores[0];
-  }, [scoringResult, onboarding, funnelAnswers.targetCityName]);
+  }, [scoringResult, onboarding, funnelAnswers.targetCityId, funnelAnswers.targetCityName]);
 
   useEffect(() => {
     const id = primaryScore?.cityId;
