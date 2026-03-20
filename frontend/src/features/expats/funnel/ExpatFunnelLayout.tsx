@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type ReactNode } from "react";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useT } from "@/hooks";
 
 interface Props {
@@ -66,20 +67,7 @@ export default function ExpatFunnelLayout({
 
       {/* Language selector (top-left) */}
       <div className="funnel-lang">
-        <img
-          src="/images/landing/flag-it.png"
-          alt="Language"
-          className="funnel-lang__flag"
-        />
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-          <path
-            d="M1 1L5 5L9 1"
-            stroke="#6c778a"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <LanguageSwitch variant="expat" align="left" className="funnel-lang__switch" />
       </div>
 
       {/* Main content */}
@@ -214,15 +202,11 @@ export default function ExpatFunnelLayout({
           border: 1px solid #e4e9f2;
           border-radius: 10px;
           padding: 8px 14px;
-          cursor: pointer;
           z-index: 10;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
-        .funnel-lang__flag {
-          width: 32px;
-          height: 22px;
-          object-fit: cover;
-          border-radius: 2px;
+        .funnel-lang__switch button svg {
+          color: #6c778a;
         }
 
         .funnel-body {

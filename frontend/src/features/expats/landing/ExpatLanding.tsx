@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useT } from "@/hooks";
 import { useExpats } from "../../../hooks/expats/useExpats";
 import { getFunnelConfig } from "../../../services/expats";
@@ -27,7 +28,7 @@ const NOISE_SOURCES = [
 
 export default function ExpatLanding() {
   const router = useRouter();
-  const { t } = useT();
+  const { t, locale } = useT();
   const { initSession, isLoading } = useExpats();
   const initialized = useRef(false);
   const [funnelConfig, setFunnelConfig] = useState<{
@@ -38,12 +39,15 @@ export default function ExpatLanding() {
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true;
-      getFunnelConfig("expats_landing_v1", "en")
-        .then((config) => setFunnelConfig(config as typeof funnelConfig))
-        .catch(() => null);
       initSession().catch(() => null);
     }
   }, [initSession]);
+
+  useEffect(() => {
+    getFunnelConfig("expats_landing_v1", locale)
+      .then((config) => setFunnelConfig(config as typeof funnelConfig))
+      .catch(() => null);
+  }, [locale]);
 
   const ctaLabel = funnelConfig?.content?.cta_text ?? t("Expats.landing.hero.cta");
 
@@ -64,26 +68,7 @@ export default function ExpatLanding() {
         <div className="expat-hero__gradient" />
 
         <div className="expat-hero__lang">
-          <img
-            src="/images/landing/flag-it.png"
-            alt="Language"
-            className="expat-hero__flag-img"
-          />
-          <svg
-            width="12"
-            height="8"
-            viewBox="0 0 12 8"
-            fill="none"
-            className="expat-hero__chevron"
-          >
-            <path
-              d="M1 1.5L6 6.5L11 1.5"
-              stroke="#333"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <LanguageSwitch variant="expat" align="right" />
         </div>
 
         <div className="expat-hero__content">
@@ -284,15 +269,6 @@ export default function ExpatLanding() {
           border-radius: 10px;
           padding: 10px 20px;
           box-shadow: -5px 7px 9.9px 0px #eeebf4;
-        }
-        .expat-hero__flag-img {
-          width: 43px;
-          height: 30px;
-          object-fit: cover;
-          border-radius: 2px;
-        }
-        .expat-hero__chevron {
-          opacity: 0.6;
         }
         .expat-hero__content {
           position: relative;
@@ -707,10 +683,6 @@ export default function ExpatLanding() {
             top: 16px;
             right: 16px;
             padding: 8px 14px;
-          }
-          .expat-hero__flag-img {
-            width: 32px;
-            height: 22px;
           }
 
           .expat-pain {

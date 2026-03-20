@@ -22,6 +22,16 @@ export const normalizeLocale = (raw: unknown): SupportedLocale | null => {
     : null;
 };
 
+/** Regional flag emoji per supported UI locale (for language picker). */
+export const LOCALE_FLAG_EMOJI: Record<SupportedLocale, string> = {
+  en: "🇬🇧",
+  it: "🇮🇹",
+  es: "🇪🇸",
+  fr: "🇫🇷",
+  sq: "🇦🇱",
+  pt: "🇵🇹",
+};
+
 export const toBcp47 = (locale: SupportedLocale): string => {
   switch (locale) {
     case "en":
