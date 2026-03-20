@@ -94,10 +94,13 @@ public class AnonymousRelocationService {
         ExpatsAnonymousSession session = sessionRepository.getReferenceById(sessionId);
         var answers = answerRepository.findBySessionIdOrderByStepNumberAsc(sessionId);
 
-        snapshotRepository.findByAnonymousSession_IdAndIsActiveTrue(sessionId).ifPresent(s -> {
-            s.setIsActive(false);
-            snapshotRepository.save(s);
-        });
+        // Deactivate ALL active snapshots (guard against duplicates)
+        snapshotRepository.findByAnonymousSession_IdOrderByVersionDesc(sessionId).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .forEach(s -> {
+                    s.setIsActive(false);
+                    snapshotRepository.save(s);
+                });
 
         Map<String, Object> payload = new LinkedHashMap<>(onboardingService.buildSnapshotPayload(profile));
         payload.putAll(funnelMapper.funnelExtrasForPayload(answers));
@@ -124,7 +127,7 @@ public class AnonymousRelocationService {
     public OnboardingStatusResponse getOnboardingStatus(UUID sessionId) {
         RelocationProfile profile = profileRepository.findByAnonymousSession_Id(sessionId)
                 .orElseGet(() -> syncProfile(sessionId));
-        boolean hasActive = snapshotRepository.findByAnonymousSession_IdAndIsActiveTrue(sessionId).isPresent();
+        boolean hasActive = findActiveSnapshotSafe(sessionId).isPresent();
         int maxV = snapshotRepository.findMaxVersionByAnonymousSessionId(sessionId);
         return mapper.toOnboardingStatusResponse(profile, hasActive, maxV > 0 ? maxV : null);
     }
@@ -133,7 +136,7 @@ public class AnonymousRelocationService {
     public ActivationStateResponse getActivationState(UUID sessionId) {
         RelocationProfile profile = profileRepository.findByAnonymousSession_Id(sessionId)
                 .orElseGet(() -> syncProfile(sessionId));
-        boolean hasActive = snapshotRepository.findByAnonymousSession_IdAndIsActiveTrue(sessionId).isPresent();
+        boolean hasActive = findActiveSnapshotSafe(sessionId).isPresent();
         boolean hasScores = !cityScoreRepository.findByAnonymousSession_IdOrderByCreatedAtDesc(sessionId).isEmpty();
 
         List<String> completed = new ArrayList<>();
@@ -181,6 +184,13 @@ public class AnonymousRelocationService {
                 hasScores,
                 profile.getUpdatedAt()
         );
+    }
+
+    /** Safe lookup that handles the case of multiple active snapshots (returns first by version desc). */
+    private Optional<RelocationOnboardingSnapshot> findActiveSnapshotSafe(UUID sessionId) {
+        return snapshotRepository.findByAnonymousSession_IdOrderByVersionDesc(sessionId).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .findFirst();
     }
 
     private static void check(boolean ok, String field, List<String> done, List<String> miss) {

@@ -137,7 +137,9 @@ public class CityComparisonService {
         anonymousRelocationService.refreshActiveSnapshot(sessionId);
         profileRepository.findByAnonymousSession_Id(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
-        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByAnonymousSession_IdAndIsActiveTrue(sessionId)
+        RelocationOnboardingSnapshot snapshot = snapshotRepository.findByAnonymousSession_IdOrderByVersionDesc(sessionId).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "No active snapshot. Complete the funnel first."));
 

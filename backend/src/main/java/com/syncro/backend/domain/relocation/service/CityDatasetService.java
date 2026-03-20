@@ -5,6 +5,10 @@ import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +22,8 @@ import java.util.UUID;
 @Service
 public class CityDatasetService {
 
+    private static final Logger log = LoggerFactory.getLogger(CityDatasetService.class);
+
     private final RelocationCityDatasetRepository cityRepository;
     private final RelocationMapper mapper;
 
@@ -25,6 +31,22 @@ public class CityDatasetService {
                               RelocationMapper mapper) {
         this.cityRepository = cityRepository;
         this.mapper = mapper;
+    }
+
+    /**
+     * On application startup, recalculate macroaree for any city that has NULL values.
+     * This handles the case where cities were inserted directly via SQL without going through the admin API.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void recalculateMacroareeOnStartupIfNeeded() {
+        List<RelocationCityDataset> activeCities = cityRepository.findByActiveTrue();
+        boolean hasNullMacroaree = activeCities.stream().anyMatch(c ->
+                c.getMacroCostoVita() == null || c.getMacroQualitaVita() == null);
+        if (hasNullMacroaree) {
+            log.info("Found cities with NULL macroaree — recalculating for {} active cities", activeCities.size());
+            recalculateAllMacroaree();
+        }
     }
 
     @Transactional(readOnly = true)

@@ -123,6 +123,16 @@ public class AdminExpatsController {
         return ResponseEntity.ok(cityDatasetService.updateCity(cityId, request, admin));
     }
 
+    @PostMapping("/cities/recalculate-macroaree")
+    @Operation(summary = "Forza ricalcolo macroaree per tutte le citta attive")
+    public ResponseEntity<Map<String, Object>> recalculateMacroaree() {
+        cityDatasetService.recalculateAllMacroaree();
+        long count = cityDatasetService.listAllCities().stream()
+                .filter(c -> Boolean.TRUE.equals(c.active()))
+                .count();
+        return ResponseEntity.ok(Map.of("recalculated", count, "status", "ok"));
+    }
+
     // ========== WEIGHT RULES CRUD ==========
 
     @GetMapping("/weight-rules")
