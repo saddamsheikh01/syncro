@@ -73,8 +73,8 @@ const renderItem = (
   item: MenuItem,
   pathname: string,
   collapsed: boolean,
-  onItemClick?: () => void,
-  t: (key: string) => string
+  t: (key: string) => string,
+  onItemClick?: () => void
 ) => {
   const active = isItemActive(pathname, item.href);
   const label = t(item.labelKey);
@@ -126,7 +126,7 @@ export const Menu = ({
       aria-label={t("Main navigation")}
       {...props}
     >
-      {menuItems.map((item) => renderItem(item, pathname, collapsed, onItemClick, t))}
+      {menuItems.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
       {isExpatsModeActive && (
         <>
           {!collapsed && (
@@ -134,7 +134,7 @@ export const Menu = ({
               {t("Expats Mode")}
             </p>
           )}
-          {EXPATS_MENU_ITEMS.map((item) => renderItem(item, pathname, collapsed, onItemClick, t))}
+          {EXPATS_MENU_ITEMS.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
         </>
       )}
     </nav>

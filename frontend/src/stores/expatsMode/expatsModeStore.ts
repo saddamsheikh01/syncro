@@ -4,7 +4,7 @@ import { createStore } from "../utils/createStore";
 
 const EXPATS_MODE_ACTIVE_KEY = "syncro_expats_mode_active";
 
-export interface ExpatsModeState {
+export interface ExpatsModeState extends Record<string, unknown> {
   isExpatsModeActive: boolean;
 }
 
