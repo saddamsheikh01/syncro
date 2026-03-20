@@ -130,7 +130,7 @@ export default function FunnelOptionCard({
 
         @media (max-width: 600px) {
           .funnel-opt-card {
-            min-height: 190px;
+            min-height: 170px;
             padding: 18px 12px 16px;
           }
           .funnel-opt-card__image {
@@ -139,6 +139,26 @@ export default function FunnelOptionCard({
           }
           .funnel-opt-card__visual {
             min-height: 100px;
+          }
+        }
+        @media (max-width: 400px) {
+          .funnel-opt-card {
+            min-height: 140px;
+            padding: 14px 10px 12px;
+          }
+          .funnel-opt-card__image {
+            max-width: 80px;
+            max-height: 80px;
+          }
+          .funnel-opt-card__emoji-bg {
+            width: 72px;
+            height: 72px;
+          }
+          .funnel-opt-card__emoji {
+            font-size: 2.2rem;
+          }
+          .funnel-opt-card__visual {
+            min-height: 80px;
           }
         }
       `}</style>

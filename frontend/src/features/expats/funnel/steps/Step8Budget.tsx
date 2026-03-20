@@ -38,7 +38,7 @@ export default function Step8Budget({ defaultBudget = 2000, defaultLifestyle, on
       </p>
 
       <div className="budget-slider-wrap">
-        <div className="budget-bubble" style={{ left: `calc(${sliderPct}% - 36px)` }}>
+        <div className="budget-bubble" style={{ left: `${sliderPct}%`, transform: 'translateX(-50%)' }}>
           € {budget.toLocaleString()}
         </div>
         <input

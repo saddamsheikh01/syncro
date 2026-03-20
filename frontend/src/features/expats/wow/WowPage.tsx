@@ -1793,6 +1793,30 @@ export default function WowPage() {
           .wow-unsure-grid{grid-template-columns:1fr}
           .wow-compare-cities{flex-direction:column}
         }
+        @media(max-width:768px){
+          .wow-grid--3,.wow-grid--3c{grid-template-columns:1fr}
+          .wow-unsure-grid{grid-template-columns:1fr}
+          .wow-main{padding:24px 16px 60px}
+        }
+        @media(max-width:600px){
+          .wow-title{font-size:1.4rem}
+          .wow-sub{font-size:.88rem}
+          .wow-topbar{padding:10px 16px}
+          .wow-compare-hdr,.wow-compare-hdr--4{font-size:.72rem;padding:8px 10px}
+          .wow-compare-row,.wow-compare-row--4{padding:7px 10px}
+          .wow-compare-row__label{font-size:.72rem}
+          .wow-compare-row__val{font-size:.72rem}
+          .wow-compare-row__delta{font-size:.72rem}
+          .wow-compare-hdr__driver{font-size:.7rem}
+          .wow-compare-hdr__city{font-size:.72rem}
+          .wow-compare-hdr__delta{font-size:.7rem}
+        }
+        @media(max-width:400px){
+          .wow-compare-hdr__delta,.wow-compare-row__delta{display:none}
+          .wow-compare-hdr,.wow-compare-hdr--4{grid-template-columns:1.2fr 1fr 1fr}
+          .wow-compare-row,.wow-compare-row--4{grid-template-columns:1.2fr 1fr 1fr}
+          .wow-main{padding:16px 10px 48px}
+        }
       `}</style>
     </div>
   );

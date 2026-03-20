@@ -198,6 +198,9 @@
 
 @media (max-width: 600px) {
   .cityDestGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+  .cityOriginCard {
+    padding: 16px 20px 14px;
   }
 }

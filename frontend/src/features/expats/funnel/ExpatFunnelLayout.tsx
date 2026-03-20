@@ -150,8 +150,9 @@ export default function ExpatFunnelLayout({
           .funnel-cards-row--3,
           .funnel-cards-row--4,
           .funnel-cards-row--5,
+          .funnel-cards-row--6,
           .funnel-cards-row--8 {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
           }
         }
 
@@ -286,6 +287,15 @@ export default function ExpatFunnelLayout({
           cursor: not-allowed;
         }
 
+        @media (max-width: 768px) {
+          .funnel-cards-row--4,
+          .funnel-cards-row--8 {
+            grid-template-columns: 1fr 1fr;
+          }
+          .funnel-body {
+            padding: 70px 24px 120px;
+          }
+        }
         @media (max-width: 600px) {
           .funnel-body {
             padding: 70px 20px 120px;
@@ -310,6 +320,29 @@ export default function ExpatFunnelLayout({
           }
           .funnel-deco--bl {
             width: 160px;
+          }
+        }
+        @media (max-width: 400px) {
+          .funnel-cards-row--2,
+          .funnel-cards-row--3,
+          .funnel-cards-row--4,
+          .funnel-cards-row--5,
+          .funnel-cards-row--6,
+          .funnel-cards-row--8 {
+            grid-template-columns: 1fr;
+          }
+          .funnel-footer__nav {
+            padding: 10px 12px;
+          }
+          .funnel-deco {
+            display: none;
+          }
+          .funnel-lang {
+            position: relative;
+            top: auto;
+            left: auto;
+            margin: 12px 16px 0;
+            align-self: flex-start;
           }
         }
       `}</style>

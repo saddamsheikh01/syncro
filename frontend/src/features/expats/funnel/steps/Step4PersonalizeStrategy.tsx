@@ -205,6 +205,16 @@ export default function Step4PersonalizeStrategy({ defaultAgeRange, defaultGende
             font-size: 1.1rem;
           }
         }
+        @media (max-width: 400px) {
+          .age-chip {
+            padding: 12px 16px;
+            font-size: 1rem;
+            min-width: 70px;
+          }
+          .gender-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
   );
