@@ -6,7 +6,6 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.StarterKitResponse;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
-import com.syncro.backend.domain.relocation.entity.RelocationScoringConfig;
 import com.syncro.backend.domain.relocation.entity.StarterKitReport;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.*;
@@ -23,6 +22,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,8 +31,6 @@ class StarterKitServiceTest {
     @Mock private StarterKitReportRepository reportRepository;
     @Mock private RelocationProfileRepository profileRepository;
     @Mock private RelocationCityDatasetRepository cityDatasetRepository;
-    @Mock private RelocationScoringConfigRepository scoringConfigRepository;
-    @Mock private RelocationRiskSnapshotRepository riskSnapshotRepository;
     @Mock private ScoringCalculationHelper scoringHelper;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
@@ -40,16 +38,20 @@ class StarterKitServiceTest {
     @InjectMocks private StarterKitService service;
 
     @Test
-    void generate_planningMove_returns7Sections() {
+    void generate_returnsAllSections() {
         User user = mockUser();
         RelocationProfile profile = mockProfile("planning_move");
-        RelocationScoringConfig config = mockConfig();
 
         when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
-        when(scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1"))
-                .thenReturn(Optional.of(config));
         when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("1500"));
-        when(scoringHelper.classifyMarginStatus(any(), any())).thenReturn("sustainable");
+        when(scoringHelper.getCityMacroareeMap(any())).thenReturn(Map.of(
+                "opportunita_lavorative", new BigDecimal("80"),
+                "integrazione_sociale", new BigDecimal("70"),
+                "qualita_vita", new BigDecimal("75"),
+                "potere_economico", new BigDecimal("65"),
+                "costo_vita", new BigDecimal("55"),
+                "mercato_immobiliare", new BigDecimal("50")
+        ));
         when(reportRepository.save(any())).thenAnswer(inv -> {
             StarterKitReport report = inv.getArgument(0);
             report.setId(UUID.randomUUID());
@@ -62,13 +64,16 @@ class StarterKitServiceTest {
         assertNotNull(result);
         verify(reportRepository).save(argThat(report -> {
             Map<String, Object> payload = report.getPayload();
-            return payload.containsKey("cityAnalysis") &&
+            return payload.containsKey("cityAlignmentSnapshot") &&
+                    payload.containsKey("cityFitCards") &&
                     payload.containsKey("budgetAnalysis") &&
                     payload.containsKey("quickActions") &&
-                    payload.containsKey("typicalMistake") &&
+                    payload.containsKey("commonRelocationMistake") &&
                     payload.containsKey("scamSentinel") &&
-                    payload.containsKey("burnoutRisk") &&
-                    payload.containsKey("riskSnapshot");
+                    payload.containsKey("initialStressLevel") &&
+                    payload.containsKey("relocationRisk") &&
+                    payload.containsKey("sevenDayActionPlan") &&
+                    payload.containsKey("safetyBuffer");
         }));
     }
 
@@ -87,16 +92,24 @@ class StarterKitServiceTest {
     }
 
     @Test
-    void generate_alreadyInCity_differentActions() {
+    @SuppressWarnings("unchecked")
+    void generate_stressLevel_computedFromProfile() {
         User user = mockUser();
-        RelocationProfile profile = mockProfile("already_in_city");
-        RelocationScoringConfig config = mockConfig();
+        RelocationProfile profile = mockProfile("planning_move");
+        lenient().when(profile.getPrimaryGoal()).thenReturn("family_stability");
+        lenient().when(profile.getHousehold()).thenReturn("with_children");
+        lenient().when(profile.getPriorityProblem()).thenReturn("housing");
 
         when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
-        when(scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1"))
-                .thenReturn(Optional.of(config));
         when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("1500"));
-        when(scoringHelper.classifyMarginStatus(any(), any())).thenReturn("tight");
+        when(scoringHelper.getCityMacroareeMap(any())).thenReturn(Map.of(
+                "opportunita_lavorative", new BigDecimal("70"),
+                "integrazione_sociale", new BigDecimal("60"),
+                "qualita_vita", new BigDecimal("65"),
+                "potere_economico", new BigDecimal("55"),
+                "costo_vita", new BigDecimal("50"),
+                "mercato_immobiliare", new BigDecimal("45")
+        ));
         when(reportRepository.save(any())).thenAnswer(inv -> {
             StarterKitReport report = inv.getArgument(0);
             report.setId(UUID.randomUUID());
@@ -106,8 +119,13 @@ class StarterKitServiceTest {
         when(mapper.toStarterKitResponse(any())).thenReturn(mock(StarterKitResponse.class));
 
         service.generate(user.getId(), null);
-        verify(reportRepository).save(argThat(report ->
-                "already_in_city".equals(report.getScenario())));
+
+        verify(reportRepository).save(argThat(report -> {
+            Map<String, Object> stress = (Map<String, Object>) report.getPayload().get("initialStressLevel");
+            int score = (int) stress.get("score");
+            // planning_move=2 + with_children=2 + family_stability=2 + housing=2 = 8 → HIGH
+            return score == 8 && "HIGH".equals(stress.get("level"));
+        }));
     }
 
     private User mockUser() {
@@ -122,6 +140,7 @@ class StarterKitServiceTest {
         lenient().when(profile.getMonthlyBudget()).thenReturn(new BigDecimal("2500"));
         lenient().when(profile.getHousehold()).thenReturn("single");
         lenient().when(profile.getPriorityProblem()).thenReturn("bureaucracy");
+        lenient().when(profile.getPrimaryGoal()).thenReturn("career_growth");
         RelocationCityDataset city = mockCity();
         lenient().when(profile.getTargetCity()).thenReturn(city);
         return profile;
@@ -133,21 +152,9 @@ class StarterKitServiceTest {
         lenient().when(city.getCityName()).thenReturn("Berlin");
         lenient().when(city.getCountry()).thenReturn("Germany");
         lenient().when(city.getApartment1brCenter()).thenReturn(new BigDecimal("900"));
+        lenient().when(city.getApartment3brCenter()).thenReturn(new BigDecimal("1600"));
         lenient().when(city.getCostSingleNoRent()).thenReturn(new BigDecimal("600"));
-        lenient().when(city.getMacroCostoVita()).thenReturn(new BigDecimal("65"));
-        lenient().when(city.getMacroMercatoImmobiliare()).thenReturn(new BigDecimal("45"));
-        lenient().when(city.getMacroPotereEconomico()).thenReturn(new BigDecimal("70"));
-        lenient().when(city.getMacroQualitaVita()).thenReturn(new BigDecimal("75"));
-        lenient().when(city.getMacroOpportunitaLavorative()).thenReturn(new BigDecimal("80"));
-        lenient().when(city.getMacroIntegrazioneSociale()).thenReturn(new BigDecimal("60"));
-        lenient().when(city.getSafetyIndex()).thenReturn(new BigDecimal("72"));
-        lenient().when(city.getHealthcareIndex()).thenReturn(new BigDecimal("78"));
+        lenient().when(city.getCostFamilyNoRent()).thenReturn(new BigDecimal("1200"));
         return city;
-    }
-
-    private RelocationScoringConfig mockConfig() {
-        RelocationScoringConfig config = mock(RelocationScoringConfig.class);
-        lenient().when(config.getBudgetMarginThresholds()).thenReturn(Map.of("sustainable", 400, "tight", 100, "very_tight", 0));
-        return config;
     }
 }

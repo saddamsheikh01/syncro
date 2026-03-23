@@ -164,10 +164,12 @@ class Sprint2IntegrationTest extends Sprint1IntegrationBaseTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.payload.cityAnalysis").exists())
+                .andExpect(jsonPath("$.payload.cityAlignmentSnapshot").exists())
                 .andExpect(jsonPath("$.payload.budgetAnalysis").exists())
                 .andExpect(jsonPath("$.payload.quickActions").exists())
-                .andExpect(jsonPath("$.payload.burnoutRisk").exists());
+                .andExpect(jsonPath("$.payload.initialStressLevel").exists())
+                .andExpect(jsonPath("$.payload.relocationRisk").exists())
+                .andExpect(jsonPath("$.payload.safetyBuffer").exists());
 
         mockMvc.perform(get("/api/v1/relocation/starter-kit/latest")
                         .header("Authorization", "Bearer " + token))

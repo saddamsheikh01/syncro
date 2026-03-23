@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -21,8 +22,6 @@ public class StarterKitService {
     private final StarterKitReportRepository reportRepository;
     private final RelocationProfileRepository profileRepository;
     private final RelocationCityDatasetRepository cityDatasetRepository;
-    private final RelocationScoringConfigRepository scoringConfigRepository;
-    private final RelocationRiskSnapshotRepository riskSnapshotRepository;
     private final ScoringCalculationHelper scoringHelper;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
@@ -31,8 +30,6 @@ public class StarterKitService {
     public StarterKitService(StarterKitReportRepository reportRepository,
                               RelocationProfileRepository profileRepository,
                               RelocationCityDatasetRepository cityDatasetRepository,
-                              RelocationScoringConfigRepository scoringConfigRepository,
-                              RelocationRiskSnapshotRepository riskSnapshotRepository,
                               ScoringCalculationHelper scoringHelper,
                               RelocationMapper mapper,
                               AnalyticsService analyticsService,
@@ -40,8 +37,6 @@ public class StarterKitService {
         this.reportRepository = reportRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
-        this.scoringConfigRepository = scoringConfigRepository;
-        this.riskSnapshotRepository = riskSnapshotRepository;
         this.scoringHelper = scoringHelper;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
@@ -49,65 +44,56 @@ public class StarterKitService {
     }
 
     @Transactional
+    @SuppressWarnings("unchecked")
     public StarterKitResponse generate(UUID userId, GenerateStarterKitRequest request) {
         User user = userRepository.getReferenceById(userId);
         RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
 
         RelocationCityDataset city = resolveCity(request != null ? request.cityId() : null, profile);
-        RelocationScoringConfig config = scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")
-                .orElseThrow(() -> new NotFoundException("Configurazione scoring non trovata"));
-
         String scenario = profile.getUserType();
+
+        Map<String, BigDecimal> scores = getCityScores(city);
         Map<String, Object> payload = new LinkedHashMap<>();
 
-        // Section 1: City analysis
-        payload.put("cityAnalysis", buildCityAnalysis(city));
+        // Section 1: City Alignment Snapshot (2 strengths + 1 attention)
+        payload.put("cityAlignmentSnapshot", buildCityAlignmentSnapshot(city, scores));
 
-        // Section 2: Minimum realistic budget
+        // Section 2: City Fit Cards (6 cards with range-based text)
+        payload.put("cityFitCards", buildCityFitCards(city, scores));
+
+        // Section 3: Budget analysis
         boolean isFamily = profile.getHousehold() != null &&
                 (profile.getHousehold().contains("children") || profile.getHousehold().contains("family"));
         BigDecimal minBudget = scoringHelper.computeCityCost(city, isFamily);
-        Map<String, Object> budgetSection = new LinkedHashMap<>();
-        budgetSection.put("minimumRealisticBudget", minBudget);
-        budgetSection.put("isFamily", isFamily);
-        budgetSection.put("rent", isFamily ? city.getApartment3brCenter() : city.getApartment1brCenter());
-        budgetSection.put("livingExpenses", isFamily ? city.getCostFamilyNoRent() : city.getCostSingleNoRent());
-        BigDecimal userBudget = profile.getMonthlyBudget();
-        BigDecimal margin = userBudget.subtract(minBudget);
-        budgetSection.put("userBudget", userBudget);
-        budgetSection.put("margin", margin);
-        budgetSection.put("marginStatus", scoringHelper.classifyMarginStatus(margin, config));
-        payload.put("budgetAnalysis", budgetSection);
+        payload.put("budgetAnalysis", buildBudgetAnalysis(city, profile, minBudget, isFamily));
 
-        // Section 3: 3 actions in 7 days
+        // Section 4: Quick Actions (FREE) / 7-Day Action Plan (SUPER_PRO)
         payload.put("quickActions", buildQuickActions(scenario, profile.getPriorityProblem(), city));
+        payload.put("sevenDayActionPlan", buildSevenDayActionPlan(city));
 
-        // Section 4: Typical relocation mistake
-        payload.put("typicalMistake", buildTypicalMistake(scenario));
+        // Section 5: Common Relocation Mistake (based on lowest score)
+        payload.put("commonRelocationMistake", buildCommonMistake(scores, city));
 
-        // Section 5: Scam sentinel
+        // Section 6: Scam sentinel
         payload.put("scamSentinel", buildScamSentinel(city.getCountry(), city.getCityName()));
 
-        // Section 6: Burnout risk index
-        int burnoutIndex = computeBurnoutIndex(profile, margin, config);
-        Map<String, Object> burnoutSection = new LinkedHashMap<>();
-        burnoutSection.put("burnoutIndex", burnoutIndex);
-        burnoutSection.put("level", classifyBurnoutLevel(burnoutIndex));
-        payload.put("burnoutRisk", burnoutSection);
+        // Section 7: Initial Stress Level (4 factors, 0-8)
+        payload.put("initialStressLevel", computeInitialStressLevel(profile));
 
-        // Section 7: Risk snapshot
-        Map<String, Object> riskSection = buildRiskSnapshot(profile, burnoutIndex, margin, config);
-        payload.put("riskSnapshot", riskSection);
+        // Section 8: Relocation Risk (3 factors, 0-6)
+        payload.put("relocationRisk", computeRelocationRisk(profile, city));
 
-        // Create report
+        // Section 9: Safety Buffer (SUPER_PRO)
+        payload.put("safetyBuffer", buildSafetyBuffer(minBudget));
+
+        // Create report with actions
         StarterKitReport report = new StarterKitReport();
         report.setUser(user);
         report.setCity(city);
         report.setScenario(scenario);
         report.setPayload(payload);
 
-        // Create actions
         List<Map<String, Object>> quickActions = (List<Map<String, Object>>) payload.get("quickActions");
         List<StarterKitAction> actions = new ArrayList<>();
         for (int i = 0; i < quickActions.size(); i++) {
@@ -135,113 +121,320 @@ public class StarterKitService {
         return mapper.toStarterKitResponse(report);
     }
 
-    private RelocationCityDataset resolveCity(UUID cityId, RelocationProfile profile) {
-        if (cityId != null) {
-            return cityDatasetRepository.findById(cityId)
-                    .orElseThrow(() -> new NotFoundException("Citta non trovata"));
-        }
-        if (profile.getTargetCity() != null) {
-            return profile.getTargetCity();
-        }
-        throw new NotFoundException("Nessuna citta specificata");
-    }
+    // ========== CITY ALIGNMENT SNAPSHOT ==========
 
-    private Map<String, Object> buildCityAnalysis(RelocationCityDataset city) {
-        Map<String, Object> analysis = new LinkedHashMap<>();
-        analysis.put("cityName", city.getCityName());
-        analysis.put("country", city.getCountry());
-        analysis.put("macroaree", Map.of(
-                "costoVita", city.getMacroCostoVita(),
-                "mercatoImmobiliare", city.getMacroMercatoImmobiliare(),
-                "potereEconomico", city.getMacroPotereEconomico(),
-                "qualitaVita", city.getMacroQualitaVita(),
-                "opportunitaLavorative", city.getMacroOpportunitaLavorative(),
-                "integrazioneSociale", city.getMacroIntegrazioneSociale()
+    private Map<String, Object> buildCityAlignmentSnapshot(RelocationCityDataset city,
+                                                              Map<String, BigDecimal> scores) {
+        List<Map.Entry<String, BigDecimal>> sorted = scores.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .toList();
+
+        String highest = sorted.get(0).getKey();
+        String secondHighest = sorted.get(1).getKey();
+        String lowest = sorted.get(sorted.size() - 1).getKey();
+
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("cityName", city.getCityName());
+        snapshot.put("summary", "Based on your priorities, " + city.getCityName() +
+                " appears broadly compatible with your lifestyle and professional goals.");
+        snapshot.put("strengths", List.of(
+                buildAlignmentPoint(highest, scores.get(highest), city.getCityName()),
+                buildAlignmentPoint(secondHighest, scores.get(secondHighest), city.getCityName())
         ));
-        analysis.put("safetyIndex", city.getSafetyIndex());
-        analysis.put("healthcareIndex", city.getHealthcareIndex());
-        return analysis;
+        snapshot.put("attention", buildAttentionPoint(lowest, scores.get(lowest), city.getCityName()));
+        return snapshot;
     }
 
-    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildAlignmentPoint(String indicator, BigDecimal score, String cityName) {
+        Map<String, Object> point = new LinkedHashMap<>();
+        point.put("indicator", indicator);
+        point.put("score", score);
+        point.put("message", getStrengthMessage(indicator, cityName));
+        return point;
+    }
+
+    private Map<String, Object> buildAttentionPoint(String indicator, BigDecimal score, String cityName) {
+        Map<String, Object> point = new LinkedHashMap<>();
+        point.put("indicator", indicator);
+        point.put("score", score);
+        point.put("message", getAttentionMessage(indicator, cityName));
+        return point;
+    }
+
+    // ========== CITY FIT CARDS ==========
+
+    private List<Map<String, Object>> buildCityFitCards(RelocationCityDataset city,
+                                                          Map<String, BigDecimal> scores) {
+        List<Map<String, Object>> cards = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> entry : scores.entrySet()) {
+            cards.add(buildFitCard(entry.getKey(), entry.getValue(), city.getCityName()));
+        }
+        return cards;
+    }
+
+    private Map<String, Object> buildFitCard(String indicator, BigDecimal score, String cityName) {
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("indicator", indicator);
+        card.put("score", score);
+
+        int s = score.intValue();
+        String level;
+        String message;
+        if (s >= 80) {
+            level = "STRONG";
+            message = getFitMessage(indicator, "strong", cityName);
+        } else if (s >= 60) {
+            level = "GOOD";
+            message = getFitMessage(indicator, "good", cityName);
+        } else if (s >= 40) {
+            level = "MODERATE";
+            message = getFitMessage(indicator, "moderate", cityName);
+        } else {
+            level = "WEAK";
+            message = getFitMessage(indicator, "weak", cityName);
+        }
+
+        card.put("level", level);
+        card.put("message", message);
+        card.put("cta", getCta(indicator));
+        return card;
+    }
+
+    // ========== BUDGET ANALYSIS ==========
+
+    private Map<String, Object> buildBudgetAnalysis(RelocationCityDataset city, RelocationProfile profile,
+                                                       BigDecimal minBudget, boolean isFamily) {
+        Map<String, Object> budget = new LinkedHashMap<>();
+        budget.put("minimumRealisticBudget", minBudget);
+        budget.put("isFamily", isFamily);
+        budget.put("rent", isFamily ? city.getApartment3brCenter() : city.getApartment1brCenter());
+        budget.put("livingExpenses", isFamily ? city.getCostFamilyNoRent() : city.getCostSingleNoRent());
+
+        BigDecimal userBudget = profile.getMonthlyBudget();
+        BigDecimal margin = userBudget.subtract(minBudget);
+        budget.put("userBudget", userBudget);
+        budget.put("margin", margin);
+
+        String status;
+        if (margin.compareTo(new BigDecimal("400")) >= 0) status = "sustainable";
+        else if (margin.compareTo(new BigDecimal("100")) >= 0) status = "tight";
+        else if (margin.compareTo(BigDecimal.ZERO) >= 0) status = "very_tight";
+        else status = "unsustainable";
+        budget.put("marginStatus", status);
+        return budget;
+    }
+
+    // ========== INITIAL STRESS LEVEL (4 factors, 0-8) ==========
+
+    private Map<String, Object> computeInitialStressLevel(RelocationProfile profile) {
+        int score = 0;
+
+        // Factor 1: Timing (from userType)
+        String userType = profile.getUserType() != null ? profile.getUserType() : "";
+        switch (userType) {
+            case "planning_move" -> score += 2;
+            case "chosen_city" -> score += 1;
+            // already_in_city / exploring → 0
+        }
+
+        // Factor 2: Household
+        String household = profile.getHousehold() != null ? profile.getHousehold() : "";
+        if (household.contains("children") || household.contains("family")) score += 2;
+        else if (household.contains("partner") || household.contains("couple")) score += 1;
+
+        // Factor 3: Main goal
+        String goal = profile.getPrimaryGoal() != null ? profile.getPrimaryGoal() : "";
+        switch (goal) {
+            case "family_stability" -> score += 2;
+            case "career_growth", "career", "study" -> score += 1;
+            // remote_work, lifestyle → 0
+        }
+
+        // Factor 4: Primary need
+        String need = profile.getPriorityProblem() != null ? profile.getPriorityProblem() : "";
+        switch (need) {
+            case "housing", "neighborhood" -> score += 2;
+            case "cost_of_living", "bureaucracy", "legal_issues" -> score += 1;
+            // social, friendships → 0
+        }
+
+        String level;
+        if (score <= 2) level = "LOW";
+        else if (score <= 5) level = "MEDIUM";
+        else level = "HIGH";
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("score", score);
+        result.put("level", level);
+        result.put("maxScore", 8);
+        return result;
+    }
+
+    // ========== RELOCATION RISK (3 factors, 0-6) ==========
+
+    private Map<String, Object> computeRelocationRisk(RelocationProfile profile, RelocationCityDataset city) {
+        int score = 0;
+
+        // Factor 1: Budget vs market
+        BigDecimal budget = profile.getMonthlyBudget();
+        BigDecimal avgRent = city.getApartment1brCenter();
+        if (budget.compareTo(avgRent) >= 0) score += 0;
+        else if (budget.subtract(avgRent).abs().compareTo(avgRent.multiply(new BigDecimal("0.2"))) <= 0) score += 1;
+        else score += 2;
+
+        // Factor 2: Timing
+        String userType = profile.getUserType() != null ? profile.getUserType() : "";
+        switch (userType) {
+            case "planning_move" -> score += 1;
+            case "chosen_city" -> score += 2;
+            // already_in_city → 0
+        }
+
+        // Factor 3: Housing request
+        String household = profile.getHousehold() != null ? profile.getHousehold() : "";
+        if (household.contains("children") || household.contains("family")) score += 2;
+        else score += 1;
+
+        String level;
+        if (score <= 2) level = "LOW";
+        else if (score <= 4) level = "MEDIUM";
+        else level = "HIGH";
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("score", score);
+        result.put("level", level);
+        result.put("maxScore", 6);
+        return result;
+    }
+
+    // ========== COMMON RELOCATION MISTAKE (based on lowest score) ==========
+
+    private Map<String, Object> buildCommonMistake(Map<String, BigDecimal> scores, RelocationCityDataset city) {
+        String lowestKey = scores.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("housing_market");
+
+        Map<String, Object> mistake = new LinkedHashMap<>();
+        mistake.put("basedOn", lowestKey);
+        mistake.put("score", scores.get(lowestKey));
+
+        switch (lowestKey) {
+            case "housing_market" -> {
+                mistake.put("title", "Underestimating the housing market");
+                mistake.put("description", "Many people relocating to " + city.getCityName() +
+                        " underestimate how competitive the housing market can be. Start your search early and consider temporary housing first.");
+                mistake.put("cta", "Explore Housing Options");
+            }
+            case "cost_of_living" -> {
+                mistake.put("title", "Not budgeting for real costs");
+                mistake.put("description", "The actual cost of living in " + city.getCityName() +
+                        " often exceeds initial estimates. Use the Budget Simulator to get precise numbers before committing.");
+                mistake.put("cta", "Open Budget Simulator");
+            }
+            case "social_integration" -> {
+                mistake.put("title", "Neglecting social connections");
+                mistake.put("description", "Social isolation is one of the top reasons relocations fail. In " + city.getCityName() +
+                        ", building connections early is essential for long-term wellbeing.");
+                mistake.put("cta", "Join Expat Community");
+            }
+            case "work_opportunities" -> {
+                mistake.put("title", "Assuming job market accessibility");
+                mistake.put("description", "The professional landscape in " + city.getCityName() +
+                        " may require adaptation. Network actively and consider local certifications or language skills.");
+                mistake.put("cta", "Career Advisor");
+            }
+            case "quality_of_life" -> {
+                mistake.put("title", "Overlooking daily quality factors");
+                mistake.put("description", "Quality of life in " + city.getCityName() +
+                        " depends on neighborhood choice, healthcare access, and climate adaptation. Research neighborhoods thoroughly.");
+                mistake.put("cta", "Explore Neighborhoods");
+            }
+            default -> {
+                mistake.put("title", "Rushing the relocation process");
+                mistake.put("description", "Taking time to research and plan significantly improves relocation outcomes in " +
+                        city.getCityName() + ".");
+                mistake.put("cta", "View Relocation Roadmap");
+            }
+        }
+        return mistake;
+    }
+
+    // ========== 7-DAY ACTION PLAN (SUPER_PRO) ==========
+
+    private List<Map<String, Object>> buildSevenDayActionPlan(RelocationCityDataset city) {
+        List<Map<String, Object>> plan = new ArrayList<>();
+
+        Map<String, Object> days12 = new LinkedHashMap<>();
+        days12.put("days", "1-2");
+        days12.put("actions", List.of(
+                actionMap("Run Budget Simulation", "Get a precise estimate of your monthly costs in " + city.getCityName(), "finance"),
+                actionMap("Review relocation priorities", "Check your roadmap and adjust based on your budget results", "planning")
+        ));
+        plan.add(days12);
+
+        Map<String, Object> days35 = new LinkedHashMap<>();
+        days35.put("days", "3-5");
+        days35.put("actions", List.of(
+                actionMap("Ask a verified expert", "Connect with a relocation professional for " + city.getCityName(), "professionals"),
+                actionMap("Connect with expats", "Join the expat community and ask real questions", "social"),
+                actionMap("Explore events", "Find local events to attend after arrival", "events")
+        ));
+        plan.add(days35);
+
+        Map<String, Object> days57 = new LinkedHashMap<>();
+        days57.put("days", "5-7");
+        days57.put("actions", List.of(
+                actionMap("Start building connections", "Use matching to find compatible people in " + city.getCityName(), "social"),
+                actionMap("Refine relocation strategy", "Update your roadmap with everything learned this week", "planning"),
+                actionMap("Book expert consultation", "Schedule a call with a verified professional", "professionals")
+        ));
+        plan.add(days57);
+
+        return plan;
+    }
+
+    // ========== SAFETY BUFFER (SUPER_PRO) ==========
+
+    private Map<String, Object> buildSafetyBuffer(BigDecimal estimatedMonthlyCost) {
+        Map<String, Object> buffer = new LinkedHashMap<>();
+        buffer.put("title", "Minimum Financial Safety for Your Relocation");
+        buffer.put("description", "Relocating without a financial reserve is one of the main reasons why relocations fail.");
+        buffer.put("estimatedMonthlyCost", estimatedMonthlyCost);
+        buffer.put("minimumReserve", estimatedMonthlyCost.multiply(new BigDecimal("3")).setScale(2, RoundingMode.HALF_UP));
+        buffer.put("recommendedReserve", estimatedMonthlyCost.multiply(new BigDecimal("4")).setScale(2, RoundingMode.HALF_UP));
+        buffer.put("coversItems", List.of(
+                "Time needed to find housing",
+                "Deposits and setup costs",
+                "Unexpected expenses in the first months"
+        ));
+        return buffer;
+    }
+
+    // ========== QUICK ACTIONS (FREE) ==========
+
     private List<Map<String, Object>> buildQuickActions(String scenario, String priorityProblem,
                                                           RelocationCityDataset city) {
         List<Map<String, Object>> actions = new ArrayList<>();
 
-        switch (scenario != null ? scenario : "") {
-            case "planning_move" -> {
-                actions.add(actionMap("Research housing market in " + city.getCityName(),
-                        "Check apartment listings on local portals. Target areas with rent index < 70 for better affordability.",
-                        "housing"));
-                actions.add(actionMap("Calculate precise monthly budget",
-                        "Use the Budget Simulation tool with your income data to get a stress index for " + city.getCityName() + ".",
-                        "finance"));
-                actions.add(actionMap("Join expat communities online",
-                        "Find Facebook groups, Reddit communities, and local meetup events for " + city.getCityName() + " expats.",
-                        "social"));
-            }
-            case "chosen_city" -> {
-                actions.add(actionMap("Secure temporary accommodation",
-                        "Book at least 30 days of temporary housing. Avoid long-term contracts before seeing the neighborhood in person.",
-                        "housing"));
-                actions.add(actionMap("Open a local bank account",
-                        "Research requirements for opening a bank account in " + city.getCountry() + " as a foreigner.",
-                        "finance"));
-                actions.add(actionMap("Register with local authorities",
-                        "Check registration requirements within first 2 weeks of arrival in " + city.getCountry() + ".",
-                        "admin"));
-            }
-            default -> {
-                actions.add(actionMap("Assess your current integration level",
-                        "Complete the available micro-tests to identify areas that need attention.",
-                        "assessment"));
-                actions.add(actionMap("Review your budget vs actual spending",
-                        "Use Budget Tracking to compare your planned vs actual expenses this month.",
-                        "finance"));
-                actions.add(actionMap("Expand your local network",
-                        "Attend at least one local event or meetup this week to strengthen social connections.",
-                        "social"));
-            }
-        }
+        actions.add(actionMap("Change Your Answers",
+                "Refine your profile to improve your relocation insights.", "profile"));
+        actions.add(actionMap("Open Budget Simulator",
+                "Estimate the real monthly cost of living in " + city.getCityName() + ".", "finance"));
+        actions.add(actionMap("View Relocation Roadmap",
+                "See the key steps to organize your move.", "planning"));
+        actions.add(actionMap("Explore Verified Professionals",
+                "Connect with housing agents, relocation experts and local advisors.", "professionals"));
 
         if ("loneliness".equals(priorityProblem) || "social_isolation".equals(priorityProblem)) {
-            actions.add(actionMap("Priority: Address social isolation",
-                    "Sign up for a coworking space or language exchange in " + city.getCityName() + ".",
-                    "priority"));
+            actions.add(actionMap("Join Expat Community",
+                    "Connect with people who have already relocated to " + city.getCityName() + ".", "social"));
         }
 
         return actions;
     }
 
-    private Map<String, Object> actionMap(String title, String description, String category) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("title", title);
-        map.put("description", description);
-        map.put("category", category);
-        return map;
-    }
-
-    private Map<String, Object> buildTypicalMistake(String scenario) {
-        Map<String, Object> mistake = new LinkedHashMap<>();
-        switch (scenario != null ? scenario : "") {
-            case "planning_move" -> {
-                mistake.put("title", "Signing a long-term lease remotely");
-                mistake.put("description", "Many expats sign 12-month contracts before seeing the apartment or neighborhood. Always visit in person or use a temporary rental for the first 1-2 months.");
-                mistake.put("severity", "HIGH");
-            }
-            case "chosen_city" -> {
-                mistake.put("title", "Underestimating bureaucratic timelines");
-                mistake.put("description", "Visa renewals, residence permits, and local registrations often take 2-3x longer than expected. Start all paperwork immediately upon arrival.");
-                mistake.put("severity", "HIGH");
-            }
-            default -> {
-                mistake.put("title", "Neglecting social integration");
-                mistake.put("description", "After the initial excitement fades, many expats retreat into work-only mode. Actively maintaining social connections is crucial for long-term wellbeing.");
-                mistake.put("severity", "MEDIUM");
-            }
-        }
-        return mistake;
-    }
+    // ========== SCAM SENTINEL ==========
 
     private Map<String, Object> buildScamSentinel(String country, String cityName) {
         Map<String, Object> sentinel = new LinkedHashMap<>();
@@ -267,67 +460,120 @@ public class StarterKitService {
         return sentinel;
     }
 
-    private int computeBurnoutIndex(RelocationProfile profile, BigDecimal margin,
-                                      RelocationScoringConfig config) {
-        int index = 0;
+    // ========== HELPERS ==========
 
-        String marginStatus = scoringHelper.classifyMarginStatus(margin, config);
-        switch (marginStatus) {
-            case "unsustainable" -> index += 35;
-            case "very_tight" -> index += 25;
-            case "tight" -> index += 15;
-            case "sustainable" -> index += 5;
+    private RelocationCityDataset resolveCity(UUID cityId, RelocationProfile profile) {
+        if (cityId != null) {
+            return cityDatasetRepository.findById(cityId)
+                    .orElseThrow(() -> new NotFoundException("Citta non trovata"));
         }
-
-        if ("alone".equals(profile.getHousehold()) || "single".equals(profile.getHousehold())) {
-            index += 15;
+        if (profile.getTargetCity() != null) {
+            return profile.getTargetCity();
         }
-
-        String priority = profile.getPriorityProblem();
-        if ("loneliness".equals(priority) || "social_isolation".equals(priority)) {
-            index += 20;
-        } else if ("bureaucracy".equals(priority) || "legal_issues".equals(priority)) {
-            index += 10;
-        }
-
-        if ("already_in_city".equals(profile.getUserType())) {
-            index += 5;
-        } else if ("planning_move".equals(profile.getUserType())) {
-            index += 10;
-        }
-
-        return Math.min(100, index);
+        throw new NotFoundException("Nessuna citta specificata");
     }
 
-    private String classifyBurnoutLevel(int index) {
-        if (index >= 70) return "CRITICAL";
-        if (index >= 50) return "HIGH";
-        if (index >= 30) return "MODERATE";
-        return "LOW";
+    private Map<String, BigDecimal> getCityScores(RelocationCityDataset city) {
+        Map<String, BigDecimal> scores = new LinkedHashMap<>();
+        scores.put("work_opportunities", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("opportunita_lavorative", BigDecimal.ZERO));
+        scores.put("social_integration", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("integrazione_sociale", BigDecimal.ZERO));
+        scores.put("quality_of_life", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("qualita_vita", BigDecimal.ZERO));
+        scores.put("economic_power", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("potere_economico", BigDecimal.ZERO));
+        scores.put("cost_of_living", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("costo_vita", BigDecimal.ZERO));
+        scores.put("housing_market", scoringHelper.getCityMacroareeMap(city)
+                .getOrDefault("mercato_immobiliare", BigDecimal.ZERO));
+        return scores;
     }
 
-    private Map<String, Object> buildRiskSnapshot(RelocationProfile profile, int burnoutIndex,
-                                                     BigDecimal margin, RelocationScoringConfig config) {
-        Map<String, Object> risk = new LinkedHashMap<>();
-        Map<String, Object> indicators = new LinkedHashMap<>();
+    private Map<String, Object> actionMap(String title, String description, String category) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("title", title);
+        map.put("description", description);
+        map.put("category", category);
+        return map;
+    }
 
-        String marginStatus = scoringHelper.classifyMarginStatus(margin, config);
-        indicators.put("financialRisk", marginStatus.equals("unsustainable") || marginStatus.equals("very_tight") ? "HIGH" : "LOW");
-        indicators.put("burnoutRisk", classifyBurnoutLevel(burnoutIndex));
-        indicators.put("isolationRisk", "alone".equals(profile.getHousehold()) ? "MODERATE" : "LOW");
+    private String getStrengthMessage(String indicator, String cityName) {
+        return switch (indicator) {
+            case "work_opportunities" -> "Work opportunities appear particularly strong, suggesting good potential for professional growth, remote work or international careers.";
+            case "social_integration" -> "Social integration appears particularly strong in " + cityName + ", facilitating connections with locals and expat communities.";
+            case "quality_of_life" -> "Quality of life is a clear strength in " + cityName + ", with favorable conditions for daily living.";
+            case "economic_power" -> "Local economic power is strong, supporting purchasing capacity and financial stability.";
+            case "cost_of_living" -> "Cost of living conditions are favorable, making daily expenses manageable.";
+            case "housing_market" -> "The housing market shows good accessibility for newcomers.";
+            default -> indicator + " appears strong in " + cityName + ".";
+        };
+    }
 
-        risk.put("indicators", indicators);
-        risk.put("burnoutIndex", burnoutIndex);
+    private String getAttentionMessage(String indicator, String cityName) {
+        return switch (indicator) {
+            case "work_opportunities" -> "Work opportunities may require more planning and networking to access effectively.";
+            case "social_integration" -> "Social integration may require more initiative, as building connections can take time.";
+            case "quality_of_life" -> "Some quality of life factors may require adaptation and careful neighborhood choice.";
+            case "economic_power" -> "Local economic conditions may impact purchasing power — plan your budget accordingly.";
+            case "cost_of_living" -> "The cost of living may require budget adjustments compared to your current location.";
+            case "housing_market" -> "The housing market may require more planning, as availability and pricing can make finding accommodation more challenging.";
+            default -> indicator + " may require attention in " + cityName + ".";
+        };
+    }
 
-        long highCount = indicators.values().stream()
-                .filter(v -> "HIGH".equals(v) || "CRITICAL".equals(v))
-                .count();
-        String overallLevel;
-        if (highCount >= 2) overallLevel = "HIGH";
-        else if (highCount == 1) overallLevel = "MODERATE";
-        else overallLevel = "LOW";
-        risk.put("overallRiskLevel", overallLevel);
+    private String getFitMessage(String indicator, String level, String cityName) {
+        String base = switch (indicator) {
+            case "work_opportunities" -> switch (level) {
+                case "strong" -> "Your professional situation appears highly compatible with " + cityName + ".";
+                case "good" -> "Your situation appears generally compatible with " + cityName + ".";
+                case "moderate" -> "This aspect of life in " + cityName + " may require some planning and flexibility.";
+                default -> "This aspect may be more challenging in " + cityName + ".";
+            };
+            case "housing_market" -> switch (level) {
+                case "strong" -> "Housing affordability appears very favorable in " + cityName + ".";
+                case "good" -> "Housing affordability appears generally manageable.";
+                case "moderate" -> "Housing affordability may require planning.";
+                default -> "Housing affordability may be more challenging.";
+            };
+            case "social_integration" -> switch (level) {
+                case "strong" -> "Social integration appears particularly strong in " + cityName + ".";
+                case "good" -> "Social integration appears generally positive.";
+                case "moderate" -> "Social integration may require initiative.";
+                default -> "Social integration may be slower for newcomers.";
+            };
+            case "quality_of_life" -> switch (level) {
+                case "strong" -> "Quality of life is excellent in " + cityName + ".";
+                case "good" -> "Quality of life is generally good.";
+                case "moderate" -> "Quality of life varies by neighborhood.";
+                default -> "Quality of life may require careful neighborhood selection.";
+            };
+            case "economic_power" -> switch (level) {
+                case "strong" -> "Local economic power is very favorable.";
+                case "good" -> "Economic conditions are generally supportive.";
+                case "moderate" -> "Economic conditions are moderate — budget planning recommended.";
+                default -> "Economic conditions may impact purchasing power.";
+            };
+            case "cost_of_living" -> switch (level) {
+                case "strong" -> "Daily cost of living is very affordable.";
+                case "good" -> "Daily costs are generally manageable.";
+                case "moderate" -> "Daily costs require moderate budget discipline.";
+                default -> "Daily costs may strain your budget.";
+            };
+            default -> cityName + " scores " + level + " on " + indicator + ".";
+        };
+        return base;
+    }
 
-        return risk;
+    private String getCta(String indicator) {
+        return switch (indicator) {
+            case "work_opportunities" -> "Career Advisor / Job Market Consultant";
+            case "housing_market" -> "Local Real Estate Agent";
+            case "social_integration" -> "Syncro Lounge / Community";
+            case "quality_of_life" -> "Neighborhood Guide";
+            case "economic_power" -> "Financial Advisor";
+            case "cost_of_living" -> "Open Budget Simulator";
+            default -> "Talk to a relocation expert";
+        };
     }
 }
