@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.RiskSnapshotResponse;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
@@ -32,6 +33,7 @@ class RelocationRiskServiceTest {
     @Mock private RelocationScoringConfigRepository scoringConfigRepository;
     @Mock private ScoringCalculationHelper scoringHelper;
     @Mock private RelocationMapper mapper;
+    @Mock private UserRepository userRepository;
     @InjectMocks private RelocationRiskService service;
 
     @Test
@@ -44,7 +46,7 @@ class RelocationRiskServiceTest {
                 .thenReturn(Optional.of(snapshot));
         when(mapper.toRiskSnapshotResponse(snapshot)).thenReturn(resp);
 
-        RiskSnapshotResponse result = service.getLatestIndicators(user);
+        RiskSnapshotResponse result = service.getLatestIndicators(user.getId());
         assertNotNull(result);
         verify(riskSnapshotRepository, never()).save(any());
     }
@@ -53,7 +55,7 @@ class RelocationRiskServiceTest {
     void computeAndSaveSnapshot_noProfile_throwsNotFound() {
         User user = mockUser();
         when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
-        assertThrows(NotFoundException.class, () -> service.computeAndSaveSnapshot(user));
+        assertThrows(NotFoundException.class, () -> service.computeAndSaveSnapshot(user.getId()));
     }
 
     @Test
@@ -70,7 +72,7 @@ class RelocationRiskServiceTest {
         RiskSnapshotResponse mockResp = mock(RiskSnapshotResponse.class);
         when(mapper.toRiskSnapshotResponse(any())).thenReturn(mockResp);
 
-        RiskSnapshotResponse result = service.computeAndSaveSnapshot(user);
+        RiskSnapshotResponse result = service.computeAndSaveSnapshot(user.getId());
         assertNotNull(result);
         verify(riskSnapshotRepository).save(argThat(snap ->
                 snap.getRiskIndicators().containsKey("financialRisk")));

@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.StarterKitResponse;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
@@ -35,6 +36,7 @@ class StarterKitServiceTest {
     @Mock private ScoringCalculationHelper scoringHelper;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
+    @Mock private UserRepository userRepository;
     @InjectMocks private StarterKitService service;
 
     @Test
@@ -56,7 +58,7 @@ class StarterKitServiceTest {
         });
         when(mapper.toStarterKitResponse(any())).thenReturn(mock(StarterKitResponse.class));
 
-        StarterKitResponse result = service.generate(user, null);
+        StarterKitResponse result = service.generate(user.getId(), null);
         assertNotNull(result);
         verify(reportRepository).save(argThat(report -> {
             Map<String, Object> payload = report.getPayload();
@@ -74,14 +76,14 @@ class StarterKitServiceTest {
     void generate_noProfile_throwsNotFound() {
         User user = mockUser();
         when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
-        assertThrows(NotFoundException.class, () -> service.generate(user, null));
+        assertThrows(NotFoundException.class, () -> service.generate(user.getId(), null));
     }
 
     @Test
     void getLatest_noReport_throwsNotFound() {
         User user = mockUser();
         when(reportRepository.findFirstByUser_IdOrderByCreatedAtDesc(user.getId())).thenReturn(Optional.empty());
-        assertThrows(NotFoundException.class, () -> service.getLatest(user));
+        assertThrows(NotFoundException.class, () -> service.getLatest(user.getId()));
     }
 
     @Test
@@ -103,7 +105,7 @@ class StarterKitServiceTest {
         });
         when(mapper.toStarterKitResponse(any())).thenReturn(mock(StarterKitResponse.class));
 
-        service.generate(user, null);
+        service.generate(user.getId(), null);
         verify(reportRepository).save(argThat(report ->
                 "already_in_city".equals(report.getScenario())));
     }

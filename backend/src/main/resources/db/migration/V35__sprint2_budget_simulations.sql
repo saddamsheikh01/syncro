@@ -1,5 +1,5 @@
 -- Sprint 2: Budget simulation engine
-CREATE TABLE budget_simulations (
+CREATE TABLE IF NOT EXISTS budget_simulations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     city_id UUID REFERENCES relocation_city_dataset(id),
@@ -11,5 +11,5 @@ CREATE TABLE budget_simulations (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_budget_simulations_user_created ON budget_simulations(user_id, created_at DESC);
-CREATE INDEX idx_budget_simulations_user_plan ON budget_simulations(user_id, plan_code);
+CREATE INDEX IF NOT EXISTS idx_budget_simulations_user_created ON budget_simulations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_budget_simulations_user_plan ON budget_simulations(user_id, plan_code);

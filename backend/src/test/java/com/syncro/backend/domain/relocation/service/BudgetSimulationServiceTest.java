@@ -3,6 +3,7 @@ package com.syncro.backend.domain.relocation.service;
 import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.BudgetSimulationResponse;
 import com.syncro.backend.domain.relocation.dto.CreateBudgetSimulationRequest;
 import com.syncro.backend.domain.relocation.entity.BudgetSimulation;
@@ -39,6 +40,7 @@ class BudgetSimulationServiceTest {
     @Mock private ScoringCalculationHelper scoringHelper;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
+    @Mock private UserRepository userRepository;
     @InjectMocks private BudgetSimulationService service;
 
     @Test
@@ -67,7 +69,7 @@ class BudgetSimulationServiceTest {
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
                 "FREE", city.getId(), new BigDecimal("2500"), "single", "balanced", null, null);
 
-        BudgetSimulationResponse result = service.runSimulation(user, request);
+        BudgetSimulationResponse result = service.runSimulation(user.getId(), request);
         assertNotNull(result);
         verify(simulationRepository).save(any());
         verify(analyticsService).trackServerEventSafe(eq(user.getId()), eq("BUDGET_SIMULATION_RUN"), any());
@@ -78,7 +80,7 @@ class BudgetSimulationServiceTest {
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
                 "INVALID", null, null, null, null, null, null);
         User user = mock(User.class);
-        assertThrows(BadRequestException.class, () -> service.runSimulation(user, request));
+        assertThrows(BadRequestException.class, () -> service.runSimulation(user.getId(), request));
     }
 
     @Test
@@ -99,7 +101,7 @@ class BudgetSimulationServiceTest {
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
                 "PREMIUM", city.getId(), new BigDecimal("2500"), "single", "balanced", null, null);
 
-        assertThrows(BadRequestException.class, () -> service.runSimulation(user, request));
+        assertThrows(BadRequestException.class, () -> service.runSimulation(user.getId(), request));
     }
 
     @Test
@@ -128,7 +130,7 @@ class BudgetSimulationServiceTest {
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
                 "SUPER_PRO", city.getId(), new BigDecimal("2500"), "single", "balanced", new BigDecimal("4000"), 6);
 
-        BudgetSimulationResponse result = service.runSimulation(user, request);
+        BudgetSimulationResponse result = service.runSimulation(user.getId(), request);
         assertNotNull(result);
         verify(simulationRepository).save(argThat(sim ->
                 "SUPER_PRO".equals(sim.getPlanCode()) && sim.getOutputPayload() != null));
@@ -142,14 +144,14 @@ class BudgetSimulationServiceTest {
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
                 "FREE", null, null, null, null, null, null);
 
-        assertThrows(NotFoundException.class, () -> service.runSimulation(user, request));
+        assertThrows(NotFoundException.class, () -> service.runSimulation(user.getId(), request));
     }
 
     @Test
     void getSimulations_returnsList() {
         User user = mockUser();
         when(simulationRepository.findByUser_IdOrderByCreatedAtDesc(user.getId())).thenReturn(List.of());
-        List<BudgetSimulationResponse> result = service.getSimulations(user);
+        List<BudgetSimulationResponse> result = service.getSimulations(user.getId());
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }

@@ -1,5 +1,5 @@
 -- Sprint 2: Starter Kit reports and actions
-CREATE TABLE starter_kit_reports (
+CREATE TABLE IF NOT EXISTS starter_kit_reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     city_id UUID REFERENCES relocation_city_dataset(id),
@@ -9,9 +9,9 @@ CREATE TABLE starter_kit_reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_starter_kit_reports_user ON starter_kit_reports(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_starter_kit_reports_user ON starter_kit_reports(user_id, created_at DESC);
 
-CREATE TABLE starter_kit_actions (
+CREATE TABLE IF NOT EXISTS starter_kit_actions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     report_id UUID NOT NULL REFERENCES starter_kit_reports(id) ON DELETE CASCADE,
     action_order INTEGER NOT NULL,
@@ -21,4 +21,4 @@ CREATE TABLE starter_kit_actions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_starter_kit_actions_report ON starter_kit_actions(report_id);
+CREATE INDEX IF NOT EXISTS idx_starter_kit_actions_report ON starter_kit_actions(report_id);

@@ -1,5 +1,5 @@
 -- Sprint 2: Budget tracking (actual vs expected)
-CREATE TABLE budget_tracking_entries (
+CREATE TABLE IF NOT EXISTS budget_tracking_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     simulation_id UUID REFERENCES budget_simulations(id),
@@ -13,5 +13,5 @@ CREATE TABLE budget_tracking_entries (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_budget_tracking_user_recorded ON budget_tracking_entries(user_id, recorded_at DESC);
-CREATE INDEX idx_budget_tracking_user_category ON budget_tracking_entries(user_id, category);
+CREATE INDEX IF NOT EXISTS idx_budget_tracking_user_recorded ON budget_tracking_entries(user_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_budget_tracking_user_category ON budget_tracking_entries(user_id, category);

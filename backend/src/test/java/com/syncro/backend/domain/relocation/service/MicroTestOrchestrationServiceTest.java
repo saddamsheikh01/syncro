@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.MicroTestNextResponse;
 import com.syncro.backend.domain.relocation.entity.MicroTestAssignment;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
@@ -33,6 +34,7 @@ class MicroTestOrchestrationServiceTest {
     @Mock private UserTestSubmissionRepository submissionRepository;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
+    @Mock private UserRepository userRepository;
     @InjectMocks private MicroTestOrchestrationService service;
 
     @Test
@@ -46,7 +48,7 @@ class MicroTestOrchestrationServiceTest {
                 .thenReturn(Optional.of(assignment));
         when(mapper.toMicroTestNextResponse(assignment)).thenReturn(resp);
 
-        MicroTestNextResponse result = service.getNextMicroTest(user);
+        MicroTestNextResponse result = service.getNextMicroTest(user.getId());
         assertNotNull(result);
         verify(testDefinitionRepository, never()).findByActiveTrueOrderByCreatedAtDesc();
     }
@@ -73,7 +75,7 @@ class MicroTestOrchestrationServiceTest {
         MicroTestNextResponse resp = mock(MicroTestNextResponse.class);
         when(mapper.toMicroTestNextResponse(any(MicroTestAssignment.class))).thenReturn(resp);
 
-        MicroTestNextResponse result = service.getNextMicroTest(user);
+        MicroTestNextResponse result = service.getNextMicroTest(user.getId());
         assertNotNull(result);
         verify(assignmentRepository, times(2)).save(any());
     }
@@ -91,7 +93,7 @@ class MicroTestOrchestrationServiceTest {
         when(assignmentRepository.findRecentCompletedByUserAndTest(any(), any(), any()))
                 .thenReturn(List.of(recent));
 
-        assertThrows(NotFoundException.class, () -> service.getNextMicroTest(user));
+        assertThrows(NotFoundException.class, () -> service.getNextMicroTest(user.getId()));
     }
 
     @Test
