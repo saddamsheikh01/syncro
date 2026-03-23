@@ -5,10 +5,17 @@ import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.MicroTestNextResponse;
 import com.syncro.backend.domain.relocation.entity.MicroTestAssignment;
-import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.MicroTestAssignmentRepository;
+import com.syncro.backend.domain.tests.entity.TestAnswerOption;
 import com.syncro.backend.domain.tests.entity.TestDefinition;
+import com.syncro.backend.domain.tests.entity.TestQuestion;
+import com.syncro.backend.domain.tests.entity.TestQuestionType;
+import com.syncro.backend.domain.tests.entity.UserTestAnswer;
+import com.syncro.backend.domain.tests.entity.UserTestSubmission;
+import com.syncro.backend.domain.tests.repository.TestAnswerOptionRepository;
 import com.syncro.backend.domain.tests.repository.TestDefinitionRepository;
+import com.syncro.backend.domain.tests.repository.TestQuestionRepository;
+import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
@@ -23,7 +30,6 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,99 +37,142 @@ class MicroTestOrchestrationServiceTest {
 
     @Mock private MicroTestAssignmentRepository assignmentRepository;
     @Mock private TestDefinitionRepository testDefinitionRepository;
+    @Mock private TestQuestionRepository testQuestionRepository;
+    @Mock private TestAnswerOptionRepository testAnswerOptionRepository;
     @Mock private UserTestSubmissionRepository submissionRepository;
-    @Mock private RelocationMapper mapper;
+    @Mock private UserTestAnswerRepository userTestAnswerRepository;
     @Mock private AnalyticsService analyticsService;
     @Mock private UserRepository userRepository;
     @InjectMocks private MicroTestOrchestrationService service;
 
     @Test
-    void getNextMicroTest_existingPending_returnsIt() {
-        User user = mockUser();
-        MicroTestAssignment assignment = mock(MicroTestAssignment.class);
-        when(assignment.getExpiresAt()).thenReturn(Instant.now().plus(1, ChronoUnit.DAYS));
-        MicroTestNextResponse resp = mock(MicroTestNextResponse.class);
+    void getNextMicroTest_existingPending_returnsBlockOf3() {
+        UUID userId = UUID.randomUUID();
 
-        when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(user.getId(), "PENDING"))
+        MicroTestAssignment assignment = new MicroTestAssignment();
+        assignment.setId(UUID.randomUUID());
+        assignment.setStatus("PENDING");
+        assignment.setAvailableFrom(Instant.now());
+        assignment.setExpiresAt(Instant.now().plus(1, ChronoUnit.DAYS));
+        assignment.setBlockStartPosition(0);
+        assignment.setBlockSize(3);
+        TestDefinition testDef = mockTestDefinition();
+        assignment.setTestDefinition(testDef);
+
+        when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(userId, "PENDING"))
                 .thenReturn(Optional.of(assignment));
-        when(mapper.toMicroTestNextResponse(assignment)).thenReturn(resp);
+        List<TestQuestion> questions6 = mockQuestions(testDef, 6);
+        when(testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testDef.getId()))
+                .thenReturn(questions6);
+        when(testAnswerOptionRepository.findByQuestion_IdIn(any())).thenReturn(List.of());
 
-        MicroTestNextResponse result = service.getNextMicroTest(user.getId());
+        MicroTestNextResponse result = service.getNextMicroTest(userId);
+
         assertNotNull(result);
-        verify(testDefinitionRepository, never()).findByActiveTrueOrderByCreatedAtDesc();
+        assertEquals(3, result.questions().size());
+        assertEquals(1, result.blockNumber());
+        assertEquals(2, result.totalBlocks());
     }
 
     @Test
-    void getNextMicroTest_expiredPending_createsNew() {
-        User user = mockUser();
-        UUID userId = user.getId();
-
-        MicroTestAssignment expired = mock(MicroTestAssignment.class);
-        when(expired.getExpiresAt()).thenReturn(Instant.now().minus(1, ChronoUnit.DAYS));
+    void getNextMicroTest_noTests_throwsNotFound() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.getReferenceById(userId)).thenReturn(mock(User.class));
         when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(userId, "PENDING"))
-                .thenReturn(Optional.of(expired));
+                .thenReturn(Optional.empty());
+        when(testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc()).thenReturn(List.of());
 
-        TestDefinition testDef = mock(TestDefinition.class);
-        when(testDef.getId()).thenReturn(UUID.randomUUID());
+        assertThrows(NotFoundException.class, () -> service.getNextMicroTest(userId));
+    }
+
+    @Test
+    void getNextMicroTest_secondBlock_afterFirstCompleted() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.getReferenceById(userId)).thenReturn(mock(User.class));
+        when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(userId, "PENDING"))
+                .thenReturn(Optional.empty());
+
+        TestDefinition testDef = mockTestDefinition();
         when(testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc()).thenReturn(List.of(testDef));
-        when(assignmentRepository.findRecentCompletedByUserAndTest(eq(userId), any(), any())).thenReturn(List.of());
+        List<TestQuestion> questions9 = mockQuestions(testDef, 9);
+        when(testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testDef.getId()))
+                .thenReturn(questions9);
+
+        // 3 questions already answered
+        UserTestSubmission sub = mock(UserTestSubmission.class);
+        when(sub.getId()).thenReturn(UUID.randomUUID());
+        when(submissionRepository.findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(userId, testDef.getId()))
+                .thenReturn(Optional.of(sub));
+        when(userTestAnswerRepository.findBySubmission_Id(sub.getId()))
+                .thenReturn(List.of(mock(UserTestAnswer.class), mock(UserTestAnswer.class), mock(UserTestAnswer.class)));
+
         when(assignmentRepository.save(any())).thenAnswer(inv -> {
             MicroTestAssignment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
             return a;
         });
-        MicroTestNextResponse resp = mock(MicroTestNextResponse.class);
-        when(mapper.toMicroTestNextResponse(any(MicroTestAssignment.class))).thenReturn(resp);
+        when(testAnswerOptionRepository.findByQuestion_IdIn(any())).thenReturn(List.of());
 
-        MicroTestNextResponse result = service.getNextMicroTest(user.getId());
+        MicroTestNextResponse result = service.getNextMicroTest(userId);
+
         assertNotNull(result);
+        assertEquals(2, result.blockNumber());
+        assertEquals(3, result.totalBlocks());
+        assertEquals(33, result.completionPercent());
+    }
+
+    @Test
+    void getNextMicroTest_expiredPending_marksExpiredAndCreatesNew() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.getReferenceById(userId)).thenReturn(mock(User.class));
+
+        MicroTestAssignment expired = new MicroTestAssignment();
+        expired.setStatus("PENDING");
+        expired.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        TestDefinition testDef = mockTestDefinition();
+        expired.setTestDefinition(testDef);
+
+        when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(userId, "PENDING"))
+                .thenReturn(Optional.of(expired));
+        when(testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc()).thenReturn(List.of(testDef));
+        List<TestQuestion> questions6 = mockQuestions(testDef, 6);
+        when(testQuestionRepository.findByTestDefinitionIdOrderByPositionAsc(testDef.getId()))
+                .thenReturn(questions6);
+        when(submissionRepository.findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(userId, testDef.getId()))
+                .thenReturn(Optional.empty());
+        when(assignmentRepository.save(any())).thenAnswer(inv -> {
+            MicroTestAssignment a = inv.getArgument(0);
+            a.setId(UUID.randomUUID());
+            return a;
+        });
+        when(testAnswerOptionRepository.findByQuestion_IdIn(any())).thenReturn(List.of());
+
+        MicroTestNextResponse result = service.getNextMicroTest(userId);
+        assertNotNull(result);
+        assertEquals("EXPIRED", expired.getStatus());
         verify(assignmentRepository, times(2)).save(any());
     }
 
-    @Test
-    void getNextMicroTest_allInAntiRepeat_throwsNotFound() {
-        User user = mockUser();
-        when(assignmentRepository.findFirstByUser_IdAndStatusOrderByAvailableFromAsc(user.getId(), "PENDING"))
-                .thenReturn(Optional.empty());
+    // ========== HELPERS ==========
 
-        TestDefinition testDef = mock(TestDefinition.class);
-        when(testDef.getId()).thenReturn(UUID.randomUUID());
-        when(testDefinitionRepository.findByActiveTrueOrderByCreatedAtDesc()).thenReturn(List.of(testDef));
-        MicroTestAssignment recent = mock(MicroTestAssignment.class);
-        when(assignmentRepository.findRecentCompletedByUserAndTest(any(), any(), any()))
-                .thenReturn(List.of(recent));
-
-        assertThrows(NotFoundException.class, () -> service.getNextMicroTest(user.getId()));
+    private TestDefinition mockTestDefinition() {
+        TestDefinition td = mock(TestDefinition.class);
+        when(td.getId()).thenReturn(UUID.randomUUID());
+        lenient().when(td.getTitle()).thenReturn("Test Resilience");
+        lenient().when(td.getDescription()).thenReturn("Evaluate your adaptability");
+        return td;
     }
 
-    @Test
-    void completeAssignment_updatesStatus() {
-        UUID assignmentId = UUID.randomUUID();
-        MicroTestAssignment assignment = new MicroTestAssignment();
-        assignment.setStatus("PENDING");
-        User user = mockUser();
-        assignment.setUser(user);
-
-        when(assignmentRepository.findById(assignmentId)).thenReturn(Optional.of(assignment));
-
-        service.completeAssignment(assignmentId, null);
-
-        assertEquals("COMPLETED", assignment.getStatus());
-        assertNotNull(assignment.getCompletedAt());
-        verify(assignmentRepository).save(assignment);
-        verify(analyticsService).trackServerEventSafe(any(), eq("MICRO_TEST_COMPLETED"), any());
-    }
-
-    @Test
-    void completeAssignment_notFound_throwsNotFound() {
-        UUID assignmentId = UUID.randomUUID();
-        when(assignmentRepository.findById(assignmentId)).thenReturn(Optional.empty());
-        assertThrows(NotFoundException.class, () -> service.completeAssignment(assignmentId, null));
-    }
-
-    private User mockUser() {
-        User user = mock(User.class);
-        when(user.getId()).thenReturn(UUID.randomUUID());
-        return user;
+    private List<TestQuestion> mockQuestions(TestDefinition testDef, int count) {
+        List<TestQuestion> questions = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            TestQuestion q = mock(TestQuestion.class);
+            lenient().when(q.getId()).thenReturn(UUID.randomUUID());
+            lenient().when(q.getQuestion()).thenReturn("Question " + (i + 1));
+            lenient().when(q.getQuestionType()).thenReturn(TestQuestionType.SINGLE);
+            lenient().when(q.getPosition()).thenReturn(i);
+            questions.add(q);
+        }
+        return questions;
     }
 }

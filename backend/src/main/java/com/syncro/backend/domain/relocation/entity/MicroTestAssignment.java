@@ -43,6 +43,12 @@ public class MicroTestAssignment {
     @Column(name = "anti_repeat_window_days")
     private Integer antiRepeatWindowDays;
 
+    @Column(name = "block_start_position", nullable = false)
+    private Integer blockStartPosition;
+
+    @Column(name = "block_size", nullable = false)
+    private Integer blockSize;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -50,6 +56,8 @@ public class MicroTestAssignment {
     void onCreate() {
         if (status == null) status = "PENDING";
         if (antiRepeatWindowDays == null) antiRepeatWindowDays = 30;
+        if (blockStartPosition == null) blockStartPosition = 0;
+        if (blockSize == null) blockSize = 3;
         if (availableFrom == null) availableFrom = Instant.now();
         createdAt = Instant.now();
     }
@@ -82,6 +90,12 @@ public class MicroTestAssignment {
 
     public Integer getAntiRepeatWindowDays() { return antiRepeatWindowDays; }
     public void setAntiRepeatWindowDays(Integer antiRepeatWindowDays) { this.antiRepeatWindowDays = antiRepeatWindowDays; }
+
+    public Integer getBlockStartPosition() { return blockStartPosition; }
+    public void setBlockStartPosition(Integer blockStartPosition) { this.blockStartPosition = blockStartPosition; }
+
+    public Integer getBlockSize() { return blockSize; }
+    public void setBlockSize(Integer blockSize) { this.blockSize = blockSize; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

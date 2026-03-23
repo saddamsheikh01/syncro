@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.dto;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record MicroTestNextResponse(
@@ -10,5 +11,9 @@ public record MicroTestNextResponse(
     String testDescription,
     String status,
     Instant availableFrom,
-    Instant expiresAt
+    Instant expiresAt,
+    Integer blockNumber,
+    Integer totalBlocks,
+    Integer completionPercent,
+    List<MicroTestQuestionResponse> questions
 ) {}

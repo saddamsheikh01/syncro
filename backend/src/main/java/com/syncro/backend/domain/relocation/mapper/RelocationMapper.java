@@ -259,16 +259,4 @@ public class RelocationMapper {
         );
     }
 
-    public MicroTestNextResponse toMicroTestNextResponse(MicroTestAssignment assignment) {
-        var test = assignment.getTestDefinition();
-        return new MicroTestNextResponse(
-                assignment.getId(),
-                test != null ? test.getId() : null,
-                test != null ? test.getTitle() : null,
-                test != null ? test.getDescription() : null,
-                assignment.getStatus(),
-                assignment.getAvailableFrom(),
-                assignment.getExpiresAt()
-        );
-    }
 }

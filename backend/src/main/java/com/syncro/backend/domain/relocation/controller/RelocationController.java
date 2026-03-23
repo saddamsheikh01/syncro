@@ -319,6 +319,19 @@ public class RelocationController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+    @PostMapping("/micro-tests/{assignmentId}/submit")
+    @Operation(summary = "Submit blocco di 3 risposte micro-test")
+    public ResponseEntity<Void> submitMicroTestBlock(
+            @AuthenticationPrincipal Object principal,
+            @PathVariable UUID assignmentId,
+            @Valid @RequestBody MicroTestSubmitRequest request) {
+        if (principal instanceof UserPrincipal up) {
+            microTestService.submitBlock(up.userId(), assignmentId, request);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
     // ========== RISK INDICATORS (Sprint 2) ==========
 
     @GetMapping("/risk/indicators")
