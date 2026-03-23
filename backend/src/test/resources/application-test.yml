@@ -20,6 +20,7 @@ spring:
     baseline-on-migrate: true
     baseline-version: 8
     out-of-order: true
+    placeholder-replacement: false
   servlet:
     multipart:
       max-file-size: 10MB

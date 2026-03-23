@@ -118,10 +118,13 @@ public class RelocationCityDataset {
     @Column(name = "macro_integrazione_sociale", precision = 5, scale = 2)
     private BigDecimal macroIntegrazioneSociale;
 
-    // Districts and metadata
+    // Districts, image and metadata
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "districts", columnDefinition = "jsonb")
     private List<Map<String, String>> districts;
+
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
 
     @Column(name = "active", nullable = false)
     private Boolean active;
@@ -253,6 +256,9 @@ public class RelocationCityDataset {
 
     public List<Map<String, String>> getDistricts() { return districts; }
     public void setDistricts(List<Map<String, String>> districts) { this.districts = districts; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

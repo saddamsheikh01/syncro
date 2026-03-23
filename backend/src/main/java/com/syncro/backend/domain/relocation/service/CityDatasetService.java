@@ -250,6 +250,7 @@ public class CityDatasetService {
         city.setCostSingleNoRent(r.costSingleNoRent());
         city.setCostFamilyNoRent(r.costFamilyNoRent());
         city.setDistricts(r.districts());
+        city.setImageUrl(r.imageUrl());
     }
 
     private void applyUpdateFields(RelocationCityDataset city, UpdateCityDatasetRequest r) {
@@ -278,6 +279,7 @@ public class CityDatasetService {
         if (r.costSingleNoRent() != null) city.setCostSingleNoRent(r.costSingleNoRent());
         if (r.costFamilyNoRent() != null) city.setCostFamilyNoRent(r.costFamilyNoRent());
         if (r.districts() != null) city.setDistricts(r.districts());
+        if (r.imageUrl() != null) city.setImageUrl(r.imageUrl());
         if (r.active() != null) city.setActive(r.active());
     }
 

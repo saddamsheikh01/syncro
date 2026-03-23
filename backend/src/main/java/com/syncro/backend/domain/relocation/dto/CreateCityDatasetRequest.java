@@ -53,6 +53,9 @@ public record CreateCityDatasetRequest(
         @NotNull @DecimalMin("0.00") BigDecimal costSingleNoRent,
         @NotNull @DecimalMin("0.00") BigDecimal costFamilyNoRent,
 
-        // Districts
-        List<Map<String, String>> districts
+        // Districts and image
+        List<Map<String, String>> districts,
+
+        @Size(max = 500)
+        String imageUrl
 ) {}

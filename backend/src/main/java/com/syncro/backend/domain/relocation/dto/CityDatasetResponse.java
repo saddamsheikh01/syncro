@@ -52,8 +52,9 @@ public record CityDatasetResponse(
         BigDecimal macroOpportunitaLavorative,
         BigDecimal macroIntegrazioneSociale,
 
-        // Districts and metadata
+        // Districts, image and metadata
         List<Map<String, String>> districts,
+        String imageUrl,
         Boolean active,
         Instant createdAt,
         Instant updatedAt

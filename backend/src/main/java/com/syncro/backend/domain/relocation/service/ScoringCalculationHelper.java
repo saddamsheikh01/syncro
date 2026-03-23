@@ -61,20 +61,20 @@ public class ScoringCalculationHelper {
                         )
                 ));
 
-        Map<String, String> answerMapping = mapPayloadToWeightKeys(payload);
+        Map<String, List<String>> answerMapping = mapPayloadToWeightKeys(payload);
 
-        for (Map.Entry<String, String> entry : answerMapping.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : answerMapping.entrySet()) {
             String questionKey = entry.getKey();
-            String answerValue = entry.getValue();
-
             Map<String, Map<String, Integer>> questionRules = ruleIndex.get(questionKey);
             if (questionRules == null) continue;
 
-            Map<String, Integer> adjustments = questionRules.get(answerValue);
-            if (adjustments == null) continue;
+            for (String answerValue : entry.getValue()) {
+                Map<String, Integer> adjustments = questionRules.get(answerValue);
+                if (adjustments == null) continue;
 
-            for (Map.Entry<String, Integer> adj : adjustments.entrySet()) {
-                weights.merge(adj.getKey(), adj.getValue().doubleValue(), Double::sum);
+                for (Map.Entry<String, Integer> adj : adjustments.entrySet()) {
+                    weights.merge(adj.getKey(), adj.getValue().doubleValue(), Double::sum);
+                }
             }
         }
 
@@ -82,21 +82,38 @@ public class ScoringCalculationHelper {
         return weights;
     }
 
-    public Map<String, String> mapPayloadToWeightKeys(Map<String, Object> payload) {
-        Map<String, String> mapping = new LinkedHashMap<>();
-        putIfString(mapping, "life_state", payload.get("userType"));
-        putIfString(mapping, "relocation_time", payload.get("relocationTime"));
-        putIfString(mapping, "age_range", payload.get("ageRange"));
-        putIfString(mapping, "relationship", payload.get("household"));
-        putIfString(mapping, "motivation", payload.get("primaryGoal"));
-        putIfString(mapping, "work_type", payload.get("workStatus"));
-        putIfString(mapping, "need", payload.get("priorityProblem"));
+    /**
+     * Mappa il payload snapshot alle chiavi delle weight rules.
+     * Supporta sia valori singoli (stringa) che multipli (array) per domande multi-select.
+     */
+    public Map<String, List<String>> mapPayloadToWeightKeys(Map<String, Object> payload) {
+        Map<String, List<String>> mapping = new LinkedHashMap<>();
+        putValues(mapping, "life_state", payload.get("userType"));
+        putValues(mapping, "relocation_time", payload.get("relocationTime"));
+        putValues(mapping, "age_range", payload.get("ageRange"));
+        putValues(mapping, "relationship", payload.get("household"));
+        putValues(mapping, "motivation", payload.get("primaryGoal"));
+        putValues(mapping, "work_type", payload.get("workStatus"));
+        putValues(mapping, "need", payload.get("priorityProblem"));
         return mapping;
     }
 
-    private void putIfString(Map<String, String> map, String key, Object value) {
+    /**
+     * Accetta sia stringa singola che lista di stringhe (multi-select).
+     * Retrocompatibile: se il valore e una stringa, la wrappa in una lista.
+     */
+    @SuppressWarnings("unchecked")
+    private void putValues(Map<String, List<String>> map, String key, Object value) {
         if (value instanceof String s && !s.isBlank()) {
-            map.put(key, s);
+            map.put(key, List.of(s));
+        } else if (value instanceof List<?> list && !list.isEmpty()) {
+            List<String> values = ((List<Object>) list).stream()
+                    .filter(v -> v instanceof String s && !s.isBlank())
+                    .map(v -> (String) v)
+                    .toList();
+            if (!values.isEmpty()) {
+                map.put(key, values);
+            }
         }
     }
 

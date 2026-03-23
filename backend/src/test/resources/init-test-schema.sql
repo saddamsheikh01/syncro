@@ -126,6 +126,78 @@ CREATE TABLE IF NOT EXISTS viator_destination_refs (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ===== BASE TABLE: experiences (pre-Flyway, referenced by V12/V13/V15) =====
+CREATE TABLE IF NOT EXISTS experiences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    category_id UUID,
+    source TEXT NOT NULL DEFAULT 'MANUAL',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    place_id UUID,
+    provider TEXT,
+    external_id TEXT,
+    price NUMERIC,
+    price_currency TEXT DEFAULT 'EUR',
+    original_price NUMERIC,
+    duration_minutes INTEGER,
+    image_url TEXT,
+    images JSONB DEFAULT '[]'::jsonb,
+    booking_url TEXT,
+    rating NUMERIC,
+    review_count INTEGER DEFAULT 0,
+    latitude NUMERIC,
+    longitude NUMERIC,
+    location_name TEXT,
+    highlights JSONB DEFAULT '[]'::jsonb,
+    inclusions JSONB DEFAULT '[]'::jsonb,
+    exclusions JSONB DEFAULT '[]'::jsonb,
+    languages JSONB DEFAULT '[]'::jsonb,
+    cancellation_policy TEXT,
+    meeting_point TEXT,
+    min_participants INTEGER,
+    max_participants INTEGER,
+    last_synced_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- ===== BASE TABLE: experiences (pre-Flyway, referenced by V12/V13/V15) =====
+CREATE TABLE IF NOT EXISTS experiences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    category_id UUID,
+    source TEXT NOT NULL DEFAULT 'MANUAL',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    place_id UUID,
+    provider TEXT,
+    external_id TEXT,
+    price NUMERIC,
+    price_currency TEXT DEFAULT 'EUR',
+    original_price NUMERIC,
+    duration_minutes INTEGER,
+    image_url TEXT,
+    images JSONB DEFAULT '[]',
+    booking_url TEXT,
+    rating NUMERIC,
+    review_count INTEGER DEFAULT 0,
+    latitude NUMERIC,
+    longitude NUMERIC,
+    location_name TEXT,
+    highlights JSONB DEFAULT '[]',
+    inclusions JSONB DEFAULT '[]',
+    exclusions JSONB DEFAULT '[]',
+    languages JSONB DEFAULT '[]',
+    cancellation_policy TEXT,
+    meeting_point TEXT,
+    min_participants INTEGER,
+    max_participants INTEGER,
+    last_synced_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT true
+);
+
 -- ===== ANALYTICS TABLES (pre-Flyway, referenced by AnalyticsService) =====
 -- Needed because Sprint 1 services call trackServerEventSafe() which queries these tables.
 -- Without them, the SQL failure poisons the enclosing transaction.
