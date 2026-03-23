@@ -5,6 +5,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { DEFAULT_LOCALE, LOCALE_COOKIE_KEY, normalizeLocale } from "@/i18n/locales";
 import { getServerTranslator } from "@/i18n/server";
 import { getSiteUrl } from "@/lib/siteUrl";
+import MetaPixel from "@/components/MetaPixel";
 
 export const generateMetadata = async (): Promise<Metadata> => {
   const { t } = await getServerTranslator();
@@ -57,6 +58,7 @@ export default async function RootLayout({
   return (
     <html lang={initialLocale}>
       <body className="antialiased">
+        <MetaPixel />
         <I18nProvider initialLocale={initialLocale}>{children}</I18nProvider>
       </body>
     </html>
