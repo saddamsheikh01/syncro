@@ -169,7 +169,7 @@ class Sprint2IntegrationTest extends Sprint1IntegrationBaseTest {
                 .andExpect(jsonPath("$.payload.quickActions").exists())
                 .andExpect(jsonPath("$.payload.initialStressLevel").exists())
                 .andExpect(jsonPath("$.payload.relocationRisk").exists())
-                .andExpect(jsonPath("$.payload.safetyBuffer").exists());
+                .andExpect(jsonPath("$.payload.userPlan").value("FREE"));
 
         mockMvc.perform(get("/api/v1/relocation/starter-kit/latest")
                         .header("Authorization", "Bearer " + token))

@@ -35,7 +35,13 @@ class StarterKitServiceTest {
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
     @Mock private UserRepository userRepository;
+    @Mock private SubscriptionService subscriptionService;
     @InjectMocks private StarterKitService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        lenient().when(subscriptionService.getUserPlan(any())).thenReturn("SUPER_PRO");
+    }
 
     @Test
     void generate_returnsAllSections() {

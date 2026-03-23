@@ -26,6 +26,7 @@ public class StarterKitService {
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
+    private final SubscriptionService subscriptionService;
 
     public StarterKitService(StarterKitReportRepository reportRepository,
                               RelocationProfileRepository profileRepository,
@@ -33,7 +34,8 @@ public class StarterKitService {
                               ScoringCalculationHelper scoringHelper,
                               RelocationMapper mapper,
                               AnalyticsService analyticsService,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              SubscriptionService subscriptionService) {
         this.reportRepository = reportRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -41,6 +43,7 @@ public class StarterKitService {
         this.mapper = mapper;
         this.analyticsService = analyticsService;
         this.userRepository = userRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Transactional
@@ -53,39 +56,46 @@ public class StarterKitService {
         RelocationCityDataset city = resolveCity(request != null ? request.cityId() : null, profile);
         String scenario = profile.getUserType();
 
+        String userPlan = subscriptionService.getUserPlan(userId);
+        boolean isPremium = "PREMIUM".equals(userPlan) || "SUPER_PRO".equals(userPlan);
+        boolean isSuperPro = "SUPER_PRO".equals(userPlan);
+
         Map<String, BigDecimal> scores = getCityScores(city);
         Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("userPlan", userPlan);
 
-        // Section 1: City Alignment Snapshot (2 strengths + 1 attention)
+        // === FREE sections (always included) ===
+
+        // City Alignment Snapshot (2 strengths + 1 attention)
         payload.put("cityAlignmentSnapshot", buildCityAlignmentSnapshot(city, scores));
 
-        // Section 2: City Fit Cards (6 cards with range-based text)
-        payload.put("cityFitCards", buildCityFitCards(city, scores));
+        // City Fit Cards — FREE: 3 cards (Work, Housing, Social), PREMIUM+: all 6
+        payload.put("cityFitCards", buildCityFitCards(city, scores, isPremium));
 
-        // Section 3: Budget analysis
+        // Budget analysis
         boolean isFamily = profile.getHousehold() != null &&
                 (profile.getHousehold().contains("children") || profile.getHousehold().contains("family"));
         BigDecimal minBudget = scoringHelper.computeCityCost(city, isFamily);
         payload.put("budgetAnalysis", buildBudgetAnalysis(city, profile, minBudget, isFamily));
 
-        // Section 4: Quick Actions (FREE) / 7-Day Action Plan (SUPER_PRO)
+        // Quick Actions
         payload.put("quickActions", buildQuickActions(scenario, profile.getPriorityProblem(), city));
-        payload.put("sevenDayActionPlan", buildSevenDayActionPlan(city));
 
-        // Section 5: Common Relocation Mistake (based on lowest score)
-        payload.put("commonRelocationMistake", buildCommonMistake(scores, city));
-
-        // Section 6: Scam sentinel
+        // Scam sentinel
         payload.put("scamSentinel", buildScamSentinel(city.getCountry(), city.getCityName()));
 
-        // Section 7: Initial Stress Level (4 factors, 0-8)
+        // Initial Stress Level (4 factors, 0-8)
         payload.put("initialStressLevel", computeInitialStressLevel(profile));
 
-        // Section 8: Relocation Risk (3 factors, 0-6)
+        // Relocation Risk (3 factors, 0-6)
         payload.put("relocationRisk", computeRelocationRisk(profile, city));
 
-        // Section 9: Safety Buffer (SUPER_PRO)
-        payload.put("safetyBuffer", buildSafetyBuffer(minBudget));
+        // === SUPER_PRO sections ===
+        if (isSuperPro) {
+            payload.put("sevenDayActionPlan", buildSevenDayActionPlan(city));
+            payload.put("commonRelocationMistake", buildCommonMistake(scores, city));
+            payload.put("safetyBuffer", buildSafetyBuffer(minBudget));
+        }
 
         // Create report with actions
         StarterKitReport report = new StarterKitReport();
@@ -163,11 +173,16 @@ public class StarterKitService {
 
     // ========== CITY FIT CARDS ==========
 
+    private static final List<String> FREE_CARDS = List.of("work_opportunities", "housing_market", "social_integration");
+
     private List<Map<String, Object>> buildCityFitCards(RelocationCityDataset city,
-                                                          Map<String, BigDecimal> scores) {
+                                                          Map<String, BigDecimal> scores,
+                                                          boolean includeAll) {
         List<Map<String, Object>> cards = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : scores.entrySet()) {
-            cards.add(buildFitCard(entry.getKey(), entry.getValue(), city.getCityName()));
+            if (includeAll || FREE_CARDS.contains(entry.getKey())) {
+                cards.add(buildFitCard(entry.getKey(), entry.getValue(), city.getCityName()));
+            }
         }
         return cards;
     }

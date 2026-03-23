@@ -32,6 +32,7 @@ public class BudgetSimulationService {
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
+    private final SubscriptionService subscriptionService;
 
     public BudgetSimulationService(BudgetSimulationRepository simulationRepository,
                                     RelocationProfileRepository profileRepository,
@@ -39,7 +40,8 @@ public class BudgetSimulationService {
                                     BudgetCalculationHelper calcHelper,
                                     RelocationMapper mapper,
                                     AnalyticsService analyticsService,
-                                    UserRepository userRepository) {
+                                    UserRepository userRepository,
+                                    SubscriptionService subscriptionService) {
         this.simulationRepository = simulationRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -47,6 +49,7 @@ public class BudgetSimulationService {
         this.mapper = mapper;
         this.analyticsService = analyticsService;
         this.userRepository = userRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Transactional
@@ -55,6 +58,10 @@ public class BudgetSimulationService {
         String planCode = request.planCode().toUpperCase();
         if (!List.of("FREE", "PREMIUM", "SUPER_PRO").contains(planCode)) {
             throw new BadRequestException("Piano non valido: " + planCode);
+        }
+
+        if (!subscriptionService.hasAccess(userId, planCode)) {
+            throw new BadRequestException("Il tuo piano non include l'accesso a " + planCode + ". Effettua l'upgrade.");
         }
 
         RelocationProfile profile = profileRepository.findByUserId(userId)

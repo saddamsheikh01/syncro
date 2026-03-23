@@ -39,7 +39,13 @@ class BudgetSimulationServiceTest {
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
     @Mock private UserRepository userRepository;
+    @Mock private SubscriptionService subscriptionService;
     @InjectMocks private BudgetSimulationService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        lenient().when(subscriptionService.hasAccess(any(), any())).thenReturn(true);
+    }
 
     @Test
     void runSimulation_free_returnsResponse() {
