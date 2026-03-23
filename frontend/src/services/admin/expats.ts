@@ -1,14 +1,17 @@
 import { apiClient } from "../axiosConfig";
+import type { PageResponse } from "@/types/shared";
 import type {
   AdminCityDatasetResponse,
   AdminCreateCityPayload,
   AdminCreateWeightRulePayload,
   AdminScoringConfigResponse,
+  AdminSessionResponse,
   AdminUpdateCityPayload,
   AdminUpdateScoringConfigPayload,
   AdminUpdateWeightRulePayload,
   AdminWaitingListEntry,
   AdminWeightRuleResponse,
+  FunnelAnalyticsResponse,
 } from "@/types/adminExpats";
 
 const BASE = "/admin/expats";
@@ -90,5 +93,29 @@ export const adminNotifyWaitingList = async (
   const { data } = await apiClient.post<{ cityName: string; notifiedCount: number }>(
     `${BASE}/waiting-list/${encodeURIComponent(cityName)}/notify`
   );
+  return data;
+};
+
+// ─── Funnel Sessions (tracking) ──────────────────────────────────────────────
+
+export const adminGetSessions = async (
+  params: { status?: string; page?: number; size?: number } = {}
+): Promise<PageResponse<AdminSessionResponse>> => {
+  const { data } = await apiClient.get<PageResponse<AdminSessionResponse>>(
+    `${BASE}/sessions`,
+    { params }
+  );
+  return data;
+};
+
+export const adminGetSession = async (sessionId: string): Promise<AdminSessionResponse> => {
+  const { data } = await apiClient.get<AdminSessionResponse>(`${BASE}/sessions/${sessionId}`);
+  return data;
+};
+
+// ─── Funnel Analytics ────────────────────────────────────────────────────────
+
+export const adminGetFunnelAnalytics = async (): Promise<FunnelAnalyticsResponse> => {
+  const { data } = await apiClient.get<FunnelAnalyticsResponse>(`${BASE}/funnel-analytics`);
   return data;
 };

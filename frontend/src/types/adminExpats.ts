@@ -36,6 +36,7 @@ export interface AdminCityDatasetResponse {
   macroOpportunitaLavorative: number;
   macroIntegrazioneSociale: number;
   districts: AdminCityDistrict[] | null;
+  imageUrl: string | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +69,7 @@ export type AdminCreateCityPayload = {
   costSingleNoRent: number;
   costFamilyNoRent: number;
   districts: AdminCityDistrict[];
+  imageUrl?: string;
 };
 
 export type AdminUpdateCityPayload = Partial<
@@ -78,6 +80,7 @@ export type AdminUpdateCityPayload = Partial<
   countryCode?: string;
   active?: boolean;
   districts?: AdminCityDistrict[];
+  imageUrl?: string;
 };
 
 export interface AdminWeightRuleResponse {
@@ -130,4 +133,67 @@ export interface AdminWaitingListEntry {
   cityName: string;
   notified: boolean;
   createdAt: string;
+}
+
+// ─── Admin Sessions (funnel tracking) ───────────────────────────────────────
+
+export interface AdminSessionAnswerSummary {
+  questionKey: string;
+  questionGroup: string;
+  stepNumber: number;
+  answerValue: unknown;
+  version: number;
+  answeredAt: string;
+}
+
+export interface AdminSessionResponse {
+  id: string;
+  status: string;
+  userType: string | null;
+  currentStep: number;
+  totalSteps: number;
+  targetCityName: string | null;
+  currentCityName: string | null;
+  converted: boolean;
+  convertedUserId: string | null;
+  convertedUserEmail: string | null;
+  convertedAt: string | null;
+  metadata: Record<string, unknown> | null;
+  answers: AdminSessionAnswerSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Admin Funnel Analytics ─────────────────────────────────────────────────
+
+export interface FunnelStepDropOff {
+  step: number;
+  sessionsReached: number;
+  sessionsDropped: number;
+  dropOffRate: number;
+}
+
+export interface FunnelCityCount {
+  cityName: string;
+  count: number;
+}
+
+export interface FunnelAnswerDistribution {
+  questionKey: string;
+  valueCounts: Record<string, number>;
+}
+
+export interface FunnelAnalyticsResponse {
+  totalSessions: number;
+  completedSessions: number;
+  convertedSessions: number;
+  expiredSessions: number;
+  inProgressSessions: number;
+  completionRate: number;
+  conversionRate: number;
+  stepDropOff: FunnelStepDropOff[];
+  topTargetCities: FunnelCityCount[];
+  topCurrentCities: FunnelCityCount[];
+  answerDistributions: FunnelAnswerDistribution[];
+  waitingListTop: FunnelCityCount[];
 }

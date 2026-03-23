@@ -42,6 +42,16 @@ const NAV_ITEMS = [
     description: "Test configuration and status",
   },
   {
+    href: "/admin/expats/funnel-analytics",
+    label: "Funnel analytics",
+    description: "Completion, drop-off and conversion KPIs",
+  },
+  {
+    href: "/admin/expats/sessions",
+    label: "Funnel sessions",
+    description: "Track user answers and conversions",
+  },
+  {
     href: "/admin/expats/cities",
     label: "Expats cities",
     description: "Relocation city dataset",
