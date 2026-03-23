@@ -249,6 +249,16 @@ public class CityDatasetService {
         city.setApartment3brCenter(r.apartment3brCenter());
         city.setCostSingleNoRent(r.costSingleNoRent());
         city.setCostFamilyNoRent(r.costFamilyNoRent());
+        if (r.apartment1brOutside() != null) city.setApartment1brOutside(r.apartment1brOutside());
+        if (r.apartment3brOutside() != null) city.setApartment3brOutside(r.apartment3brOutside());
+        if (r.utilitiesMonthly() != null) city.setUtilitiesMonthly(r.utilitiesMonthly());
+        if (r.mobilePlanMonthly() != null) city.setMobilePlanMonthly(r.mobilePlanMonthly());
+        if (r.internetMonthly() != null) city.setInternetMonthly(r.internetMonthly());
+        if (r.mealForTwoMidrange() != null) city.setMealForTwoMidrange(r.mealForTwoMidrange());
+        if (r.gasolinePerLiter() != null) city.setGasolinePerLiter(r.gasolinePerLiter());
+        if (r.publicTransportMonthly() != null) city.setPublicTransportMonthly(r.publicTransportMonthly());
+        if (r.preschoolMonthly() != null) city.setPreschoolMonthly(r.preschoolMonthly());
+        if (r.internationalSchoolAnnual() != null) city.setInternationalSchoolAnnual(r.internationalSchoolAnnual());
         city.setDistricts(r.districts());
         city.setImageUrl(r.imageUrl());
     }
@@ -278,6 +288,16 @@ public class CityDatasetService {
         if (r.apartment3brCenter() != null) city.setApartment3brCenter(r.apartment3brCenter());
         if (r.costSingleNoRent() != null) city.setCostSingleNoRent(r.costSingleNoRent());
         if (r.costFamilyNoRent() != null) city.setCostFamilyNoRent(r.costFamilyNoRent());
+        if (r.apartment1brOutside() != null) city.setApartment1brOutside(r.apartment1brOutside());
+        if (r.apartment3brOutside() != null) city.setApartment3brOutside(r.apartment3brOutside());
+        if (r.utilitiesMonthly() != null) city.setUtilitiesMonthly(r.utilitiesMonthly());
+        if (r.mobilePlanMonthly() != null) city.setMobilePlanMonthly(r.mobilePlanMonthly());
+        if (r.internetMonthly() != null) city.setInternetMonthly(r.internetMonthly());
+        if (r.mealForTwoMidrange() != null) city.setMealForTwoMidrange(r.mealForTwoMidrange());
+        if (r.gasolinePerLiter() != null) city.setGasolinePerLiter(r.gasolinePerLiter());
+        if (r.publicTransportMonthly() != null) city.setPublicTransportMonthly(r.publicTransportMonthly());
+        if (r.preschoolMonthly() != null) city.setPreschoolMonthly(r.preschoolMonthly());
+        if (r.internationalSchoolAnnual() != null) city.setInternationalSchoolAnnual(r.internationalSchoolAnnual());
         if (r.districts() != null) city.setDistricts(r.districts());
         if (r.imageUrl() != null) city.setImageUrl(r.imageUrl());
         if (r.active() != null) city.setActive(r.active());

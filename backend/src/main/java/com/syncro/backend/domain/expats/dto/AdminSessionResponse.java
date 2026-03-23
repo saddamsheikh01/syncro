@@ -18,6 +18,7 @@ public record AdminSessionResponse(
         String currentCityName,
         boolean converted,
         UUID convertedUserId,
+        String convertedUserEmail,
         Instant convertedAt,
         Map<String, Object> metadata,
         List<AnswerSummary> answers,

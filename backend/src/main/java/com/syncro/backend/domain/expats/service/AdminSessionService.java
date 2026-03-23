@@ -77,6 +77,7 @@ public class AdminSessionService {
                 currentCity,
                 session.getConvertedUser() != null,
                 session.getConvertedUser() != null ? session.getConvertedUser().getId() : null,
+                session.getConvertedUser() != null ? session.getConvertedUser().getEmail() : null,
                 session.getConvertedAt(),
                 session.getMetadata(),
                 answerSummaries,

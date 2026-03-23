@@ -118,6 +118,37 @@ public class RelocationCityDataset {
     @Column(name = "macro_integrazione_sociale", precision = 5, scale = 2)
     private BigDecimal macroIntegrazioneSociale;
 
+    // Extended cost data (Sprint 2 - Budget Simulator)
+    @Column(name = "apartment_1br_outside", precision = 10, scale = 2)
+    private BigDecimal apartment1brOutside;
+
+    @Column(name = "apartment_3br_outside", precision = 10, scale = 2)
+    private BigDecimal apartment3brOutside;
+
+    @Column(name = "utilities_monthly", precision = 10, scale = 2)
+    private BigDecimal utilitiesMonthly;
+
+    @Column(name = "mobile_plan_monthly", precision = 10, scale = 2)
+    private BigDecimal mobilePlanMonthly;
+
+    @Column(name = "internet_monthly", precision = 10, scale = 2)
+    private BigDecimal internetMonthly;
+
+    @Column(name = "meal_for_two_midrange", precision = 10, scale = 2)
+    private BigDecimal mealForTwoMidrange;
+
+    @Column(name = "gasoline_per_liter", precision = 10, scale = 2)
+    private BigDecimal gasolinePerLiter;
+
+    @Column(name = "public_transport_monthly", precision = 10, scale = 2)
+    private BigDecimal publicTransportMonthly;
+
+    @Column(name = "preschool_monthly", precision = 10, scale = 2)
+    private BigDecimal preschoolMonthly;
+
+    @Column(name = "international_school_annual", precision = 10, scale = 2)
+    private BigDecimal internationalSchoolAnnual;
+
     // Districts, image and metadata
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "districts", columnDefinition = "jsonb")
@@ -256,6 +287,36 @@ public class RelocationCityDataset {
 
     public List<Map<String, String>> getDistricts() { return districts; }
     public void setDistricts(List<Map<String, String>> districts) { this.districts = districts; }
+
+    public BigDecimal getApartment1brOutside() { return apartment1brOutside; }
+    public void setApartment1brOutside(BigDecimal apartment1brOutside) { this.apartment1brOutside = apartment1brOutside; }
+
+    public BigDecimal getApartment3brOutside() { return apartment3brOutside; }
+    public void setApartment3brOutside(BigDecimal apartment3brOutside) { this.apartment3brOutside = apartment3brOutside; }
+
+    public BigDecimal getUtilitiesMonthly() { return utilitiesMonthly; }
+    public void setUtilitiesMonthly(BigDecimal utilitiesMonthly) { this.utilitiesMonthly = utilitiesMonthly; }
+
+    public BigDecimal getMobilePlanMonthly() { return mobilePlanMonthly; }
+    public void setMobilePlanMonthly(BigDecimal mobilePlanMonthly) { this.mobilePlanMonthly = mobilePlanMonthly; }
+
+    public BigDecimal getInternetMonthly() { return internetMonthly; }
+    public void setInternetMonthly(BigDecimal internetMonthly) { this.internetMonthly = internetMonthly; }
+
+    public BigDecimal getMealForTwoMidrange() { return mealForTwoMidrange; }
+    public void setMealForTwoMidrange(BigDecimal mealForTwoMidrange) { this.mealForTwoMidrange = mealForTwoMidrange; }
+
+    public BigDecimal getGasolinePerLiter() { return gasolinePerLiter; }
+    public void setGasolinePerLiter(BigDecimal gasolinePerLiter) { this.gasolinePerLiter = gasolinePerLiter; }
+
+    public BigDecimal getPublicTransportMonthly() { return publicTransportMonthly; }
+    public void setPublicTransportMonthly(BigDecimal publicTransportMonthly) { this.publicTransportMonthly = publicTransportMonthly; }
+
+    public BigDecimal getPreschoolMonthly() { return preschoolMonthly; }
+    public void setPreschoolMonthly(BigDecimal preschoolMonthly) { this.preschoolMonthly = preschoolMonthly; }
+
+    public BigDecimal getInternationalSchoolAnnual() { return internationalSchoolAnnual; }
+    public void setInternationalSchoolAnnual(BigDecimal internationalSchoolAnnual) { this.internationalSchoolAnnual = internationalSchoolAnnual; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }

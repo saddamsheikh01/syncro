@@ -4,10 +4,12 @@ import com.syncro.backend.domain.auth.entity.AdminUser;
 import com.syncro.backend.domain.auth.repository.AdminUserRepository;
 import com.syncro.backend.domain.expats.dto.AdminSessionResponse;
 import com.syncro.backend.domain.expats.dto.CreateFunnelConfigRequest;
+import com.syncro.backend.domain.expats.dto.FunnelAnalyticsResponse;
 import com.syncro.backend.domain.expats.dto.FunnelConfigResponse;
 import com.syncro.backend.domain.expats.dto.UpdateFunnelConfigRequest;
 import com.syncro.backend.domain.expats.service.AdminSessionService;
 import com.syncro.backend.domain.expats.service.ExpatsFunnelConfigService;
+import com.syncro.backend.domain.expats.service.FunnelAnalyticsService;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
 import com.syncro.backend.domain.relocation.service.ScoringConfigService;
@@ -46,6 +48,7 @@ public class AdminExpatsController {
     private final ScoringConfigService scoringConfigService;
     private final WaitingListService waitingListService;
     private final AdminSessionService adminSessionService;
+    private final FunnelAnalyticsService funnelAnalyticsService;
     private final AdminUserRepository adminUserRepository;
 
     public AdminExpatsController(ExpatsFunnelConfigService funnelConfigService,
@@ -54,6 +57,7 @@ public class AdminExpatsController {
                                  ScoringConfigService scoringConfigService,
                                  WaitingListService waitingListService,
                                  AdminSessionService adminSessionService,
+                                 FunnelAnalyticsService funnelAnalyticsService,
                                  AdminUserRepository adminUserRepository) {
         this.funnelConfigService = funnelConfigService;
         this.cityDatasetService = cityDatasetService;
@@ -61,7 +65,16 @@ public class AdminExpatsController {
         this.scoringConfigService = scoringConfigService;
         this.waitingListService = waitingListService;
         this.adminSessionService = adminSessionService;
+        this.funnelAnalyticsService = funnelAnalyticsService;
         this.adminUserRepository = adminUserRepository;
+    }
+
+    // ========== FUNNEL ANALYTICS ==========
+
+    @GetMapping("/funnel-analytics")
+    @Operation(summary = "KPI aggregate funnel: tasso completamento, drop-off per step, citta piu richieste, distribuzione risposte")
+    public ResponseEntity<FunnelAnalyticsResponse> getFunnelAnalytics() {
+        return ResponseEntity.ok(funnelAnalyticsService.computeAnalytics());
     }
 
     // ========== FUNNEL SESSIONS (TRACKING) ==========
