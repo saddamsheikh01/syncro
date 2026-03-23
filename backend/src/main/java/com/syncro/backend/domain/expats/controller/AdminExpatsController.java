@@ -2,9 +2,11 @@ package com.syncro.backend.domain.expats.controller;
 
 import com.syncro.backend.domain.auth.entity.AdminUser;
 import com.syncro.backend.domain.auth.repository.AdminUserRepository;
+import com.syncro.backend.domain.expats.dto.AdminSessionResponse;
 import com.syncro.backend.domain.expats.dto.CreateFunnelConfigRequest;
 import com.syncro.backend.domain.expats.dto.FunnelConfigResponse;
 import com.syncro.backend.domain.expats.dto.UpdateFunnelConfigRequest;
+import com.syncro.backend.domain.expats.service.AdminSessionService;
 import com.syncro.backend.domain.expats.service.ExpatsFunnelConfigService;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
@@ -23,6 +25,10 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +45,7 @@ public class AdminExpatsController {
     private final WeightRuleService weightRuleService;
     private final ScoringConfigService scoringConfigService;
     private final WaitingListService waitingListService;
+    private final AdminSessionService adminSessionService;
     private final AdminUserRepository adminUserRepository;
 
     public AdminExpatsController(ExpatsFunnelConfigService funnelConfigService,
@@ -46,13 +53,33 @@ public class AdminExpatsController {
                                  WeightRuleService weightRuleService,
                                  ScoringConfigService scoringConfigService,
                                  WaitingListService waitingListService,
+                                 AdminSessionService adminSessionService,
                                  AdminUserRepository adminUserRepository) {
         this.funnelConfigService = funnelConfigService;
         this.cityDatasetService = cityDatasetService;
         this.weightRuleService = weightRuleService;
         this.scoringConfigService = scoringConfigService;
         this.waitingListService = waitingListService;
+        this.adminSessionService = adminSessionService;
         this.adminUserRepository = adminUserRepository;
+    }
+
+    // ========== FUNNEL SESSIONS (TRACKING) ==========
+
+    @GetMapping("/sessions")
+    @Operation(summary = "Lista sessioni anonime funnel con risposte, citta selezionata, stato completamento e conversione")
+    public ResponseEntity<Page<AdminSessionResponse>> listSessions(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100));
+        return ResponseEntity.ok(adminSessionService.listSessions(status, pageable));
+    }
+
+    @GetMapping("/sessions/{sessionId}")
+    @Operation(summary = "Dettaglio sessione anonima con tutte le risposte")
+    public ResponseEntity<AdminSessionResponse> getSession(@PathVariable UUID sessionId) {
+        return ResponseEntity.ok(adminSessionService.getSession(sessionId));
     }
 
     // ========== FUNNEL CONFIG CRUD ==========

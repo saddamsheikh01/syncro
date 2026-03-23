@@ -94,6 +94,7 @@ public class RelocationMapper {
                 city.getMacroOpportunitaLavorative(),
                 city.getMacroIntegrazioneSociale(),
                 city.getDistricts(),
+                city.getImageUrl(),
                 city.getActive(),
                 city.getCreatedAt(),
                 city.getUpdatedAt()

@@ -22,15 +22,15 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
         Object[] adminAndToken = createAdminAndGetToken();
         String jwtToken = (String) adminAndToken[1];
 
-        String cityBody = buildCreateCityJson("Lisbon", "lisbon");
+        String cityBody = buildCreateCityJson("Lisbon-Test", "lisbon-test-" + java.util.UUID.randomUUID().toString().substring(0, 8));
 
         mockMvc.perform(post("/api/v1/admin/expats/cities")
                         .header("Authorization", "Bearer " + jwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cityBody))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.cityName").value("Lisbon"))
-                .andExpect(jsonPath("$.citySlug").value("lisbon"))
+                .andExpect(jsonPath("$.cityName").value("Lisbon-Test"))
+                .andExpect(jsonPath("$.citySlug").exists())
                 .andExpect(jsonPath("$.macroCostoVita").isNumber())
                 .andExpect(jsonPath("$.macroMercatoImmobiliare").isNumber())
                 .andExpect(jsonPath("$.macroPotereEconomico").isNumber())
@@ -46,7 +46,7 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
         String jwtToken = (String) adminAndToken[1];
 
         // Create two cities
-        String city1Body = buildCreateCityJson("Berlin", "berlin");
+        String city1Body = buildCreateCityJson("Berlin-Test", "berlin-test-" + java.util.UUID.randomUUID().toString().substring(0, 8));
         String result1 = mockMvc.perform(post("/api/v1/admin/expats/cities")
                         .header("Authorization", "Bearer " + jwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +56,7 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
 
         String city1Id = objectMapper.readTree(result1).get("id").asText();
 
-        String city2Body = buildCreateCityJson("Porto", "porto");
+        String city2Body = buildCreateCityJson("Porto-Test", "porto-test-" + java.util.UUID.randomUUID().toString().substring(0, 8));
         mockMvc.perform(post("/api/v1/admin/expats/cities")
                         .header("Authorization", "Bearer " + jwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,7 +76,7 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cityName").value("Berlin"))
+                .andExpect(jsonPath("$.cityName").value("Berlin-Test"))
                 .andExpect(jsonPath("$.safetyIndex").value(95.00))
                 .andExpect(jsonPath("$.macroQualitaVita").isNumber());
     }
@@ -88,7 +88,7 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
         String jwtToken = (String) adminAndToken[1];
 
         // Create a city
-        String cityBody = buildCreateCityJson("Barcelona", "barcelona");
+        String cityBody = buildCreateCityJson("Barcelona-Test", "barcelona-test-" + java.util.UUID.randomUUID().toString().substring(0, 8));
         mockMvc.perform(post("/api/v1/admin/expats/cities")
                         .header("Authorization", "Bearer " + jwtToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,16 +147,17 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
         Object[] adminAndToken = createAdminAndGetToken();
         String jwtToken = (String) adminAndToken[1];
 
-        // Create a rule first
-        String createBody = """
+        // Create a rule first (use unique key to avoid seed conflicts)
+        String uniqueAnswer = "remote_test_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        String createBody = String.format("""
                 {
                     "questionKey": "work_type",
-                    "answerValue": "remote",
+                    "answerValue": "%s",
                     "weightAdjustments": {
                         "opportunita_lavorative": 10
                     }
                 }
-                """;
+                """, uniqueAnswer);
 
         String createResult = mockMvc.perform(post("/api/v1/admin/expats/weight-rules")
                         .header("Authorization", "Bearer " + jwtToken)

@@ -48,8 +48,11 @@ public record UpdateCityDatasetRequest(
         @DecimalMin("0.00") BigDecimal costSingleNoRent,
         @DecimalMin("0.00") BigDecimal costFamilyNoRent,
 
-        // Districts
+        // Districts and image
         List<Map<String, String>> districts,
+
+        @Size(max = 500)
+        String imageUrl,
 
         Boolean active
 ) {}
