@@ -1,6 +1,7 @@
 package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.BudgetTrackingResponse;
 import com.syncro.backend.domain.relocation.dto.CreateBudgetTrackingRequest;
 import com.syncro.backend.domain.relocation.entity.BudgetSimulation;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,19 +26,23 @@ public class BudgetTrackingService {
     private final BudgetSimulationRepository simulationRepository;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
+    private final UserRepository userRepository;
 
     public BudgetTrackingService(BudgetTrackingEntryRepository trackingRepository,
                                   BudgetSimulationRepository simulationRepository,
                                   RelocationMapper mapper,
-                                  AnalyticsService analyticsService) {
+                                  AnalyticsService analyticsService,
+                                  UserRepository userRepository) {
         this.trackingRepository = trackingRepository;
         this.simulationRepository = simulationRepository;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public BudgetTrackingResponse createEntry(User user, CreateBudgetTrackingRequest request) {
+    public BudgetTrackingResponse createEntry(UUID userId, CreateBudgetTrackingRequest request) {
+        User user = userRepository.getReferenceById(userId);
         BudgetTrackingEntry entry = new BudgetTrackingEntry();
         entry.setUser(user);
         entry.setCategory(request.category());
@@ -60,14 +66,14 @@ public class BudgetTrackingService {
         entry.setAlertStatus(alertStatus);
 
         entry = trackingRepository.save(entry);
-        analyticsService.trackServerEventSafe(user.getId(), "BUDGET_TRACKING_ENTRY_CREATED",
+        analyticsService.trackServerEventSafe(userId, "BUDGET_TRACKING_ENTRY_CREATED",
                 Map.of("category", request.category(), "alertStatus", alertStatus));
         return mapper.toBudgetTrackingResponse(entry);
     }
 
     @Transactional(readOnly = true)
-    public List<BudgetTrackingResponse> getEntries(User user) {
-        return trackingRepository.findByUser_IdOrderByRecordedAtDesc(user.getId())
+    public List<BudgetTrackingResponse> getEntries(UUID userId) {
+        return trackingRepository.findByUser_IdOrderByRecordedAtDesc(userId)
                 .stream()
                 .map(mapper::toBudgetTrackingResponse)
                 .collect(Collectors.toList());

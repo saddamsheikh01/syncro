@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.MicroTestNextResponse;
 import com.syncro.backend.domain.relocation.entity.MicroTestAssignment;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
@@ -25,24 +26,28 @@ public class MicroTestOrchestrationService {
     private final UserTestSubmissionRepository submissionRepository;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
+    private final UserRepository userRepository;
 
     public MicroTestOrchestrationService(MicroTestAssignmentRepository assignmentRepository,
                                           TestDefinitionRepository testDefinitionRepository,
                                           UserTestSubmissionRepository submissionRepository,
                                           RelocationMapper mapper,
-                                          AnalyticsService analyticsService) {
+                                          AnalyticsService analyticsService,
+                                          UserRepository userRepository) {
         this.assignmentRepository = assignmentRepository;
         this.testDefinitionRepository = testDefinitionRepository;
         this.submissionRepository = submissionRepository;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public MicroTestNextResponse getNextMicroTest(User user) {
+    public MicroTestNextResponse getNextMicroTest(UUID userId) {
+        User user = userRepository.getReferenceById(userId);
         // Check for existing pending/active assignments
         Optional<MicroTestAssignment> existing = assignmentRepository
-                .findFirstByUser_IdAndStatusOrderByAvailableFromAsc(user.getId(), "PENDING");
+                .findFirstByUser_IdAndStatusOrderByAvailableFromAsc(userId, "PENDING");
 
         if (existing.isPresent()) {
             MicroTestAssignment assignment = existing.get();
@@ -60,7 +65,7 @@ public class MicroTestOrchestrationService {
         for (TestDefinition test : allTests) {
             // Check anti-repeat window
             List<MicroTestAssignment> recentCompletions = assignmentRepository
-                    .findRecentCompletedByUserAndTest(user.getId(), test.getId(), now.minus(30, ChronoUnit.DAYS));
+                    .findRecentCompletedByUserAndTest(userId, test.getId(), now.minus(30, ChronoUnit.DAYS));
 
             if (!recentCompletions.isEmpty()) {
                 continue;
@@ -75,7 +80,7 @@ public class MicroTestOrchestrationService {
             assignment.setExpiresAt(now.plus(7, ChronoUnit.DAYS));
 
             assignment = assignmentRepository.save(assignment);
-            analyticsService.trackServerEventSafe(user.getId(), "MICRO_TEST_ASSIGNED",
+            analyticsService.trackServerEventSafe(userId, "MICRO_TEST_ASSIGNED",
                     Map.of("testId", test.getId().toString(), "assignmentId", assignment.getId().toString()));
             return mapper.toMicroTestNextResponse(assignment);
         }

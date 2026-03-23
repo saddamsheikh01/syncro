@@ -3,6 +3,7 @@ package com.syncro.backend.domain.relocation.service;
 import com.syncro.backend.common.exception.BadRequestException;
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.BudgetSimulationResponse;
 import com.syncro.backend.domain.relocation.dto.CreateBudgetSimulationRequest;
 import com.syncro.backend.domain.relocation.entity.BudgetSimulation;
@@ -33,6 +34,7 @@ public class BudgetSimulationService {
     private final ScoringCalculationHelper scoringHelper;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
+    private final UserRepository userRepository;
 
     public BudgetSimulationService(BudgetSimulationRepository simulationRepository,
                                     RelocationProfileRepository profileRepository,
@@ -40,7 +42,8 @@ public class BudgetSimulationService {
                                     RelocationScoringConfigRepository scoringConfigRepository,
                                     ScoringCalculationHelper scoringHelper,
                                     RelocationMapper mapper,
-                                    AnalyticsService analyticsService) {
+                                    AnalyticsService analyticsService,
+                                    UserRepository userRepository) {
         this.simulationRepository = simulationRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -48,16 +51,18 @@ public class BudgetSimulationService {
         this.scoringHelper = scoringHelper;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public BudgetSimulationResponse runSimulation(User user, CreateBudgetSimulationRequest request) {
+    public BudgetSimulationResponse runSimulation(UUID userId, CreateBudgetSimulationRequest request) {
+        User user = userRepository.getReferenceById(userId);
         String planCode = request.planCode().toUpperCase();
         if (!List.of("FREE", "PREMIUM", "SUPER_PRO").contains(planCode)) {
             throw new BadRequestException("Piano non valido: " + planCode);
         }
 
-        RelocationProfile profile = profileRepository.findByUserId(user.getId())
+        RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
 
         RelocationCityDataset city = resolveCity(request.cityId(), profile);
@@ -81,14 +86,14 @@ public class BudgetSimulationService {
         simulation.setOutputPayload(outputPayload);
 
         simulation = simulationRepository.save(simulation);
-        analyticsService.trackServerEventSafe(user.getId(), "BUDGET_SIMULATION_RUN",
+        analyticsService.trackServerEventSafe(userId, "BUDGET_SIMULATION_RUN",
                 Map.of("planCode", planCode, "simulationId", simulation.getId().toString()));
         return mapper.toBudgetSimulationResponse(simulation);
     }
 
     @Transactional(readOnly = true)
-    public List<BudgetSimulationResponse> getSimulations(User user) {
-        return simulationRepository.findByUser_IdOrderByCreatedAtDesc(user.getId())
+    public List<BudgetSimulationResponse> getSimulations(UUID userId) {
+        return simulationRepository.findByUser_IdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(mapper::toBudgetSimulationResponse)
                 .collect(Collectors.toList());

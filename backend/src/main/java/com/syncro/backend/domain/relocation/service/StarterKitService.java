@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.GenerateStarterKitRequest;
 import com.syncro.backend.domain.relocation.dto.StarterKitResponse;
 import com.syncro.backend.domain.relocation.entity.*;
@@ -25,6 +26,7 @@ public class StarterKitService {
     private final ScoringCalculationHelper scoringHelper;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
+    private final UserRepository userRepository;
 
     public StarterKitService(StarterKitReportRepository reportRepository,
                               RelocationProfileRepository profileRepository,
@@ -33,7 +35,8 @@ public class StarterKitService {
                               RelocationRiskSnapshotRepository riskSnapshotRepository,
                               ScoringCalculationHelper scoringHelper,
                               RelocationMapper mapper,
-                              AnalyticsService analyticsService) {
+                              AnalyticsService analyticsService,
+                              UserRepository userRepository) {
         this.reportRepository = reportRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -42,11 +45,13 @@ public class StarterKitService {
         this.scoringHelper = scoringHelper;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public StarterKitResponse generate(User user, GenerateStarterKitRequest request) {
-        RelocationProfile profile = profileRepository.findByUserId(user.getId())
+    public StarterKitResponse generate(UUID userId, GenerateStarterKitRequest request) {
+        User user = userRepository.getReferenceById(userId);
+        RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
 
         RelocationCityDataset city = resolveCity(request != null ? request.cityId() : null, profile);
@@ -118,14 +123,14 @@ public class StarterKitService {
         report.setActions(actions);
 
         report = reportRepository.save(report);
-        analyticsService.trackServerEventSafe(user.getId(), "STARTER_KIT_GENERATED",
+        analyticsService.trackServerEventSafe(userId, "STARTER_KIT_GENERATED",
                 Map.of("scenario", scenario, "reportId", report.getId().toString()));
         return mapper.toStarterKitResponse(report);
     }
 
     @Transactional(readOnly = true)
-    public StarterKitResponse getLatest(User user) {
-        StarterKitReport report = reportRepository.findFirstByUser_IdOrderByCreatedAtDesc(user.getId())
+    public StarterKitResponse getLatest(UUID userId) {
+        StarterKitReport report = reportRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
                 .orElseThrow(() -> new NotFoundException("Nessun Starter Kit generato"));
         return mapper.toStarterKitResponse(report);
     }

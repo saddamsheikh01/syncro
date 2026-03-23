@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
+import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.RiskSnapshotResponse;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
 import com.syncro.backend.domain.relocation.entity.RelocationRiskSnapshot;
@@ -24,29 +25,33 @@ public class RelocationRiskService {
     private final RelocationScoringConfigRepository scoringConfigRepository;
     private final ScoringCalculationHelper scoringHelper;
     private final RelocationMapper mapper;
+    private final UserRepository userRepository;
 
     public RelocationRiskService(RelocationRiskSnapshotRepository riskSnapshotRepository,
                                   RelocationProfileRepository profileRepository,
                                   RelocationScoringConfigRepository scoringConfigRepository,
                                   ScoringCalculationHelper scoringHelper,
-                                  RelocationMapper mapper) {
+                                  RelocationMapper mapper,
+                                  UserRepository userRepository) {
         this.riskSnapshotRepository = riskSnapshotRepository;
         this.profileRepository = profileRepository;
         this.scoringConfigRepository = scoringConfigRepository;
         this.scoringHelper = scoringHelper;
         this.mapper = mapper;
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
-    public RiskSnapshotResponse getLatestIndicators(User user) {
-        return riskSnapshotRepository.findFirstByUser_IdOrderByCreatedAtDesc(user.getId())
+    public RiskSnapshotResponse getLatestIndicators(UUID userId) {
+        return riskSnapshotRepository.findFirstByUser_IdOrderByCreatedAtDesc(userId)
                 .map(mapper::toRiskSnapshotResponse)
-                .orElseGet(() -> computeAndSaveSnapshot(user));
+                .orElseGet(() -> computeAndSaveSnapshot(userId));
     }
 
     @Transactional
-    public RiskSnapshotResponse computeAndSaveSnapshot(User user) {
-        RelocationProfile profile = profileRepository.findByUserId(user.getId())
+    public RiskSnapshotResponse computeAndSaveSnapshot(UUID userId) {
+        User user = userRepository.getReferenceById(userId);
+        RelocationProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
         RelocationScoringConfig config = scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")
                 .orElseThrow(() -> new NotFoundException("Configurazione scoring non trovata"));
