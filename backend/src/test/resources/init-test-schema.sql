@@ -263,3 +263,95 @@ CREATE TABLE IF NOT EXISTS analytics_ingestion_errors (
     error_code VARCHAR(255) NOT NULL DEFAULT '',
     error_message TEXT NOT NULL DEFAULT ''
 );
+
+-- ===== TEST DOMAIN TABLES (pre-Flyway, referenced by Sprint 2 migrations) =====
+
+CREATE TABLE IF NOT EXISTS test_definitions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    active BOOLEAN NOT NULL DEFAULT true,
+    test_type VARCHAR(50) NOT NULL DEFAULT 'OTHER',
+    scoring_strategy VARCHAR(50) NOT NULL DEFAULT 'SINGLE_SCORE',
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_definition_id UUID NOT NULL REFERENCES test_definitions(id) ON DELETE CASCADE,
+    question_text TEXT NOT NULL,
+    question_type VARCHAR(50) NOT NULL DEFAULT 'SINGLE_CHOICE',
+    position INTEGER NOT NULL DEFAULT 0,
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_answer_options (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID NOT NULL REFERENCES test_questions(id) ON DELETE CASCADE,
+    answer_text TEXT NOT NULL,
+    score_value INTEGER NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL DEFAULT 0,
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_test_submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    test_id UUID NOT NULL REFERENCES test_definitions(id),
+    score_payload JSONB NOT NULL DEFAULT '{}',
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_test_answers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES user_test_submissions(id) ON DELETE CASCADE,
+    question_id UUID NOT NULL REFERENCES test_questions(id),
+    answer_option_id UUID NOT NULL REFERENCES test_answer_options(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_psy_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    profile JSONB NOT NULL DEFAULT '{}',
+    interests_score INTEGER,
+    lifestyle_score INTEGER,
+    values_score INTEGER,
+    objectives_score INTEGER,
+    psy_score INTEGER,
+    astro_score INTEGER,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_definition_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_definition_id UUID NOT NULL REFERENCES test_definitions(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    title VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(test_definition_id, language)
+);
+
+CREATE TABLE IF NOT EXISTS test_question_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID NOT NULL REFERENCES test_questions(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    question_text TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(question_id, language)
+);
+
+CREATE TABLE IF NOT EXISTS test_answer_option_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    answer_option_id UUID NOT NULL REFERENCES test_answer_options(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    answer_text TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(answer_option_id, language)
+);

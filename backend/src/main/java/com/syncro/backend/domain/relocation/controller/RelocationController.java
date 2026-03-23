@@ -2,10 +2,15 @@ package com.syncro.backend.domain.relocation.controller;
 
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.service.AnonymousRelocationService;
+import com.syncro.backend.domain.relocation.service.BudgetSimulationService;
+import com.syncro.backend.domain.relocation.service.BudgetTrackingService;
 import com.syncro.backend.domain.relocation.service.CityComparisonService;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
+import com.syncro.backend.domain.relocation.service.MicroTestOrchestrationService;
 import com.syncro.backend.domain.relocation.service.RelocationOnboardingService;
+import com.syncro.backend.domain.relocation.service.RelocationRiskService;
 import com.syncro.backend.domain.relocation.service.RelocationScoringService;
+import com.syncro.backend.domain.relocation.service.StarterKitService;
 import com.syncro.backend.domain.relocation.service.WaitingListService;
 import com.syncro.backend.security.AnonymousExpatPrincipal;
 import com.syncro.backend.security.UserPrincipal;
@@ -36,19 +41,34 @@ public class RelocationController {
     private final CityDatasetService cityDatasetService;
     private final WaitingListService waitingListService;
     private final AnonymousRelocationService anonymousRelocationService;
+    private final BudgetSimulationService budgetSimulationService;
+    private final BudgetTrackingService budgetTrackingService;
+    private final StarterKitService starterKitService;
+    private final MicroTestOrchestrationService microTestService;
+    private final RelocationRiskService riskService;
 
     public RelocationController(RelocationOnboardingService onboardingService,
                                 RelocationScoringService scoringService,
                                 CityComparisonService comparisonService,
                                 CityDatasetService cityDatasetService,
                                 WaitingListService waitingListService,
-                                AnonymousRelocationService anonymousRelocationService) {
+                                AnonymousRelocationService anonymousRelocationService,
+                                BudgetSimulationService budgetSimulationService,
+                                BudgetTrackingService budgetTrackingService,
+                                StarterKitService starterKitService,
+                                MicroTestOrchestrationService microTestService,
+                                RelocationRiskService riskService) {
         this.onboardingService = onboardingService;
         this.scoringService = scoringService;
         this.comparisonService = comparisonService;
         this.cityDatasetService = cityDatasetService;
         this.waitingListService = waitingListService;
         this.anonymousRelocationService = anonymousRelocationService;
+        this.budgetSimulationService = budgetSimulationService;
+        this.budgetTrackingService = budgetTrackingService;
+        this.starterKitService = starterKitService;
+        this.microTestService = microTestService;
+        this.riskService = riskService;
     }
 
     // ========== ONBOARDING ==========
@@ -216,5 +236,98 @@ public class RelocationController {
             @Valid @RequestBody WaitingListRequest request) {
         UUID userId = principal instanceof UserPrincipal up ? up.userId() : null;
         return ResponseEntity.ok(waitingListService.joinWaitingList(request, userId));
+    }
+
+    // ========== BUDGET SIMULATIONS (Sprint 2) ==========
+
+    @PostMapping("/budget/simulations")
+    @Operation(summary = "Esegui simulazione budget differenziata per piano (FREE/PREMIUM/SUPER_PRO)")
+    public ResponseEntity<BudgetSimulationResponse> runBudgetSimulation(
+            @AuthenticationPrincipal Object principal,
+            @Valid @RequestBody CreateBudgetSimulationRequest request) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(budgetSimulationService.runSimulation(up.userId(), request));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @GetMapping("/budget/simulations")
+    @Operation(summary = "Lista simulazioni budget dell'utente")
+    public ResponseEntity<List<BudgetSimulationResponse>> getBudgetSimulations(
+            @AuthenticationPrincipal Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(budgetSimulationService.getSimulations(up.userId()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // ========== BUDGET TRACKING (Sprint 2) ==========
+
+    @PostMapping("/budget/tracking")
+    @Operation(summary = "Registra voce di tracking budget (actual vs expected)")
+    public ResponseEntity<BudgetTrackingResponse> createBudgetTracking(
+            @AuthenticationPrincipal Object principal,
+            @Valid @RequestBody CreateBudgetTrackingRequest request) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(budgetTrackingService.createEntry(up.userId(), request));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @GetMapping("/budget/tracking")
+    @Operation(summary = "Lista voci tracking budget dell'utente")
+    public ResponseEntity<List<BudgetTrackingResponse>> getBudgetTracking(
+            @AuthenticationPrincipal Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(budgetTrackingService.getEntries(up.userId()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // ========== STARTER KIT (Sprint 2) ==========
+
+    @PostMapping("/starter-kit/generate")
+    @Operation(summary = "Genera Starter Kit personalizzato con 7 sezioni")
+    public ResponseEntity<StarterKitResponse> generateStarterKit(
+            @AuthenticationPrincipal Object principal,
+            @RequestBody(required = false) GenerateStarterKitRequest request) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(starterKitService.generate(up.userId(), request));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @GetMapping("/starter-kit/latest")
+    @Operation(summary = "Ultimo Starter Kit generato per l'utente")
+    public ResponseEntity<StarterKitResponse> getLatestStarterKit(
+            @AuthenticationPrincipal Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(starterKitService.getLatest(up.userId()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // ========== MICRO-TESTS (Sprint 2) ==========
+
+    @GetMapping("/micro-tests/next")
+    @Operation(summary = "Prossimo micro-test disponibile (con anti-ripetizione)")
+    public ResponseEntity<MicroTestNextResponse> getNextMicroTest(
+            @AuthenticationPrincipal Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(microTestService.getNextMicroTest(up.userId()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // ========== RISK INDICATORS (Sprint 2) ==========
+
+    @GetMapping("/risk/indicators")
+    @Operation(summary = "Indicatori di rischio consolidati (finanziario, isolamento, adattamento)")
+    public ResponseEntity<RiskSnapshotResponse> getRiskIndicators(
+            @AuthenticationPrincipal Object principal) {
+        if (principal instanceof UserPrincipal up) {
+            return ResponseEntity.ok(riskService.getLatestIndicators(up.userId()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 }
