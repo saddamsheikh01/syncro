@@ -48,6 +48,18 @@ public record UpdateCityDatasetRequest(
         @DecimalMin("0.00") BigDecimal costSingleNoRent,
         @DecimalMin("0.00") BigDecimal costFamilyNoRent,
 
+        // Extended cost data (Budget Simulator)
+        @DecimalMin("0.00") BigDecimal apartment1brOutside,
+        @DecimalMin("0.00") BigDecimal apartment3brOutside,
+        @DecimalMin("0.00") BigDecimal utilitiesMonthly,
+        @DecimalMin("0.00") BigDecimal mobilePlanMonthly,
+        @DecimalMin("0.00") BigDecimal internetMonthly,
+        @DecimalMin("0.00") BigDecimal mealForTwoMidrange,
+        @DecimalMin("0.00") BigDecimal gasolinePerLiter,
+        @DecimalMin("0.00") BigDecimal publicTransportMonthly,
+        @DecimalMin("0.00") BigDecimal preschoolMonthly,
+        @DecimalMin("0.00") BigDecimal internationalSchoolAnnual,
+
         // Districts and image
         List<Map<String, String>> districts,
 

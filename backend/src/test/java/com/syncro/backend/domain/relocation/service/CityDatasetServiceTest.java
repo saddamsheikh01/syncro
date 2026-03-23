@@ -190,6 +190,7 @@ class CityDatasetServiceTest {
                 new BigDecimal("30"),
                 new BigDecimal("700"), new BigDecimal("1400"),
                 new BigDecimal("500"), new BigDecimal("1000"),
+                null, null, null, null, null, null, null, null, null, null,
                 null, null
         );
 

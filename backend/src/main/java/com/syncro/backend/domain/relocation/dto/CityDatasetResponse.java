@@ -44,6 +44,18 @@ public record CityDatasetResponse(
         BigDecimal costSingleNoRent,
         BigDecimal costFamilyNoRent,
 
+        // Extended cost data (Budget Simulator)
+        BigDecimal apartment1brOutside,
+        BigDecimal apartment3brOutside,
+        BigDecimal utilitiesMonthly,
+        BigDecimal mobilePlanMonthly,
+        BigDecimal internetMonthly,
+        BigDecimal mealForTwoMidrange,
+        BigDecimal gasolinePerLiter,
+        BigDecimal publicTransportMonthly,
+        BigDecimal preschoolMonthly,
+        BigDecimal internationalSchoolAnnual,
+
         // Calculated macroaree
         BigDecimal macroCostoVita,
         BigDecimal macroMercatoImmobiliare,
