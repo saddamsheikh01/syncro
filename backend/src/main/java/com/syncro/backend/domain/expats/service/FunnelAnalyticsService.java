@@ -10,6 +10,7 @@ import com.syncro.backend.domain.relocation.repository.RelocationCityWaitingList
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,9 +33,28 @@ public class FunnelAnalyticsService {
         this.waitingListRepository = waitingListRepository;
     }
 
+    /**
+     * Calcola le analytics del funnel con filtri opzionali per data.
+     * Esclude automaticamente le sessioni senza risposte (sessioni fantasma create al page load).
+     *
+     * @param from data inizio (inclusa), null per nessun filtro
+     * @param to   data fine (inclusa), null per nessun filtro
+     */
     @Transactional(readOnly = true)
-    public FunnelAnalyticsResponse computeAnalytics() {
-        List<ExpatsAnonymousSession> allSessions = sessionRepository.findAll();
+    public FunnelAnalyticsResponse computeAnalytics(Instant from, Instant to) {
+        List<ExpatsAnonymousSession> rawSessions;
+        if (from != null && to != null) {
+            rawSessions = sessionRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(from, to);
+        } else {
+            rawSessions = sessionRepository.findAll();
+        }
+
+        // Escludi sessioni senza risposte (sessioni fantasma create dalla landing page)
+        List<ExpatsAnonymousSession> allSessions = rawSessions.stream()
+                .filter(s -> answerRepository.countBySessionId(s.getId()) > 0
+                        || "COMPLETED".equals(s.getStatus())
+                        || "CONVERTED".equals(s.getStatus()))
+                .toList();
 
         long total = allSessions.size();
         long completed = allSessions.stream().filter(s -> "COMPLETED".equals(s.getStatus())).count();
@@ -94,7 +114,7 @@ public class FunnelAnalyticsService {
             long reachedNext = step < 10
                     ? maxSteps.stream().filter(ms -> ms >= s + 1).count()
                     : sessions.stream().filter(ss -> "COMPLETED".equals(ss.getStatus()) || "CONVERTED".equals(ss.getStatus())).count();
-            long dropped = reached - reachedNext;
+            long dropped = Math.max(0, reached - reachedNext);
             double rate = reached > 0 ? (double) dropped / reached * 100 : 0;
             dropOff.add(new StepDropOff(step, reached, dropped, Math.round(rate * 100.0) / 100.0));
         }

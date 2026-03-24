@@ -24,6 +24,9 @@ public interface ExpatsAnonymousSessionRepository extends JpaRepository<ExpatsAn
     /** Admin: filtra sessioni per stato. */
     Page<ExpatsAnonymousSession> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
 
+    /** Analytics: sessioni create tra due date. */
+    List<ExpatsAnonymousSession> findByCreatedAtBetweenOrderByCreatedAtDesc(Instant from, Instant to);
+
     boolean existsByConvertedUserIdAndStatusNot(UUID userId, String status);
 
     Optional<ExpatsAnonymousSession> findByConvertedUserId(UUID userId);

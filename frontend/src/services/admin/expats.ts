@@ -115,7 +115,9 @@ export const adminGetSession = async (sessionId: string): Promise<AdminSessionRe
 
 // ─── Funnel Analytics ────────────────────────────────────────────────────────
 
-export const adminGetFunnelAnalytics = async (): Promise<FunnelAnalyticsResponse> => {
-  const { data } = await apiClient.get<FunnelAnalyticsResponse>(`${BASE}/funnel-analytics`);
+export const adminGetFunnelAnalytics = async (
+  params: { from?: string; to?: string } = {}
+): Promise<FunnelAnalyticsResponse> => {
+  const { data } = await apiClient.get<FunnelAnalyticsResponse>(`${BASE}/funnel-analytics`, { params });
   return data;
 };

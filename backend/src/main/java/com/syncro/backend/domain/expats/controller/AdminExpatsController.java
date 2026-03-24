@@ -72,9 +72,13 @@ public class AdminExpatsController {
     // ========== FUNNEL ANALYTICS ==========
 
     @GetMapping("/funnel-analytics")
-    @Operation(summary = "KPI aggregate funnel: tasso completamento, drop-off per step, citta piu richieste, distribuzione risposte")
-    public ResponseEntity<FunnelAnalyticsResponse> getFunnelAnalytics() {
-        return ResponseEntity.ok(funnelAnalyticsService.computeAnalytics());
+    @Operation(summary = "KPI aggregate funnel con filtri data. Esclude sessioni senza risposte (fantasma).")
+    public ResponseEntity<FunnelAnalyticsResponse> getFunnelAnalytics(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        java.time.Instant fromInstant = from != null ? java.time.Instant.parse(from) : null;
+        java.time.Instant toInstant = to != null ? java.time.Instant.parse(to) : null;
+        return ResponseEntity.ok(funnelAnalyticsService.computeAnalytics(fromInstant, toInstant));
     }
 
     // ========== FUNNEL SESSIONS (TRACKING) ==========
