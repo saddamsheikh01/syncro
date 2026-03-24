@@ -67,13 +67,32 @@ public class FunnelAnalyticsService {
         );
     }
 
+    /**
+     * Calcola il drop-off per step basandosi sulle risposte effettive, non sul currentStep della sessione.
+     * Per ogni sessione, determina il max stepNumber tra le risposte salvate.
+     * Se non ha risposte, usa currentStep come fallback.
+     */
     private List<StepDropOff> computeStepDropOff(List<ExpatsAnonymousSession> sessions) {
+        // Per ogni sessione, calcola lo step massimo raggiunto dalle risposte effettive
+        List<Integer> maxSteps = sessions.stream()
+                .map(session -> {
+                    List<ExpatsAnonymousAnswer> answers = answerRepository.findBySessionIdOrderByStepNumberAsc(session.getId());
+                    if (answers.isEmpty()) {
+                        return session.getCurrentStep() != null ? session.getCurrentStep() : 1;
+                    }
+                    return answers.stream()
+                            .mapToInt(a -> a.getStepNumber() != null ? a.getStepNumber() : 0)
+                            .max()
+                            .orElse(session.getCurrentStep() != null ? session.getCurrentStep() : 1);
+                })
+                .toList();
+
         List<StepDropOff> dropOff = new ArrayList<>();
         for (int step = 1; step <= 10; step++) {
             int s = step;
-            long reached = sessions.stream().filter(ss -> ss.getCurrentStep() >= s).count();
+            long reached = maxSteps.stream().filter(ms -> ms >= s).count();
             long reachedNext = step < 10
-                    ? sessions.stream().filter(ss -> ss.getCurrentStep() >= s + 1).count()
+                    ? maxSteps.stream().filter(ms -> ms >= s + 1).count()
                     : sessions.stream().filter(ss -> "COMPLETED".equals(ss.getStatus()) || "CONVERTED".equals(ss.getStatus())).count();
             long dropped = reached - reachedNext;
             double rate = reached > 0 ? (double) dropped / reached * 100 : 0;
