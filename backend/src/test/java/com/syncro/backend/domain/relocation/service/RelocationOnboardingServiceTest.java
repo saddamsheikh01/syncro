@@ -8,6 +8,7 @@ import com.syncro.backend.domain.relocation.dto.OnboardingResponse;
 import com.syncro.backend.domain.relocation.dto.OnboardingStatusResponse;
 import com.syncro.backend.domain.relocation.dto.SnapshotResponse;
 import com.syncro.backend.domain.relocation.dto.UpdateOnboardingRequest;
+import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationCityScore;
 import com.syncro.backend.domain.relocation.entity.RelocationOnboardingSnapshot;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
@@ -117,7 +118,7 @@ class RelocationOnboardingServiceTest {
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
         UpdateOnboardingRequest request = new UpdateOnboardingRequest(
-                "chosen_city", "Lisbon", "Portugal", null, null, null, null, null,
+                "chosen_city", null, "Lisbon", "Portugal", null, null, null, null, null,
                 null, null, null, null, null, null, null, null, 1
         );
 
@@ -140,7 +141,7 @@ class RelocationOnboardingServiceTest {
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
         UpdateOnboardingRequest request = new UpdateOnboardingRequest(
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, 10
         );
 
@@ -152,6 +153,35 @@ class RelocationOnboardingServiceTest {
         ));
 
         verify(analyticsService).trackServerEventSafe(eq(testUser.getId()), eq("RELOCATION_ONBOARDING_COMPLETED"), anyMap());
+    }
+
+    @Test
+    @DisplayName("updateOnboarding prefers targetCityId over free-text targetCityName")
+    void updateOnboarding_prefersExplicitTargetCityId() {
+        UUID cityId = UUID.randomUUID();
+        RelocationCityDataset city = new RelocationCityDataset();
+        city.setId(cityId);
+        city.setCityName("Lisbon");
+        city.setCitySlug("lisbon");
+        city.setActive(true);
+
+        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(cityDatasetRepository.findById(cityId)).thenReturn(Optional.of(city));
+        when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
+
+        UpdateOnboardingRequest request = new UpdateOnboardingRequest(
+                null, cityId, "Free Text Ignored", null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null
+        );
+
+        service.updateOnboarding(testUser.getId(), request);
+
+        verify(profileRepository).save(argThat(profile ->
+                profile.getTargetCity() != null &&
+                cityId.equals(profile.getTargetCity().getId()) &&
+                "Lisbon".equals(profile.getTargetCityName())
+        ));
     }
 
     @Test

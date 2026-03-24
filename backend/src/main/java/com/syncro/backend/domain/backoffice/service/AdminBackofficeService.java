@@ -23,6 +23,7 @@ import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminOnboardingBackfillResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
+import com.syncro.backend.domain.backoffice.dto.AdminUserPreferencesResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
@@ -37,6 +38,8 @@ import com.syncro.backend.domain.profile.mapper.UserProfileMapper;
 import com.syncro.backend.domain.profile.mapper.UserPreferenceMapper;
 import com.syncro.backend.domain.profile.repository.UserPreferenceRepository;
 import com.syncro.backend.domain.profile.repository.UserProfileRepository;
+import com.syncro.backend.domain.relocation.entity.RelocationProfile;
+import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
 import com.syncro.backend.domain.support.entity.SupportCategory;
 import com.syncro.backend.domain.support.entity.SupportMessage;
 import com.syncro.backend.domain.support.repository.SupportMessageRepository;
@@ -72,6 +75,7 @@ public class AdminBackofficeService {
     private final UserAuthProviderRepository userAuthProviderRepository;
     private final UserPreferenceRepository userPreferenceRepository;
     private final UserProfileRepository userProfileRepository;
+    private final RelocationProfileRepository relocationProfileRepository;
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthMapper authMapper;
@@ -89,6 +93,7 @@ public class AdminBackofficeService {
         UserAuthProviderRepository userAuthProviderRepository,
         UserPreferenceRepository userPreferenceRepository,
         UserProfileRepository userProfileRepository,
+        RelocationProfileRepository relocationProfileRepository,
         AdminUserRepository adminUserRepository,
         PasswordEncoder passwordEncoder,
         AuthMapper authMapper,
@@ -105,6 +110,7 @@ public class AdminBackofficeService {
         this.userAuthProviderRepository = userAuthProviderRepository;
         this.userPreferenceRepository = userPreferenceRepository;
         this.userProfileRepository = userProfileRepository;
+        this.relocationProfileRepository = relocationProfileRepository;
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.authMapper = authMapper;
@@ -166,7 +172,7 @@ public class AdminBackofficeService {
     }
 
     @Transactional(readOnly = true)
-    public UserPreferencesResponse getUserPreferences(AdminPrincipal principal, UUID userId) {
+    public AdminUserPreferencesResponse getUserPreferences(AdminPrincipal principal, UUID userId) {
         ensureSuperAdmin(principal);
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Utente non trovato"));
@@ -185,11 +191,12 @@ public class AdminBackofficeService {
             preferences.setFeedPreferences(Map.of());
         }
 
-        return userPreferenceMapper.toResponse(preferences);
+        RelocationProfile relocationProfile = relocationProfileRepository.findByUserId(user.getId()).orElse(null);
+        return toAdminUserPreferencesResponse(preferences, relocationProfile);
     }
 
     @Transactional
-    public UserPreferencesResponse updateUserMatchmakingPreferences(
+    public AdminUserPreferencesResponse updateUserMatchmakingPreferences(
         AdminPrincipal principal,
         UUID userId,
         AdminUpdateUserMatchmakingRequest request
@@ -212,7 +219,8 @@ public class AdminBackofficeService {
         }
 
         UserPreference saved = userPreferenceRepository.save(preferences);
-        return userPreferenceMapper.toResponse(saved);
+        RelocationProfile relocationProfile = relocationProfileRepository.findByUserId(user.getId()).orElse(null);
+        return toAdminUserPreferencesResponse(saved, relocationProfile);
     }
 
     @Transactional
@@ -325,6 +333,15 @@ public class AdminBackofficeService {
                               and nullif(trim(up.full_name), '') is not null
                               and nullif(trim(up.city), '') is not null
                               and nullif(trim(up.country), '') is not null
+                        ) or exists (
+                            select 1
+                            from relocation_profiles rp
+                            where rp.user_id = u2.id
+                              and (
+                                nullif(trim(rp.target_city_name), '') is not null
+                                or nullif(trim(rp.current_city_name), '') is not null
+                              )
+                              and coalesce(rp.completed_steps, 0) > 0
                         ) as completed
                     from users u2
                 ) computed
@@ -497,6 +514,38 @@ public class AdminBackofficeService {
             return "it";
         }
         return language.trim();
+    }
+
+    private AdminUserPreferencesResponse toAdminUserPreferencesResponse(
+        UserPreference preferences,
+        RelocationProfile relocationProfile
+    ) {
+        UserPreferencesResponse response = userPreferenceMapper.toResponse(preferences);
+        return new AdminUserPreferencesResponse(
+            response.id(),
+            response.userId(),
+            response.matchmakingFilters(),
+            response.feedPreferences(),
+            response.privacyPolicyAccepted(),
+            response.privacyPolicyAcceptedAt(),
+            response.newsletterConsent(),
+            response.newsletterConsentAt(),
+            relocationProfile != null ? relocationProfile.getId() : null,
+            relocationProfile != null ? relocationProfile.getUserType() : null,
+            relocationProfile != null && relocationProfile.getTargetCity() != null
+                ? relocationProfile.getTargetCity().getId()
+                : null,
+            relocationProfile != null ? relocationProfile.getTargetCityName() : null,
+            relocationProfile != null && relocationProfile.getCurrentCity() != null
+                ? relocationProfile.getCurrentCity().getId()
+                : null,
+            relocationProfile != null ? relocationProfile.getCurrentCityName() : null,
+            relocationProfile != null ? relocationProfile.getStatus() : null,
+            relocationProfile != null ? relocationProfile.getCompletedSteps() : null,
+            relocationProfile != null ? relocationProfile.getCompletionPercent() : null,
+            response.createdAt(),
+            response.updatedAt()
+        );
     }
 
     @SuppressWarnings("unchecked")

@@ -18,6 +18,7 @@ import {
 } from "@/services/admin";
 import type { AdminUsersParams } from "@/services/admin";
 import type { ApiError } from "@/types/api";
+import type { AdminUserPreferencesResponse } from "@/types/admin";
 import type { UserResponse, UserStatus } from "@/types/auth";
 import type { PageResponse, JsonObject, JsonValue } from "@/types/shared";
 
@@ -117,6 +118,7 @@ export const AdminMatchmakingOverview = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formState, setFormState] = useState<MatchmakingFormState>(DEFAULT_FORM_STATE);
   const [baseFilters, setBaseFilters] = useState<Record<string, JsonValue>>({});
+  const [selectedPreferences, setSelectedPreferences] = useState<AdminUserPreferencesResponse | null>(null);
 
   const matchGenderOptions = useMemo(
     () => [
@@ -182,6 +184,7 @@ export const AdminMatchmakingOverview = () => {
     if (!selectedUserId) {
       setFormState(DEFAULT_FORM_STATE);
       setBaseFilters({});
+      setSelectedPreferences(null);
       return;
     }
 
@@ -209,6 +212,7 @@ export const AdminMatchmakingOverview = () => {
         }, { ...DEFAULT_DOMAIN_WEIGHTS });
 
         setBaseFilters(filters);
+        setSelectedPreferences(response);
         setFormState({
           ageMin: readNumber(filters.ageMin)?.toString() ?? "",
           ageMax: readNumber(filters.ageMax)?.toString() ?? "",
@@ -332,6 +336,7 @@ export const AdminMatchmakingOverview = () => {
       });
       const updatedFilters = (response.matchmakingFilters ?? {}) as Record<string, JsonValue>;
       setBaseFilters(updatedFilters);
+      setSelectedPreferences(response);
       setSuccessMessage("Matchmaking preferences saved.");
     } catch (requestError) {
       setError(requestError as ApiError);
@@ -406,6 +411,60 @@ export const AdminMatchmakingOverview = () => {
           </div>
         ) : (
           <div className="space-y-5">
+            <div className="rounded-[var(--radius-md)] border border-border/70 bg-surface-muted/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {t("Relocation profile")}
+                </p>
+                {selectedPreferences?.relocationStatus ? (
+                  <Badge tone="neutral">{selectedPreferences.relocationStatus}</Badge>
+                ) : (
+                  <Badge tone="warning">{t("Not available")}</Badge>
+                )}
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                    {t("User type")}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {selectedPreferences?.relocationUserType
+                      ? t(selectedPreferences.relocationUserType)
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                    {t("Target city")}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {selectedPreferences?.relocationTargetCityName ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                    {t("Current city")}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {selectedPreferences?.relocationCurrentCityName ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-subtle">
+                    {t("Progress")}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {selectedPreferences?.relocationCompletedSteps != null
+                      ? `${selectedPreferences.relocationCompletedSteps}/10 (${selectedPreferences.relocationCompletionPercent ?? 0}%)`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-subtle">
+                {t("This section shows the city data stored in the Sprint 1 relocation profile. Matchmaking filters below remain separate legacy preferences.")}
+              </p>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Input
                 label={t("Minimum age")}

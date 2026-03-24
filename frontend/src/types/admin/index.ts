@@ -78,6 +78,15 @@ export type AdminUserPreferencesResponse = {
   privacyPolicyAcceptedAt: IsoDateTime | null;
   newsletterConsent: boolean;
   newsletterConsentAt: IsoDateTime | null;
+  relocationProfileId: Uuid | null;
+  relocationUserType: string | null;
+  relocationTargetCityId: Uuid | null;
+  relocationTargetCityName: string | null;
+  relocationCurrentCityId: Uuid | null;
+  relocationCurrentCityName: string | null;
+  relocationStatus: string | null;
+  relocationCompletedSteps: number | null;
+  relocationCompletionPercent: number | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 };

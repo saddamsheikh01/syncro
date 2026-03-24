@@ -262,7 +262,9 @@ export const expatsActions = {
       if (funnelAnswers.userPhase) {
         onboardingPayload.userType = (userTypeMap[funnelAnswers.userPhase] ?? funnelAnswers.userPhase) as Parameters<typeof patchOnboarding>[0]["userType"];
       }
+      if (funnelAnswers.targetCityId) onboardingPayload.targetCityId = funnelAnswers.targetCityId;
       if (funnelAnswers.targetCityName) onboardingPayload.targetCityName = funnelAnswers.targetCityName;
+      if (funnelAnswers.currentCityId) onboardingPayload.currentCityId = funnelAnswers.currentCityId;
       if (funnelAnswers.currentCityName) onboardingPayload.currentCityName = funnelAnswers.currentCityName;
       if (funnelAnswers.household) onboardingPayload.household = funnelAnswers.household;
       if (funnelAnswers.hasPets !== undefined) onboardingPayload.hasPets = funnelAnswers.hasPets;

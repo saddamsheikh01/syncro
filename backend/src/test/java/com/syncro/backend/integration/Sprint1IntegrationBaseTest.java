@@ -1,6 +1,8 @@
 package com.syncro.backend.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.syncro.backend.domain.auth.entity.AdminRole;
+import com.syncro.backend.domain.auth.entity.AdminStatus;
 import com.syncro.backend.domain.auth.entity.AdminUser;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.AdminUserRepository;
@@ -56,9 +58,11 @@ abstract class Sprint1IntegrationBaseTest {
         AdminUser admin = new AdminUser();
         admin.setEmail("admin-" + UUID.randomUUID().toString().substring(0, 8) + "@syncro.test");
         admin.setPassword(passwordEncoder.encode("testpassword"));
+        admin.setRole(AdminRole.SUPER_ADMIN);
+        admin.setStatus(AdminStatus.ACTIVE);
         admin = adminUserRepository.save(admin);
 
-        String token = jwtService.generateAdminAccessToken(admin.getId(), "ADMIN");
+        String token = jwtService.generateAdminAccessToken(admin.getId(), "SUPER_ADMIN");
         return new Object[]{admin, token};
     }
 }
