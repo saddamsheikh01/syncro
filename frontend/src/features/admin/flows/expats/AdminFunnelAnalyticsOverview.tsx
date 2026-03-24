@@ -13,25 +13,58 @@ import { Loader } from "@/components/elements/Loader";
 import { useT } from "@/hooks";
 import { formatQuestionKey, formatAnswerValue } from "@/features/admin/lib/funnelLabels";
 
+const PERIOD_OPTIONS = [
+  { value: "all", label: "All time" },
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+];
+
+function periodToParams(period: string): { from?: string; to?: string } {
+  if (period === "all") return {};
+  const now = new Date();
+  const to = now.toISOString();
+  let from: Date;
+  switch (period) {
+    case "today":
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      break;
+    case "7d":
+      from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case "30d":
+      from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case "90d":
+      from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      return {};
+  }
+  return { from: from.toISOString(), to };
+}
+
 export const AdminFunnelAnalyticsOverview = () => {
   const { t } = useT();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [data, setData] = useState<FunnelAnalyticsResponse | null>(null);
+  const [period, setPeriod] = useState("all");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await adminGetFunnelAnalytics();
+      const resp = await adminGetFunnelAnalytics(periodToParams(period));
       setData(resp);
     } catch (e) {
       setError(normalizeApiError(e) as ApiError);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     void load();
@@ -68,9 +101,27 @@ export const AdminFunnelAnalyticsOverview = () => {
     <div className="space-y-6">
       <AdminPageHeader
         title={t("Funnel Analytics")}
-        subtitle={t("KPI and drop-off analysis for the expats funnel.")}
+        subtitle={t("KPI and drop-off analysis for the expats funnel. Ghost sessions (no answers) are excluded.")}
         actions={<Button size="sm" variant="outline" onClick={() => void load()}>{t("Refresh")}</Button>}
       />
+
+      <Card className="flex items-end gap-4 p-5">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted">{t("Period")}</label>
+          <select
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+          >
+            {PERIOD_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <p className="pb-2 text-sm text-subtle">
+          {t("Showing {count} sessions with answers", { count: String(data.totalSessions) })}
+        </p>
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

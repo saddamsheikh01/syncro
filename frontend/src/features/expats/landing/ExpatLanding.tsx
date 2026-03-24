@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 import { useT } from "@/hooks";
 import { useExpats } from "../../../hooks/expats/useExpats";
@@ -30,18 +30,10 @@ export default function ExpatLanding() {
   const router = useRouter();
   const { t, locale } = useT();
   const { initSession, isLoading } = useExpats();
-  const initialized = useRef(false);
   const [funnelConfig, setFunnelConfig] = useState<{
     featureFlags?: { show_budget_step?: boolean; enable_free_notes?: boolean };
     content?: { cta_text?: string };
   } | null>(null);
-
-  useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true;
-      initSession().catch(() => null);
-    }
-  }, [initSession]);
 
   useEffect(() => {
     getFunnelConfig("expats_landing_v1", locale)
@@ -51,7 +43,8 @@ export default function ExpatLanding() {
 
   const ctaLabel = funnelConfig?.content?.cta_text ?? t("Expats.landing.hero.cta");
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    await initSession().catch(() => null);
     router.push("/expats/funnel/1");
   };
 
