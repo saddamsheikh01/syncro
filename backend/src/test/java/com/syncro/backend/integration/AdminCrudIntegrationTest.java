@@ -1,5 +1,6 @@
 package com.syncro.backend.integration;
 
+import com.syncro.backend.domain.auth.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -259,6 +260,81 @@ class AdminCrudIntegrationTest extends Sprint1IntegrationBaseTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cityName").value("Tokyo"))
                 .andExpect(jsonPath("$.notifiedCount").value(0));
+    }
+
+    @Test
+    @DisplayName("GET user preferences includes relocation profile fields")
+    void getUserPreferences_includesRelocationProfileFields() throws Exception {
+        Object[] adminAndToken = createAdminAndGetToken();
+        String adminJwt = (String) adminAndToken[1];
+
+        Object[] userAndToken = createUserAndGetToken();
+        User user = (User) userAndToken[0];
+        String userJwt = (String) userAndToken[1];
+
+        String onboardingBody = """
+                {
+                    "userType": "planning_move",
+                    "targetCityName": "Lisbon",
+                    "currentCityName": "Milan",
+                    "completedSteps": 4
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/relocation/onboarding")
+                        .header("Authorization", "Bearer " + userJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(onboardingBody))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/admin/users/" + user.getId() + "/preferences")
+                        .header("Authorization", "Bearer " + adminJwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(user.getId().toString()))
+                .andExpect(jsonPath("$.relocationUserType").value("planning_move"))
+                .andExpect(jsonPath("$.relocationTargetCityName").value("Lisbon"))
+                .andExpect(jsonPath("$.relocationCurrentCityName").value("Milan"))
+                .andExpect(jsonPath("$.relocationStatus").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.relocationCompletedSteps").value(4))
+                .andExpect(jsonPath("$.relocationCompletionPercent").value(40));
+    }
+
+    @Test
+    @DisplayName("POST onboarding backfill marks relocation-only users as completed")
+    void backfillOnboardingStatus_marksRelocationOnlyUsersCompleted() throws Exception {
+        Object[] adminAndToken = createAdminAndGetToken();
+        String adminJwt = (String) adminAndToken[1];
+
+        Object[] userAndToken = createUserAndGetToken();
+        User user = (User) userAndToken[0];
+        String userJwt = (String) userAndToken[1];
+
+        String onboardingBody = """
+                {
+                    "userType": "planning_move",
+                    "targetCityName": "Porto",
+                    "completedSteps": 3
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/relocation/onboarding")
+                        .header("Authorization", "Bearer " + userJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(onboardingBody))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(
+                userRepository.findById(user.getId()).orElseThrow().isOnboardingCompleted()
+        ).isFalse();
+
+        mockMvc.perform(post("/api/v1/admin/onboarding/backfill")
+                        .header("Authorization", "Bearer " + adminJwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.updatedUsers", greaterThanOrEqualTo(1)));
+
+        org.assertj.core.api.Assertions.assertThat(
+                userRepository.findById(user.getId()).orElseThrow().isOnboardingCompleted()
+        ).isTrue();
     }
 
     // ========== HELPERS ==========

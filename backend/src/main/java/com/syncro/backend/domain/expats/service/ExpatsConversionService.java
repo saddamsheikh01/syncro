@@ -6,6 +6,9 @@ import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousAnswerRepository;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.domain.relocation.entity.RelocationProfile;
+import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
+import com.syncro.backend.domain.relocation.service.ExpatsFunnelToRelocationProfileMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +26,21 @@ public class ExpatsConversionService {
     private final ExpatsAnonymousAnswerRepository answerRepository;
     private final UserRepository userRepository;
     private final AnalyticsService analyticsService;
+    private final RelocationProfileRepository relocationProfileRepository;
+    private final ExpatsFunnelToRelocationProfileMapper funnelToRelocationProfileMapper;
 
     public ExpatsConversionService(ExpatsAnonymousSessionRepository sessionRepository,
                                    ExpatsAnonymousAnswerRepository answerRepository,
                                    UserRepository userRepository,
-                                   AnalyticsService analyticsService) {
+                                   AnalyticsService analyticsService,
+                                   RelocationProfileRepository relocationProfileRepository,
+                                   ExpatsFunnelToRelocationProfileMapper funnelToRelocationProfileMapper) {
         this.sessionRepository = sessionRepository;
         this.answerRepository = answerRepository;
         this.userRepository = userRepository;
         this.analyticsService = analyticsService;
+        this.relocationProfileRepository = relocationProfileRepository;
+        this.funnelToRelocationProfileMapper = funnelToRelocationProfileMapper;
     }
 
     /**
@@ -61,6 +70,9 @@ public class ExpatsConversionService {
         session.setLastSeenAt(Instant.now());
         sessionRepository.save(session);
 
+        List<ExpatsAnonymousAnswer> answers = answerRepository.findBySessionIdOrderByStepNumberAsc(session.getId());
+        syncRelocationProfile(session, userId, answers);
+
         analyticsService.trackServerEventSafe(userId, "EXPATS_ANON_CONVERTED",
                 Map.of("sessionId", session.getId().toString()));
     }
@@ -71,5 +83,20 @@ public class ExpatsConversionService {
     @Transactional(readOnly = true)
     public List<ExpatsAnonymousAnswer> getSessionAnswers(UUID sessionId) {
         return answerRepository.findBySessionIdOrderByStepNumberAsc(sessionId);
+    }
+
+    private void syncRelocationProfile(ExpatsAnonymousSession session,
+                                       UUID userId,
+                                       List<ExpatsAnonymousAnswer> answers) {
+        RelocationProfile profile = relocationProfileRepository.findByUserId(userId)
+                .orElseGet(() -> relocationProfileRepository.findByAnonymousSession_Id(session.getId())
+                        .orElseGet(RelocationProfile::new));
+
+        profile.setUser(userRepository.getReferenceById(userId));
+        profile.setAnonymousSession(null);
+        profile.setConvertedFromSession(session);
+
+        funnelToRelocationProfileMapper.applyAnswers(profile, answers);
+        relocationProfileRepository.save(profile);
     }
 }

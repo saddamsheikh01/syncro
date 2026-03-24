@@ -123,6 +123,7 @@ export interface ActivationStateResponse {
 
 export interface PatchOnboardingRequest {
   userType?: UserType;
+  targetCityId?: string;
   targetCityName?: string;
   currentCityId?: string;
   currentCityName?: string;

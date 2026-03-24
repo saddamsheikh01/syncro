@@ -80,6 +80,20 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ===== BASE TABLE: user_preferences =====
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    matchmaking_filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+    feed_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+    privacy_policy_accepted BOOLEAN NOT NULL DEFAULT false,
+    privacy_policy_accepted_at TIMESTAMPTZ,
+    newsletter_consent BOOLEAN NOT NULL DEFAULT false,
+    newsletter_consent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ===== V1: email_notification_schema =====
 CREATE TABLE IF NOT EXISTS user_email_preferences (
     user_id UUID NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

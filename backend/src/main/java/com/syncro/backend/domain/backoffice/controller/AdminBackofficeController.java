@@ -9,11 +9,11 @@ import com.syncro.backend.domain.backoffice.dto.AdminCreateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminCreateUserRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminOnboardingBackfillResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminSupportMessageResponse;
+import com.syncro.backend.domain.backoffice.dto.AdminUserPreferencesResponse;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateAdminRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserMatchmakingRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserPasswordRequest;
 import com.syncro.backend.domain.backoffice.dto.AdminUpdateUserRequest;
-import com.syncro.backend.domain.profile.dto.UserPreferencesResponse;
 import com.syncro.backend.domain.profile.dto.UserProfileResponse;
 import com.syncro.backend.domain.backoffice.service.AdminBackofficeService;
 import com.syncro.backend.domain.support.entity.SupportCategory;
@@ -100,7 +100,7 @@ public class AdminBackofficeController {
 
     @GetMapping("/users/{userId}/preferences")
     @Operation(summary = "Preferenze utente app")
-    public ResponseEntity<UserPreferencesResponse> getUserPreferences(
+    public ResponseEntity<AdminUserPreferencesResponse> getUserPreferences(
         @AuthenticationPrincipal AdminPrincipal principal,
         @PathVariable UUID userId
     ) {
@@ -109,7 +109,7 @@ public class AdminBackofficeController {
 
     @PutMapping("/users/{userId}/preferences/matchmaking")
     @Operation(summary = "Aggiorna filtri matchmaking utente app")
-    public ResponseEntity<UserPreferencesResponse> updateUserMatchmakingPreferences(
+    public ResponseEntity<AdminUserPreferencesResponse> updateUserMatchmakingPreferences(
         @AuthenticationPrincipal AdminPrincipal principal,
         @PathVariable UUID userId,
         @Valid @RequestBody AdminUpdateUserMatchmakingRequest request

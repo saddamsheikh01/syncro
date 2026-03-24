@@ -3,9 +3,12 @@ package com.syncro.backend.domain.expats.service;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
+import com.syncro.backend.domain.expats.entity.ExpatsAnonymousAnswer;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousAnswerRepository;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
+import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
+import com.syncro.backend.domain.relocation.service.ExpatsFunnelToRelocationProfileMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,6 +34,8 @@ class ExpatsConversionServiceTest {
     @Mock private ExpatsAnonymousAnswerRepository answerRepository;
     @Mock private UserRepository userRepository;
     @Mock private AnalyticsService analyticsService;
+    @Mock private RelocationProfileRepository relocationProfileRepository;
+    @Mock private ExpatsFunnelToRelocationProfileMapper funnelToRelocationProfileMapper;
 
     @InjectMocks
     private ExpatsConversionService service;
@@ -52,12 +58,27 @@ class ExpatsConversionServiceTest {
     }
 
     @Test
-    @DisplayName("convertSession converts session, marks CONVERTED, tracks analytics")
+    @DisplayName("convertSession converts session, syncs relocation profile and tracks analytics")
     void convertSession_success() {
+        ExpatsAnonymousAnswer answer = new ExpatsAnonymousAnswer();
+        answer.setSession(testSession);
+        answer.setQuestionKey("city_selection");
+        answer.setAnswerValue(
+                java.util.Map.of(
+                        "targetCityId", UUID.randomUUID().toString(),
+                        "targetCityName", "Lisbon"
+                )
+        );
+
         when(sessionRepository.findBySessionToken("test-token-123"))
                 .thenReturn(Optional.of(testSession));
         when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(sessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(answerRepository.findBySessionIdOrderByStepNumberAsc(testSession.getId()))
+                .thenReturn(List.of(answer));
+        when(relocationProfileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        when(relocationProfileRepository.findByAnonymousSession_Id(testSession.getId())).thenReturn(Optional.empty());
+        when(relocationProfileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.convertSession("test-token-123", testUser.getId());
 
@@ -65,6 +86,12 @@ class ExpatsConversionServiceTest {
                 "CONVERTED".equals(session.getStatus()) &&
                 session.getConvertedUser().equals(testUser) &&
                 session.getConvertedAt() != null
+        ));
+        verify(funnelToRelocationProfileMapper).applyAnswers(any(), eq(List.of(answer)));
+        verify(relocationProfileRepository).save(argThat(profile ->
+                profile.getUser().equals(testUser) &&
+                profile.getConvertedFromSession().equals(testSession) &&
+                profile.getAnonymousSession() == null
         ));
 
         verify(analyticsService).trackServerEventSafe(
@@ -84,6 +111,8 @@ class ExpatsConversionServiceTest {
         service.convertSession("test-token-123", testUser.getId());
 
         verify(sessionRepository, never()).save(any());
+        verify(relocationProfileRepository, never()).save(any());
+        verify(funnelToRelocationProfileMapper, never()).applyAnswers(any(), anyList());
         verify(analyticsService, never()).trackServerEventSafe(any(), any(), any());
     }
 

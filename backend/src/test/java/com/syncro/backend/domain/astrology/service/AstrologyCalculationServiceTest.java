@@ -2,44 +2,33 @@ package com.syncro.backend.domain.astrology.service;
 
 import com.syncro.backend.domain.astrology.dto.AstrologyCalculationRequest;
 import com.syncro.backend.domain.astrology.dto.AstrologyCalculationResponse;
-import com.syncro.backend.domain.astrology.dto.PlacementDTO;
 import com.syncro.backend.domain.profile.entity.ZodiacSign;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Astrology calculation tests. Full calculation requires Swiss Ephemeris dependency and
- * ephemeris files in app.astrology.ephemeris-path (run scripts/download-ephemeris.ps1 or .sh).
+ * Astrology calculation tests. They instantiate the service directly to avoid booting the full
+ * Spring app and depending on the development datasource.
  */
-@SpringBootTest
-@ActiveProfiles("dev")
 class AstrologyCalculationServiceTest {
 
-    @Autowired(required = false)
-    private AstrologyCalculationService astrologyCalculationService;
+    private final AstrologyCalculationService astrologyCalculationService =
+        new AstrologyCalculationService(Path.of("ephe").toAbsolutePath().toString());
 
     @Test
-    @DisplayName("AstrologyCalculationService bean is present when Swiss Ephemeris is on classpath")
-    void serviceBeanPresentWhenLibraryAvailable() {
-        if (astrologyCalculationService == null) {
-            return;
-        }
+    @DisplayName("AstrologyCalculationService can be instantiated with local ephemeris path")
+    void serviceCanBeConstructed() {
         assertThat(astrologyCalculationService).isNotNull();
     }
 
     @Test
     @DisplayName("Calculate returns Sun, Moon, Venus, Mars and optionally Ascendant")
     void calculateReturnsPlacements() {
-        if (astrologyCalculationService == null) {
-            return;
-        }
         AstrologyCalculationRequest request = new AstrologyCalculationRequest(
             LocalDate.of(1990, 6, 15),
             LocalTime.of(14, 30),
@@ -61,9 +50,6 @@ class AstrologyCalculationServiceTest {
     @Test
     @DisplayName("Without birth time, Ascendant is null and hasBirthTime is false")
     void withoutBirthTimeNoAscendant() {
-        if (astrologyCalculationService == null) {
-            return;
-        }
         AstrologyCalculationRequest request = new AstrologyCalculationRequest(
             LocalDate.of(1985, 3, 20),
             null,

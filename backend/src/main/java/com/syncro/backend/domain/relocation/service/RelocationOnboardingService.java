@@ -87,8 +87,15 @@ public class RelocationOnboardingService {
         if (request.priorityProblem() != null) profile.setPriorityProblem(request.priorityProblem());
         if (request.freeNotes() != null) profile.setFreeNotes(request.freeNotes());
 
-        // Resolve target city FK if city name matches a dataset entry
-        if (request.targetCityName() != null) {
+        // Resolve target city FK, preferring the explicit catalog id when present.
+        if (request.targetCityId() != null) {
+            var targetCityOpt = cityDatasetRepository.findById(request.targetCityId());
+            if (targetCityOpt.isPresent()) {
+                RelocationCityDataset city = targetCityOpt.get();
+                profile.setTargetCity(city);
+                profile.setTargetCityName(city.getCityName());
+            }
+        } else if (request.targetCityName() != null) {
             resolveTargetCity(profile, request.targetCityName());
         }
 

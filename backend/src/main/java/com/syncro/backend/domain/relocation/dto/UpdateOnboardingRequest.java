@@ -12,6 +12,8 @@ public record UpdateOnboardingRequest(
         @Size(max = 30)
         String userType,
 
+        UUID targetCityId,
+
         @Size(max = 255)
         String targetCityName,
 

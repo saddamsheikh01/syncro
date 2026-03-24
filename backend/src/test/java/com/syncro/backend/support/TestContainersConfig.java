@@ -22,6 +22,7 @@ public class TestContainersConfig {
                     .withUsername("test")
                     .withPassword("test")
                     .withUrlParam("stringtype", "unspecified")
+                    .withUrlParam("currentSchema", "syncro_test")
                     .withInitScript("init-test-schema.sql");
 
     static {

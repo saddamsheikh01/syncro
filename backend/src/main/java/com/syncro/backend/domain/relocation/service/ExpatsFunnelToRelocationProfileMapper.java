@@ -2,6 +2,7 @@ package com.syncro.backend.domain.relocation.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousAnswer;
+import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
 import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepository;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Maps expats funnel answers (question_key + JSON answer_value) onto {@link RelocationProfile}
@@ -141,14 +143,26 @@ public class ExpatsFunnelToRelocationProfileMapper {
         }
     }
 
-    private static void mapCitySelection(RelocationProfile p, JsonNode v) {
+    private void mapCitySelection(RelocationProfile p, JsonNode v) {
         if (!v.isObject()) {
             return;
         }
-        if (v.has("targetCityName") && !v.get("targetCityName").isNull()) {
+        if (v.has("targetCityId") && !v.get("targetCityId").isNull()) {
+            resolveCityById(v.get("targetCityId").asText(), city -> {
+                p.setTargetCity(city);
+                p.setTargetCityName(city.getCityName());
+            });
+        }
+        if (v.has("currentCityId") && !v.get("currentCityId").isNull()) {
+            resolveCityById(v.get("currentCityId").asText(), city -> {
+                p.setCurrentCity(city);
+                p.setCurrentCityName(city.getCityName());
+            });
+        }
+        if (v.has("targetCityName") && !v.get("targetCityName").isNull() && p.getTargetCity() == null) {
             p.setTargetCityName(v.get("targetCityName").asText());
         }
-        if (v.has("currentCityName") && !v.get("currentCityName").isNull()) {
+        if (v.has("currentCityName") && !v.get("currentCityName").isNull() && p.getCurrentCity() == null) {
             p.setCurrentCityName(v.get("currentCityName").asText());
         }
     }
@@ -223,6 +237,15 @@ public class ExpatsFunnelToRelocationProfileMapper {
         if (p.getCurrentCityName() != null && !p.getCurrentCityName().isBlank()) {
             String slug = p.getCurrentCityName().toLowerCase().replaceAll("\\s+", "-");
             cityDatasetRepository.findByCitySlugAndActiveTrue(slug).ifPresent(p::setCurrentCity);
+        }
+    }
+
+    private void resolveCityById(String rawId, java.util.function.Consumer<RelocationCityDataset> assign) {
+        try {
+            UUID cityId = UUID.fromString(rawId);
+            cityDatasetRepository.findById(cityId).ifPresent(assign);
+        } catch (IllegalArgumentException ignored) {
+            // Keep the textual city fallback when the provided id is not a valid UUID.
         }
     }
 

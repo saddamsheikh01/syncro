@@ -266,7 +266,12 @@ public class AnonymousRelocationService {
         if (request.freeNotes() != null) {
             profile.setFreeNotes(request.freeNotes());
         }
-        if (request.targetCityName() != null) {
+        if (request.targetCityId() != null) {
+            cityDatasetRepository.findById(request.targetCityId()).ifPresent(city -> {
+                profile.setTargetCity(city);
+                profile.setTargetCityName(city.getCityName());
+            });
+        } else if (request.targetCityName() != null) {
             String slug = request.targetCityName().toLowerCase().replaceAll("\\s+", "-");
             cityDatasetRepository.findByCitySlugAndActiveTrue(slug).ifPresent(profile::setTargetCity);
         }
