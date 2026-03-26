@@ -57,7 +57,7 @@ public class AdminSessionService {
         String currentCity = extractAnswerValue(answers, "city_selection", "currentCityName");
 
         List<AnswerSummary> answerSummaries = answers.stream()
-                .map(a -> new AnswerSummary(
+                .map(a -> AnswerSummary.of(
                         a.getQuestionKey(),
                         a.getQuestionGroup(),
                         a.getStepNumber(),

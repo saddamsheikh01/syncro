@@ -41,7 +41,13 @@ export default function ExpatFunnel({ step }: Props) {
   const canContinue = (): boolean => {
     switch (step) {
       case 1: return !!mergedAnswers.userPhase;
-      case 2: return !!(mergedAnswers.currentCityName || mergedAnswers.targetType);
+      case 2: {
+        if (!mergedAnswers.targetType) return false;
+        if (mergedAnswers.targetType === "specific_city") {
+          return !!(mergedAnswers.currentCityName && mergedAnswers.targetCityName);
+        }
+        return !!mergedAnswers.currentCityName;
+      }
       case 3: return !!mergedAnswers.relocationTime;
       case 4: return !!mergedAnswers.ageRange;
       case 5: return !!mergedAnswers.household;

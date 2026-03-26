@@ -138,12 +138,13 @@ export const AdminFunnelAnalyticsOverview = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-xs text-muted">
-                <th className="px-3 py-2">{t("Step")}</th>
-                <th className="px-3 py-2">{t("Reached")}</th>
-                <th className="px-3 py-2">{t("Dropped")}</th>
-                <th className="px-3 py-2">{t("Drop-off rate")}</th>
-                <th className="px-3 py-2">{t("Funnel")}</th>
+              <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <th className="w-16 px-3 py-2.5">#</th>
+                <th className="px-3 py-2.5">{t("Step")}</th>
+                <th className="px-3 py-2.5 text-right">{t("Reached")}</th>
+                <th className="px-3 py-2.5 text-right">{t("Dropped")}</th>
+                <th className="px-3 py-2.5 text-right">{t("Drop-off")}</th>
+                <th className="w-48 px-3 py-2.5">{t("Funnel")}</th>
               </tr>
             </thead>
             <tbody>
@@ -151,18 +152,52 @@ export const AdminFunnelAnalyticsOverview = () => {
                 const pct = data.totalSessions > 0
                   ? Math.round((step.sessionsReached / data.totalSessions) * 100)
                   : 0;
+                const stepNames: Record<number, string> = {
+                  1: "Current situation", 2: "City selection", 3: "Timeline",
+                  4: "Age & gender", 5: "Household", 6: "Main goal",
+                  7: "Work status", 8: "Budget", 9: "Priority", 10: "City values",
+                };
+                const barColor = step.dropOffRate > 20 ? "bg-red-400" :
+                                 step.dropOffRate > 10 ? "bg-amber-400" : "bg-blue-500";
+
                 return (
-                  <tr key={step.step} className="border-b">
-                    <td className="px-3 py-2 font-medium">{t("Step")} {step.step}</td>
-                    <td className="px-3 py-2">{step.sessionsReached}</td>
-                    <td className="px-3 py-2 text-danger">{step.sessionsDropped}</td>
-                    <td className="px-3 py-2">{step.dropOffRate}%</td>
-                    <td className="px-3 py-2">
-                      <div className="h-2 w-full rounded-full bg-gray-200">
-                        <div
-                          className="h-2 rounded-full bg-blue-500 transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
+                  <tr key={step.step} className="border-b border-gray-50 transition-colors hover:bg-gray-50/50">
+                    <td className="px-3 py-2.5">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-500">
+                        {step.step}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 font-medium text-gray-800">
+                      {stepNames[step.step] ?? `Step ${step.step}`}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                      {step.sessionsReached}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {step.sessionsDropped > 0 ? (
+                        <span className="font-semibold text-red-500">−{step.sessionsDropped}</span>
+                      ) : (
+                        <span className="text-gray-300">0</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {step.dropOffRate > 0 ? (
+                        <span className="inline-block rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                          {step.dropOffRate}%
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">0%</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-full rounded-full bg-gray-100">
+                          <div
+                            className={`h-2 rounded-full transition-all ${barColor}`}
+                            style={{ width: `${pct}%`, minWidth: pct > 0 ? "4px" : "0" }}
+                          />
+                        </div>
+                        <span className="w-8 text-right text-xs font-medium text-gray-400">{pct}%</span>
                       </div>
                     </td>
                   </tr>

@@ -48,8 +48,6 @@ function CityCatalogCombo({
   const [q, setQ] = useState(value);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setQ(value), [value]);
-
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
@@ -185,17 +183,20 @@ export default function Step2CitySelection({
     tt: "specific_city" | "already_live" | "not_sure" | "" = targetType
   ) => {
     if (!tt) return;
-    onChange({
-      currentCityName: cc,
+    const data: Parameters<typeof onChange>[0] = {
+      currentCityName: cc || undefined,
       currentCityId: ccId || undefined,
-      targetCityName: tc || undefined,
-      targetCityId: tt === "specific_city" ? tcId || undefined : undefined,
       targetType: tt,
-    });
+    };
+    // Solo inviare targetCityName/Id se hanno un valore — evita di sovrascrivere con undefined
+    if (tc) data.targetCityName = tc;
+    if (tt === "specific_city" && tcId) data.targetCityId = tcId;
+    onChange(data);
   };
 
   const selectTargetType = (val: "specific_city" | "already_live" | "not_sure") => {
     setTargetType(val);
+    // Non resettare target city quando si seleziona il tipo — l'utente potrebbe averla gia inserita
     emit(currentCity, currentCityId, targetCity, val === "specific_city" ? targetCityId : "", val);
   };
 
