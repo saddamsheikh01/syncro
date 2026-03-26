@@ -87,22 +87,70 @@ export function formatQuestionKey(key: string): string {
   return QUESTION_LABELS[key] ?? key.replace(/_/g, " ");
 }
 
-/** Traduce un valore risposta (stringa semplice o JSON) in testo leggibile. */
+/** Traduce un valore risposta (stringa semplice o JSON) in testo leggibile per l'admin. */
 export function formatAnswerValue(raw: string): string {
-  if (raw.startsWith("{")) {
-    try {
-      const obj = JSON.parse(raw) as Record<string, unknown>;
-      const parts: string[] = [];
-      for (const [key, val] of Object.entries(obj)) {
-        if (val === null || val === undefined || val === "" || val === 0 || val === false) continue;
-        const label = VALUE_LABELS[String(val)] ?? String(val);
-        const keyLabel = key.replace(/([A-Z])/g, " $1").toLowerCase().trim();
-        parts.push(`${keyLabel}: ${label}`);
-      }
-      return parts.length > 0 ? parts.join(" · ") : raw;
-    } catch {
-      return raw;
-    }
+  // Stringa semplice
+  if (!raw.startsWith("{")) {
+    return VALUE_LABELS[raw] ?? raw.replace(/_/g, " ");
   }
-  return VALUE_LABELS[raw] ?? raw.replace(/_/g, " ");
+
+  try {
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+
+    // city_selection → mostra solo le città
+    if ("targetType" in obj) {
+      const parts: string[] = [];
+      if (obj.currentCityName) parts.push(`From: ${String(obj.currentCityName)}`);
+      if (obj.targetCityName) parts.push(`To: ${String(obj.targetCityName)}`);
+      if (!obj.targetCityName && obj.targetType === "not_sure") parts.push("Not sure yet");
+      if (!obj.targetCityName && obj.targetType === "already_live") parts.push("Already living there");
+      return parts.join(" → ") || (VALUE_LABELS[String(obj.targetType)] ?? String(obj.targetType));
+    }
+
+    // age_range → "Male, 25–34"
+    if ("ageRange" in obj) {
+      const parts: string[] = [];
+      if (obj.gender) parts.push(VALUE_LABELS[String(obj.gender)] ?? String(obj.gender));
+      if (obj.ageRange) parts.push(VALUE_LABELS[String(obj.ageRange)] ?? String(obj.ageRange));
+      return parts.join(", ");
+    }
+
+    // relationship/household → "Alone" o "With children (2)"
+    if ("household" in obj) {
+      const h = VALUE_LABELS[String(obj.household)] ?? String(obj.household);
+      const parts = [h];
+      if (obj.childrenCount && Number(obj.childrenCount) > 0) {
+        parts[0] = `${h} (${obj.childrenCount})`;
+      }
+      if (obj.hasPets === true) parts.push("has pets");
+      return parts.join(", ");
+    }
+
+    // work_type → "Freelancer, remote, full time"
+    if ("workStatus" in obj) {
+      const parts: string[] = [];
+      if (obj.workStatus) parts.push(VALUE_LABELS[String(obj.workStatus)] ?? String(obj.workStatus));
+      if (obj.isRemote === true) parts.push("Remote");
+      if (obj.workStructure) parts.push(String(obj.workStructure).replace(/_/g, " "));
+      return parts.join(", ");
+    }
+
+    // budget → "€2,000/mo · Balanced"
+    if ("monthlyBudget" in obj) {
+      const budget = Number(obj.monthlyBudget);
+      const lifestyle = VALUE_LABELS[String(obj.desiredLifestyle)] ?? String(obj.desiredLifestyle ?? "");
+      const budgetStr = budget > 0 ? `€${budget.toLocaleString()}/mo` : "";
+      return [budgetStr, lifestyle].filter(Boolean).join(" · ");
+    }
+
+    // Fallback generico per oggetti sconosciuti
+    const parts: string[] = [];
+    for (const [, val] of Object.entries(obj)) {
+      if (val === null || val === undefined || val === "" || val === 0 || val === false) continue;
+      parts.push(VALUE_LABELS[String(val)] ?? String(val));
+    }
+    return parts.join(", ") || raw;
+  } catch {
+    return raw;
+  }
 }

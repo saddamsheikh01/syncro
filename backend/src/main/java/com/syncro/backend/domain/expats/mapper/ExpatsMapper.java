@@ -40,7 +40,7 @@ public class ExpatsMapper {
     }
 
     public AnswerResponse toAnswerResponse(ExpatsAnonymousAnswer answer) {
-        return new AnswerResponse(
+        return AnswerResponse.of(
                 answer.getId(),
                 answer.getStepNumber(),
                 answer.getQuestionGroup(),

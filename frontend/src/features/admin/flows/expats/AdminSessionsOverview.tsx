@@ -14,6 +14,7 @@ import { Loader } from "@/components/elements/Loader";
 import { Badge } from "@/components/elements/Badge";
 import { useT } from "@/hooks";
 import { formatDateTime } from "@/features/admin/lib/formatters";
+import { formatQuestionKey, formatAnswerValue } from "@/features/admin/lib/funnelLabels";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
@@ -165,43 +166,65 @@ export const AdminSessionsOverview = () => {
           />
 
           {expandedSession ? (
-            <Card className="space-y-4 p-5">
-              <p className="text-sm font-semibold">
-                {t("Answers for session")} {expandedSession.id.slice(0, 8)}...
-              </p>
-              {expandedSession.metadata ? (
-                <div className="text-xs text-muted">
-                  <strong>{t("Metadata")}:</strong>{" "}
-                  {JSON.stringify(expandedSession.metadata, null, 2)}
+            <Card className="space-y-5 p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {t("Session detail")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {expandedSession.id.slice(0, 8)}... · {formatDateTime(expandedSession.createdAt)}
+                  </p>
                 </div>
-              ) : null}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted">
-                      <th className="px-2 py-1">{t("Step")}</th>
-                      <th className="px-2 py-1">{t("Group")}</th>
-                      <th className="px-2 py-1">{t("Question")}</th>
-                      <th className="px-2 py-1">{t("Answer")}</th>
-                      <th className="px-2 py-1">{t("Version")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expandedSession.answers.map((a, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="px-2 py-1">{a.stepNumber}</td>
-                        <td className="px-2 py-1">{a.questionGroup}</td>
-                        <td className="px-2 py-1 font-medium">{a.questionKey}</td>
-                        <td className="max-w-xs truncate px-2 py-1">
-                          {typeof a.answerValue === "string"
-                            ? a.answerValue
-                            : JSON.stringify(a.answerValue)}
-                        </td>
-                        <td className="px-2 py-1">{a.version}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {expandedSession.metadata?.device ? (
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                    {String(expandedSession.metadata.device)}
+                    {expandedSession.metadata.referrer ? ` · ${String(expandedSession.metadata.referrer).replace(/https?:\/\//, "").split("/")[0]}` : ""}
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Answer cards */}
+              <div className="grid gap-3">
+                {expandedSession.answers.map((a, i) => {
+                  const raw = typeof a.answerValue === "string" ? a.answerValue : JSON.stringify(a.answerValue);
+                  const formatted = formatAnswerValue(raw);
+                  const groupColor =
+                    a.questionGroup === "CITY_FIT" ? "bg-blue-50 text-blue-700" :
+                    a.questionGroup === "POSITIONING" ? "bg-purple-50 text-purple-700" :
+                    "bg-amber-50 text-amber-700";
+
+                  return (
+                    <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white p-3">
+                      {/* Step number */}
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                        {a.stepNumber}
+                      </div>
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatQuestionKey(a.questionKey)}
+                          </p>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${groupColor}`}>
+                            {a.questionGroup === "CITY_FIT" ? "City Fit" :
+                             a.questionGroup === "POSITIONING" ? "Positioning" : "Execution"}
+                          </span>
+                          {a.version > 1 ? (
+                            <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
+                              v{a.version}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-sm text-gray-700">
+                          {formatted}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           ) : null}

@@ -1,5 +1,8 @@
 package com.syncro.backend.domain.expats.dto;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +32,16 @@ public record AdminSessionResponse(
             String questionKey,
             String questionGroup,
             Integer stepNumber,
-            Object answerValue,
+            @JsonRawValue Object answerValue,
             Integer version,
             Instant answeredAt
-    ) {}
+    ) {
+        public static AnswerSummary of(String questionKey, String questionGroup,
+                                        Integer stepNumber, JsonNode answerValue,
+                                        Integer version, Instant answeredAt) {
+            return new AnswerSummary(questionKey, questionGroup, stepNumber,
+                    answerValue != null ? answerValue.toString() : null,
+                    version, answeredAt);
+        }
+    }
 }
