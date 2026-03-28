@@ -12,9 +12,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class CorsConfig {
 
     @Bean(name = "syncroCorsConfigurationSource")
-    @Profile("!dev")
+    @Profile("prod")
     public CorsConfigurationSource corsConfigurationSource() {
         return buildCorsConfigurationSource(List.of(
+            "https://syncroapp.it",
+            "https://www.syncroapp.it"
+        ));
+    }
+
+    @Bean(name = "syncroCorsConfigurationSource")
+    @Profile("staging")
+    public CorsConfigurationSource corsConfigurationSourceStaging() {
+        return buildCorsConfigurationSource(List.of(
+            "https://staging.syncroapp.it",
             "https://syncroapp.it",
             "https://www.syncroapp.it"
         ));
