@@ -33,6 +33,7 @@ public class RelocationScoringService {
     private final ScoringCalculationHelper helper;
     private final AnonymousRelocationService anonymousRelocationService;
     private final ExpatsAnonymousSessionRepository expatsSessionRepository;
+    private final RelocationProfileResolver profileResolver;
 
     public RelocationScoringService(RelocationProfileRepository profileRepository,
                                     RelocationOnboardingSnapshotRepository snapshotRepository,
@@ -45,7 +46,8 @@ public class RelocationScoringService {
                                     AnalyticsService analyticsService,
                                     ScoringCalculationHelper helper,
                                     AnonymousRelocationService anonymousRelocationService,
-                                    ExpatsAnonymousSessionRepository expatsSessionRepository) {
+                                    ExpatsAnonymousSessionRepository expatsSessionRepository,
+                                    RelocationProfileResolver profileResolver) {
         this.profileRepository = profileRepository;
         this.snapshotRepository = snapshotRepository;
         this.cityRepository = cityRepository;
@@ -57,6 +59,7 @@ public class RelocationScoringService {
         this.helper = helper;
         this.anonymousRelocationService = anonymousRelocationService;
         this.expatsSessionRepository = expatsSessionRepository;
+        this.profileResolver = profileResolver;
     }
 
     /**
@@ -64,8 +67,7 @@ public class RelocationScoringService {
      */
     @Transactional
     public ScoringResultResponse computeScoring(UUID userId, ComputeScoringRequest request) {
-        RelocationProfile profile = profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
+        RelocationProfile profile = profileResolver.findOrRecover(userId);
 
         RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,

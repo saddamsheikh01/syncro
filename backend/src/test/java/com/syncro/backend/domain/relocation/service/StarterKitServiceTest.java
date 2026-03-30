@@ -9,6 +9,7 @@ import com.syncro.backend.domain.relocation.entity.RelocationProfile;
 import com.syncro.backend.domain.relocation.entity.StarterKitReport;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.*;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,7 @@ class StarterKitServiceTest {
     @Mock private AnalyticsService analyticsService;
     @Mock private UserRepository userRepository;
     @Mock private SubscriptionService subscriptionService;
+    @Mock private RelocationProfileResolver profileResolver;
     @InjectMocks private StarterKitService service;
 
     @org.junit.jupiter.api.BeforeEach
@@ -48,7 +50,7 @@ class StarterKitServiceTest {
         User user = mockUser();
         RelocationProfile profile = mockProfile("planning_move");
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("1500"));
         when(scoringHelper.getCityMacroareeMap(any())).thenReturn(Map.of(
                 "opportunita_lavorative", new BigDecimal("80"),
@@ -86,7 +88,8 @@ class StarterKitServiceTest {
     @Test
     void generate_noProfile_throwsNotFound() {
         User user = mockUser();
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(user.getId()))
+                .thenThrow(new NotFoundException("Relocation profile not found"));
         assertThrows(NotFoundException.class, () -> service.generate(user.getId(), null));
     }
 
@@ -106,7 +109,7 @@ class StarterKitServiceTest {
         lenient().when(profile.getHousehold()).thenReturn("with_children");
         lenient().when(profile.getPriorityProblem()).thenReturn("housing");
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("1500"));
         when(scoringHelper.getCityMacroareeMap(any())).thenReturn(Map.of(
                 "opportunita_lavorative", new BigDecimal("70"),

@@ -6,6 +6,7 @@ import com.syncro.backend.domain.relocation.dto.CityComparisonRequest;
 import com.syncro.backend.domain.relocation.dto.CityComparisonResponse;
 import com.syncro.backend.domain.relocation.entity.*;
 import com.syncro.backend.domain.relocation.repository.*;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ class CityComparisonServiceTest {
     @Mock private RelocationScoringConfigRepository configRepository;
     @Mock private UserRepository userRepository;
     @Mock private ScoringCalculationHelper helper;
+    @Mock private RelocationProfileResolver profileResolver;
 
     @InjectMocks
     private CityComparisonService service;
@@ -186,7 +188,7 @@ class CityComparisonServiceTest {
     void compareCities_cityNotFound_throwsNotFound() {
         UUID fakeCityId = UUID.randomUUID();
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(fakeCityId)).thenReturn(Optional.empty());
@@ -201,7 +203,7 @@ class CityComparisonServiceTest {
     @Test
     @DisplayName("compareCities throws CONFLICT when no active snapshot")
     void compareCities_noSnapshot_throwsConflict() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
 
         CityComparisonRequest request = new CityComparisonRequest(currentCity.getId(), targetCity.getId());
@@ -214,7 +216,7 @@ class CityComparisonServiceTest {
     // ========== HELPERS ==========
 
     private void stubCommonDependencies() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(currentCity.getId())).thenReturn(Optional.of(currentCity));

@@ -13,6 +13,7 @@ import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.BudgetSimulationRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,7 @@ class BudgetSimulationServiceTest {
     @Mock private AnalyticsService analyticsService;
     @Mock private UserRepository userRepository;
     @Mock private SubscriptionService subscriptionService;
+    @Mock private RelocationProfileResolver profileResolver;
     @InjectMocks private BudgetSimulationService service;
 
     @org.junit.jupiter.api.BeforeEach
@@ -53,7 +55,7 @@ class BudgetSimulationServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationCityDataset city = mockCity();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(cityDatasetRepository.findById(city.getId())).thenReturn(Optional.of(city));
         when(calcHelper.resolveRent(any(), any(), any())).thenReturn(new BigDecimal("1000"));
         when(calcHelper.resolveLivingCost(any(), any())).thenReturn(new BigDecimal("500"));
@@ -81,7 +83,7 @@ class BudgetSimulationServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationCityDataset city = mockCity();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(cityDatasetRepository.findById(city.getId())).thenReturn(Optional.of(city));
         when(calcHelper.resolveRent(any(), any(), any())).thenReturn(new BigDecimal("1000"));
         when(calcHelper.resolveLivingCost(any(), any())).thenReturn(new BigDecimal("500"));
@@ -125,7 +127,7 @@ class BudgetSimulationServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationCityDataset city = mockCity();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(cityDatasetRepository.findById(city.getId())).thenReturn(Optional.of(city));
 
         CreateBudgetSimulationRequest request = new CreateBudgetSimulationRequest(
@@ -141,7 +143,7 @@ class BudgetSimulationServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationCityDataset city = mockCity();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(cityDatasetRepository.findById(city.getId())).thenReturn(Optional.of(city));
         when(calcHelper.resolveRent(any(), any(), any())).thenReturn(new BigDecimal("1000"));
         when(calcHelper.resolveLivingCost(any(), any())).thenReturn(new BigDecimal("500"));
@@ -177,7 +179,7 @@ class BudgetSimulationServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationCityDataset city = mockCity();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(cityDatasetRepository.findById(city.getId())).thenReturn(Optional.of(city));
         when(calcHelper.resolveRent(any(), any(), any())).thenReturn(new BigDecimal("1000"));
         when(calcHelper.resolveLivingCost(any(), any())).thenReturn(new BigDecimal("500"));
@@ -217,7 +219,8 @@ class BudgetSimulationServiceTest {
     @Test
     void runSimulation_noProfile_throwsNotFound() {
         User user = mockUser();
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(user.getId()))
+                .thenThrow(new NotFoundException("Relocation profile not found"));
 
         CreateBudgetSimulationRequest request = freeRequest(null);
         assertThrows(NotFoundException.class, () -> service.runSimulation(user.getId(), request));

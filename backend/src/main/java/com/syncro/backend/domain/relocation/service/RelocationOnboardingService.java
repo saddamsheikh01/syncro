@@ -31,6 +31,7 @@ public class RelocationOnboardingService {
     private final UserRepository userRepository;
     private final RelocationMapper mapper;
     private final AnalyticsService analyticsService;
+    private final RelocationProfileResolver profileResolver;
 
     public RelocationOnboardingService(RelocationProfileRepository profileRepository,
                                        RelocationOnboardingSnapshotRepository snapshotRepository,
@@ -38,7 +39,8 @@ public class RelocationOnboardingService {
                                        RelocationCityScoreRepository cityScoreRepository,
                                        UserRepository userRepository,
                                        RelocationMapper mapper,
-                                       AnalyticsService analyticsService) {
+                                       AnalyticsService analyticsService,
+                                       RelocationProfileResolver profileResolver) {
         this.profileRepository = profileRepository;
         this.snapshotRepository = snapshotRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -46,6 +48,7 @@ public class RelocationOnboardingService {
         this.userRepository = userRepository;
         this.mapper = mapper;
         this.analyticsService = analyticsService;
+        this.profileResolver = profileResolver;
     }
 
     @Transactional(readOnly = true)
@@ -56,20 +59,22 @@ public class RelocationOnboardingService {
 
     @Transactional
     public OnboardingResponse updateOnboarding(UUID userId, UpdateOnboardingRequest request) {
-        RelocationProfile profile = profileRepository.findByUserId(userId)
-                .orElseGet(() -> {
-                    RelocationProfile p = new RelocationProfile();
-                    p.setUser(userRepository.getReferenceById(userId));
-                    p.setUserType("planning_move"); // default
-                    p.setHousehold("single");
-                    p.setMonthlyBudget(java.math.BigDecimal.ZERO);
-                    p.setPrimaryGoal("quality_of_life");
-                    p.setSocialPriority("medium");
-                    p.setDesiredLifestyle("balanced");
-                    p.setWorkStatus("employed");
-                    p.setPriorityProblem("monthly_costs");
-                    return p;
-                });
+        RelocationProfile profile;
+        try {
+            profile = profileResolver.findOrRecover(userId);
+        } catch (Exception e) {
+            // Recovery also failed – create a brand-new profile with defaults
+            profile = new RelocationProfile();
+            profile.setUser(userRepository.getReferenceById(userId));
+            profile.setUserType("planning_move"); // default
+            profile.setHousehold("single");
+            profile.setMonthlyBudget(java.math.BigDecimal.ZERO);
+            profile.setPrimaryGoal("quality_of_life");
+            profile.setSocialPriority("medium");
+            profile.setDesiredLifestyle("balanced");
+            profile.setWorkStatus("employed");
+            profile.setPriorityProblem("monthly_costs");
+        }
 
         // Apply partial update fields
         if (request.userType() != null) profile.setUserType(request.userType());
@@ -303,7 +308,7 @@ public class RelocationOnboardingService {
     @Transactional
     public RelocationProfile initFromConversion(UUID userId, UUID sessionId, Map<String, Object> answers) {
         if (profileRepository.existsByUserId(userId)) {
-            return profileRepository.findByUserId(userId).orElseThrow();
+            return profileResolver.findOrRecover(userId);
         }
 
         RelocationProfile profile = new RelocationProfile();
@@ -431,7 +436,6 @@ public class RelocationOnboardingService {
     }
 
     private RelocationProfile findProfileOrThrow(UUID userId) {
-        return profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
+        return profileResolver.findOrRecover(userId);
     }
 }
