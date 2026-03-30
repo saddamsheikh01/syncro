@@ -17,6 +17,7 @@ import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepo
 import com.syncro.backend.domain.relocation.repository.RelocationCityScoreRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationOnboardingSnapshotRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ class RelocationOnboardingServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
+    @Mock private RelocationProfileResolver profileResolver;
 
     @InjectMocks
     private RelocationOnboardingService service;
@@ -89,7 +91,7 @@ class RelocationOnboardingServiceTest {
                 testProfile.getCreatedAt(), testProfile.getUpdatedAt()
         );
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(mapper.toOnboardingResponse(testProfile)).thenReturn(expected);
 
         OnboardingResponse result = service.getOnboarding(testUser.getId());
@@ -102,7 +104,8 @@ class RelocationOnboardingServiceTest {
     @Test
     @DisplayName("getOnboarding throws NOT_FOUND when no profile exists")
     void getOnboarding_noProfile_throwsNotFound() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(testUser.getId()))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Relocation profile not found"));
 
         assertThatThrownBy(() -> service.getOnboarding(testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
@@ -112,7 +115,8 @@ class RelocationOnboardingServiceTest {
     @Test
     @DisplayName("updateOnboarding creates new profile if none exists")
     void updateOnboarding_createsNewProfile() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(testUser.getId()))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Relocation profile not found"));
         when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
@@ -136,7 +140,7 @@ class RelocationOnboardingServiceTest {
         testProfile.setCompletedSteps(9);
         testProfile.setCompletionPercent(90);
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
@@ -165,7 +169,7 @@ class RelocationOnboardingServiceTest {
         city.setCitySlug("lisbon");
         city.setActive(true);
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(cityDatasetRepository.findById(cityId)).thenReturn(Optional.of(city));
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
@@ -188,7 +192,7 @@ class RelocationOnboardingServiceTest {
     @DisplayName("createSnapshot throws CONFLICT if onboarding not completed")
     void createSnapshot_notCompleted_throwsConflict() {
         testProfile.setStatus("IN_PROGRESS");
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
 
         assertThatThrownBy(() -> service.createSnapshot(testUser.getId()))
                 .isInstanceOf(ResponseStatusException.class)
@@ -205,7 +209,7 @@ class RelocationOnboardingServiceTest {
         oldSnapshot.setIsActive(true);
         oldSnapshot.setVersion(1);
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(oldSnapshot));
         when(snapshotRepository.findMaxVersionByUserId(testUser.getId())).thenReturn(1);
         when(snapshotRepository.save(any())).thenAnswer(inv -> {
@@ -231,7 +235,7 @@ class RelocationOnboardingServiceTest {
     @Test
     @DisplayName("getOnboardingStatus returns correct status data")
     void getOnboardingStatus_returnsCorrectData() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
         when(snapshotRepository.findMaxVersionByUserId(testUser.getId())).thenReturn(0);
         when(mapper.toOnboardingStatusResponse(eq(testProfile), eq(false), isNull()))
@@ -254,7 +258,7 @@ class RelocationOnboardingServiceTest {
         testProfile.setFreeNotes(null);
         testProfile.setStatus("IN_PROGRESS");
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
         when(cityScoreRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId())).thenReturn(List.of());
 
@@ -282,7 +286,7 @@ class RelocationOnboardingServiceTest {
         activeSnapshot.setId(UUID.randomUUID());
         activeSnapshot.setIsActive(true);
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(activeSnapshot));
         when(cityScoreRepository.findByUserIdOrderByCreatedAtDesc(testUser.getId())).thenReturn(List.of());
 

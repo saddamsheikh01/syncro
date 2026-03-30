@@ -33,6 +33,7 @@ public class BudgetSimulationService {
     private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
+    private final RelocationProfileResolver profileResolver;
 
     public BudgetSimulationService(BudgetSimulationRepository simulationRepository,
                                     RelocationProfileRepository profileRepository,
@@ -41,7 +42,8 @@ public class BudgetSimulationService {
                                     RelocationMapper mapper,
                                     AnalyticsService analyticsService,
                                     UserRepository userRepository,
-                                    SubscriptionService subscriptionService) {
+                                    SubscriptionService subscriptionService,
+                                    RelocationProfileResolver profileResolver) {
         this.simulationRepository = simulationRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -50,6 +52,7 @@ public class BudgetSimulationService {
         this.analyticsService = analyticsService;
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
+        this.profileResolver = profileResolver;
     }
 
     @Transactional
@@ -64,8 +67,7 @@ public class BudgetSimulationService {
             throw new BadRequestException("Il tuo piano non include l'accesso a " + planCode + ". Effettua l'upgrade.");
         }
 
-        RelocationProfile profile = profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
+        RelocationProfile profile = profileResolver.findOrRecover(userId);
 
         RelocationCityDataset city = resolveCity(request.cityId(), profile);
 

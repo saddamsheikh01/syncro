@@ -8,6 +8,7 @@ import com.syncro.backend.domain.relocation.dto.ScoringResultResponse;
 import com.syncro.backend.domain.relocation.entity.*;
 import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.*;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ class RelocationScoringServiceTest {
     @Mock private RelocationMapper mapper;
     @Mock private AnalyticsService analyticsService;
     @Mock private ScoringCalculationHelper helper;
+    @Mock private RelocationProfileResolver profileResolver;
 
     @InjectMocks
     private RelocationScoringService service;
@@ -75,7 +77,7 @@ class RelocationScoringServiceTest {
         city2.setCityName("Berlin");
         city2.setCitySlug("berlin");
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findByActiveTrue()).thenReturn(List.of(testCity, city2));
@@ -97,7 +99,8 @@ class RelocationScoringServiceTest {
     @Test
     @DisplayName("computeScoring throws NOT_FOUND when profile doesn't exist")
     void computeScoring_noProfile_throwsNotFound() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(testUser.getId()))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Relocation profile not found"));
 
         assertThatThrownBy(() -> service.computeScoring(testUser.getId(), null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -107,7 +110,7 @@ class RelocationScoringServiceTest {
     @Test
     @DisplayName("computeScoring throws CONFLICT when no active snapshot")
     void computeScoring_noSnapshot_throwsConflict() {
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.computeScoring(testUser.getId(), null))
@@ -122,7 +125,7 @@ class RelocationScoringServiceTest {
         testProfile.setTargetCity(testCity);
         testCity.setId(UUID.randomUUID());
 
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(testProfile));
+        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
         when(snapshotRepository.findByUserIdAndIsActiveTrue(testUser.getId())).thenReturn(Optional.of(testSnapshot));
         when(configRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(testConfig));
         when(cityRepository.findById(testCity.getId())).thenReturn(Optional.of(testCity));

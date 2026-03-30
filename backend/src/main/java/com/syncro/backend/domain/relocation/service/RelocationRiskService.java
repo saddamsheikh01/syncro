@@ -26,19 +26,22 @@ public class RelocationRiskService {
     private final ScoringCalculationHelper scoringHelper;
     private final RelocationMapper mapper;
     private final UserRepository userRepository;
+    private final RelocationProfileResolver profileResolver;
 
     public RelocationRiskService(RelocationRiskSnapshotRepository riskSnapshotRepository,
                                   RelocationProfileRepository profileRepository,
                                   RelocationScoringConfigRepository scoringConfigRepository,
                                   ScoringCalculationHelper scoringHelper,
                                   RelocationMapper mapper,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  RelocationProfileResolver profileResolver) {
         this.riskSnapshotRepository = riskSnapshotRepository;
         this.profileRepository = profileRepository;
         this.scoringConfigRepository = scoringConfigRepository;
         this.scoringHelper = scoringHelper;
         this.mapper = mapper;
         this.userRepository = userRepository;
+        this.profileResolver = profileResolver;
     }
 
     @Transactional(readOnly = true)
@@ -51,8 +54,7 @@ public class RelocationRiskService {
     @Transactional
     public RiskSnapshotResponse computeAndSaveSnapshot(UUID userId) {
         User user = userRepository.getReferenceById(userId);
-        RelocationProfile profile = profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Profilo relocation non trovato"));
+        RelocationProfile profile = profileResolver.findOrRecover(userId);
         RelocationScoringConfig config = scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")
                 .orElseThrow(() -> new NotFoundException("Configurazione scoring non trovata"));
 

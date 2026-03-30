@@ -342,6 +342,145 @@ export interface WaitingListRequest {
   cityName: string;
 }
 
+// ─── Sprint 2: Budget Simulation ─────────────────────────────────────────────
+
+export type PlanCode = "FREE" | "PREMIUM" | "SUPER_PRO";
+export type MarginStatus = "sustainable" | "tight" | "very_tight" | "unsustainable";
+export type StressLevel = "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+export type AlertStatus = "OK" | "WARNING" | "OVER_BUDGET" | "UNDER_BUDGET";
+export type RiskLevel = "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+export type AssignmentStatus = "PENDING" | "COMPLETED" | "EXPIRED";
+
+export interface CreateBudgetSimulationRequest {
+  planCode: string;
+  cityId?: string | null;
+  monthlyBudget?: number | null;
+  monthlyIncome?: number | null;
+  savings?: number | null;
+  household?: string | null;
+  livingType?: string | null;
+  housingType?: string | null;
+  location?: string | null;
+  desiredLifestyle?: string | null;
+  numberOfChildren?: number | null;
+  childrenAges?: number[] | null;
+  hasPet?: boolean | null;
+  eatingOutFrequency?: string | null;
+  transportMode?: string | null;
+  leisureLevel?: string | null;
+  projectionMonths?: number | null;
+}
+
+export interface BudgetSimulationResponse {
+  id: string;
+  cityId: string;
+  cityName: string;
+  scenario: string;
+  planCode: string;
+  inputPayload: Record<string, unknown>;
+  outputPayload: Record<string, unknown>;
+  algorithmVersion: string;
+  createdAt: string;
+}
+
+// ─── Sprint 2: Budget Tracking ──────────────────────────────────────────────
+
+export interface CreateBudgetTrackingRequest {
+  category: string;
+  expectedValue?: number | null;
+  actualValue?: number | null;
+  threshold?: number | null;
+  simulationId?: string | null;
+}
+
+export interface BudgetTrackingResponse {
+  id: string;
+  simulationId: string | null;
+  category: string;
+  expectedValue: number;
+  actualValue: number;
+  delta: number;
+  threshold: number;
+  alertStatus: string;
+  recordedAt: string;
+  createdAt: string;
+}
+
+// ─── Sprint 2: Starter Kit ──────────────────────────────────────────────────
+
+export interface GenerateStarterKitRequest {
+  cityId?: string | null;
+}
+
+export interface StarterKitActionResponse {
+  id: string;
+  actionOrder: number;
+  title: string;
+  description: string;
+  category: string;
+}
+
+export interface StarterKitResponse {
+  id: string;
+  cityId: string;
+  scenario: string;
+  planCode: string | null;
+  payload: Record<string, unknown>;
+  actions: StarterKitActionResponse[];
+  createdAt: string;
+}
+
+// ─── Sprint 2: Micro-test ───────────────────────────────────────────────────
+
+export interface MicroTestAnswerOptionResponse {
+  optionId: string;
+  answerText: string;
+  position: number;
+}
+
+export interface MicroTestQuestionResponse {
+  questionId: string;
+  questionText: string;
+  questionType: string;
+  position: number;
+  options: MicroTestAnswerOptionResponse[];
+}
+
+export interface MicroTestNextResponse {
+  assignmentId: string;
+  testId: string;
+  testTitle: string;
+  testDescription: string;
+  status: string;
+  availableFrom: string;
+  expiresAt: string;
+  blockNumber: number;
+  totalBlocks: number;
+  completionPercent: number;
+  questions: MicroTestQuestionResponse[];
+}
+
+export interface MicroTestAnswerRequest {
+  questionId: string;
+  answerOptionId: string;
+}
+
+export interface MicroTestSubmitRequest {
+  answers: MicroTestAnswerRequest[];
+}
+
+// ─── Sprint 2: Risk Indicators ──────────────────────────────────────────────
+
+export interface RiskSnapshotResponse {
+  id: string;
+  scenario: string;
+  sourceType: string;
+  riskIndicators: Record<string, unknown>;
+  burnoutIndex: number;
+  overallRiskLevel: string;
+  createdAt: string;
+}
+
 // ─── Funnel Local State ───────────────────────────────────────────────────────
 
 export interface FunnelAnswers {

@@ -17,6 +17,15 @@ import type {
   CityScoreResponse,
   SnapshotResponse,
   WaitingListRequest,
+  CreateBudgetSimulationRequest,
+  BudgetSimulationResponse,
+  CreateBudgetTrackingRequest,
+  BudgetTrackingResponse,
+  GenerateStarterKitRequest,
+  StarterKitResponse,
+  MicroTestNextResponse,
+  MicroTestSubmitRequest,
+  RiskSnapshotResponse,
 } from "../../types/expats";
 
 // ─── Funnel Config ────────────────────────────────────────────────────────────
@@ -193,5 +202,91 @@ export const getCityBySlug = async (slug: string): Promise<CityDetail> => {
 
 export const joinWaitingList = async (payload: WaitingListRequest): Promise<unknown> => {
   const { data } = await apiClient.post("/relocation/waiting-list", payload);
+  return data;
+};
+
+// ─── Sprint 2: Budget Simulation ─────────────────────────────────────────────
+
+export const runBudgetSimulation = async (
+  payload: CreateBudgetSimulationRequest
+): Promise<BudgetSimulationResponse> => {
+  const { data } = await apiClient.post<BudgetSimulationResponse>(
+    "/relocation/budget/simulations",
+    payload
+  );
+  return data;
+};
+
+export const getBudgetSimulations = async (): Promise<BudgetSimulationResponse[]> => {
+  const { data } = await apiClient.get<BudgetSimulationResponse[]>(
+    "/relocation/budget/simulations"
+  );
+  return data;
+};
+
+// ─── Sprint 2: Budget Tracking ───────────────────────────────────────────────
+
+export const createBudgetTracking = async (
+  payload: CreateBudgetTrackingRequest
+): Promise<BudgetTrackingResponse> => {
+  const { data } = await apiClient.post<BudgetTrackingResponse>(
+    "/relocation/budget/tracking",
+    payload
+  );
+  return data;
+};
+
+export const getBudgetTracking = async (): Promise<BudgetTrackingResponse[]> => {
+  const { data } = await apiClient.get<BudgetTrackingResponse[]>(
+    "/relocation/budget/tracking"
+  );
+  return data;
+};
+
+// ─── Sprint 2: Starter Kit ──────────────────────────────────────────────────
+
+export const generateStarterKit = async (
+  payload?: GenerateStarterKitRequest
+): Promise<StarterKitResponse> => {
+  const { data } = await apiClient.post<StarterKitResponse>(
+    "/relocation/starter-kit/generate",
+    payload ?? {}
+  );
+  return data;
+};
+
+export const getLatestStarterKit = async (): Promise<StarterKitResponse> => {
+  const { data } = await apiClient.get<StarterKitResponse>(
+    "/relocation/starter-kit/latest"
+  );
+  return data;
+};
+
+// ─── Sprint 2: Micro-test ───────────────────────────────────────────────────
+
+export const getNextMicroTest = async (): Promise<MicroTestNextResponse> => {
+  const { data } = await apiClient.get<MicroTestNextResponse>(
+    "/relocation/micro-tests/next"
+  );
+  return data;
+};
+
+export const submitMicroTestBlock = async (
+  assignmentId: string,
+  payload: MicroTestSubmitRequest
+): Promise<unknown> => {
+  const { data } = await apiClient.post(
+    `/relocation/micro-tests/${assignmentId}/submit`,
+    payload
+  );
+  return data;
+};
+
+// ─── Sprint 2: Risk Indicators ──────────────────────────────────────────────
+
+export const getRiskIndicators = async (): Promise<RiskSnapshotResponse> => {
+  const { data } = await apiClient.get<RiskSnapshotResponse>(
+    "/relocation/risk/indicators"
+  );
   return data;
 };

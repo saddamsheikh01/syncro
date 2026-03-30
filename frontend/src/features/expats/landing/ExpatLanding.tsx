@@ -60,7 +60,10 @@ export default function ExpatLanding() {
         />
         <div className="expat-hero__gradient" />
 
-        <div className="expat-hero__lang">
+        <div className="expat-hero__topbar">
+          <button className="expat-hero__login" onClick={() => router.push("/login")} type="button">
+            {t("Log In")}
+          </button>
           <LanguageSwitch variant="expat" align="right" />
         </div>
 
@@ -250,11 +253,32 @@ export default function ExpatLanding() {
           );
           z-index: 1;
         }
-        .expat-hero__lang {
+        .expat-hero__topbar {
           position: absolute;
           top: 20px;
           right: 13px;
           z-index: 10;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .expat-hero__login {
+          padding: 8px 22px;
+          background: #fff;
+          border: none;
+          border-radius: 10px;
+          color: #0d1b36;
+          font-size: 0.8125rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .expat-hero__login:hover {
+          background: #f0f4ff;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .expat-hero__lang {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -672,10 +696,13 @@ export default function ExpatLanding() {
           .expat-hero__disclaimer {
             font-size: 15px;
           }
-          .expat-hero__lang {
+          .expat-hero__topbar {
             top: 16px;
             right: 16px;
-            padding: 8px 14px;
+          }
+          .expat-hero__login {
+            padding: 6px 14px;
+            font-size: 0.75rem;
           }
 
           .expat-pain {

@@ -45,9 +45,9 @@ export const MENU_ITEMS: MenuItem[] = [
 /** Shown only when Expats Mode is active (sidebar section). */
 export const EXPATS_MENU_ITEMS: MenuItem[] = [
   { id: "expats-activation", labelKey: "Activation Page", href: "/expats/activation", icon: "home" },
-  { id: "expats-subscription", labelKey: "Subscription", href: "/expats/subscriptions", icon: "profile" },
-  { id: "expats-roadmap", labelKey: "Roadmap", href: "/expats/roadmap", icon: "places" },
-  { id: "expats-professionals", labelKey: "Professionals", href: "/expats/professionals", icon: "people" },
+  { id: "expats-subscription", labelKey: "Subscriptions", href: "/expats/subscriptions", icon: "profile" },
+  { id: "expats-kit", labelKey: "Expats Kit", href: "/expats/starter-kit", icon: "places" },
+  { id: "expats-budget", labelKey: "Budget Simulator", href: "/expats/budget", icon: "moments" },
 ];
 
 const normalizePath = (path: string) =>

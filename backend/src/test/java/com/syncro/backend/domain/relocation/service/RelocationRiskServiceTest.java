@@ -12,6 +12,7 @@ import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationRiskSnapshotRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationScoringConfigRepository;
+import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +35,7 @@ class RelocationRiskServiceTest {
     @Mock private ScoringCalculationHelper scoringHelper;
     @Mock private RelocationMapper mapper;
     @Mock private UserRepository userRepository;
+    @Mock private RelocationProfileResolver profileResolver;
     @InjectMocks private RelocationRiskService service;
 
     @Test
@@ -54,7 +56,8 @@ class RelocationRiskServiceTest {
     @Test
     void computeAndSaveSnapshot_noProfile_throwsNotFound() {
         User user = mockUser();
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+        when(profileResolver.findOrRecover(user.getId()))
+                .thenThrow(new NotFoundException("Relocation profile not found"));
         assertThrows(NotFoundException.class, () -> service.computeAndSaveSnapshot(user.getId()));
     }
 
@@ -64,7 +67,7 @@ class RelocationRiskServiceTest {
         RelocationProfile profile = mockProfile();
         RelocationScoringConfig config = mockConfig();
 
-        when(profileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
         when(scoringConfigRepository.findByConfigKeyAndActiveTrue("city_scoring_v1")).thenReturn(Optional.of(config));
         when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("3000"));
         when(scoringHelper.classifyMarginStatus(any(), any())).thenReturn("unsustainable");

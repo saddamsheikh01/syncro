@@ -38,6 +38,7 @@ public class CityComparisonService {
     private final ScoringCalculationHelper helper;
     private final AnonymousRelocationService anonymousRelocationService;
     private final ExpatsAnonymousSessionRepository expatsSessionRepository;
+    private final RelocationProfileResolver profileResolver;
 
     public CityComparisonService(RelocationProfileRepository profileRepository,
                                   RelocationOnboardingSnapshotRepository snapshotRepository,
@@ -47,7 +48,8 @@ public class CityComparisonService {
                                   UserRepository userRepository,
                                   ScoringCalculationHelper helper,
                                   AnonymousRelocationService anonymousRelocationService,
-                                  ExpatsAnonymousSessionRepository expatsSessionRepository) {
+                                  ExpatsAnonymousSessionRepository expatsSessionRepository,
+                                  RelocationProfileResolver profileResolver) {
         this.profileRepository = profileRepository;
         this.snapshotRepository = snapshotRepository;
         this.cityRepository = cityRepository;
@@ -57,12 +59,12 @@ public class CityComparisonService {
         this.helper = helper;
         this.anonymousRelocationService = anonymousRelocationService;
         this.expatsSessionRepository = expatsSessionRepository;
+        this.profileResolver = profileResolver;
     }
 
     @Transactional
     public CityComparisonResponse compareCities(UUID userId, CityComparisonRequest request) {
-        profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Relocation profile not found"));
+        profileResolver.findOrRecover(userId);
 
         RelocationOnboardingSnapshot snapshot = snapshotRepository.findByUserIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
