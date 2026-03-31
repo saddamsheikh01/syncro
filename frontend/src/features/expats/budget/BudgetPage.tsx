@@ -6,6 +6,7 @@ import { useBudget } from "../../../hooks/expats/useBudget";
 import { getCities } from "../../../services/expats";
 import type { CityListItem } from "../../../types/expats";
 import SimulationHistory from "./SimulationHistory";
+import BudgetTracking from "./BudgetTracking";
 import PlanTabs from "../shared/PlanTabs";
 
 type HousingType = "1br_center" | "3br_center";
@@ -17,29 +18,35 @@ export default function BudgetPage() {
     isLoading,
     latestSimulation,
     simulations,
+    trackingEntries,
     runSimulation,
     loadSimulations,
+    loadTrackingEntries,
   } = useBudget();
 
   const [budget, setBudget] = useState(2000);
+  const [savings, setSavings] = useState(0);
   const [housingType, setHousingType] = useState<HousingType>("1br_center");
   const [livingType, setLivingType] = useState<LivingType>("single");
   const [cityId, setCityId] = useState<string>("");
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadSimulations();
+    loadTrackingEntries();
     getCities().then(setCities).catch(() => {});
-  }, [loadSimulations]);
+  }, [loadSimulations, loadTrackingEntries]);
 
-  const triggerSimulation = useCallback((b: number, h: HousingType, l: LivingType, c: string) => {
+  const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       runSimulation({
         planCode: "FREE",
         monthlyBudget: b,
+        savings: s > 0 ? s : null,
         housingType: h,
         livingType: l,
         cityId: c || null,
@@ -49,28 +56,33 @@ export default function BudgetPage() {
 
   // Auto-run on mount
   useEffect(() => {
-    triggerSimulation(budget, housingType, livingType, cityId);
+    triggerSimulation(budget, savings, housingType, livingType, cityId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBudgetChange = (val: number) => {
     setBudget(val);
-    triggerSimulation(val, housingType, livingType, cityId);
+    triggerSimulation(val, savings, housingType, livingType, cityId);
+  };
+
+  const handleSavingsChange = (val: number) => {
+    setSavings(val);
+    triggerSimulation(budget, val, housingType, livingType, cityId);
   };
 
   const handleHousingChange = (val: HousingType) => {
     setHousingType(val);
-    triggerSimulation(budget, val, livingType, cityId);
+    triggerSimulation(budget, savings, val, livingType, cityId);
   };
 
   const handleLivingChange = (val: LivingType) => {
     setLivingType(val);
-    triggerSimulation(budget, housingType, val, cityId);
+    triggerSimulation(budget, savings, housingType, val, cityId);
   };
 
   const handleCityChange = (val: string) => {
     setCityId(val);
-    triggerSimulation(budget, housingType, livingType, val);
+    triggerSimulation(budget, savings, housingType, livingType, val);
   };
 
   const out = latestSimulation?.outputPayload ?? {};
@@ -81,9 +93,8 @@ export default function BudgetPage() {
   const recommendedBudget = (out.recommendedBudget ?? 0) as number;
   const financialRunway = out.financialRunway as { months: number; level: string } | undefined;
 
-  const runwayLevel = financialRunway?.level ?? (monthlyBalance < 0 ? "Critical" : monthlyBalance < 200 ? "Low" : "Good");
-  const hasRunwayData = financialRunway != null;
-  const runwayMonths = financialRunway?.months ?? (monthlyBalance <= 0 ? 0 : null);
+  const runwayLevel = financialRunway?.level ?? (savings <= 0 ? "—" : monthlyBalance < 0 ? "Critical" : "Good");
+  const runwayMonths = financialRunway?.months ?? null;
 
   return (
     <>
@@ -137,6 +148,32 @@ export default function BudgetPage() {
             <div className="bp-slider__range">
               <span>€ 300</span>
               <span>+ € 10.000</span>
+            </div>
+          </div>
+
+          {/* Savings Slider */}
+          <div className="bp-field">
+            <div className="bp-field__header">
+              <span className="bp-field__icon">💰</span>
+              <span className="bp-field__label">{t("Total Savings")}</span>
+            </div>
+            <div className="bp-slider-wrap">
+              <input
+                type="range"
+                min={0}
+                max={50000}
+                step={500}
+                value={savings}
+                onChange={(e) => handleSavingsChange(Number(e.target.value))}
+                className="bp-slider"
+              />
+              <div className="bp-slider__bubble" style={{ left: `${(savings / 50000) * 100}%` }}>
+                €{savings.toLocaleString("de-DE")}
+              </div>
+            </div>
+            <div className="bp-slider__range">
+              <span>€ 0</span>
+              <span>€ 50.000</span>
             </div>
           </div>
 
@@ -225,32 +262,70 @@ export default function BudgetPage() {
           </div>
         )}
 
-        {/* ── Reality Check (locked — Premium teaser) ──────── */}
-        <div className="bp-card bp-card--locked">
-          <div className="bp-locked-overlay">
-            <span className="bp-locked__icon">🔒</span>
-            <h3 className="bp-locked__title">{t("Reality Check")}</h3>
-            <p className="bp-locked__desc">
-              {t("Can You Really Afford This Move? Unlock detailed analysis with stress index, financial runway and personalized recommendations.")}
-            </p>
-            <span className="bp-locked__badge">{t("Premium")} — {t("Coming Soon")}</span>
-          </div>
-          <div className="bp-locked-preview" aria-hidden="true">
-            <div className="bp-locked-row">
-              <span>🔴 {t("Monthly Deficit / Surplus")}</span>
-              <span>€ —</span>
+        {/* ── Reality Check ─────────────────────────────────── */}
+        <div className="bp-card">
+          <h2 className="bp-card__title">{t("Reality Check")}</h2>
+          <p className="bp-reality__headline">
+            <strong>{t("Can You Really Afford This Move?")}</strong>
+          </p>
+          <p className="bp-reality__sub">
+            {t("Here's What Happens Based On Your Real Numbers — Not Estimates.")}
+          </p>
+
+          <div className="bp-reality-list">
+            {/* Monthly Deficit / Surplus */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: monthlyBalance < 0 ? "#dc2626" : "#16a34a" }} />
+                <div>
+                  <strong>{monthlyBalance < 0 ? t("Monthly Deficit") : t("Monthly Surplus")}:</strong>
+                  <p className="bp-reality-item__desc">
+                    {monthlyBalance < 0
+                      ? t("You Are Currently Running At A Loss Based On Your Expected Cost Of Living.")
+                      : t("Your budget covers your estimated monthly costs.")}
+                  </p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val" style={{ color: monthlyBalance < 0 ? "#dc2626" : "#16a34a" }}>
+                {monthlyBalance >= 0 ? "+" : ""}€{monthlyBalance.toLocaleString("de-DE", { minimumFractionDigits: 2 })}
+              </span>
             </div>
-            <div className="bp-locked-row">
-              <span>⏳ {t("Financial Runway")}</span>
-              <span>— {t("Months")}</span>
+
+            {/* Financial Runway */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: runwayLevel === "Critical" || runwayLevel === "CRITICAL" ? "#dc2626" : runwayLevel === "MODERATE" ? "#ca8a04" : "#16a34a" }} />
+                <div>
+                  <strong>
+                    {t("Financial Runway")}
+                    {runwayMonths !== null && (
+                      <> — <span style={{ color: runwayLevel === "Critical" || runwayLevel === "CRITICAL" ? "#dc2626" : runwayLevel === "MODERATE" ? "#ca8a04" : "#16a34a" }}>{t(runwayLevel)}</span></>
+                    )}
+                  </strong>
+                  <p className="bp-reality-item__desc">{t("How Long Can You Live Without Income?")}</p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val">
+                {runwayMonths !== null
+                  ? `${runwayMonths} ${t("Months")}`
+                  : t("Add savings above")}
+              </span>
             </div>
-            <div className="bp-locked-row">
-              <span>📊 {t("Stress Index")}</span>
-              <span>—%</span>
-            </div>
-            <div className="bp-locked-row">
-              <span>🎯 {t("Recommended Budget")}</span>
-              <span>€ —</span>
+
+            {/* Recommended Budget */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: "#3b6bdc" }} />
+                <div>
+                  <strong>{t("Recommended Budget")}</strong>
+                  <p className="bp-reality-item__desc">
+                    {t("This Is The Monthly Income You Need To Live Comfortably In This City Without Financial Stress.")}
+                  </p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val" style={{ color: "#3b6bdc" }}>
+                €{recommendedBudget.toLocaleString("de-DE", { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
@@ -272,6 +347,17 @@ export default function BudgetPage() {
         </button>
 
         {showHistory && <SimulationHistory simulations={simulations} />}
+
+        {/* ── Tracking toggle ────────────────────────────────── */}
+        <button
+          className="bp-history-link"
+          onClick={() => setShowTracking(!showTracking)}
+          type="button"
+        >
+          {showTracking ? t("Hide Expense Tracking") : t("Track Your Real Expenses")} ({trackingEntries.length})
+        </button>
+
+        {showTracking && <BudgetTracking entries={trackingEntries} simulations={simulations} />}
       </div>
       <style>{`
         .bp-shell {
@@ -506,6 +592,22 @@ export default function BudgetPage() {
         }
         .bp-locked-row:last-child {
           border-bottom: none;
+        }
+
+        /* Reality locked item */
+        .bp-reality-item--locked {
+          opacity: 0.5;
+        }
+        .bp-reality-premium-badge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          background: #fef9c3;
+          color: #a16207;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         /* Entry Cost */
