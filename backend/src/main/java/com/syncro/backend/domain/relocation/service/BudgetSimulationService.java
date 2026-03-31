@@ -114,7 +114,8 @@ public class BudgetSimulationService {
         BigDecimal livingCost = calcHelper.resolveLivingCost(city, livingType);
         BigDecimal monthlyCost = rent.add(livingCost);
 
-        BigDecimal monthlyIncome = req.monthlyIncome();
+        BigDecimal monthlyBudget = req.monthlyBudget() != null ? req.monthlyBudget() : profile.getMonthlyBudget();
+        BigDecimal monthlyIncome = req.monthlyIncome() != null ? req.monthlyIncome() : monthlyBudget;
         BigDecimal savings = req.savings();
 
         Map<String, Object> output = new LinkedHashMap<>();
