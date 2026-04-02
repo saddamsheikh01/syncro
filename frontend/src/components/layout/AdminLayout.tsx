@@ -52,6 +52,11 @@ const NAV_ITEMS = [
     description: "Track user answers and conversions",
   },
   {
+    href: "/admin/expats/budget",
+    label: "Budget simulations",
+    description: "All budget simulations with KPIs and filters",
+  },
+  {
     href: "/admin/expats/cities",
     label: "Expats cities",
     description: "Relocation city dataset",

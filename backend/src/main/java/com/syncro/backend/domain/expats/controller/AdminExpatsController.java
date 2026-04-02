@@ -11,6 +11,7 @@ import com.syncro.backend.domain.expats.service.AdminSessionService;
 import com.syncro.backend.domain.expats.service.ExpatsFunnelConfigService;
 import com.syncro.backend.domain.expats.service.FunnelAnalyticsService;
 import com.syncro.backend.domain.relocation.dto.*;
+import com.syncro.backend.domain.relocation.service.AdminBudgetService;
 import com.syncro.backend.domain.relocation.service.CityDatasetService;
 import com.syncro.backend.domain.relocation.service.ScoringConfigService;
 import com.syncro.backend.domain.relocation.service.WaitingListService;
@@ -50,6 +51,7 @@ public class AdminExpatsController {
     private final AdminSessionService adminSessionService;
     private final FunnelAnalyticsService funnelAnalyticsService;
     private final AdminUserRepository adminUserRepository;
+    private final AdminBudgetService adminBudgetService;
 
     public AdminExpatsController(ExpatsFunnelConfigService funnelConfigService,
                                  CityDatasetService cityDatasetService,
@@ -58,7 +60,8 @@ public class AdminExpatsController {
                                  WaitingListService waitingListService,
                                  AdminSessionService adminSessionService,
                                  FunnelAnalyticsService funnelAnalyticsService,
-                                 AdminUserRepository adminUserRepository) {
+                                 AdminUserRepository adminUserRepository,
+                                 AdminBudgetService adminBudgetService) {
         this.funnelConfigService = funnelConfigService;
         this.cityDatasetService = cityDatasetService;
         this.weightRuleService = weightRuleService;
@@ -67,6 +70,7 @@ public class AdminExpatsController {
         this.adminSessionService = adminSessionService;
         this.funnelAnalyticsService = funnelAnalyticsService;
         this.adminUserRepository = adminUserRepository;
+        this.adminBudgetService = adminBudgetService;
     }
 
     // ========== FUNNEL ANALYTICS ==========
@@ -241,6 +245,26 @@ public class AdminExpatsController {
                 "cityName", cityName,
                 "notifiedCount", notified
         ));
+    }
+
+    // ========== BUDGET SIMULATIONS ==========
+
+    @GetMapping("/budget/simulations")
+    @Operation(summary = "Lista simulazioni budget con filtri (admin)")
+    public ResponseEntity<Page<AdminBudgetSimulationResponse>> getBudgetSimulations(
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String planCode,
+            @RequestParam(required = false) UUID cityId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(adminBudgetService.getSimulations(source, planCode, cityId, pageable));
+    }
+
+    @GetMapping("/budget/stats")
+    @Operation(summary = "KPI aggregati simulazioni budget (admin)")
+    public ResponseEntity<AdminBudgetStatsResponse> getBudgetStats() {
+        return ResponseEntity.ok(adminBudgetService.getStats());
     }
 
     // ========== UTILITY ==========
