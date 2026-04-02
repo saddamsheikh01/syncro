@@ -91,7 +91,12 @@ export const budgetActions = {
         simulations,
         latestSimulation: simulations[0] ?? null,
       });
-    } catch (e) {
+    } catch (e: any) {
+      // 403 = anonymous user, not an error — just no history
+      if (e?.response?.status === 403) {
+        budgetStore.setState({ status: "idle", simulations: [], latestSimulation: null });
+        return;
+      }
       const msg = e instanceof Error ? e.message : "Failed to load simulations";
       budgetStore.setState({ status: "error", error: msg });
       throw e;
@@ -121,7 +126,12 @@ export const budgetActions = {
     try {
       const entries = await getBudgetTracking();
       budgetStore.setState({ status: "idle", trackingEntries: entries });
-    } catch (e) {
+    } catch (e: any) {
+      // 403 = anonymous user, not an error — just no tracking
+      if (e?.response?.status === 403) {
+        budgetStore.setState({ status: "idle", trackingEntries: [] });
+        return;
+      }
       const msg = e instanceof Error ? e.message : "Failed to load tracking";
       budgetStore.setState({ status: "error", error: msg });
       throw e;

@@ -8,6 +8,8 @@ import type { CityListItem } from "../../../types/expats";
 import SimulationHistory from "./SimulationHistory";
 import BudgetTracking from "./BudgetTracking";
 import PlanTabs from "../shared/PlanTabs";
+import { RegistrationRequiredModal } from "@/components/ui/RegistrationRequiredModal";
+import { useRegistrationGate } from "../../../hooks/expats/useRegistrationGate";
 
 type HousingType = "1br_center" | "3br_center";
 type LivingType = "single" | "family";
@@ -33,10 +35,12 @@ export default function BudgetPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { isModalOpen, modalMessage, openGate, closeModal, gatedAction } = useRegistrationGate();
 
   useEffect(() => {
-    loadSimulations();
-    loadTrackingEntries();
+    // Load silently — if 403 (anonymous), just ignore
+    loadSimulations().catch(() => {});
+    loadTrackingEntries().catch(() => {});
     getCities().then(setCities).catch(() => {});
   }, [loadSimulations, loadTrackingEntries]);
 
@@ -101,7 +105,7 @@ export default function BudgetPage() {
       <div className="bp-shell">
         <h1 className="bp-title">{t("Budget Simulator")}</h1>
 
-        <PlanTabs />
+        <PlanTabs onLockedClick={(ctx) => openGate(ctx)} />
 
         {/* ── Cost Breakdown ────────────────────────────────── */}
         <div className="bp-card">
@@ -340,7 +344,7 @@ export default function BudgetPage() {
         {/* ── History toggle ─────────────────────────────────── */}
         <button
           className="bp-history-link"
-          onClick={() => setShowHistory(!showHistory)}
+          onClick={() => gatedAction(() => { setShowHistory(!showHistory); return Promise.resolve(); }, "simulation_history").catch(() => {})}
           type="button"
         >
           {showHistory ? t("Hide Simulation History") : t("View Simulation History")} ({simulations.length})
@@ -351,7 +355,7 @@ export default function BudgetPage() {
         {/* ── Tracking toggle ────────────────────────────────── */}
         <button
           className="bp-history-link"
-          onClick={() => setShowTracking(!showTracking)}
+          onClick={() => gatedAction(() => { setShowTracking(!showTracking); return Promise.resolve(); }, "budget_tracking").catch(() => {})}
           type="button"
         >
           {showTracking ? t("Hide Expense Tracking") : t("Track Your Real Expenses")} ({trackingEntries.length})
@@ -764,6 +768,11 @@ export default function BudgetPage() {
           }
         }
       `}</style>
+      <RegistrationRequiredModal
+        open={isModalOpen}
+        onClose={closeModal}
+        message={modalMessage}
+      />
     </>
   );
 }
