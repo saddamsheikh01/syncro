@@ -9,4 +9,7 @@ import java.util.UUID;
 public interface BudgetSimulationRepository extends JpaRepository<BudgetSimulation, UUID> {
     List<BudgetSimulation> findByUser_IdOrderByCreatedAtDesc(UUID userId);
     List<BudgetSimulation> findByUser_IdAndPlanCodeOrderByCreatedAtDesc(UUID userId, String planCode);
+    List<BudgetSimulation> findByAnonymousSession_IdOrderByCreatedAtDesc(UUID sessionId);
+    long countByAnonymousSessionIsNotNull();
+    long countByUserIsNotNull();
 }

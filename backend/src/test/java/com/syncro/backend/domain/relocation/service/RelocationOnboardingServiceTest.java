@@ -115,8 +115,8 @@ class RelocationOnboardingServiceTest {
     @Test
     @DisplayName("updateOnboarding creates new profile if none exists")
     void updateOnboarding_createsNewProfile() {
-        when(profileResolver.findOrRecover(testUser.getId()))
-                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Relocation profile not found"));
+        when(profileResolver.findOrRecoverOptional(testUser.getId()))
+                .thenReturn(Optional.empty());
         when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
@@ -140,7 +140,7 @@ class RelocationOnboardingServiceTest {
         testProfile.setCompletedSteps(9);
         testProfile.setCompletionPercent(90);
 
-        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
+        when(profileResolver.findOrRecoverOptional(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));
 
@@ -169,7 +169,7 @@ class RelocationOnboardingServiceTest {
         city.setCitySlug("lisbon");
         city.setActive(true);
 
-        when(profileResolver.findOrRecover(testUser.getId())).thenReturn(testProfile);
+        when(profileResolver.findOrRecoverOptional(testUser.getId())).thenReturn(Optional.of(testProfile));
         when(cityDatasetRepository.findById(cityId)).thenReturn(Optional.of(city));
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(mapper.toOnboardingResponse(any())).thenReturn(mock(OnboardingResponse.class));

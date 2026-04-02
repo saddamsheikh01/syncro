@@ -59,22 +59,20 @@ public class RelocationOnboardingService {
 
     @Transactional
     public OnboardingResponse updateOnboarding(UUID userId, UpdateOnboardingRequest request) {
-        RelocationProfile profile;
-        try {
-            profile = profileResolver.findOrRecover(userId);
-        } catch (Exception e) {
-            // Recovery also failed – create a brand-new profile with defaults
-            profile = new RelocationProfile();
-            profile.setUser(userRepository.getReferenceById(userId));
-            profile.setUserType("planning_move"); // default
-            profile.setHousehold("single");
-            profile.setMonthlyBudget(java.math.BigDecimal.ZERO);
-            profile.setPrimaryGoal("quality_of_life");
-            profile.setSocialPriority("medium");
-            profile.setDesiredLifestyle("balanced");
-            profile.setWorkStatus("employed");
-            profile.setPriorityProblem("monthly_costs");
-        }
+        RelocationProfile profile = profileResolver.findOrRecoverOptional(userId)
+                .orElseGet(() -> {
+                    RelocationProfile p = new RelocationProfile();
+                    p.setUser(userRepository.getReferenceById(userId));
+                    p.setUserType("planning_move");
+                    p.setHousehold("single");
+                    p.setMonthlyBudget(java.math.BigDecimal.ZERO);
+                    p.setPrimaryGoal("quality_of_life");
+                    p.setSocialPriority("medium");
+                    p.setDesiredLifestyle("balanced");
+                    p.setWorkStatus("employed");
+                    p.setPriorityProblem("monthly_costs");
+                    return p;
+                });
 
         // Apply partial update fields
         if (request.userType() != null) profile.setUserType(request.userType());

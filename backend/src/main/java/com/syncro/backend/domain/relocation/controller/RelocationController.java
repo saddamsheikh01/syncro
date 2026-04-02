@@ -241,87 +241,90 @@ public class RelocationController {
     // ========== BUDGET SIMULATIONS (Sprint 2) ==========
 
     @PostMapping("/budget/simulations")
-    @Operation(summary = "Esegui simulazione budget differenziata per piano (FREE/PREMIUM/SUPER_PRO)")
-    public ResponseEntity<BudgetSimulationResponse> runBudgetSimulation(
+    @Operation(summary = "Esegui simulazione budget (FREE aperto a utenti anonimi)")
+    public ResponseEntity<?> runBudgetSimulation(
             @AuthenticationPrincipal Object principal,
             @Valid @RequestBody CreateBudgetSimulationRequest request) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(budgetSimulationService.runSimulation(up.userId(), request));
+        }
+        if (principal instanceof AnonymousExpatPrincipal ap) {
+            return ResponseEntity.ok(budgetSimulationService.runAnonymousSimulation(ap.sessionId(), request));
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @GetMapping("/budget/simulations")
     @Operation(summary = "Lista simulazioni budget dell'utente")
-    public ResponseEntity<List<BudgetSimulationResponse>> getBudgetSimulations(
+    public ResponseEntity<?> getBudgetSimulations(
             @AuthenticationPrincipal Object principal) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(budgetSimulationService.getSimulations(up.userId()));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     // ========== BUDGET TRACKING (Sprint 2) ==========
 
     @PostMapping("/budget/tracking")
     @Operation(summary = "Registra voce di tracking budget (actual vs expected)")
-    public ResponseEntity<BudgetTrackingResponse> createBudgetTracking(
+    public ResponseEntity<?> createBudgetTracking(
             @AuthenticationPrincipal Object principal,
             @Valid @RequestBody CreateBudgetTrackingRequest request) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(budgetTrackingService.createEntry(up.userId(), request));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     @GetMapping("/budget/tracking")
     @Operation(summary = "Lista voci tracking budget dell'utente")
-    public ResponseEntity<List<BudgetTrackingResponse>> getBudgetTracking(
+    public ResponseEntity<?> getBudgetTracking(
             @AuthenticationPrincipal Object principal) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(budgetTrackingService.getEntries(up.userId()));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     // ========== STARTER KIT (Sprint 2) ==========
 
     @PostMapping("/starter-kit/generate")
     @Operation(summary = "Genera Starter Kit personalizzato con 7 sezioni")
-    public ResponseEntity<StarterKitResponse> generateStarterKit(
+    public ResponseEntity<?> generateStarterKit(
             @AuthenticationPrincipal Object principal,
             @RequestBody(required = false) GenerateStarterKitRequest request) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(starterKitService.generate(up.userId(), request));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     @GetMapping("/starter-kit/latest")
     @Operation(summary = "Ultimo Starter Kit generato per l'utente")
-    public ResponseEntity<StarterKitResponse> getLatestStarterKit(
+    public ResponseEntity<?> getLatestStarterKit(
             @AuthenticationPrincipal Object principal) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(starterKitService.getLatest(up.userId()));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     // ========== MICRO-TESTS (Sprint 2) ==========
 
     @GetMapping("/micro-tests/next")
     @Operation(summary = "Prossimo micro-test disponibile (con anti-ripetizione)")
-    public ResponseEntity<MicroTestNextResponse> getNextMicroTest(
+    public ResponseEntity<?> getNextMicroTest(
             @AuthenticationPrincipal Object principal) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(microTestService.getNextMicroTest(up.userId()));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     @PostMapping("/micro-tests/{assignmentId}/submit")
     @Operation(summary = "Submit blocco di 3 risposte micro-test")
-    public ResponseEntity<Void> submitMicroTestBlock(
+    public ResponseEntity<?> submitMicroTestBlock(
             @AuthenticationPrincipal Object principal,
             @PathVariable UUID assignmentId,
             @Valid @RequestBody MicroTestSubmitRequest request) {
@@ -329,18 +332,29 @@ public class RelocationController {
             microTestService.submitBlock(up.userId(), assignmentId, request);
             return ResponseEntity.ok().build();
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
     }
 
     // ========== RISK INDICATORS (Sprint 2) ==========
 
     @GetMapping("/risk/indicators")
     @Operation(summary = "Indicatori di rischio consolidati (finanziario, isolamento, adattamento)")
-    public ResponseEntity<RiskSnapshotResponse> getRiskIndicators(
+    public ResponseEntity<?> getRiskIndicators(
             @AuthenticationPrincipal Object principal) {
         if (principal instanceof UserPrincipal up) {
             return ResponseEntity.ok(riskService.getLatestIndicators(up.userId()));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return registrationRequired();
+    }
+
+    // ========== HELPERS ==========
+
+    private ResponseEntity<Map<String, Object>> registrationRequired() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of(
+                        "status", 403,
+                        "code", "REGISTRATION_REQUIRED",
+                        "message", "Register to unlock this feature"
+                ));
     }
 }

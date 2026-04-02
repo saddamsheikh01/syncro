@@ -13,6 +13,8 @@ import com.syncro.backend.domain.relocation.mapper.RelocationMapper;
 import com.syncro.backend.domain.relocation.repository.BudgetSimulationRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
+import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
+import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,8 @@ public class BudgetSimulationService {
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
     private final RelocationProfileResolver profileResolver;
+    private final AnonymousRelocationService anonymousRelocationService;
+    private final ExpatsAnonymousSessionRepository sessionRepository;
 
     public BudgetSimulationService(BudgetSimulationRepository simulationRepository,
                                     RelocationProfileRepository profileRepository,
@@ -43,7 +47,9 @@ public class BudgetSimulationService {
                                     AnalyticsService analyticsService,
                                     UserRepository userRepository,
                                     SubscriptionService subscriptionService,
-                                    RelocationProfileResolver profileResolver) {
+                                    RelocationProfileResolver profileResolver,
+                                    AnonymousRelocationService anonymousRelocationService,
+                                    ExpatsAnonymousSessionRepository sessionRepository) {
         this.simulationRepository = simulationRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -53,6 +59,8 @@ public class BudgetSimulationService {
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
         this.profileResolver = profileResolver;
+        this.anonymousRelocationService = anonymousRelocationService;
+        this.sessionRepository = sessionRepository;
     }
 
     @Transactional
@@ -99,6 +107,34 @@ public class BudgetSimulationService {
                 .stream()
                 .map(mapper::toBudgetSimulationResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public BudgetSimulationResponse runAnonymousSimulation(UUID sessionId, CreateBudgetSimulationRequest request) {
+        ExpatsAnonymousSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Sessione anonima non trovata"));
+
+        RelocationProfile profile = anonymousRelocationService.findProfileBySessionIdInNewTx(sessionId);
+
+        RelocationCityDataset city = resolveCity(request.cityId(), profile);
+
+        Map<String, Object> inputPayload = buildInputPayload(request, profile, "FREE");
+        Map<String, Object> outputPayload = computeFreeOutput(city, request, profile);
+
+        BudgetSimulation simulation = new BudgetSimulation();
+        simulation.setAnonymousSession(session);
+        simulation.setCity(city);
+        simulation.setScenario(profile.getUserType());
+        simulation.setPlanCode("FREE");
+        simulation.setInputPayload(inputPayload);
+        simulation.setOutputPayload(outputPayload);
+
+        simulation = simulationRepository.save(simulation);
+        analyticsService.trackServerEventSafe(null, "BUDGET_SIMULATION_RUN",
+                Map.of("planCode", "FREE", "source", "anonymous",
+                        "sessionId", sessionId.toString(),
+                        "simulationId", simulation.getId().toString()));
+        return mapper.toBudgetSimulationResponse(simulation);
     }
 
     // ========== FREE ==========
