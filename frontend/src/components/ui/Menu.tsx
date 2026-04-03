@@ -1,6 +1,7 @@
 "use client";
 
 import type { HTMLAttributes, ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/classNames";
@@ -44,10 +45,10 @@ export const MENU_ITEMS: MenuItem[] = [
 
 /** Shown only when Expats Mode is active (sidebar section). */
 export const EXPATS_MENU_ITEMS: MenuItem[] = [
-  { id: "expats-activation", labelKey: "Activation Page", href: "/expats/activation", icon: "home" },
-  { id: "expats-subscription", labelKey: "Subscriptions", href: "/expats/subscriptions", icon: "profile" },
-  { id: "expats-kit", labelKey: "Expats Kit", href: "/expats/starter-kit", icon: "places" },
-  { id: "expats-budget", labelKey: "Budget Simulator", href: "/expats/budget", icon: "moments" },
+  { id: "expats-activation", labelKey: "Activation Page", href: "/expats/activation", icon: "activation" },
+  { id: "expats-subscription", labelKey: "Subscriptions", href: "/expats/subscriptions", icon: "subscriptions" },
+  { id: "expats-kit", labelKey: "Expats Kit", href: "/expats/starter-kit", icon: "expats-kit" },
+  { id: "expats-budget", labelKey: "Budget Simulator", href: "/expats/budget", icon: "budget-simulator" },
 ];
 
 const normalizePath = (path: string) =>
@@ -108,6 +109,69 @@ const renderItem = (
   );
 };
 
+const ExpatsModeDropdown = ({
+  collapsed,
+  pathname,
+  t,
+  onItemClick,
+}: {
+  collapsed: boolean;
+  pathname: string;
+  t: (key: string) => string;
+  onItemClick?: () => void;
+}) => {
+  const isExpatsModeActive = useExpatsModeStore((s) => s.isExpatsModeActive);
+  const [isOpen, setIsOpen] = useState(true);
+
+  if (!isExpatsModeActive) return null;
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={cx(
+          "flex w-full items-center gap-2 rounded-[var(--radius-xl)] bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2.5 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:from-blue-600 hover:to-blue-700",
+          collapsed && "justify-center px-2"
+        )}
+        aria-expanded={isOpen}
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+          <SidebarIcon name="expats" size={36} />
+        </span>
+        {!collapsed && (
+          <>
+            <span className="flex-1 truncate text-left">{t("Expats Mode")}</span>
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={cx(
+                "h-4 w-4 shrink-0 transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </>
+        )}
+      </button>
+
+      {isOpen && !collapsed && (
+        <div className="mt-1 ml-4 space-y-1 border-l-2 border-blue-200 pl-2">
+          {EXPATS_MENU_ITEMS.map((item) =>
+            renderItem(item, pathname, collapsed, t, onItemClick)
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Menu = ({
   className,
   collapsed = false,
@@ -117,8 +181,12 @@ export const Menu = ({
 }: MenuProps) => {
   const pathname = usePathname();
   const { t } = useT();
-  const isExpatsModeActive = useExpatsModeStore((s) => s.isExpatsModeActive);
   const menuItems = items ?? MENU_ITEMS;
+
+  const zyraIndex = menuItems.findIndex((item) => item.id === "zyra");
+  const insertAt = zyraIndex === -1 ? menuItems.length : zyraIndex;
+  const beforeZyra = menuItems.slice(0, insertAt);
+  const fromZyra = menuItems.slice(insertAt);
 
   return (
     <nav
@@ -126,17 +194,14 @@ export const Menu = ({
       aria-label={t("Main navigation")}
       {...props}
     >
-      {menuItems.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
-      {isExpatsModeActive && (
-        <>
-          {!collapsed && (
-            <p className="mt-4 mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">
-              {t("Expats Mode")}
-            </p>
-          )}
-          {EXPATS_MENU_ITEMS.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
-        </>
-      )}
+      {beforeZyra.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
+      <ExpatsModeDropdown
+        collapsed={collapsed}
+        pathname={pathname}
+        t={t}
+        onItemClick={onItemClick}
+      />
+      {fromZyra.map((item) => renderItem(item, pathname, collapsed, t, onItemClick))}
     </nav>
   );
 };

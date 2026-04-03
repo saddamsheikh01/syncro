@@ -40,6 +40,12 @@ public class CorsConfig {
         ));
     }
 
+    @Bean(name = "syncroCorsConfigurationSource")
+    @Profile("test")
+    public CorsConfigurationSource corsConfigurationSourceTest() {
+        return buildCorsConfigurationSource(List.of("*"));
+    }
+
     private CorsConfigurationSource buildCorsConfigurationSource(List<String> allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);

@@ -197,3 +197,32 @@ export interface FunnelAnalyticsResponse {
   answerDistributions: FunnelAnswerDistribution[];
   waitingListTop: FunnelCityCount[];
 }
+
+// ─── Admin Budget Simulations ───────────────────────────────────────────────
+
+export interface AdminBudgetSimulation {
+  id: string;
+  source: "anonymous" | "registered";
+  userId: string | null;
+  userEmail: string | null;
+  sessionId: string | null;
+  cityId: string | null;
+  cityName: string | null;
+  planCode: string;
+  estimatedMonthlyCost: number | null;
+  monthlyBalance: number | null;
+  balanceStatus: string | null;
+  inputPayload: Record<string, unknown>;
+  outputPayload: Record<string, unknown>;
+  algorithmVersion: string;
+  createdAt: string;
+}
+
+export interface AdminBudgetStats {
+  total: number;
+  anonymous: number;
+  registered: number;
+  last24h: number;
+  topCity: string | null;
+  byPlan: Record<string, number>;
+}

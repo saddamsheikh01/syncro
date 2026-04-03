@@ -42,32 +42,44 @@ public class RelocationProfileResolver {
      *
      * @throws ResponseStatusException 404 se il profilo non esiste e non e recuperabile.
      */
+    /**
+     * Cerca il profilo relocation per userId con auto-recovery.
+     * Ritorna Optional.empty() se non trovato — il chiamante decide come gestire.
+     * Non lancia eccezioni per evitare rollback transazionali indesiderati.
+     */
     @Transactional
-    public RelocationProfile findOrRecover(UUID userId) {
+    public Optional<RelocationProfile> findOrRecoverOptional(UUID userId) {
         Optional<RelocationProfile> direct = profileRepository.findByUserId(userId);
         if (direct.isPresent()) {
-            return direct.get();
+            return direct;
         }
 
-        // Recovery: cerca una sessione anonima convertita per questo utente
         Optional<ExpatsAnonymousSession> convertedSession = sessionRepository.findByConvertedUserId(userId);
         if (convertedSession.isPresent()) {
             ExpatsAnonymousSession session = convertedSession.get();
 
-            // Cerca il profilo tramite la sessione convertita
             Optional<RelocationProfile> byConverted = profileRepository.findByConvertedFromSessionId(session.getId());
             if (byConverted.isPresent()) {
-                return recoverProfile(byConverted.get(), userId);
+                return Optional.of(recoverProfile(byConverted.get(), userId));
             }
 
-            // Cerca il profilo tramite anonymous_session_id (non ancora migrato)
             Optional<RelocationProfile> byAnon = profileRepository.findByAnonymousSession_Id(session.getId());
             if (byAnon.isPresent()) {
-                return recoverProfile(byAnon.get(), userId);
+                return Optional.of(recoverProfile(byAnon.get(), userId));
             }
         }
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profilo relocation non trovato");
+        return Optional.empty();
+    }
+
+    /**
+     * Cerca il profilo con recovery, lancia 404 se non trovato.
+     * Convenience wrapper per i service che non gestiscono il caso empty.
+     */
+    @Transactional
+    public RelocationProfile findOrRecover(UUID userId) {
+        return findOrRecoverOptional(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profilo relocation non trovato"));
     }
 
     /**

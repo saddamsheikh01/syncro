@@ -1,45 +1,71 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useT } from "@/hooks";
+import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
 import { getCities } from "../../../services/expats";
+import { expatsActions } from "../../../stores/expats/expatsStore";
 import type { CityListItem } from "../../../types/expats";
 import SimulationHistory from "./SimulationHistory";
+import BudgetTracking from "./BudgetTracking";
 import PlanTabs from "../shared/PlanTabs";
+import { RegistrationRequiredModal } from "@/components/ui/RegistrationRequiredModal";
+import { useRegistrationGate } from "../../../hooks/expats/useRegistrationGate";
 
 type HousingType = "1br_center" | "3br_center";
 type LivingType = "single" | "family";
 
 export default function BudgetPage() {
   const { t } = useT();
+  const { isAuthenticated } = useAuth();
+  const isAnonymous = !isAuthenticated;
   const {
     isLoading,
     latestSimulation,
     simulations,
+    trackingEntries,
     runSimulation,
     loadSimulations,
+    loadTrackingEntries,
   } = useBudget();
 
   const [budget, setBudget] = useState(2000);
+  const [savings, setSavings] = useState(0);
   const [housingType, setHousingType] = useState<HousingType>("1br_center");
   const [livingType, setLivingType] = useState<LivingType>("single");
   const [cityId, setCityId] = useState<string>("");
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { isModalOpen, modalMessage, openGate, closeModal, gatedAction } = useRegistrationGate();
+
+  // Auto-init anonymous session if not authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      setSessionReady(true);
+      return;
+    }
+    expatsActions.initSession()
+      .then(() => setSessionReady(true))
+      .catch(() => setSessionReady(true)); // proceed anyway — simulation may work without session
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    loadSimulations();
+    if (!sessionReady) return;
+    loadSimulations().catch(() => {});
+    loadTrackingEntries().catch(() => {});
     getCities().then(setCities).catch(() => {});
-  }, [loadSimulations]);
+  }, [sessionReady, loadSimulations, loadTrackingEntries]);
 
-  const triggerSimulation = useCallback((b: number, h: HousingType, l: LivingType, c: string) => {
+  const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       runSimulation({
         planCode: "FREE",
         monthlyBudget: b,
+        savings: s > 0 ? s : null,
         housingType: h,
         livingType: l,
         cityId: c || null,
@@ -49,28 +75,33 @@ export default function BudgetPage() {
 
   // Auto-run on mount
   useEffect(() => {
-    triggerSimulation(budget, housingType, livingType, cityId);
+    triggerSimulation(budget, savings, housingType, livingType, cityId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBudgetChange = (val: number) => {
     setBudget(val);
-    triggerSimulation(val, housingType, livingType, cityId);
+    triggerSimulation(val, savings, housingType, livingType, cityId);
+  };
+
+  const handleSavingsChange = (val: number) => {
+    setSavings(val);
+    triggerSimulation(budget, val, housingType, livingType, cityId);
   };
 
   const handleHousingChange = (val: HousingType) => {
     setHousingType(val);
-    triggerSimulation(budget, val, livingType, cityId);
+    triggerSimulation(budget, savings, val, livingType, cityId);
   };
 
   const handleLivingChange = (val: LivingType) => {
     setLivingType(val);
-    triggerSimulation(budget, housingType, val, cityId);
+    triggerSimulation(budget, savings, housingType, val, cityId);
   };
 
   const handleCityChange = (val: string) => {
     setCityId(val);
-    triggerSimulation(budget, housingType, livingType, val);
+    triggerSimulation(budget, savings, housingType, livingType, val);
   };
 
   const out = latestSimulation?.outputPayload ?? {};
@@ -81,16 +112,15 @@ export default function BudgetPage() {
   const recommendedBudget = (out.recommendedBudget ?? 0) as number;
   const financialRunway = out.financialRunway as { months: number; level: string } | undefined;
 
-  const runwayLevel = financialRunway?.level ?? (monthlyBalance < 0 ? "Critical" : monthlyBalance < 200 ? "Low" : "Good");
-  const hasRunwayData = financialRunway != null;
-  const runwayMonths = financialRunway?.months ?? (monthlyBalance <= 0 ? 0 : null);
+  const runwayLevel = financialRunway?.level ?? (savings <= 0 ? "—" : monthlyBalance < 0 ? "Critical" : "Good");
+  const runwayMonths = financialRunway?.months ?? null;
 
   return (
     <>
       <div className="bp-shell">
         <h1 className="bp-title">{t("Budget Simulator")}</h1>
 
-        <PlanTabs />
+        <PlanTabs onLockedClick={(ctx) => openGate(ctx)} />
 
         {/* ── Cost Breakdown ────────────────────────────────── */}
         <div className="bp-card">
@@ -107,7 +137,7 @@ export default function BudgetPage() {
               value={cityId}
               onChange={(e) => handleCityChange(e.target.value)}
             >
-              <option value="">{t("Use profile city")}</option>
+              <option value="">{isAnonymous ? t("Select a city") : t("Use profile city")}</option>
               {cities.map((c) => (
                 <option key={c.id} value={c.id}>{c.cityName}, {c.country}</option>
               ))}
@@ -137,6 +167,32 @@ export default function BudgetPage() {
             <div className="bp-slider__range">
               <span>€ 300</span>
               <span>+ € 10.000</span>
+            </div>
+          </div>
+
+          {/* Savings Slider */}
+          <div className="bp-field">
+            <div className="bp-field__header">
+              <span className="bp-field__icon">💰</span>
+              <span className="bp-field__label">{t("Total Savings")}</span>
+            </div>
+            <div className="bp-slider-wrap">
+              <input
+                type="range"
+                min={0}
+                max={50000}
+                step={500}
+                value={savings}
+                onChange={(e) => handleSavingsChange(Number(e.target.value))}
+                className="bp-slider"
+              />
+              <div className="bp-slider__bubble" style={{ left: `${(savings / 50000) * 100}%` }}>
+                €{savings.toLocaleString("de-DE")}
+              </div>
+            </div>
+            <div className="bp-slider__range">
+              <span>€ 0</span>
+              <span>€ 50.000</span>
             </div>
           </div>
 
@@ -188,6 +244,26 @@ export default function BudgetPage() {
             </div>
           </div>
 
+          {/* Reset button */}
+          <button
+            className="bp-reset"
+            type="button"
+            onClick={() => {
+              // Force re-render by briefly setting to 0 then to defaults
+              setBudget(0);
+              setSavings(0);
+              setHousingType("1br_center");
+              setLivingType("single");
+              setCityId("");
+              requestAnimationFrame(() => {
+                setBudget(2000);
+                triggerSimulation(2000, 0, "1br_center", "single", "");
+              });
+            }}
+          >
+            ↺ {t("Reset")}
+          </button>
+
           {/* Total Monthly Cost */}
           <div className="bp-total">
             <span className="bp-total__label">{t("Total Monthly Cost")}</span>
@@ -225,53 +301,153 @@ export default function BudgetPage() {
           </div>
         )}
 
-        {/* ── Reality Check (locked — Premium teaser) ──────── */}
-        <div className="bp-card bp-card--locked">
-          <div className="bp-locked-overlay">
-            <span className="bp-locked__icon">🔒</span>
-            <h3 className="bp-locked__title">{t("Reality Check")}</h3>
-            <p className="bp-locked__desc">
-              {t("Can You Really Afford This Move? Unlock detailed analysis with stress index, financial runway and personalized recommendations.")}
-            </p>
-            <span className="bp-locked__badge">{t("Premium")} — {t("Coming Soon")}</span>
-          </div>
-          <div className="bp-locked-preview" aria-hidden="true">
-            <div className="bp-locked-row">
-              <span>🔴 {t("Monthly Deficit / Surplus")}</span>
-              <span>€ —</span>
+        {/* ── Reality Check ─────────────────────────────────── */}
+        <div className="bp-card">
+          <h2 className="bp-card__title">{t("Reality Check")}</h2>
+          <p className="bp-reality__headline">
+            <strong>{t("Can You Really Afford This Move?")}</strong>
+          </p>
+          <p className="bp-reality__sub">
+            {t("Here's What Happens Based On Your Real Numbers — Not Estimates.")}
+          </p>
+
+          <div className="bp-reality-list">
+            {/* Monthly Deficit / Surplus */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: monthlyBalance < 0 ? "#dc2626" : "#16a34a" }} />
+                <div>
+                  <strong>{monthlyBalance < 0 ? t("Monthly Deficit") : t("Monthly Surplus")}:</strong>
+                  <p className="bp-reality-item__desc">
+                    {monthlyBalance < 0
+                      ? t("You Are Currently Running At A Loss Based On Your Expected Cost Of Living.")
+                      : t("Your budget covers your estimated monthly costs.")}
+                  </p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val" style={{ color: monthlyBalance < 0 ? "#dc2626" : "#16a34a" }}>
+                {monthlyBalance >= 0 ? "+" : ""}€{monthlyBalance.toLocaleString("de-DE", { minimumFractionDigits: 2 })}
+              </span>
             </div>
-            <div className="bp-locked-row">
-              <span>⏳ {t("Financial Runway")}</span>
-              <span>— {t("Months")}</span>
+
+            {/* Financial Runway */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: runwayLevel === "Critical" || runwayLevel === "CRITICAL" ? "#dc2626" : runwayLevel === "MODERATE" ? "#ca8a04" : "#16a34a" }} />
+                <div>
+                  <strong>
+                    {t("Financial Runway")}
+                    {runwayMonths !== null && (
+                      <> — <span style={{ color: runwayLevel === "Critical" || runwayLevel === "CRITICAL" ? "#dc2626" : runwayLevel === "MODERATE" ? "#ca8a04" : "#16a34a" }}>{t(runwayLevel)}</span></>
+                    )}
+                  </strong>
+                  <p className="bp-reality-item__desc">{t("How Long Can You Live Without Income?")}</p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val">
+                {runwayMonths !== null
+                  ? `${runwayMonths} ${t("Months")}`
+                  : t("Add savings above")}
+              </span>
             </div>
-            <div className="bp-locked-row">
-              <span>📊 {t("Stress Index")}</span>
-              <span>—%</span>
-            </div>
-            <div className="bp-locked-row">
-              <span>🎯 {t("Recommended Budget")}</span>
-              <span>€ —</span>
+
+            {/* Recommended Budget */}
+            <div className="bp-reality-item">
+              <div className="bp-reality-item__left">
+                <span className="bp-reality-dot" style={{ background: "#3b6bdc" }} />
+                <div>
+                  <strong>{t("Recommended Budget")}</strong>
+                  <p className="bp-reality-item__desc">
+                    {t("This Is The Monthly Income You Need To Live Comfortably In This City Without Financial Stress.")}
+                  </p>
+                </div>
+              </div>
+              <span className="bp-reality-item__val" style={{ color: "#3b6bdc" }}>
+                €{recommendedBudget.toLocaleString("de-DE", { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
 
         </div>{/* close bp-grid */}
 
+        {/* ── Upsell Banner (anonymous only) ───────────────── */}
+        {isAnonymous && latestSimulation && (
+          <div className="bp-upsell">
+            <div className="bp-upsell__content">
+              <h3 className="bp-upsell__title">📊 {t("Want more from your simulation?")}</h3>
+              <div className="bp-upsell__features">
+                <div className="bp-upsell__feature">💾 {t("Save and compare simulation history")}</div>
+                <div className="bp-upsell__feature">📈 {t("Track real expenses vs budget monthly")}</div>
+                <div className="bp-upsell__feature">⚡ {t("Unlock Stability Score & AI insights (Premium)")}</div>
+                <div className="bp-upsell__feature">🔮 {t("6-month financial projections (Super Pro)")}</div>
+              </div>
+              <button className="bp-upsell__cta" type="button" onClick={() => openGate("generic")}>
+                {t("Create Free Account")} →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Premium Preview (anonymous only) ─────────────── */}
+        {isAnonymous && latestSimulation && (
+          <div className="bp-preview">
+            <div className="bp-preview__header">
+              <h3 className="bp-preview__title">🔒 {t("Premium Analysis Preview")}</h3>
+              <span className="bp-preview__badge">{t("Premium")}</span>
+            </div>
+            <div className="bp-preview__blur">
+              <div className="bp-preview__item">
+                <span>{t("Stability Score")}</span>
+                <span className="bp-preview__val">●●/100</span>
+              </div>
+              <div className="bp-preview__item">
+                <span>{t("Stress Index")}</span>
+                <span className="bp-preview__val">0.●●</span>
+              </div>
+              <div className="bp-preview__item">
+                <span>{t("AI Insight")}</span>
+                <span className="bp-preview__val">{t("Your financial situation is...")}</span>
+              </div>
+            </div>
+            <button className="bp-preview__cta" type="button" onClick={() => openGate("premium_plan")}>
+              🔓 {t("Unlock Premium Analysis")}
+            </button>
+          </div>
+        )}
+
         {/* ── CTA ───────────────────────────────────────────── */}
         <button className="bp-cta" type="button" disabled>
           👉 {t("Talk To A Relocation Expert")} <span className="bp-coming">Coming Soon</span>
         </button>
 
-        {/* ── History toggle ─────────────────────────────────── */}
-        <button
-          className="bp-history-link"
-          onClick={() => setShowHistory(!showHistory)}
-          type="button"
-        >
-          {showHistory ? t("Hide Simulation History") : t("View Simulation History")} ({simulations.length})
-        </button>
+        {/* ── History toggle (registered only) ─────────────── */}
+        {!isAnonymous && (
+          <>
+            <button
+              className="bp-history-link"
+              onClick={() => setShowHistory(!showHistory)}
+              type="button"
+            >
+              {showHistory ? t("Hide Simulation History") : t("View Simulation History")} ({simulations.length})
+            </button>
+            {showHistory && <SimulationHistory simulations={simulations} />}
+          </>
+        )}
 
-        {showHistory && <SimulationHistory simulations={simulations} />}
+        {/* ── Tracking toggle (registered only) ──────────────── */}
+        {!isAnonymous && (
+          <>
+            <button
+              className="bp-history-link"
+              onClick={() => setShowTracking(!showTracking)}
+              type="button"
+            >
+              {showTracking ? t("Hide Expense Tracking") : t("Track Your Real Expenses")} ({trackingEntries.length})
+            </button>
+            {showTracking && <BudgetTracking entries={trackingEntries} simulations={simulations} />}
+          </>
+        )}
       </div>
       <style>{`
         .bp-shell {
@@ -508,6 +684,22 @@ export default function BudgetPage() {
           border-bottom: none;
         }
 
+        /* Reality locked item */
+        .bp-reality-item--locked {
+          opacity: 0.5;
+        }
+        .bp-reality-premium-badge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          background: #fef9c3;
+          color: #a16207;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
         /* Entry Cost */
         .bp-entry-list {
           display: flex;
@@ -645,6 +837,129 @@ export default function BudgetPage() {
           text-decoration: underline;
         }
 
+        .bp-reset {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin: 8px 0 0 auto;
+          padding: 8px 16px;
+          background: transparent;
+          border: 1px solid #e4e9f2;
+          border-radius: 8px;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #6c778a;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .bp-reset:hover {
+          border-color: #3b6bdc;
+          color: #3b6bdc;
+        }
+        .bp-upsell {
+          background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+          border: 2px solid #3b6bdc;
+          border-radius: 16px;
+          padding: 24px;
+          margin-top: 24px;
+        }
+        .bp-upsell__title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #0d1b36;
+          margin: 0 0 16px;
+        }
+        .bp-upsell__features {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .bp-upsell__feature {
+          font-size: 0.875rem;
+          color: #475569;
+        }
+        .bp-upsell__cta {
+          display: inline-block;
+          padding: 12px 32px;
+          background: #3b6bdc;
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .bp-upsell__cta:hover {
+          background: #2d5bc4;
+        }
+        .bp-preview {
+          background: #fff;
+          border: 1px solid #e4e9f2;
+          border-radius: 16px;
+          padding: 24px;
+          margin-top: 16px;
+          position: relative;
+          overflow: hidden;
+        }
+        .bp-preview__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .bp-preview__title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #0d1b36;
+          margin: 0;
+        }
+        .bp-preview__badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          background: linear-gradient(135deg, #7c3aed, #3b6bdc);
+          color: #fff;
+          padding: 4px 12px;
+          border-radius: 20px;
+        }
+        .bp-preview__blur {
+          filter: blur(4px);
+          pointer-events: none;
+          user-select: none;
+          opacity: 0.5;
+        }
+        .bp-preview__item {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid #f0f3f8;
+          font-size: 0.875rem;
+          color: #475569;
+        }
+        .bp-preview__val {
+          font-weight: 600;
+          color: #0d1b36;
+        }
+        .bp-preview__cta {
+          display: block;
+          width: 100%;
+          margin-top: 16px;
+          padding: 12px;
+          background: linear-gradient(135deg, #7c3aed, #3b6bdc);
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .bp-preview__cta:hover {
+          opacity: 0.9;
+        }
         @media (max-width: 640px) {
           .bp-shell {
             padding: 20px 16px 48px;
@@ -652,6 +967,9 @@ export default function BudgetPage() {
           .bp-toggles {
             flex-direction: column;
             gap: 8px;
+          }
+          .bp-upsell__features {
+            grid-template-columns: 1fr;
           }
           .bp-reality-item {
             flex-direction: column;
@@ -662,6 +980,11 @@ export default function BudgetPage() {
           }
         }
       `}</style>
+      <RegistrationRequiredModal
+        open={isModalOpen}
+        onClose={closeModal}
+        message={modalMessage}
+      />
     </>
   );
 }

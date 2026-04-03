@@ -194,12 +194,14 @@ public class RelocationMapper {
 
     public BudgetSimulationResponse toBudgetSimulationResponse(BudgetSimulation sim) {
         RelocationCityDataset city = sim.getCity();
+        String source = sim.getUser() != null ? "registered" : "anonymous";
         return new BudgetSimulationResponse(
                 sim.getId(),
                 city != null ? city.getId() : null,
                 city != null ? city.getCityName() : null,
                 sim.getScenario(),
                 sim.getPlanCode(),
+                source,
                 sim.getInputPayload(),
                 sim.getOutputPayload(),
                 sim.getAlgorithmVersion(),

@@ -20,6 +20,7 @@ import {
 import { useExpatsModeStore } from "@/stores/expatsMode/useExpatsModeStore";
 import { expatsModeActions } from "@/stores/expatsMode/expatsModeStore";
 import { getActivationState } from "@/services/expats";
+import Image from "next/image";
 
 const HeaderProfile = () => {
   const { t } = useT();
@@ -100,7 +101,7 @@ const HeaderProfile = () => {
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
         <p className="truncate text-[11px] text-subtle">
-          {t("Live profile / Syncro is learning from you")}
+          {t("View Profile")}
         </p>
       </div>
     </Link>
@@ -171,12 +172,11 @@ const ExpatsModeToggle = () => {
     setIsChecking(true);
     try {
       const state = await getActivationState();
-      const completed = (state?.completedSteps ?? 0) >= (state?.totalSteps ?? 10);
       expatsModeActions.setActive(true);
-      router.push(completed ? "/expats/wow" : "/expats");
+      router.push("/expats/activation");
     } catch {
       expatsModeActions.setActive(true);
-      router.push("/expats");
+      router.push("/expats/budget");
     } finally {
       setIsChecking(false);
     }
@@ -188,15 +188,28 @@ const ExpatsModeToggle = () => {
       onClick={handleClick}
       disabled={isChecking}
       className={cx(
-        "rounded-full border px-3 py-2 text-xs font-semibold transition",
+        "group relative flex items-center gap-2.5 overflow-hidden rounded-xl px-5 py-2.5 text-xs font-extrabold uppercase tracking-widest transition-all duration-300 disabled:opacity-60",
         isExpatsModeActive
-          ? "border-accent/60 bg-accent/15 text-accent"
-          : "border-border/70 bg-surface text-foreground hover:border-accent/40 hover:bg-accent-soft"
+          ? "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white shadow-[0_4px_20px_rgba(59,130,246,0.45)] hover:shadow-[0_6px_28px_rgba(59,130,246,0.6)] hover:scale-[1.03]"
+          : "border border-blue-200/60 bg-white/80 text-blue-500 shadow-sm backdrop-blur hover:border-blue-400 hover:bg-blue-50 hover:shadow-md"
       )}
       aria-pressed={isExpatsModeActive}
       aria-label={t("Expats Mode")}
     >
-      {isChecking ? t("…") : t("Expats Mode")}
+      {isExpatsModeActive && (
+        <span className="absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.15)_50%,transparent_70%)] animate-[shimmer_2.5s_ease-in-out_infinite]" />
+      )}
+      <Image
+        src="/icons/new-icons/expats.png"
+        alt=""
+        width={22}
+        height={22}
+        className={cx(
+          "relative h-[22px] w-[22px] transition-transform duration-300",
+          isExpatsModeActive && "drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
+        )}
+      />
+      <span className="relative">{isChecking ? t("…") : t("Expats Mode")}</span>
     </button>
   );
 };
@@ -219,19 +232,22 @@ export const Navbar = ({
     {...props}
   >
     <Card className="rounded-[var(--radius-xl)] border-border/70 bg-surface/90 p-3 shadow-md backdrop-blur">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
+        <div className="shrink-0 pl-3">
+          <ExpatsModeToggle />
+        </div>
+
         <div className="flex-1">
           <div className="mx-auto max-w-[560px]">
             <ZyraSearchBar />
           </div>
         </div>
 
-        <div className="flex items-center gap-3 pr-2">
-          <ExpatsModeToggle />
+        <div className="flex shrink-0 items-center gap-3 pr-2">
           <SuperAdminRedirect />
-          <LanguageSwitch />
           <NotificationBell />
           <HeaderProfile />
+          <LanguageSwitch variant="expat" />
         </div>
       </div>
     </Card>

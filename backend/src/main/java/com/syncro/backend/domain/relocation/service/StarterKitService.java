@@ -92,10 +92,12 @@ public class StarterKitService {
         // Relocation Risk (3 factors, 0-6)
         payload.put("relocationRisk", computeRelocationRisk(profile, city));
 
+        // Common Relocation Mistake (available for all plans)
+        payload.put("commonRelocationMistake", buildCommonMistake(scores, city));
+
         // === SUPER_PRO sections ===
         if (isSuperPro) {
             payload.put("sevenDayActionPlan", buildSevenDayActionPlan(city));
-            payload.put("commonRelocationMistake", buildCommonMistake(scores, city));
             payload.put("safetyBuffer", buildSafetyBuffer(minBudget));
         }
 

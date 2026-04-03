@@ -12,6 +12,8 @@ import type {
   AdminWaitingListEntry,
   AdminWeightRuleResponse,
   FunnelAnalyticsResponse,
+  AdminBudgetSimulation,
+  AdminBudgetStats,
 } from "@/types/adminExpats";
 
 const BASE = "/admin/expats";
@@ -119,5 +121,22 @@ export const adminGetFunnelAnalytics = async (
   params: { from?: string; to?: string } = {}
 ): Promise<FunnelAnalyticsResponse> => {
   const { data } = await apiClient.get<FunnelAnalyticsResponse>(`${BASE}/funnel-analytics`, { params });
+  return data;
+};
+
+// ─── Budget Simulations (admin) ─────────────────────────────────────────────
+
+export const adminGetBudgetSimulations = async (
+  params: { source?: string; planCode?: string; cityId?: string; page?: number; size?: number } = {}
+): Promise<PageResponse<AdminBudgetSimulation>> => {
+  const { data } = await apiClient.get<PageResponse<AdminBudgetSimulation>>(
+    `${BASE}/budget/simulations`,
+    { params }
+  );
+  return data;
+};
+
+export const adminGetBudgetStats = async (): Promise<AdminBudgetStats> => {
+  const { data } = await apiClient.get<AdminBudgetStats>(`${BASE}/budget/stats`);
   return data;
 };

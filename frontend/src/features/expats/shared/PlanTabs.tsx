@@ -1,15 +1,26 @@
 "use client";
 
 import { useT } from "@/hooks";
+import type { RegistrationGateContext } from "@/hooks/expats/useRegistrationGate";
+
+interface PlanTabsProps {
+  onLockedClick?: (context: RegistrationGateContext) => void;
+}
 
 const PLANS = [
-  { code: "FREE", label: "Free", active: true },
-  { code: "PREMIUM", label: "Premium", active: false },
-  { code: "SUPER_PRO", label: "Super Pro", active: false },
+  { code: "FREE", label: "Free", locked: false, gateContext: null },
+  { code: "PREMIUM", label: "Premium", locked: true, gateContext: "premium_plan" as RegistrationGateContext },
+  { code: "SUPER_PRO", label: "Super Pro", locked: true, gateContext: "super_pro_plan" as RegistrationGateContext },
 ];
 
-export default function PlanTabs() {
+export default function PlanTabs({ onLockedClick }: PlanTabsProps) {
   const { t } = useT();
+
+  const handleClick = (plan: typeof PLANS[number]) => {
+    if (plan.locked && plan.gateContext && onLockedClick) {
+      onLockedClick(plan.gateContext);
+    }
+  };
 
   return (
     <>
@@ -17,12 +28,14 @@ export default function PlanTabs() {
         {PLANS.map((plan) => (
           <button
             key={plan.code}
-            className={`plan-tabs__tab ${plan.active ? "plan-tabs__tab--active" : "plan-tabs__tab--locked"}`}
+            className={`plan-tabs__tab ${!plan.locked ? "plan-tabs__tab--active" : "plan-tabs__tab--locked"}`}
             type="button"
-            disabled={!plan.active}
+            onClick={() => handleClick(plan)}
           >
             {t(plan.label)}
-            {!plan.active && <span className="plan-tabs__lock">🔒 {t("Coming Soon")}</span>}
+            {plan.locked && (
+              <span className="plan-tabs__lock">🔒 {t("Coming Soon")}</span>
+            )}
           </button>
         ))}
       </div>
@@ -58,11 +71,11 @@ export default function PlanTabs() {
           cursor: default;
         }
         .plan-tabs__tab--locked {
-          opacity: 0.5;
-          cursor: not-allowed;
+          opacity: 0.7;
+          cursor: pointer;
         }
         .plan-tabs__tab--locked:hover {
-          background: transparent;
+          background: rgba(59, 107, 220, 0.08);
         }
         .plan-tabs__lock {
           font-size: 0.625rem;

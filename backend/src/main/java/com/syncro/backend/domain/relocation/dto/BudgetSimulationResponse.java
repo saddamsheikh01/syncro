@@ -10,6 +10,7 @@ public record BudgetSimulationResponse(
     String cityName,
     String scenario,
     String planCode,
+    String source,
     Map<String, Object> inputPayload,
     Map<String, Object> outputPayload,
     String algorithmVersion,

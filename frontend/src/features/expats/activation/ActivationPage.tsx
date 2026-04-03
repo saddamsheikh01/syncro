@@ -12,7 +12,15 @@ import RadarChart from "../wow/RadarChart";
 import MicroTestCard from "../microtest/MicroTestCard";
 import type { CityScoreResponse } from "../../../types/expats";
 
-const RADAR_VALUES = [48, 72, 73, 52, 89, 87];
+const RADAR_FALLBACK_VALUES = [48, 72, 73, 52, 89, 87];
+const RADAR_MACROAREA_KEYS = [
+  "costo_vita",
+  "potere_economico",
+  "qualita_vita",
+  "mercato_immobiliare",
+  "integrazione_sociale",
+  "opportunita_lavorative",
+];
 const RADAR_LABEL_KEYS = [
   "Expats.wow.costOfLivingLabel",
   "Expats.wow.economicPower",
@@ -21,30 +29,23 @@ const RADAR_LABEL_KEYS = [
   "Expats.wow.socialIntegration",
   "Expats.wow.workOpportunities",
 ];
-/** Build radar data with translated labels (use inside a component that has useT). */
-function buildRadarData(t: (k: string) => string) {
+
+/** Build radar data with translated labels. Uses real scoring values if available. */
+function buildRadarData(t: (k: string) => string, breakdown?: Record<string, number> | null) {
   return RADAR_LABEL_KEYS.map((key, i) => {
     const label = t(key);
+    const macroareaKey = RADAR_MACROAREA_KEYS[i];
+    const value = breakdown?.[macroareaKey] ?? RADAR_FALLBACK_VALUES[i];
     return {
       label,
       shortLabel: label
         .replace(/ Of /g, "\nOf ")
         .replace(/ /g, "\n")
         .slice(0, 15),
-      value: RADAR_VALUES[i],
+      value: Math.round(value),
     };
   });
 }
-
-/** Static fallback for variants that don't use useT yet. */
-const RADAR_DATA = [
-  { label: "Cost Of Living", shortLabel: "Cost\nOf Living", value: 48 },
-  { label: "Economic Power", shortLabel: "Economic\nPower", value: 72 },
-  { label: "Quality Of Life", shortLabel: "Quality\nOf Life", value: 73 },
-  { label: "Housing Market", shortLabel: "Housing\nMarket", value: 52 },
-  { label: "Social Integration", shortLabel: "Social\nIntegration", value: 89 },
-  { label: "Work Opportunities", shortLabel: "Work\nOpportunities", value: 87 },
-];
 
 const STRATEGY_MONTHS = [
   {
@@ -504,8 +505,10 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
 
 function ActivationAlreadyThere({
   cityName = "Lisbon",
+  radarBreakdown,
 }: {
   cityName?: string;
+  radarBreakdown?: Record<string, number> | null;
 }) {
   const router = useRouter();
   const { t } = useT();
@@ -534,7 +537,7 @@ function ActivationAlreadyThere({
         <div className="act-col">
           <div className="act-card">
             <div className="act-card--radar">
-              <RadarChart data={buildRadarData(t)} size={200} />
+              <RadarChart data={buildRadarData(t, radarBreakdown)} size={200} />
             </div>
             <h3 className="act-card__title" style={{ marginTop: 12 }}>
               Your {cityName} Alignment Score
@@ -651,53 +654,25 @@ function ActivationComparison({
   budget = 2500,
   estimatedCost = 2075,
   score = 70,
+  macroComparison,
 }: {
   currentCity?: string;
   targetCity?: string;
   budget?: number;
   estimatedCost?: number;
   score?: number;
+  macroComparison?: { label: string; currentScore: number; targetScore: number; direction: string }[];
 }) {
   const router = useRouter();
   const { t } = useT();
   const margin = budget - estimatedCost;
-  const MACRO_COMPARISON = [
-    {
-      label: "Cost Of Living",
-      currentScore: 25,
-      targetScore: 60,
-      direction: "improvement",
-    },
-    {
-      label: "Housing Market",
-      currentScore: 40,
-      targetScore: 55,
-      direction: "improvement",
-    },
-    {
-      label: "Economic Power",
-      currentScore: 65,
-      targetScore: 58,
-      direction: "decline",
-    },
-    {
-      label: "Quality Of Life",
-      currentScore: 70,
-      targetScore: 82,
-      direction: "improvement",
-    },
-    {
-      label: "Work Opportunities",
-      currentScore: 75,
-      targetScore: 70,
-      direction: "decline",
-    },
-    {
-      label: "Social Integration",
-      currentScore: 55,
-      targetScore: 78,
-      direction: "improvement",
-    },
+  const MACRO_COMPARISON = macroComparison ?? [
+    { label: "Cost Of Living", currentScore: 25, targetScore: 60, direction: "improvement" },
+    { label: "Housing Market", currentScore: 40, targetScore: 55, direction: "improvement" },
+    { label: "Economic Power", currentScore: 65, targetScore: 58, direction: "decline" },
+    { label: "Quality Of Life", currentScore: 70, targetScore: 82, direction: "improvement" },
+    { label: "Work Opportunities", currentScore: 75, targetScore: 70, direction: "decline" },
+    { label: "Social Integration", currentScore: 55, targetScore: 78, direction: "improvement" },
   ];
   return (
     <div className="activation-main">
@@ -1245,12 +1220,21 @@ export default function ActivationPage() {
     computeScoring,
     isLoading,
   } = useExpats();
+  const { latestSimulation, loadSimulations } = useBudget();
   const [actionInProgress, setActionInProgress] = useState(false);
 
   useEffect(() => {
     loadActivationState().catch(() => null);
     loadOnboarding().catch(() => null);
-  }, [loadActivationState, loadOnboarding]);
+    loadSimulations().catch(() => null);
+  }, [loadActivationState, loadOnboarding, loadSimulations]);
+
+  // Auto-compute scoring if target city exists but no scores
+  useEffect(() => {
+    if (onboarding?.targetCityId && !scoringResult?.scores?.length) {
+      computeScoring(onboarding.targetCityId).catch(() => null);
+    }
+  }, [onboarding?.targetCityId, scoringResult?.scores?.length, computeScoring]);
 
   const router = useRouter();
 
@@ -1300,6 +1284,40 @@ export default function ActivationPage() {
     onboarding?.targetCityId
   );
 
+  // Dynamic data from latest simulation
+  const simOutput = latestSimulation?.outputPayload ?? {};
+  const estimatedCost = (simOutput.estimatedMonthlyCost ?? simOutput.totalMonthlyCost ?? null) as number | null;
+
+  // Dynamic data from scoring
+  const targetScore = scoringResult?.scores?.find(
+    (s) => s.cityName === onboarding?.targetCityName
+  ) ?? scoringResult?.scores?.[0] ?? null;
+
+  // Build dynamic macro comparison from scoring (for Comparison variant)
+  const MACROAREA_KEYS = [
+    { key: "costo_vita", label: "Cost Of Living" },
+    { key: "mercato_immobiliare", label: "Housing Market" },
+    { key: "potere_economico", label: "Economic Power" },
+    { key: "qualita_vita", label: "Quality Of Life" },
+    { key: "opportunita_lavorative", label: "Work Opportunities" },
+    { key: "integrazione_sociale", label: "Social Integration" },
+  ];
+
+  const currentScore = scoringResult?.scores?.find(
+    (s) => s.cityName === onboarding?.currentCityName
+  ) ?? null;
+
+  const dynamicComparison = (targetScore && currentScore) ? MACROAREA_KEYS.map((m) => {
+    const tVal = ((targetScore.breakdown as Record<string, number>)?.[m.key] ?? 0);
+    const cVal = ((currentScore.breakdown as Record<string, number>)?.[m.key] ?? 0);
+    return {
+      label: m.label,
+      currentScore: cVal,
+      targetScore: tVal,
+      direction: tVal >= cVal ? "improvement" : "decline",
+    };
+  }) : null;
+
   const renderVariant = () => {
     if (isComparison) {
       return (
@@ -1307,6 +1325,8 @@ export default function ActivationPage() {
           currentCity={onboarding?.currentCityName ?? "Milan"}
           targetCity={onboarding?.targetCityName ?? "Valencia"}
           budget={budget}
+          estimatedCost={estimatedCost ?? 2075}
+          macroComparison={dynamicComparison ?? undefined}
         />
       );
     }
@@ -1314,13 +1334,20 @@ export default function ActivationPage() {
       return (
         <ActivationAlreadyThere
           cityName={onboarding?.currentCityName ?? "Lisbon"}
+          radarBreakdown={targetScore?.breakdown as Record<string, number> ?? null}
         />
       );
     }
     if (!onboarding?.targetCityName && !onboarding?.targetCityId) {
       return <ActivationUnsure topCity="Valencia" />;
     }
-    return <ActivationPlanningMove cityName={cityName} budget={budget} />;
+    return (
+      <ActivationPlanningMove
+        cityName={cityName}
+        budget={budget}
+        estimatedCost={estimatedCost ?? 2075}
+      />
+    );
   };
 
   return (
