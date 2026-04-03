@@ -28,7 +28,7 @@ export const RegistrationRequiredModal = ({
         label: t("Create Free Account"),
         onClick: () => {
           onClose();
-          router.push("/auth/register");
+          router.push("/register");
         },
       }}
       secondaryAction={{

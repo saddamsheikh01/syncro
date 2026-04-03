@@ -43,9 +43,8 @@ export default function ExpatLanding() {
 
   const ctaLabel = funnelConfig?.content?.cta_text ?? t("Expats.landing.hero.cta");
 
-  const handleStart = async () => {
-    await initSession().catch(() => null);
-    router.push("/expats/funnel/1");
+  const handleStart = () => {
+    router.push("/expats/budget");
   };
 
   return (

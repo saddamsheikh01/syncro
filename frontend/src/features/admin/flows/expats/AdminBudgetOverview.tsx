@@ -42,7 +42,7 @@ function balanceBadgeTone(status: string | null): BadgeTone {
 const COLUMNS: AdminTableColumn[] = [
   { key: "source", label: "Source", width: "100px" },
   { key: "user", label: "User / Session", width: "200px" },
-  { key: "city", label: "City", width: "120px" },
+  { key: "city", label: "Target City", width: "120px" },
   { key: "plan", label: "Plan", width: "80px" },
   { key: "cost", label: "Monthly Cost", align: "right", width: "120px" },
   { key: "balance", label: "Balance", align: "right", width: "120px" },

@@ -57,8 +57,8 @@ export const Leftbar = ({
             collapsed ? "h-16" : "h-28"
           )}
         >
-          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-sm">
-            <Logo width={104} className="h-auto w-[104px]" priority />
+          <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <Logo width={140} className="h-auto w-[140px]" priority />
           </div>
         </div>
 

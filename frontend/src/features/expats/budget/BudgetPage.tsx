@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useT } from "@/hooks";
+import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
 import { getCities } from "../../../services/expats";
+import { expatsActions } from "../../../stores/expats/expatsStore";
 import type { CityListItem } from "../../../types/expats";
 import SimulationHistory from "./SimulationHistory";
 import BudgetTracking from "./BudgetTracking";
@@ -16,6 +17,8 @@ type LivingType = "single" | "family";
 
 export default function BudgetPage() {
   const { t } = useT();
+  const { isAuthenticated } = useAuth();
+  const isAnonymous = !isAuthenticated;
   const {
     isLoading,
     latestSimulation,
@@ -34,15 +37,27 @@ export default function BudgetPage() {
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { isModalOpen, modalMessage, openGate, closeModal, gatedAction } = useRegistrationGate();
 
+  // Auto-init anonymous session if not authenticated
   useEffect(() => {
-    // Load silently — if 403 (anonymous), just ignore
+    if (isAuthenticated) {
+      setSessionReady(true);
+      return;
+    }
+    expatsActions.initSession()
+      .then(() => setSessionReady(true))
+      .catch(() => setSessionReady(true)); // proceed anyway — simulation may work without session
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
     loadSimulations().catch(() => {});
     loadTrackingEntries().catch(() => {});
     getCities().then(setCities).catch(() => {});
-  }, [loadSimulations, loadTrackingEntries]);
+  }, [sessionReady, loadSimulations, loadTrackingEntries]);
 
   const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -122,7 +137,7 @@ export default function BudgetPage() {
               value={cityId}
               onChange={(e) => handleCityChange(e.target.value)}
             >
-              <option value="">{t("Use profile city")}</option>
+              <option value="">{isAnonymous ? t("Select a city") : t("Use profile city")}</option>
               {cities.map((c) => (
                 <option key={c.id} value={c.id}>{c.cityName}, {c.country}</option>
               ))}
@@ -228,6 +243,26 @@ export default function BudgetPage() {
               </button>
             </div>
           </div>
+
+          {/* Reset button */}
+          <button
+            className="bp-reset"
+            type="button"
+            onClick={() => {
+              // Force re-render by briefly setting to 0 then to defaults
+              setBudget(0);
+              setSavings(0);
+              setHousingType("1br_center");
+              setLivingType("single");
+              setCityId("");
+              requestAnimationFrame(() => {
+                setBudget(2000);
+                triggerSimulation(2000, 0, "1br_center", "single", "");
+              });
+            }}
+          >
+            ↺ {t("Reset")}
+          </button>
 
           {/* Total Monthly Cost */}
           <div className="bp-total">
@@ -336,32 +371,83 @@ export default function BudgetPage() {
 
         </div>{/* close bp-grid */}
 
+        {/* ── Upsell Banner (anonymous only) ───────────────── */}
+        {isAnonymous && latestSimulation && (
+          <div className="bp-upsell">
+            <div className="bp-upsell__content">
+              <h3 className="bp-upsell__title">📊 {t("Want more from your simulation?")}</h3>
+              <div className="bp-upsell__features">
+                <div className="bp-upsell__feature">💾 {t("Save and compare simulation history")}</div>
+                <div className="bp-upsell__feature">📈 {t("Track real expenses vs budget monthly")}</div>
+                <div className="bp-upsell__feature">⚡ {t("Unlock Stability Score & AI insights (Premium)")}</div>
+                <div className="bp-upsell__feature">🔮 {t("6-month financial projections (Super Pro)")}</div>
+              </div>
+              <button className="bp-upsell__cta" type="button" onClick={() => openGate("generic")}>
+                {t("Create Free Account")} →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Premium Preview (anonymous only) ─────────────── */}
+        {isAnonymous && latestSimulation && (
+          <div className="bp-preview">
+            <div className="bp-preview__header">
+              <h3 className="bp-preview__title">🔒 {t("Premium Analysis Preview")}</h3>
+              <span className="bp-preview__badge">{t("Premium")}</span>
+            </div>
+            <div className="bp-preview__blur">
+              <div className="bp-preview__item">
+                <span>{t("Stability Score")}</span>
+                <span className="bp-preview__val">●●/100</span>
+              </div>
+              <div className="bp-preview__item">
+                <span>{t("Stress Index")}</span>
+                <span className="bp-preview__val">0.●●</span>
+              </div>
+              <div className="bp-preview__item">
+                <span>{t("AI Insight")}</span>
+                <span className="bp-preview__val">{t("Your financial situation is...")}</span>
+              </div>
+            </div>
+            <button className="bp-preview__cta" type="button" onClick={() => openGate("premium_plan")}>
+              🔓 {t("Unlock Premium Analysis")}
+            </button>
+          </div>
+        )}
+
         {/* ── CTA ───────────────────────────────────────────── */}
         <button className="bp-cta" type="button" disabled>
           👉 {t("Talk To A Relocation Expert")} <span className="bp-coming">Coming Soon</span>
         </button>
 
-        {/* ── History toggle ─────────────────────────────────── */}
-        <button
-          className="bp-history-link"
-          onClick={() => gatedAction(() => { setShowHistory(!showHistory); return Promise.resolve(); }, "simulation_history").catch(() => {})}
-          type="button"
-        >
-          {showHistory ? t("Hide Simulation History") : t("View Simulation History")} ({simulations.length})
-        </button>
+        {/* ── History toggle (registered only) ─────────────── */}
+        {!isAnonymous && (
+          <>
+            <button
+              className="bp-history-link"
+              onClick={() => setShowHistory(!showHistory)}
+              type="button"
+            >
+              {showHistory ? t("Hide Simulation History") : t("View Simulation History")} ({simulations.length})
+            </button>
+            {showHistory && <SimulationHistory simulations={simulations} />}
+          </>
+        )}
 
-        {showHistory && <SimulationHistory simulations={simulations} />}
-
-        {/* ── Tracking toggle ────────────────────────────────── */}
-        <button
-          className="bp-history-link"
-          onClick={() => gatedAction(() => { setShowTracking(!showTracking); return Promise.resolve(); }, "budget_tracking").catch(() => {})}
-          type="button"
-        >
-          {showTracking ? t("Hide Expense Tracking") : t("Track Your Real Expenses")} ({trackingEntries.length})
-        </button>
-
-        {showTracking && <BudgetTracking entries={trackingEntries} simulations={simulations} />}
+        {/* ── Tracking toggle (registered only) ──────────────── */}
+        {!isAnonymous && (
+          <>
+            <button
+              className="bp-history-link"
+              onClick={() => setShowTracking(!showTracking)}
+              type="button"
+            >
+              {showTracking ? t("Hide Expense Tracking") : t("Track Your Real Expenses")} ({trackingEntries.length})
+            </button>
+            {showTracking && <BudgetTracking entries={trackingEntries} simulations={simulations} />}
+          </>
+        )}
       </div>
       <style>{`
         .bp-shell {
@@ -751,6 +837,129 @@ export default function BudgetPage() {
           text-decoration: underline;
         }
 
+        .bp-reset {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin: 8px 0 0 auto;
+          padding: 8px 16px;
+          background: transparent;
+          border: 1px solid #e4e9f2;
+          border-radius: 8px;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #6c778a;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .bp-reset:hover {
+          border-color: #3b6bdc;
+          color: #3b6bdc;
+        }
+        .bp-upsell {
+          background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+          border: 2px solid #3b6bdc;
+          border-radius: 16px;
+          padding: 24px;
+          margin-top: 24px;
+        }
+        .bp-upsell__title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #0d1b36;
+          margin: 0 0 16px;
+        }
+        .bp-upsell__features {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .bp-upsell__feature {
+          font-size: 0.875rem;
+          color: #475569;
+        }
+        .bp-upsell__cta {
+          display: inline-block;
+          padding: 12px 32px;
+          background: #3b6bdc;
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .bp-upsell__cta:hover {
+          background: #2d5bc4;
+        }
+        .bp-preview {
+          background: #fff;
+          border: 1px solid #e4e9f2;
+          border-radius: 16px;
+          padding: 24px;
+          margin-top: 16px;
+          position: relative;
+          overflow: hidden;
+        }
+        .bp-preview__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .bp-preview__title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #0d1b36;
+          margin: 0;
+        }
+        .bp-preview__badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          background: linear-gradient(135deg, #7c3aed, #3b6bdc);
+          color: #fff;
+          padding: 4px 12px;
+          border-radius: 20px;
+        }
+        .bp-preview__blur {
+          filter: blur(4px);
+          pointer-events: none;
+          user-select: none;
+          opacity: 0.5;
+        }
+        .bp-preview__item {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid #f0f3f8;
+          font-size: 0.875rem;
+          color: #475569;
+        }
+        .bp-preview__val {
+          font-weight: 600;
+          color: #0d1b36;
+        }
+        .bp-preview__cta {
+          display: block;
+          width: 100%;
+          margin-top: 16px;
+          padding: 12px;
+          background: linear-gradient(135deg, #7c3aed, #3b6bdc);
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .bp-preview__cta:hover {
+          opacity: 0.9;
+        }
         @media (max-width: 640px) {
           .bp-shell {
             padding: 20px 16px 48px;
@@ -758,6 +967,9 @@ export default function BudgetPage() {
           .bp-toggles {
             flex-direction: column;
             gap: 8px;
+          }
+          .bp-upsell__features {
+            grid-template-columns: 1fr;
           }
           .bp-reality-item {
             flex-direction: column;

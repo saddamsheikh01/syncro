@@ -43,14 +43,20 @@ function formatValue(key: string, val: unknown): string {
   return String(val);
 }
 
+const PAGE_SIZE = 5;
+
 export default function SimulationHistory({ simulations }: SimulationHistoryProps) {
   const { t } = useT();
   const [filter, setFilter] = useState<string>("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = filter === "ALL"
     ? simulations
     : simulations.filter((s) => s.planCode === filter);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -66,7 +72,7 @@ export default function SimulationHistory({ simulations }: SimulationHistoryProp
             <button
               key={f}
               className={`sim-filter ${filter === f ? "sim-filter--active" : ""}`}
-              onClick={() => setFilter(f)}
+              onClick={() => { setFilter(f); setVisibleCount(PAGE_SIZE); }}
               type="button"
             >
               {f === "ALL" ? t("All") : f.replace("_", " ")}
@@ -80,7 +86,7 @@ export default function SimulationHistory({ simulations }: SimulationHistoryProp
           </div>
         )}
 
-        {filtered.map((sim) => {
+        {visible.map((sim) => {
           const out = sim.outputPayload;
           const inp = sim.inputPayload;
           const cost = (out.estimatedMonthlyCost ?? out.totalMonthlyCost ?? 0) as number;
@@ -241,6 +247,21 @@ export default function SimulationHistory({ simulations }: SimulationHistoryProp
             </button>
           );
         })}
+        {/* Pagination */}
+        <div className="sim-history__pagination">
+          <span className="sim-history__count">
+            {t("Showing")} {visible.length} / {filtered.length}
+          </span>
+          {hasMore && (
+            <button
+              className="sim-history__more"
+              type="button"
+              onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            >
+              {t("Load More")}
+            </button>
+          )}
+        </div>
       </div>
       <style>{`
         .sim-history__filters {
@@ -529,6 +550,32 @@ export default function SimulationHistory({ simulations }: SimulationHistoryProp
           color: #0d1b36;
           font-weight: 700;
           text-transform: capitalize;
+        }
+        .sim-history__pagination {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          padding: 16px 0;
+        }
+        .sim-history__count {
+          font-size: 0.8125rem;
+          color: #6c778a;
+        }
+        .sim-history__more {
+          padding: 8px 24px;
+          border: 1px solid #3b6bdc;
+          border-radius: 10px;
+          background: transparent;
+          color: #3b6bdc;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .sim-history__more:hover {
+          background: #3b6bdc;
+          color: #fff;
         }
       `}</style>
     </>

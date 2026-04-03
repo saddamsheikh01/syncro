@@ -96,6 +96,10 @@ public class BudgetSimulationService {
         simulation.setOutputPayload(outputPayload);
 
         simulation = simulationRepository.save(simulation);
+
+        // Sync target city to profile if changed
+        syncTargetCity(profile, city);
+
         analyticsService.trackServerEventSafe(userId, "BUDGET_SIMULATION_RUN",
                 Map.of("planCode", planCode, "simulationId", simulation.getId().toString()));
         return mapper.toBudgetSimulationResponse(simulation);
@@ -114,7 +118,9 @@ public class BudgetSimulationService {
         ExpatsAnonymousSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Sessione anonima non trovata"));
 
-        RelocationProfile profile = anonymousRelocationService.findProfileBySessionIdInNewTx(sessionId);
+        // Profile is optional for anonymous — user may arrive without funnel
+        RelocationProfile profile = profileRepository.findByAnonymousSession_Id(sessionId)
+                .orElseGet(() -> buildMinimalProfile(request));
 
         RelocationCityDataset city = resolveCity(request.cityId(), profile);
 
@@ -375,6 +381,30 @@ public class BudgetSimulationService {
         }
         tips.add("Build a 3-month emergency fund before relocating");
         return tips;
+    }
+
+    private void syncTargetCity(RelocationProfile profile, RelocationCityDataset city) {
+        if (profile.getId() == null) return; // minimal profile, not persisted
+        UUID currentTargetId = profile.getTargetCity() != null ? profile.getTargetCity().getId() : null;
+        if (city.getId().equals(currentTargetId)) return; // same city, no update
+
+        profile.setTargetCity(city);
+        profile.setTargetCityName(city.getCityName());
+        profile.setTargetCountry(city.getCountry());
+        profileRepository.save(profile);
+    }
+
+    private RelocationProfile buildMinimalProfile(CreateBudgetSimulationRequest req) {
+        RelocationProfile p = new RelocationProfile();
+        p.setUserType("planning_move");
+        p.setHousehold(req.household() != null ? req.household() : "single");
+        p.setMonthlyBudget(req.monthlyBudget() != null ? req.monthlyBudget() : java.math.BigDecimal.ZERO);
+        p.setPrimaryGoal("quality_of_life");
+        p.setSocialPriority("medium");
+        p.setDesiredLifestyle(req.desiredLifestyle() != null ? req.desiredLifestyle() : "balanced");
+        p.setWorkStatus("employed");
+        p.setPriorityProblem("monthly_costs");
+        return p;
     }
 
     private List<String> generateSafetyPlan(RelocationCityDataset city) {

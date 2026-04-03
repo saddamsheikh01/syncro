@@ -100,7 +100,7 @@ const HeaderProfile = () => {
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
         <p className="truncate text-[11px] text-subtle">
-          {t("Live profile / Syncro is learning from you")}
+          {t("View Profile")}
         </p>
       </div>
     </Link>
@@ -171,12 +171,11 @@ const ExpatsModeToggle = () => {
     setIsChecking(true);
     try {
       const state = await getActivationState();
-      const completed = (state?.completedSteps ?? 0) >= (state?.totalSteps ?? 10);
       expatsModeActions.setActive(true);
-      router.push(completed ? "/expats/wow" : "/expats");
+      router.push("/expats/activation");
     } catch {
       expatsModeActions.setActive(true);
-      router.push("/expats");
+      router.push("/expats/budget");
     } finally {
       setIsChecking(false);
     }
@@ -188,14 +187,15 @@ const ExpatsModeToggle = () => {
       onClick={handleClick}
       disabled={isChecking}
       className={cx(
-        "rounded-full border px-3 py-2 text-xs font-semibold transition",
+        "flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition disabled:opacity-60",
         isExpatsModeActive
-          ? "border-accent/60 bg-accent/15 text-accent"
-          : "border-border/70 bg-surface text-foreground hover:border-accent/40 hover:bg-accent-soft"
+          ? "border-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:from-blue-600 hover:to-blue-700"
+          : "border border-border/70 bg-surface text-foreground/70 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600"
       )}
       aria-pressed={isExpatsModeActive}
       aria-label={t("Expats Mode")}
     >
+      <span className="text-base leading-none">🌍</span>
       {isChecking ? t("…") : t("Expats Mode")}
     </button>
   );
@@ -219,19 +219,22 @@ export const Navbar = ({
     {...props}
   >
     <Card className="rounded-[var(--radius-xl)] border-border/70 bg-surface/90 p-3 shadow-md backdrop-blur">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
+        <div className="shrink-0 pl-3">
+          <ExpatsModeToggle />
+        </div>
+
         <div className="flex-1">
           <div className="mx-auto max-w-[560px]">
             <ZyraSearchBar />
           </div>
         </div>
 
-        <div className="flex items-center gap-3 pr-2">
-          <ExpatsModeToggle />
+        <div className="flex shrink-0 items-center gap-3 pr-2">
           <SuperAdminRedirect />
-          <LanguageSwitch />
           <NotificationBell />
           <HeaderProfile />
+          <LanguageSwitch variant="expat" />
         </div>
       </div>
     </Card>
