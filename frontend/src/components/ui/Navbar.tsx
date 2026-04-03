@@ -20,6 +20,7 @@ import {
 import { useExpatsModeStore } from "@/stores/expatsMode/useExpatsModeStore";
 import { expatsModeActions } from "@/stores/expatsMode/expatsModeStore";
 import { getActivationState } from "@/services/expats";
+import Image from "next/image";
 
 const HeaderProfile = () => {
   const { t } = useT();
@@ -187,16 +188,28 @@ const ExpatsModeToggle = () => {
       onClick={handleClick}
       disabled={isChecking}
       className={cx(
-        "flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition disabled:opacity-60",
+        "group relative flex items-center gap-2.5 overflow-hidden rounded-xl px-5 py-2.5 text-xs font-extrabold uppercase tracking-widest transition-all duration-300 disabled:opacity-60",
         isExpatsModeActive
-          ? "border-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:from-blue-600 hover:to-blue-700"
-          : "border border-border/70 bg-surface text-foreground/70 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600"
+          ? "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white shadow-[0_4px_20px_rgba(59,130,246,0.45)] hover:shadow-[0_6px_28px_rgba(59,130,246,0.6)] hover:scale-[1.03]"
+          : "border border-blue-200/60 bg-white/80 text-blue-500 shadow-sm backdrop-blur hover:border-blue-400 hover:bg-blue-50 hover:shadow-md"
       )}
       aria-pressed={isExpatsModeActive}
       aria-label={t("Expats Mode")}
     >
-      <span className="text-base leading-none">🌍</span>
-      {isChecking ? t("…") : t("Expats Mode")}
+      {isExpatsModeActive && (
+        <span className="absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.15)_50%,transparent_70%)] animate-[shimmer_2.5s_ease-in-out_infinite]" />
+      )}
+      <Image
+        src="/icons/new-icons/expats.png"
+        alt=""
+        width={22}
+        height={22}
+        className={cx(
+          "relative h-[22px] w-[22px] transition-transform duration-300",
+          isExpatsModeActive && "drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
+        )}
+      />
+      <span className="relative">{isChecking ? t("…") : t("Expats Mode")}</span>
     </button>
   );
 };

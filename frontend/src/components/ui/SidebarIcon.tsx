@@ -12,19 +12,29 @@ export type SidebarIconName =
   | "profile"
   | "settings"
   | "support"
-  | "zyra";
+  | "zyra"
+  | "activation"
+  | "expats-kit"
+  | "budget-simulator"
+  | "subscriptions"
+  | "expats";
 
 const ICONS: Record<SidebarIconName, string> = {
-  home: "/icons/svg/home.svg",
-  people: "/icons/svg/people.svg",
-  places: "/icons/svg/places.svg",
-  moments: "/icons/svg/moments.svg",
+  home: "/icons/new-icons/home.svg",
+  people: "/icons/new-icons/people.svg",
+  places: "/icons/new-icons/palces.svg",
+  moments: "/icons/new-icons/moments.png",
   insights: "/icons/svg/insights.svg",
-  chat: "/icons/svg/chat.svg",
-  profile: "/icons/svg/profile.svg",
-  settings: "/icons/svg/settings.svg",
-  support: "/icons/svg/support.svg",
-  zyra: "/AI/zyra.png",
+  chat: "/icons/new-icons/chat.png",
+  profile: "/icons/new-icons/profile.png",
+  settings: "/icons/new-icons/settings.png",
+  support: "/icons/new-icons/support.png",
+  zyra: "/icons/new-icons/zyr.png",
+  activation: "/icons/new-icons/activation.png",
+  "expats-kit": "/icons/new-icons/expats-kit.png",
+  "budget-simulator": "/icons/new-icons/budget-simulator.png",
+  subscriptions: "/icons/new-icons/subscritions.png",
+  expats: "/icons/new-icons/expats.png",
 };
 
 export interface SidebarIconProps
