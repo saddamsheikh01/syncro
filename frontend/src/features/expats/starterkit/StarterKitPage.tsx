@@ -128,8 +128,8 @@ export default function StarterKitPage() {
                     score={Math.round(card.score ?? 0)}
                     level={t(levelLabel)}
                     description={card.message ?? ""}
-                    ctaLabel={card.cta ? t(card.cta) : undefined}
-                    ctaDescription={meta.ctaDesc ? t(meta.ctaDesc) : undefined}
+                    ctaLabel={undefined}
+                    ctaDescription={undefined}
                   />
                 );
               })}
@@ -142,8 +142,8 @@ export default function StarterKitPage() {
                   score={Math.round((1 - stressLevel.score / 8) * 100)}
                   level={t(stressLevel.level === "LOW" ? "Low" : stressLevel.level === "MEDIUM" ? "Moderate" : "High")}
                   description={stressLevel.description ?? t("Your Relocation Conditions Appear Relatively Stable.")}
-                  ctaLabel={t("Talk To A Mentor")}
-                  ctaDescription={t("Speaking With Someone Who Has Already Gone Through The Relocation Process Can Help You.")}
+                  ctaLabel={undefined}
+                  ctaDescription={undefined}
                 />
               )}
 
@@ -155,8 +155,8 @@ export default function StarterKitPage() {
                 score={Math.round((1 - riskLevel.score / 6) * 100)}
                 level={t(riskLevel.level === "LOW" ? "Low" : riskLevel.level === "MEDIUM" ? "Medium" : "High")}
                 description={riskLevel.description ?? t("Your Relocation Appears Feasible, But Some Elements May Require Careful Planning.")}
-                ctaLabel={t("Talk To A Relocation Expert")}
-                ctaDescription={t("A Relocation Expert Can Help You Understand The Key Steps Of Moving To This City.")}
+                ctaLabel={undefined}
+                ctaDescription={undefined}
               />
             )}
             </div>
@@ -247,10 +247,10 @@ export default function StarterKitPage() {
             {/* ── CTA ───────────────────────────────────────── */}
             <button
               className="sk-cta"
-              onClick={() => router.push("/expats/budget")}
+              onClick={() => router.push("/expats/activation")}
               type="button"
             >
-              {t("Open Budget Simulator")}
+              {t("View Your Relocation Dashboard")}
             </button>
 
             {/* Regenerate link */}

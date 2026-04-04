@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
 import { getCities } from "../../../services/expats";
@@ -16,6 +17,7 @@ type HousingType = "1br_center" | "3br_center";
 type LivingType = "single" | "family";
 
 export default function BudgetPage() {
+  const router = useRouter();
   const { t } = useT();
   const { isAuthenticated } = useAuth();
   const isAnonymous = !isAuthenticated;
@@ -423,9 +425,12 @@ export default function BudgetPage() {
           </div>
         )}
 
-        {/* ── CTA ───────────────────────────────────────────── */}
-        <button className="bp-cta" type="button" disabled>
-          👉 {t("Talk To A Relocation Expert")} <span className="bp-coming">Coming Soon</span>
+        {/* ── CTA to Starter Kit ─────────────────────────────── */}
+        <button className="bp-cta" type="button" onClick={() => {
+          if (isAnonymous) { openGate("starter_kit"); }
+          else { router.push("/expats/starter-kit"); }
+        }}>
+          🎯 {t("Get Your Personalized Starter Kit")}
         </button>
 
         {/* ── History toggle (registered only) ─────────────── */}
