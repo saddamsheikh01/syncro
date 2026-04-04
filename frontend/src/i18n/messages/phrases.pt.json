@@ -1073,7 +1073,7 @@
   "In a relationship": "Num relacionamento",
   "Married": "Casado(a)",
   "Separated": "Separado(a)",
-  "Single": "Solteiro(a)",
+  "Single": "Solteiro",
   "It's complicated": "É complicado",
   "Orientation": "Orientação",
   "Gay": "Gay",
@@ -1792,7 +1792,6 @@
   "Used for compatibility. Enter place of birth (e.g. city, country); time is optional (needed for Ascendant).": "Para compatibilidade. Introduza o local de nascimento (ex. cidade, país); a hora é opcional (necessária para o Ascendente).",
   "What Zyra says": "O que a Zyra diz",
   "Your chart has been saved.": "O seu mapa natal foi guardado.",
-
   "Expats.landing.hero.title": "Pare de adivinhar.\nComece a viver em qualquer lugar com clareza.",
   "Expats.landing.hero.sub": "Entenda como as cidades se encaixam no seu orçamento, estilo de vida, trabalho e vida social — antes ou depois de se mudar.",
   "Expats.landing.hero.bullet1": "Obtenha o seu resumo pessoal da cidade (compatibilidade + nível de risco)",
@@ -1836,7 +1835,6 @@
   "Expats.landing.feature.monthlyCost": "Diferença de custo mensal",
   "Expats.landing.feature.socialDiff": "Dificuldade de integração social",
   "Expats.landing.feature.workImpact": "Impacto nas oportunidades de trabalho",
-
   "Expats.funnel.back": "← Voltar",
   "Expats.funnel.stepOf": "Passo {step} de {total}",
   "Expats.funnel.continue": "Continuar",
@@ -1846,7 +1844,6 @@
   "Expats.funnel.step1.planning": "Estou a planear a minha mudança",
   "Expats.funnel.step1.recently": "Mudei-me recentemente",
   "Expats.funnel.step1.already": "Já vivo aqui há algum tempo",
-
   "Expats.funnel.step2.title": "Onde está agora e\npara onde gostaria de ir?",
   "Expats.funnel.step2.subtitle": "Mostramos como a sua vida poderia mudar lá.",
   "Expats.funnel.step2.currentLabel": "Onde está agora?",
@@ -1860,9 +1857,7 @@
   "Expats.funnel.step2.option.notSure": "Ainda não tenho a certeza",
   "Expats.funnel.step2.option.notSureSub": "Ajude-me a escolher a cidade certa",
   "Expats.funnel.step2.cityIllustrationAlt": "Cidade",
-
   "Admin.scoringConfig.invalidJson": "JSON inválido em «{section}». Corrija antes de guardar.",
-
   "Expats cities": "Cidades expat",
   "Weight rules": "Regras de peso",
   "Scoring config": "Configuração de pontuação",
@@ -1875,7 +1870,6 @@
   "Expat scoring weight rules.": "Regras de peso da pontuação expat.",
   "Relocation scoring configuration.": "Configuração da pontuação de relocalização.",
   "Users waiting for cities not yet in the relocation dataset.": "Utilizadores à espera de cidades ainda não presentes no dataset de relocalização.",
-
   "Expats.wow.title": "Como mudaria a sua vida se se mudasse de {cur} para {tgt}?",
   "Expats.wow.subtitle": "Uma visão de compatibilidade, impacto nos custos e vida diária — antes ou depois de se mudar.",
   "Expats.wow.zyraHello": "Olá! Sou a Zyra,",
@@ -1972,7 +1966,6 @@
   "Expats.wow.readinessUnstable": "Instável",
   "Expats.wow.readinessManageable": "Gerível",
   "Expats.wow.readinessStable": "Estável",
-
   "Expats.wow.macro.costo_vita.label": "Custo de vida",
   "Expats.wow.macro.costo_vita.short": "Custo\nde vida",
   "Expats.wow.macro.potere_economico.label": "Poder económico",
@@ -1985,17 +1978,14 @@
   "Expats.wow.macro.integrazione_sociale.short": "Integração\nsocial",
   "Expats.wow.macro.opportunita_lavorative.label": "Oportunidades de trabalho",
   "Expats.wow.macro.opportunita_lavorative.short": "Oportunidades\nde trabalho",
-
   "Expats.wow.compat.excellentMatch": "Correspondência excelente",
   "Expats.wow.compat.veryStrongFit": "Ajuste muito forte",
   "Expats.wow.compat.goodFitLabel": "Bom ajuste",
   "Expats.wow.compat.moderateFitLabel": "Ajuste moderado",
   "Expats.wow.compat.weakFit": "Ajuste fraco",
-
   "Expats.wow.budget.sustainable": "Sustentável com o seu orçamento",
   "Expats.wow.budget.tight": "Apertado, mas gerível",
   "Expats.wow.budget.overBudget": "Acima do orçamento — são necessários ajustes",
-
   "Expats.wow.lifeImpact.slightly": "ligeiramente ",
   "Expats.wow.lifeImpact.costoImprove": "Custo de vida ↓ {ad}mais baixo",
   "Expats.wow.lifeImpact.costoDecline": "Custo de vida ↑ {ad}mais alto",
@@ -2009,7 +1999,6 @@
   "Expats.wow.lifeImpact.econDecline": "Poder económico ↓ {ad}mais fraco",
   "Expats.wow.lifeImpact.housingImprove": "Mercado imobiliário ↑ {ad}mais fácil",
   "Expats.wow.lifeImpact.housingDecline": "Mercado imobiliário ↓ {ad}mais difícil",
-
   "Expats.wow.matchRank": "Classificação de match #{rank}",
   "Expats.wow.rankShort": "Class. #{rank}",
   "Expats.wow.suffixProfilePercent": "% perfil",
@@ -2048,10 +2037,8 @@
   "Expats.wow.percentMatch": "{score}% de match",
   "Expats.wow.cityCompatibilityPercent": "{score}% compatibilidade",
   "Expats.wow.estimatedCostPerMonthApprox": "{label}: ~{amount}/mês",
-
   "Expats.wow.brandExpats": "EXPATS",
   "Expats.wow.brandMode": "MODO",
-
   "Expats.activation.banner": "MODO EXPATS",
   "Expats.activation.planning.title": "A sua mudança para {city} é viável\nMas 3 decisões vão determinar se funciona",
   "Expats.activation.planning.sub": "Com base no seu perfil, {city} é uma boa correspondência.\nMas o timing da habitação, margem de orçamento e rede social determinarão o seu sucesso.",
@@ -2078,7 +2065,6 @@
   "Simulator": "Simulador",
   "History": "Histórico",
   "Tracking": "Acompanhamento",
-  "Free": "Grátis",
   "Run Simulation": "Executar simulação",
   "Estimated Monthly Cost": "Custo mensal estimado",
   "Margin": "Margem",
@@ -2086,7 +2072,6 @@
   "Generate your Starter Kit": "Gerar seu kit",
   "Financial Risk": "Risco financeiro",
   "Start Test": "Iniciar teste",
-  "Cancel": "Cancelar",
   "Your Relocation Tools": "Suas ferramentas de mudança",
   "Open Simulator": "Abrir simulador",
   "Total Savings": "Poupança total",
@@ -2094,7 +2079,6 @@
   "Apartment 1 Room": "Apartamento 1 quarto",
   "Apartment 3 Room": "Apartamento 3 quartos",
   "Daily Living Cost": "Custo de vida diário",
-  "Single": "Solteiro",
   "Family": "Família",
   "Total Monthly Cost": "Custo mensal total",
   "Furniture / SIM Etc.": "Móveis / SIM Etc.",
@@ -2122,7 +2106,6 @@
   "Economic Power": "Poder econômico",
   "Cost Of Living": "Custo de vida",
   "Strong": "Forte",
-  "Moderate": "Moderado",
   "Weak": "Fraco",
   "Medium": "Médio",
   "High": "Alto",
@@ -2135,5 +2118,11 @@
   "Scam Sentinel": "Sentinela de golpes",
   "Talk To A Mentor": "Fale com um mentor",
   "CRITICAL": "CRÍTICO",
-  "MODERATE": "MODERADO"
+  "MODERATE": "MODERADO",
+  "Registrati per entrare": "Regista-te para entrar",
+  "nel tuo spazio expat": "no teu espaco expat",
+  "Tutto quello che ti serve per vivere, scegliere e integrarti in una nuova citta.": "Tudo o que precisas para viver, escolher e integrar-te numa nova cidade.",
+  "Analisi citta + costi + piano di trasferimento": "Analise da cidade + custos + plano de mudanca",
+  "Expats compatibili e community nella tua citta": "Expats compativeis e comunidade na tua cidade",
+  "Professionisti, eventi e supporto reale": "Profissionais, eventos e apoio real"
 }

@@ -22,7 +22,7 @@ export const normalizeLocale = (raw: unknown): SupportedLocale | null => {
     : null;
 };
 
-/** Regional flag emoji per supported UI locale (for language picker). */
+/** Regional flag emoji per supported UI locale (fallback for non-component contexts). */
 export const LOCALE_FLAG_EMOJI: Record<SupportedLocale, string> = {
   en: "🇬🇧",
   it: "🇮🇹",
@@ -30,6 +30,16 @@ export const LOCALE_FLAG_EMOJI: Record<SupportedLocale, string> = {
   fr: "🇫🇷",
   sq: "🇦🇱",
   pt: "🇵🇹",
+};
+
+/** ISO 3166-1 alpha-2 country codes mapped from locale (for flag-icons). */
+export const LOCALE_COUNTRY_CODE: Record<SupportedLocale, string> = {
+  en: "GB",
+  it: "IT",
+  es: "ES",
+  fr: "FR",
+  sq: "AL",
+  pt: "PT",
 };
 
 export const toBcp47 = (locale: SupportedLocale): string => {

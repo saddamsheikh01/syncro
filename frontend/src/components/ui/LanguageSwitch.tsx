@@ -5,7 +5,8 @@ import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { useAdminAuth, useAuth, useI18n, useT } from "@/hooks";
-import { LOCALE_FLAG_EMOJI, type SupportedLocale } from "@/i18n/locales";
+import { type SupportedLocale } from "@/i18n/locales";
+import { FlagIcon } from "@/components/ui/FlagIcon";
 import { cx } from "@/lib/classNames";
 
 export interface LanguageSwitchProps
@@ -42,7 +43,7 @@ export const LanguageSwitch = ({
       (Object.keys(LOCALE_LABEL_KEYS) as SupportedLocale[]).map((id) => ({
         id,
         label: t(LOCALE_LABEL_KEYS[id]),
-        prefix: LOCALE_FLAG_EMOJI[id],
+        prefix: <FlagIcon locale={id} size={18} />,
       })),
     [t]
   );
@@ -50,25 +51,21 @@ export const LanguageSwitch = ({
   let label: ReactNode;
   if (variant === "expat") {
     label = (
-      <span className="text-[1.65rem] leading-none" aria-hidden>
-        {LOCALE_FLAG_EMOJI[locale]}
+      <span aria-hidden>
+        <FlagIcon locale={locale} size={24} />
       </span>
     );
   } else if (variant === "compact") {
     label = (
       <span className="flex items-center gap-1.5">
-        <span className="text-base leading-none" aria-hidden>
-          {LOCALE_FLAG_EMOJI[locale]}
-        </span>
+        <FlagIcon locale={locale} size={18} />
         <span>{locale.toUpperCase()}</span>
       </span>
     );
   } else {
     label = (
       <span className="flex items-center gap-2">
-        <span className="text-lg leading-none" aria-hidden>
-          {LOCALE_FLAG_EMOJI[locale]}
-        </span>
+        <FlagIcon locale={locale} size={20} />
         {t("Language")}
       </span>
     );

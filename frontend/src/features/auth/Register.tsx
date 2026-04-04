@@ -211,28 +211,26 @@ export const Register = () => {
               <LanguageSwitch variant="full" />
             </div>
             <h1 className="text-3xl font-semibold text-[#2b4c8f]">
-              {t("Sign Up To Start")}
+              {t("Registrati per entrare")}
               <br />
-              {t("Your Journey")}
+              {t("nel tuo spazio expat")}
             </h1>
             <p className="mt-3 text-sm text-muted">
-              {t("Smart Matching For People And Places.")}
-              <br />
-              {t("For Expats, Conscious Travelers And Locals Seeking Real Affinity.")}
+              {t("Tutto quello che ti serve per vivere, scegliere e integrarti in una nuova citta.")}
             </p>
 
             <ul className="mt-6 space-y-2 text-sm text-muted">
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>{t("Matches based on who you really are")}</span>
+                <span>{t("Analisi citta + costi + piano di trasferimento")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>{t("Real affinity, explained with clear percentages")}</span>
+                <span>{t("Expats compatibili e community nella tua citta")}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon />
-                <span>{t("People, places & experiences aligned with you")}</span>
+                <span>{t("Professionisti, eventi e supporto reale")}</span>
               </li>
             </ul>
 
