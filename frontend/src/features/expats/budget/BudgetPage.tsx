@@ -59,6 +59,13 @@ export default function BudgetPage() {
     getCities().then(setCities).catch(() => {});
   }, [sessionReady, loadSimulations, loadTrackingEntries]);
 
+  // Pre-select city from latest simulation
+  useEffect(() => {
+    if (latestSimulation?.cityId && !cityId) {
+      setCityId(latestSimulation.cityId);
+    }
+  }, [latestSimulation?.cityId]);
+
   const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
