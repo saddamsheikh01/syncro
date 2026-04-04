@@ -791,7 +791,7 @@
   "Mixed": "Mixte",
   "Mixed (in-person + remote)": "Mixte (presentiel + a distance)",
   "Mobile navigation": "Navigation mobile",
-  "Moderate": "Modere",
+  "Moderate": "Modéré",
   "Modified since (optional)": "Modifie depuis (optionnel)",
   "Moment": "Instant",
   "Moment / activity": "Moment / activite",
@@ -1792,7 +1792,6 @@
   "Used for compatibility. Enter place of birth (e.g. city, country); time is optional (needed for Ascendant).": "Pour la compatibilité. Entrez le lieu de naissance (ex. ville, pays) ; l'heure est optionnelle (nécessaire pour l'Ascendant).",
   "What Zyra says": "Ce que dit Zyra",
   "Your chart has been saved.": "Votre thème a été enregistré.",
-
   "Expats.landing.hero.title": "Arrêtez de deviner.\nVivez n'importe où avec clarté.",
   "Expats.landing.hero.sub": "Comprenez comment les villes correspondent à votre budget, style de vie, travail et vie sociale — avant ou après votre déménagement.",
   "Expats.landing.hero.bullet1": "Obtenez votre aperçu ville personnalisé (affinité + niveau de risque)",
@@ -1836,7 +1835,6 @@
   "Expats.landing.feature.monthlyCost": "Différence de coût mensuel",
   "Expats.landing.feature.socialDiff": "Difficulté d'intégration sociale",
   "Expats.landing.feature.workImpact": "Impact sur les opportunités professionnelles",
-
   "Expats.funnel.back": "← Retour",
   "Expats.funnel.stepOf": "Étape {step} sur {total}",
   "Expats.funnel.continue": "Continuer",
@@ -1846,7 +1844,6 @@
   "Expats.funnel.step1.planning": "Je prépare mon déménagement",
   "Expats.funnel.step1.recently": "Je viens de déménager",
   "Expats.funnel.step1.already": "Je vis ici depuis un moment",
-
   "Expats.funnel.step2.title": "Où êtes-vous maintenant et\noù aimeriez-vous aller ?",
   "Expats.funnel.step2.subtitle": "Nous vous montrerons comment votre vie pourrait y changer.",
   "Expats.funnel.step2.currentLabel": "Où êtes-vous maintenant ?",
@@ -1860,9 +1857,7 @@
   "Expats.funnel.step2.option.notSure": "Je ne suis pas encore sûr(e)",
   "Expats.funnel.step2.option.notSureSub": "Aidez-moi à choisir la bonne ville",
   "Expats.funnel.step2.cityIllustrationAlt": "Ville",
-
   "Admin.scoringConfig.invalidJson": "JSON invalide dans «{section}». Corrigez avant d’enregistrer.",
-
   "Expats cities": "Villes expats",
   "Weight rules": "Règles de pondération",
   "Scoring config": "Config. de score",
@@ -1875,7 +1870,6 @@
   "Expat scoring weight rules.": "Règles de pondération du score expat.",
   "Relocation scoring configuration.": "Configuration du score de relocation.",
   "Users waiting for cities not yet in the relocation dataset.": "Utilisateurs en attente de villes pas encore dans le jeu de données relocation.",
-
   "Expats.wow.title": "Comment votre vie changerait-elle si vous déménagiez de {cur} à {tgt} ?",
   "Expats.wow.subtitle": "Un aperçu de la compatibilité, de l'impact sur les coûts et de la vie quotidienne — avant ou après votre déménagement.",
   "Expats.wow.zyraHello": "Bonjour ! Je suis Zyra,",
@@ -1972,7 +1966,6 @@
   "Expats.wow.readinessUnstable": "Instable",
   "Expats.wow.readinessManageable": "Gérable",
   "Expats.wow.readinessStable": "Stable",
-
   "Expats.wow.macro.costo_vita.label": "Coût de la vie",
   "Expats.wow.macro.costo_vita.short": "Coût\nde la vie",
   "Expats.wow.macro.potere_economico.label": "Pouvoir économique",
@@ -1985,17 +1978,14 @@
   "Expats.wow.macro.integrazione_sociale.short": "Intégration\nsociale",
   "Expats.wow.macro.opportunita_lavorative.label": "Opportunités professionnelles",
   "Expats.wow.macro.opportunita_lavorative.short": "Opportunités\nprofessionnelles",
-
   "Expats.wow.compat.excellentMatch": "Excellente correspondance",
   "Expats.wow.compat.veryStrongFit": "Très forte adéquation",
   "Expats.wow.compat.goodFitLabel": "Bonne adéquation",
   "Expats.wow.compat.moderateFitLabel": "Adéquation modérée",
   "Expats.wow.compat.weakFit": "Adéquation faible",
-
   "Expats.wow.budget.sustainable": "Durable avec votre budget",
   "Expats.wow.budget.tight": "Serré, mais gérable",
   "Expats.wow.budget.overBudget": "Au-dessus du budget — des ajustements sont nécessaires",
-
   "Expats.wow.lifeImpact.slightly": "légèrement ",
   "Expats.wow.lifeImpact.costoImprove": "Coût de la vie ↓ {ad}plus bas",
   "Expats.wow.lifeImpact.costoDecline": "Coût de la vie ↑ {ad}plus élevé",
@@ -2009,7 +1999,6 @@
   "Expats.wow.lifeImpact.econDecline": "Pouvoir économique ↓ {ad}plus faible",
   "Expats.wow.lifeImpact.housingImprove": "Marché immobilier ↑ {ad}plus facile",
   "Expats.wow.lifeImpact.housingDecline": "Marché immobilier ↓ {ad}plus tendu",
-
   "Expats.wow.matchRank": "Rang de correspondance #{rank}",
   "Expats.wow.rankShort": "Rang #{rank}",
   "Expats.wow.suffixProfilePercent": "% profil",
@@ -2048,10 +2037,8 @@
   "Expats.wow.percentMatch": "{score}% de correspondance",
   "Expats.wow.cityCompatibilityPercent": "{score}% compatibilité",
   "Expats.wow.estimatedCostPerMonthApprox": "{label} : ~{amount}/mois",
-
   "Expats.wow.brandExpats": "EXPATS",
   "Expats.wow.brandMode": "MODE",
-
   "Expats.activation.banner": "MODE EXPATS",
   "Expats.activation.planning.title": "Votre déménagement à {city} est réalisable\nMais 3 décisions détermineront si ça fonctionne",
   "Expats.activation.planning.sub": "D'après votre profil, {city} est un bon match.\nMais le timing du logement, la marge budgétaire et le réseau social détermineront votre succès.",
@@ -2078,7 +2065,6 @@
   "Simulator": "Simulateur",
   "History": "Historique",
   "Tracking": "Suivi",
-  "Free": "Gratuit",
   "Run Simulation": "Lancer la simulation",
   "Simulating...": "Simulation en cours...",
   "Estimated Monthly Cost": "Coût mensuel estimé",
@@ -2096,7 +2082,6 @@
   "Adaptation Risk": "Risque d'adaptation",
   "Burnout Risk": "Risque de burnout",
   "Start Test": "Commencer le test",
-  "Cancel": "Annuler",
   "Your Relocation Tools": "Vos outils de relocalisation",
   "Open Simulator": "Ouvrir le simulateur",
   "Total Savings": "Épargne totale",
@@ -2104,7 +2089,6 @@
   "Apartment 1 Room": "Appartement 1 pièce",
   "Apartment 3 Room": "Appartement 3 pièces",
   "Daily Living Cost": "Coût de vie quotidien",
-  "Single": "Célibataire",
   "Family": "Famille",
   "Total Monthly Cost": "Coût mensuel total",
   "Furniture / SIM Etc.": "Meubles / SIM Etc.",
@@ -2140,7 +2124,6 @@
   "Economic Power": "Pouvoir économique",
   "Cost Of Living": "Coût de la vie",
   "Strong": "Fort",
-  "Moderate": "Modéré",
   "Weak": "Faible",
   "Medium": "Moyen",
   "High": "Élevé",
@@ -2163,5 +2146,11 @@
   "Local Real Estate Agent": "Agent immobilier local",
   "Syncro Lounge / Community": "Lounge Syncro / Communauté",
   "CRITICAL": "CRITIQUE",
-  "MODERATE": "MODÉRÉ"
+  "MODERATE": "MODÉRÉ",
+  "Registrati per entrare": "Inscris-toi pour entrer",
+  "nel tuo spazio expat": "dans ton espace expat",
+  "Tutto quello che ti serve per vivere, scegliere e integrarti in una nuova citta.": "Tout ce dont tu as besoin pour vivre, choisir et t integrer dans une nouvelle ville.",
+  "Analisi citta + costi + piano di trasferimento": "Analyse ville + couts + plan de demenagement",
+  "Expats compatibili e community nella tua citta": "Expats compatibles et communaute dans ta ville",
+  "Professionisti, eventi e supporto reale": "Professionnels, evenements et soutien reel"
 }

@@ -1792,7 +1792,6 @@
   "Used for compatibility. Enter place of birth (e.g. city, country); time is optional (needed for Ascendant).": "Për përputhshmëri. Vendosni vendin e lindjes (p.sh. qytet, vend); koha është opsionale (e nevojshme për Ascendentin).",
   "What Zyra says": "Çfarë thotë Zyra",
   "Your chart has been saved.": "Harta juaj e lindjes u ruajt.",
-
   "Expats.landing.hero.title": "Ndaleni me hamendjet.\nFilloni të jetoni kudo me qartësi.",
   "Expats.landing.hero.sub": "Kuptoni se si qytetet përshtaten me buxhetin, stilin e jetesës, punën dhe jetën sociale — para ose pas transferimit.",
   "Expats.landing.hero.bullet1": "Merrni pamjen tuaj personale të qytetit (përputhshmëri + nivel rreziku)",
@@ -1836,7 +1835,6 @@
   "Expats.landing.feature.monthlyCost": "Dallimi i kostos mujore",
   "Expats.landing.feature.socialDiff": "Vështirësia e integrimit social",
   "Expats.landing.feature.workImpact": "Ndikimi në mundësitë e punës",
-
   "Expats.funnel.back": "← Mbrapa",
   "Expats.funnel.stepOf": "Hapi {step} nga {total}",
   "Expats.funnel.continue": "Vazhdo",
@@ -1846,7 +1844,6 @@
   "Expats.funnel.step1.planning": "Po planifikoj transferimin",
   "Expats.funnel.step1.recently": "Sapo u transferova",
   "Expats.funnel.step1.already": "Jetoj këtu prej një kohe",
-
   "Expats.funnel.step2.title": "Ku jeni tani dhe\nku dëshironi të shkoni?",
   "Expats.funnel.step2.subtitle": "Do t'ju tregojmë si mund të ndryshojë jeta juaj atje.",
   "Expats.funnel.step2.currentLabel": "Ku jeni tani?",
@@ -1860,9 +1857,7 @@
   "Expats.funnel.step2.option.notSure": "Ende nuk jam i sigurt",
   "Expats.funnel.step2.option.notSureSub": "Më ndihmo të zgjedh qytetin e duhur",
   "Expats.funnel.step2.cityIllustrationAlt": "Qytet",
-
   "Admin.scoringConfig.invalidJson": "JSON i pavlefshëm te «{section}». Korrigjoni para ruajtjes.",
-
   "Expats cities": "Qytetet expat",
   "Weight rules": "Rregullat e peshës",
   "Scoring config": "Konfigurimi i vlerësimit",
@@ -1875,7 +1870,6 @@
   "Expat scoring weight rules.": "Rregullat e peshës për vlerësimin expat.",
   "Relocation scoring configuration.": "Konfigurimi i vlerësimit të relokimit.",
   "Users waiting for cities not yet in the relocation dataset.": "Përdorues në pritje të qyteteve që ende nuk janë në dataset-in e relokimit.",
-
   "Expats.wow.title": "Si do të ndryshonte jeta juaj nëse do të transferoheshit nga {cur} në {tgt}?",
   "Expats.wow.subtitle": "Një pamje e përputhshmërisë, ndikimit të kostos dhe jetës së përditshme — para ose pas transferimit.",
   "Expats.wow.zyraHello": "Përshëndetje! Unë jam Zyra,",
@@ -1972,7 +1966,6 @@
   "Expats.wow.readinessUnstable": "E paqëndrueshme",
   "Expats.wow.readinessManageable": "E menaxhueshme",
   "Expats.wow.readinessStable": "E qëndrueshme",
-
   "Expats.wow.macro.costo_vita.label": "Kostoja e jetesës",
   "Expats.wow.macro.costo_vita.short": "Kostoja\ne jetesës",
   "Expats.wow.macro.potere_economico.label": "Fuqia ekonomike",
@@ -1985,17 +1978,14 @@
   "Expats.wow.macro.integrazione_sociale.short": "Integrimi\nsocial",
   "Expats.wow.macro.opportunita_lavorative.label": "Mundësitë e punës",
   "Expats.wow.macro.opportunita_lavorative.short": "Mundësitë\ne punës",
-
   "Expats.wow.compat.excellentMatch": "Përputhje e shkëlqyer",
   "Expats.wow.compat.veryStrongFit": "Përputhje shumë e fortë",
   "Expats.wow.compat.goodFitLabel": "Përputhje e mirë",
   "Expats.wow.compat.moderateFitLabel": "Përputhje e moderuar",
   "Expats.wow.compat.weakFit": "Përputhje e dobët",
-
   "Expats.wow.budget.sustainable": "E qëndrueshme me buxhetin tuaj",
   "Expats.wow.budget.tight": "E ngushtë, por e menaxhueshme",
   "Expats.wow.budget.overBudget": "Mbi buxhet — nevojiten rregullime",
-
   "Expats.wow.lifeImpact.slightly": "pak ",
   "Expats.wow.lifeImpact.costoImprove": "Kostoja e jetesës ↓ {ad}më e ulët",
   "Expats.wow.lifeImpact.costoDecline": "Kostoja e jetesës ↑ {ad}më e lartë",
@@ -2009,7 +1999,6 @@
   "Expats.wow.lifeImpact.econDecline": "Fuqia ekonomike ↓ {ad}më e dobët",
   "Expats.wow.lifeImpact.housingImprove": "Tregu i banimit ↑ {ad}më i lehtë",
   "Expats.wow.lifeImpact.housingDecline": "Tregu i banimit ↓ {ad}më i ngushtë",
-
   "Expats.wow.matchRank": "Renditja e përputhjes #{rank}",
   "Expats.wow.rankShort": "Rend #{rank}",
   "Expats.wow.suffixProfilePercent": "% profil",
@@ -2048,10 +2037,8 @@
   "Expats.wow.percentMatch": "{score}% përputhje",
   "Expats.wow.cityCompatibilityPercent": "{score}% përputhshmëri",
   "Expats.wow.estimatedCostPerMonthApprox": "{label}: ~{amount}/muaj",
-
   "Expats.wow.brandExpats": "EXPATS",
   "Expats.wow.brandMode": "MËNYRA",
-
   "Expats.activation.banner": "MËNYRA EXPATS",
   "Expats.activation.planning.title": "Transferimi juaj në {city} është i realizueshëm\nPor 3 vendime do të përcaktojnë nëse funksionon",
   "Expats.activation.planning.sub": "Bazuar në profilin tuaj, {city} është një përputhje e fortë.\nPor koha e banesës, diferenca e buxhetit dhe rrjeti social do të përcaktojnë suksesin tuaj.",
@@ -2078,12 +2065,10 @@
   "Simulator": "Simulues",
   "History": "Historiku",
   "Tracking": "Gjurmimi",
-  "Free": "Falas",
   "Run Simulation": "Nis simulimin",
   "Starter Kit": "Kit fillimi",
   "Financial Risk": "Risku financiar",
   "Start Test": "Fillo testin",
-  "Cancel": "Anulo",
   "Your Relocation Tools": "Mjetet tuaja",
   "Open Simulator": "Hap simuluesin",
   "Total Savings": "Kursimet totale",
@@ -2091,7 +2076,6 @@
   "Apartment 1 Room": "Apartament 1 dhomë",
   "Apartment 3 Room": "Apartament 3 dhoma",
   "Daily Living Cost": "Kosto ditore e jetesës",
-  "Single": "Beqar",
   "Family": "Familje",
   "Total Monthly Cost": "Kosto mujore totale",
   "Reality Check": "Kontroll realiteti",
@@ -2114,5 +2098,11 @@
   "Realistic Minimum Budget": "Buxheti minimal realist",
   "Talk To A Mentor": "Fol me një mentor",
   "CRITICAL": "KRITIK",
-  "MODERATE": "MODERUAR"
+  "MODERATE": "MODERUAR",
+  "Registrati per entrare": "Regjistrohu per te hyre",
+  "nel tuo spazio expat": "ne hapesiren tende expat",
+  "Tutto quello che ti serve per vivere, scegliere e integrarti in una nuova citta.": "Gjithcka qe te nevojitet per te jetuar, zgjedhur dhe integruar ne nje qytet te ri.",
+  "Analisi citta + costi + piano di trasferimento": "Analiza e qytetit + kostot + plani i zhvendosjes",
+  "Expats compatibili e community nella tua citta": "Expats te pajtueshme dhe komuniteti ne qytetin tend",
+  "Professionisti, eventi e supporto reale": "Profesioniste, ngjarje dhe mbeshtetje reale"
 }

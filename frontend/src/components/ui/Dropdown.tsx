@@ -119,7 +119,10 @@ export const Dropdown = ({
                 item.disabled && "cursor-not-allowed text-subtle"
               )}
             >
-              <span className="font-semibold">{item.label}</span>
+              <span className="flex items-center gap-2 font-semibold">
+                {item.prefix && <span className="shrink-0">{item.prefix}</span>}
+                {item.label}
+              </span>
               {item.description ? (
                 <span className="text-xs text-subtle">{item.description}</span>
               ) : null}

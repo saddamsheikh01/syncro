@@ -260,7 +260,7 @@ public class RelocationOnboardingService {
                                                         boolean hasScoringResults) {
         List<Map<String, String>> actions = new ArrayList<>();
 
-        if (!missingFields.isEmpty()) {
+        if (!missingFields.isEmpty() && !"COMPLETED".equals(profile.getStatus())) {
             actions.add(Map.of(
                     "action", "complete_onboarding",
                     "label", "Completa il tuo profilo",
