@@ -15,7 +15,10 @@ import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepo
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
 import com.syncro.backend.domain.expats.entity.ExpatsAnonymousSession;
 import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
+import com.syncro.backend.domain.relocation.dto.ComputeScoringRequest;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BudgetSimulationService {
+
+    private static final Logger log = LoggerFactory.getLogger(BudgetSimulationService.class);
 
     private final BudgetSimulationRepository simulationRepository;
     private final RelocationProfileRepository profileRepository;
@@ -38,6 +43,8 @@ public class BudgetSimulationService {
     private final RelocationProfileResolver profileResolver;
     private final AnonymousRelocationService anonymousRelocationService;
     private final ExpatsAnonymousSessionRepository sessionRepository;
+    private final RelocationOnboardingService onboardingService;
+    private final RelocationScoringService scoringService;
 
     public BudgetSimulationService(BudgetSimulationRepository simulationRepository,
                                     RelocationProfileRepository profileRepository,
@@ -49,7 +56,9 @@ public class BudgetSimulationService {
                                     SubscriptionService subscriptionService,
                                     RelocationProfileResolver profileResolver,
                                     AnonymousRelocationService anonymousRelocationService,
-                                    ExpatsAnonymousSessionRepository sessionRepository) {
+                                    ExpatsAnonymousSessionRepository sessionRepository,
+                                    RelocationOnboardingService onboardingService,
+                                    RelocationScoringService scoringService) {
         this.simulationRepository = simulationRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -61,6 +70,8 @@ public class BudgetSimulationService {
         this.profileResolver = profileResolver;
         this.anonymousRelocationService = anonymousRelocationService;
         this.sessionRepository = sessionRepository;
+        this.onboardingService = onboardingService;
+        this.scoringService = scoringService;
     }
 
     @Transactional
@@ -98,7 +109,7 @@ public class BudgetSimulationService {
         simulation = simulationRepository.save(simulation);
 
         // Sync target city to profile if changed
-        syncTargetCity(profile, city);
+        syncTargetCity(profile, city, userId);
 
         analyticsService.trackServerEventSafe(userId, "BUDGET_SIMULATION_RUN",
                 Map.of("planCode", planCode, "simulationId", simulation.getId().toString()));
@@ -383,15 +394,28 @@ public class BudgetSimulationService {
         return tips;
     }
 
-    private void syncTargetCity(RelocationProfile profile, RelocationCityDataset city) {
+    private void syncTargetCity(RelocationProfile profile, RelocationCityDataset city, UUID userId) {
         if (profile.getId() == null) return; // minimal profile, not persisted
         UUID currentTargetId = profile.getTargetCity() != null ? profile.getTargetCity().getId() : null;
         if (city.getId().equals(currentTargetId)) return; // same city, no update
 
+        // 1. Update target city on profile
         profile.setTargetCity(city);
         profile.setTargetCityName(city.getCityName());
         profile.setTargetCountry(city.getCountry());
         profileRepository.save(profile);
+
+        // 2. Auto-refresh snapshot + scoring if profile is completed
+        if ("COMPLETED".equals(profile.getStatus())) {
+            try {
+                onboardingService.createSnapshot(userId);
+                ComputeScoringRequest scoringReq = new ComputeScoringRequest(city.getId(), null);
+                scoringService.computeScoring(userId, scoringReq);
+                log.info("Auto-refreshed snapshot and scoring for user {} after target city change to {}", userId, city.getCityName());
+            } catch (Exception e) {
+                log.warn("Failed to auto-refresh scoring after city change for user {}: {}", userId, e.getMessage());
+            }
+        }
     }
 
     private RelocationProfile buildMinimalProfile(CreateBudgetSimulationRequest req) {

@@ -14,6 +14,7 @@ import com.syncro.backend.domain.relocation.repository.BudgetSimulationRepositor
 import com.syncro.backend.domain.relocation.repository.RelocationCityDatasetRepository;
 import com.syncro.backend.domain.relocation.repository.RelocationProfileRepository;
 import com.syncro.backend.domain.relocation.service.RelocationProfileResolver;
+import com.syncro.backend.domain.expats.repository.ExpatsAnonymousSessionRepository;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,10 @@ class BudgetSimulationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private SubscriptionService subscriptionService;
     @Mock private RelocationProfileResolver profileResolver;
+    @Mock private AnonymousRelocationService anonymousRelocationService;
+    @Mock private ExpatsAnonymousSessionRepository sessionRepository;
+    @Mock private RelocationOnboardingService onboardingService;
+    @Mock private RelocationScoringService scoringService;
     @InjectMocks private BudgetSimulationService service;
 
     @org.junit.jupiter.api.BeforeEach
