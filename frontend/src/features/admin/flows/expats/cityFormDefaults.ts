@@ -27,6 +27,16 @@ export const defaultCreateCityPayload = (): AdminCreateCityPayload => ({
   apartment3brCenter: 2200,
   costSingleNoRent: 900,
   costFamilyNoRent: 2800,
+  apartment1brOutside: 0,
+  apartment3brOutside: 0,
+  utilitiesMonthly: 0,
+  mobilePlanMonthly: 0,
+  internetMonthly: 0,
+  mealForTwoMidrange: 0,
+  gasolinePerLiter: 0,
+  publicTransportMonthly: 0,
+  preschoolMonthly: 0,
+  internationalSchoolAnnual: 0,
   districts: [],
 });
 

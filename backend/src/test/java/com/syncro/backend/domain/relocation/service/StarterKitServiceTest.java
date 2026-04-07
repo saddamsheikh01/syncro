@@ -38,6 +38,7 @@ class StarterKitServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private SubscriptionService subscriptionService;
     @Mock private RelocationProfileResolver profileResolver;
+    @Mock private BudgetSimulationRepository budgetSimulationRepository;
     @InjectMocks private StarterKitService service;
 
     @org.junit.jupiter.api.BeforeEach

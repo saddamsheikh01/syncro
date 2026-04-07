@@ -28,6 +28,7 @@ public class StarterKitService {
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
     private final RelocationProfileResolver profileResolver;
+    private final BudgetSimulationRepository budgetSimulationRepository;
 
     public StarterKitService(StarterKitReportRepository reportRepository,
                               RelocationProfileRepository profileRepository,
@@ -37,7 +38,8 @@ public class StarterKitService {
                               AnalyticsService analyticsService,
                               UserRepository userRepository,
                               SubscriptionService subscriptionService,
-                              RelocationProfileResolver profileResolver) {
+                              RelocationProfileResolver profileResolver,
+                              BudgetSimulationRepository budgetSimulationRepository) {
         this.reportRepository = reportRepository;
         this.profileRepository = profileRepository;
         this.cityDatasetRepository = cityDatasetRepository;
@@ -47,6 +49,7 @@ public class StarterKitService {
         this.userRepository = userRepository;
         this.subscriptionService = subscriptionService;
         this.profileResolver = profileResolver;
+        this.budgetSimulationRepository = budgetSimulationRepository;
     }
 
     @Transactional
@@ -74,11 +77,21 @@ public class StarterKitService {
         // City Fit Cards — FREE: 3 cards (Work, Housing, Social), PREMIUM+: all 6
         payload.put("cityFitCards", buildCityFitCards(city, scores, isPremium));
 
-        // Budget analysis
+        // Budget analysis — prefer data from latest simulation for consistency
         boolean isFamily = profile.getHousehold() != null &&
                 (profile.getHousehold().contains("children") || profile.getHousehold().contains("family"));
         BigDecimal minBudget = scoringHelper.computeCityCost(city, isFamily);
-        payload.put("budgetAnalysis", buildBudgetAnalysis(city, profile, minBudget, isFamily));
+
+        List<BudgetSimulation> userSims = budgetSimulationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+        BudgetSimulation latestSim = userSims.isEmpty() ? null : userSims.get(0);
+        if (latestSim != null && latestSim.getOutputPayload() != null) {
+            payload.put("budgetAnalysis", buildBudgetFromSimulation(latestSim, profile));
+            // Use simulation cost for safety buffer
+            Object simCost = latestSim.getOutputPayload().get("estimatedMonthlyCost");
+            if (simCost instanceof Number n) minBudget = BigDecimal.valueOf(n.doubleValue());
+        } else {
+            payload.put("budgetAnalysis", buildBudgetAnalysis(city, profile, minBudget, isFamily));
+        }
 
         // Quick Actions
         payload.put("quickActions", buildQuickActions(scenario, profile.getPriorityProblem(), city));
@@ -221,6 +234,38 @@ public class StarterKitService {
 
     // ========== BUDGET ANALYSIS ==========
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildBudgetFromSimulation(BudgetSimulation sim, RelocationProfile profile) {
+        Map<String, Object> out = sim.getOutputPayload();
+        Map<String, Object> budget = new LinkedHashMap<>();
+
+        BigDecimal monthlyCost = out.get("estimatedMonthlyCost") instanceof Number n
+                ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
+        BigDecimal rent = out.get("rent") instanceof Number n
+                ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
+        BigDecimal livingCost = out.get("livingCost") instanceof Number n
+                ? BigDecimal.valueOf(n.doubleValue()) : BigDecimal.ZERO;
+
+        budget.put("minimumRealisticBudget", monthlyCost);
+        budget.put("rent", rent);
+        budget.put("livingExpenses", livingCost);
+        budget.put("isFamily", "family".equals(out.get("livingType")));
+
+        BigDecimal userBudget = profile.getMonthlyBudget();
+        BigDecimal margin = userBudget.subtract(monthlyCost);
+        budget.put("userBudget", userBudget);
+        budget.put("margin", margin);
+
+        String status;
+        if (margin.compareTo(new BigDecimal("400")) >= 0) status = "sustainable";
+        else if (margin.compareTo(new BigDecimal("100")) >= 0) status = "tight";
+        else if (margin.compareTo(BigDecimal.ZERO) >= 0) status = "very_tight";
+        else status = "unsustainable";
+        budget.put("marginStatus", status);
+        budget.put("source", "latest_simulation");
+        return budget;
+    }
+
     private Map<String, Object> buildBudgetAnalysis(RelocationCityDataset city, RelocationProfile profile,
                                                        BigDecimal minBudget, boolean isFamily) {
         Map<String, Object> budget = new LinkedHashMap<>();
@@ -337,43 +382,32 @@ public class StarterKitService {
         Map<String, Object> mistake = new LinkedHashMap<>();
         mistake.put("basedOn", lowestKey);
         mistake.put("score", scores.get(lowestKey));
+        mistake.put("cityName", city.getCityName());
 
         switch (lowestKey) {
             case "housing_market" -> {
                 mistake.put("title", "Underestimating the housing market");
-                mistake.put("description", "Many people relocating to " + city.getCityName() +
-                        " underestimate how competitive the housing market can be. Start your search early and consider temporary housing first.");
-                mistake.put("cta", "Explore Housing Options");
+                mistake.put("description", "Many people relocating to {city} underestimate how competitive the housing market can be. Start your search early and consider temporary housing first.");
             }
             case "cost_of_living" -> {
                 mistake.put("title", "Not budgeting for real costs");
-                mistake.put("description", "The actual cost of living in " + city.getCityName() +
-                        " often exceeds initial estimates. Use the Budget Simulator to get precise numbers before committing.");
-                mistake.put("cta", "Open Budget Simulator");
+                mistake.put("description", "The actual cost of living in {city} often exceeds initial estimates. Use the Budget Simulator to get precise numbers before committing.");
             }
             case "social_integration" -> {
                 mistake.put("title", "Neglecting social connections");
-                mistake.put("description", "Social isolation is one of the top reasons relocations fail. In " + city.getCityName() +
-                        ", building connections early is essential for long-term wellbeing.");
-                mistake.put("cta", "Join Expat Community");
+                mistake.put("description", "Social isolation is one of the top reasons relocations fail. In {city}, building connections early is essential for long-term wellbeing.");
             }
             case "work_opportunities" -> {
                 mistake.put("title", "Assuming job market accessibility");
-                mistake.put("description", "The professional landscape in " + city.getCityName() +
-                        " may require adaptation. Network actively and consider local certifications or language skills.");
-                mistake.put("cta", "Career Advisor");
+                mistake.put("description", "The professional landscape in {city} may require adaptation. Network actively and consider local certifications or language skills.");
             }
             case "quality_of_life" -> {
                 mistake.put("title", "Overlooking daily quality factors");
-                mistake.put("description", "Quality of life in " + city.getCityName() +
-                        " depends on neighborhood choice, healthcare access, and climate adaptation. Research neighborhoods thoroughly.");
-                mistake.put("cta", "Explore Neighborhoods");
+                mistake.put("description", "Quality of life in {city} depends on neighborhood choice, healthcare access, and climate adaptation. Research neighborhoods thoroughly.");
             }
             default -> {
                 mistake.put("title", "Rushing the relocation process");
-                mistake.put("description", "Taking time to research and plan significantly improves relocation outcomes in " +
-                        city.getCityName() + ".");
-                mistake.put("cta", "View Relocation Roadmap");
+                mistake.put("description", "Taking time to research and plan significantly improves relocation outcomes in {city}.");
             }
         }
         return mistake;
@@ -387,7 +421,7 @@ public class StarterKitService {
         Map<String, Object> days12 = new LinkedHashMap<>();
         days12.put("days", "1-2");
         days12.put("actions", List.of(
-                actionMap("Run Budget Simulation", "Get a precise estimate of your monthly costs in " + city.getCityName(), "finance"),
+                actionMap("Run Budget Simulation", "Get a precise estimate of your monthly costs in {city}", "finance"),
                 actionMap("Review relocation priorities", "Check your roadmap and adjust based on your budget results", "planning")
         ));
         plan.add(days12);
@@ -395,7 +429,7 @@ public class StarterKitService {
         Map<String, Object> days35 = new LinkedHashMap<>();
         days35.put("days", "3-5");
         days35.put("actions", List.of(
-                actionMap("Ask a verified expert", "Connect with a relocation professional for " + city.getCityName(), "professionals"),
+                actionMap("Ask a verified expert", "Connect with a relocation professional for {city}", "professionals"),
                 actionMap("Connect with expats", "Join the expat community and ask real questions", "social"),
                 actionMap("Explore events", "Find local events to attend after arrival", "events")
         ));
@@ -404,7 +438,7 @@ public class StarterKitService {
         Map<String, Object> days57 = new LinkedHashMap<>();
         days57.put("days", "5-7");
         days57.put("actions", List.of(
-                actionMap("Start building connections", "Use matching to find compatible people in " + city.getCityName(), "social"),
+                actionMap("Start building connections", "Use matching to find compatible people in {city}", "social"),
                 actionMap("Refine relocation strategy", "Update your roadmap with everything learned this week", "planning"),
                 actionMap("Book expert consultation", "Schedule a call with a verified professional", "professionals")
         ));
@@ -439,7 +473,7 @@ public class StarterKitService {
         actions.add(actionMap("Change Your Answers",
                 "Refine your profile to improve your relocation insights.", "profile"));
         actions.add(actionMap("Open Budget Simulator",
-                "Estimate the real monthly cost of living in " + city.getCityName() + ".", "finance"));
+                "Estimate the real monthly cost of living in {city}.", "finance"));
         actions.add(actionMap("View Relocation Roadmap",
                 "See the key steps to organize your move.", "planning"));
         actions.add(actionMap("Explore Verified Professionals",
@@ -447,7 +481,7 @@ public class StarterKitService {
 
         if ("loneliness".equals(priorityProblem) || "social_isolation".equals(priorityProblem)) {
             actions.add(actionMap("Join Expat Community",
-                    "Connect with people who have already relocated to " + city.getCityName() + ".", "social"));
+                    "Connect with people who have already relocated to {city}.", "social"));
         }
 
         return actions;

@@ -37,19 +37,39 @@ export default function StarterKitPage() {
 
   const LEVEL_MAP: Record<string, string> = {
     HIGH: "Strong", GOOD: "Good", MEDIUM: "Moderate", LOW: "Weak", VERY_LOW: "Weak",
+    STRONG: "Strong",
   };
 
-  // Snapshot text from backend — strengths/attention can be strings or objects
-  const rawStrengths = (citySnapshot as Record<string, unknown>)?.strengths;
+  // Translate indicator-based messages client-side for proper i18n
+  const STRENGTH_MESSAGES: Record<string, string> = {
+    work_opportunities: t("Work opportunities appear particularly strong, suggesting good potential for professional growth, remote work or international careers."),
+    social_integration: t("Social integration appears particularly strong, facilitating connections with locals and expat communities."),
+    quality_of_life: t("Quality of life is a clear strength, with favorable conditions for daily living."),
+    economic_power: t("Local economic power is strong, supporting purchasing capacity and financial stability."),
+    cost_of_living: t("Cost of living conditions are favorable, making daily expenses manageable."),
+    housing_market: t("The housing market shows good accessibility for newcomers."),
+  };
+  const ATTENTION_MESSAGES: Record<string, string> = {
+    work_opportunities: t("Work opportunities may require more planning and networking to access effectively."),
+    social_integration: t("Social integration may require more initiative, as building connections can take time."),
+    quality_of_life: t("Some quality of life factors may require adaptation and careful neighborhood choice."),
+    economic_power: t("Local economic conditions may impact purchasing power — plan your budget accordingly."),
+    cost_of_living: t("The cost of living may require budget adjustments compared to your current location."),
+    housing_market: t("The housing market may require more planning, as availability and pricing can make finding accommodation more challenging."),
+  };
+
+  const cityName = starterKit ? String((citySnapshot as Record<string, unknown>)?.cityName ?? "") : "";
+
+  // Build translated snapshot texts from indicator keys
+  const rawStrengths = (citySnapshot as Record<string, unknown>)?.strengths as { indicator?: string; message?: string }[] | undefined;
   const snapshotStrengths: string[] | undefined = Array.isArray(rawStrengths)
-    ? rawStrengths.map((s: unknown) => (typeof s === "string" ? s : (s as Record<string, unknown>)?.message as string ?? ""))
+    ? rawStrengths.map((s) => STRENGTH_MESSAGES[s.indicator ?? ""] ?? s.message ?? "")
     : undefined;
-  const rawAttention = (citySnapshot as Record<string, unknown>)?.attention;
+  const rawAttention = (citySnapshot as Record<string, unknown>)?.attention as { indicator?: string; message?: string } | string | undefined;
   const snapshotAttention: string | undefined = typeof rawAttention === "string"
     ? rawAttention
-    : (rawAttention as Record<string, unknown>)?.message as string | undefined;
-  const snapshotSummary = (citySnapshot as Record<string, unknown>)?.summary as string | undefined;
-  const cityName = starterKit ? String((citySnapshot as Record<string, unknown>)?.cityName ?? "") : "";
+    : rawAttention?.indicator ? (ATTENTION_MESSAGES[rawAttention.indicator] ?? rawAttention.message) : undefined;
+  const snapshotSummary = t("Based on your priorities, {city} appears broadly compatible with your lifestyle and professional goals.").replace("{city}", cityName);
 
   // Budget analysis
   const budgetAnalysis = payload.budgetAnalysis as {
@@ -127,7 +147,7 @@ export default function StarterKitPage() {
                     title={t(title)}
                     score={Math.round(card.score ?? 0)}
                     level={t(levelLabel)}
-                    description={card.message ?? ""}
+                    description={t(card.message ?? "")}
                     ctaLabel={undefined}
                     ctaDescription={undefined}
                   />
@@ -205,8 +225,8 @@ export default function StarterKitPage() {
                     <div key={i} className="sk-action">
                       <span className="sk-action__num">{i + 1}</span>
                       <div>
-                        <strong>{action.title}</strong>
-                        <p>{action.description}</p>
+                        <strong>{t(action.title)}</strong>
+                        <p>{t(action.description).replace("{city}", cityName)}</p>
                       </div>
                     </div>
                   ))}
@@ -221,8 +241,10 @@ export default function StarterKitPage() {
                   <span className="sk-card__icon">⚠️</span>
                   <h2 className="sk-card__title">{t("Typical Mistake")}</h2>
                 </div>
-                {commonMistake.title && <p className="sk-mistake-title">{commonMistake.title}</p>}
-                {commonMistake.description && <p className="sk-mistake-desc">{commonMistake.description}</p>}
+                {commonMistake.title && <p className="sk-mistake-title">{t(commonMistake.title)}</p>}
+                {commonMistake.description && <p className="sk-mistake-desc">{
+                  t(commonMistake.description).replace("{city}", (commonMistake as Record<string, string>).cityName ?? cityName)
+                }</p>}
               </div>
             )}
 
@@ -238,7 +260,7 @@ export default function StarterKitPage() {
                 </div>
                 <ul className="sk-scam-list">
                   {scamSentinel.warnings.map((w, i) => (
-                    <li key={i}>🚫 {w}</li>
+                    <li key={i}>🚫 {t(w)}</li>
                   ))}
                 </ul>
               </div>
