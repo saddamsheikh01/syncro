@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/hooks";
 import { useExpats } from "../../../hooks/expats/useExpats";
@@ -156,7 +156,7 @@ function ActivationPlanningMove({
             <div className="act-card__img-area">
               <span style={{ fontSize: "4rem" }}>📓</span>
             </div>
-            <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
+            <h3 className="act-card__title">📅 {t("Your First 3 Months Strategy")}</h3>
             {STRATEGY_MONTH_KEYS.map((m) => (
               <div key={m.titleKey} className="act-month">
                 <p className="act-month__title">
@@ -171,24 +171,23 @@ function ActivationPlanningMove({
               <span style={{ fontSize: "4rem" }}>💬</span>
             </div>
             <p className="act-card__badge act-card__badge--free">
-              🆓 Free – Community Lounge
+              🆓 {t("Free – Community Lounge")}
             </p>
             <p className="act-badge-desc">
-              Read Discussions. Ask Questions. Join Local Events.
+              {t("Read Discussions. Ask Questions. Join Local Events.")}
             </p>
             <p className="act-card__badge act-card__badge--premium">
-              🌟 Premium – Target Lounge
+              🌟 {t("Premium – Target Lounge")}
             </p>
             <p className="act-badge-desc">
-              Get Matched With Curated Groups Based On Your Budget, Relocation
-              Stage And Lifestyle.
+              {t("Get Matched With Curated Groups Based On Your Budget, Relocation Stage And Lifestyle.")}
             </p>
           </div>
           <div className="act-card act-card--warning">
             <div className="act-card__img-area">
               <span style={{ fontSize: "3.5rem" }}>⚠️</span>
             </div>
-            <h3 className="act-card__title">⚠️ Hidden Risk</h3>
+            <h3 className="act-card__title">⚠️ {t("Hidden Risk")}</h3>
           </div>
         </div>
 
@@ -202,7 +201,7 @@ function ActivationPlanningMove({
               🛡️ Verified Professionals Network
             </h3>
             <p className="act-card__subtitle">
-              Real Local Support, Not A Marketplace.
+              {t("Real Local Support, Not A Marketplace.")}
             </p>
             {PROFESSIONAL_KEYS.map((p) => (
               <p key={p.labelKey} className="act-pro-item">
@@ -215,9 +214,9 @@ function ActivationPlanningMove({
             <div className="act-card__img-area">
               <span style={{ fontSize: "4rem" }}>🧳</span>
             </div>
-            <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
+            <h3 className="act-card__title">📦 {t("EXPAT STARTER KIT:")}</h3>
             <p className="act-card__subtitle">
-              Your Relocation Profile Analysis.
+              {t("Your Relocation Profile Analysis.")}
             </p>
             {STARTER_KIT_KEYS.map((key) => (
               <p key={key} className="act-check-item">
@@ -233,9 +232,9 @@ function ActivationPlanningMove({
             <div className="act-card__img-area">
               <span style={{ fontSize: "4rem" }}>🎉</span>
             </div>
-            <h3 className="act-card__title">📺 EVENTS</h3>
+            <h3 className="act-card__title">📺 {t("EVENTS")}</h3>
             <p className="act-card__subtitle">
-              Learn, Connect And Meet People In The Community.
+              {t("Learn, Connect And Meet People In The Community.")}
             </p>
             {EVENTS_KEYS.map((key) => (
               <p key={key} className="act-check-item">
@@ -248,7 +247,7 @@ function ActivationPlanningMove({
             onClick={() => router.push("/expats/subscriptions")}
             className="act-cta-btn"
           >
-            Start My {cityName} Plan
+            {t("Start My {city} Plan").replace("{city}", cityName)}
           </button>
         </div>
 
@@ -257,7 +256,7 @@ function ActivationPlanningMove({
           <div className="act-card">
             <div className="act-mentor-preview">
               <div className="act-mentor-dot" />
-              <span className="act-mentor-label">MENTOR PREVIEW</span>
+              <span className="act-mentor-label">{t("MENTOR PREVIEW")}</span>
             </div>
             <div className="act-mentor-row">
               <div className="act-mentor-avatar">👨</div>
@@ -269,8 +268,7 @@ function ActivationPlanningMove({
             </div>
             <p className="act-mentor-insight">
               <strong>
-                People Who Relocated With This Structure Avoided Up To €6,000 In
-                Early Mistakes.
+                {t("People Who Relocated With This Structure Avoided Up To €6,000 In Early Mistakes.")}
               </strong>
             </p>
             <div className="act-mentor-tiers">
@@ -283,20 +281,20 @@ function ActivationPlanningMove({
             <div className="act-card__img-area">
               <span style={{ fontSize: "3rem" }}>📊</span>
             </div>
-            <h3 className="act-card__title">📊 SIMULATOR BUDGET</h3>
+            <h3 className="act-card__title">📊 {t("SIMULATOR BUDGET")}</h3>
             <p className="act-budget-row">
-              🏠 Estimated Monthly Cost — €{estimatedCost.toLocaleString()}
+              🏠 {t("Estimated Monthly Cost")} — €{estimatedCost.toLocaleString()}
             </p>
             <p className="act-budget-row">
-              💳 Your Declared Budget — €{budget.toLocaleString()}
+              💳 {t("Your Declared Budget")} — €{budget.toLocaleString()}
             </p>
-            <p className="act-budget-row">📉 Remaining Margin — €{margin}</p>
+            <p className="act-budget-row">📉 {t("Remaining Margin")} — €{margin}</p>
             <p
               className={`act-budget-result ${margin > 0 ? "act-budget-result--ok" : "act-budget-result--risk"}`}
             >
               {margin > 0
-                ? "● Result: Financially Sustainable"
-                : "● Result: Budget Tight"}
+                ? `● ${t("Financially Sustainable")}`
+                : `● ${t("Budget Tight")}`}
             </p>
           </div>
 
@@ -304,9 +302,9 @@ function ActivationPlanningMove({
             <div className="act-card__img-area">
               <span style={{ fontSize: "3rem" }}>🔀</span>
             </div>
-            <h3 className="act-card__title">🔄 PLATFORM SUPPORT</h3>
+            <h3 className="act-card__title">🔄 {t("PLATFORM SUPPORT")}</h3>
             <p className="act-card__subtitle">
-              Sometimes You Just Need Clarity.
+              {t("Sometimes You Just Need Clarity.")}
             </p>
             <p className="act-check-item">✓ Get Answers To Your Questions</p>
             <p className="act-check-item">✓ Understand The Next Step</p>
@@ -352,7 +350,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
       <div className="activation-grid">
         <div className="act-col">
           <div className="act-card">
-            <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
+            <h3 className="act-card__title">📅 {t("Your First 3 Months Strategy")}</h3>
             {STRATEGY_MONTH_KEYS.map((m) => (
               <div key={m.titleKey} className="act-month">
                 <p className="act-month__title">
@@ -374,28 +372,26 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
               💬
             </span>
             <p className="act-card__badge act-card__badge--free">
-              🆓 Free – Community Lounge
+              🆓 {t("Free – Community Lounge")}
             </p>
             <p className="act-badge-desc">
-              Read Discussions. Ask Questions. Join Local Events.
+              {t("Read Discussions. Ask Questions. Join Local Events.")}
             </p>
             <p className="act-card__badge act-card__badge--premium">
-              🌟 Premium – Target Lounge
+              🌟 {t("Premium – Target Lounge")}
             </p>
             <p className="act-badge-desc">
-              Get Matched With Curated Groups Based On Your Budget, Relocation
-              Stage And Lifestyle.
+              {t("Get Matched With Curated Groups Based On Your Budget, Relocation Stage And Lifestyle.")}
             </p>
           </div>
           <div className="act-card act-card--warning">
             <div className="act-card__img-area">
               <span style={{ fontSize: "3.5rem" }}>⚠️</span>
             </div>
-            <h3 className="act-card__title">⚠️ Hidden Risk</h3>
-            <p className="act-card__subtitle">Find The Right Housing</p>
+            <h3 className="act-card__title">⚠️ {t("Hidden Risk")}</h3>
+            <p className="act-card__subtitle">{t("Find The Right Housing")}</p>
             <p className="act-month__body">
-              Rent Prices May Rise Quickly. Syncro Suggests Budget-Compatible
-              Neighborhoods And Safer Options.
+              {t("Rent Prices May Rise Quickly. Syncro Suggests Budget-Compatible Neighborhoods And Safer Options.")}
             </p>
           </div>
         </div>
@@ -416,7 +412,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
               🛡️ Verified Professionals Network
             </h3>
             <p className="act-card__subtitle">
-              Real Local Support, Not A Marketplace.
+              {t("Real Local Support, Not A Marketplace.")}
             </p>
             {PROFESSIONAL_KEYS.map((p) => (
               <p key={p.labelKey} className="act-pro-item">
@@ -425,9 +421,9 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             ))}
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
+            <h3 className="act-card__title">📦 {t("EXPAT STARTER KIT:")}</h3>
             <p className="act-card__subtitle">
-              Your Relocation Profile Analysis.
+              {t("Your Relocation Profile Analysis.")}
             </p>
             {STARTER_KIT_KEYS.map((key) => (
               <p key={key} className="act-check-item">
@@ -439,7 +435,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             </p>
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">📺 EVENTS</h3>
+            <h3 className="act-card__title">📺 {t("EVENTS")}</h3>
             {EVENTS_KEYS.map((key) => (
               <p key={key} className="act-check-item">
                 ✓ {t(key)}
@@ -450,7 +446,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             onClick={() => router.push("/expats/subscriptions")}
             className="act-cta-btn"
           >
-            Start My {topCity} Plan
+            {t("Start My {city} Plan").replace("{city}", topCity)}
           </button>
         </div>
 
@@ -458,7 +454,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
           <div className="act-card">
             <div className="act-mentor-preview">
               <div className="act-mentor-dot" />
-              <span className="act-mentor-label">MENTOR PREVIEW</span>
+              <span className="act-mentor-label">{t("MENTOR PREVIEW")}</span>
             </div>
             <div className="act-mentor-row">
               <div className="act-mentor-avatar">👨</div>
@@ -469,8 +465,7 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             </div>
             <p className="act-mentor-insight">
               <strong>
-                People Who Relocated With This Structure Avoided Up To €6,000 In
-                Early Mistakes.
+                {t("People Who Relocated With This Structure Avoided Up To €6,000 In Early Mistakes.")}
               </strong>
             </p>
             <div className="act-mentor-tiers">
@@ -479,16 +474,16 @@ function ActivationUnsure({ topCity = "Valencia" }: { topCity?: string }) {
             </div>
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">📊 SIMULATOR BUDGET</h3>
-            <p className="act-budget-row">🏠 Estimated Monthly Cost — €2,075</p>
-            <p className="act-budget-row">💳 Your Declared Budget — €2,500</p>
-            <p className="act-budget-row">📉 Remaining Margin — €425</p>
+            <h3 className="act-card__title">📊 {t("SIMULATOR BUDGET")}</h3>
+            <p className="act-budget-row">🏠 {t("Estimated Monthly Cost")} — €2,075</p>
+            <p className="act-budget-row">💳 {t("Your Declared Budget")} — €2,500</p>
+            <p className="act-budget-row">📉 {t("Remaining Margin")} — €425</p>
             <p className="act-budget-result act-budget-result--ok">
-              ● Result: Financially Sustainable
+              ● Result: {t("Financially Sustainable")}
             </p>
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">🔄 PLATFORM SUPPORT</h3>
+            <h3 className="act-card__title">🔄 {t("PLATFORM SUPPORT")}</h3>
             <p className="act-check-item">✓ Get Answers To Your Questions</p>
             <p className="act-check-item">✓ Understand The Next Step</p>
             <p className="act-check-item">
@@ -559,11 +554,11 @@ function ActivationAlreadyThere({
               💬
             </span>
             <p className="act-card__badge act-card__badge--free">
-              🆓 Free – Community Lounge
+              🆓 {t("Free – Community Lounge")}
             </p>
             <p className="act-badge-desc">Connect with locals in your city.</p>
             <p className="act-card__badge act-card__badge--premium">
-              🌟 Premium – Target Lounge
+              🌟 {t("Premium – Target Lounge")}
             </p>
             <p className="act-badge-desc">
               Curated groups based on your relocation phase.
@@ -585,7 +580,7 @@ function ActivationAlreadyThere({
             ))}
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">📦 EXPAT STARTER KIT</h3>
+            <h3 className="act-card__title">📦 {t("EXPAT STARTER KIT:")}</h3>
             {STARTER_KIT_KEYS.map((key) => (
               <p key={key} className="act-check-item">
                 ✓ {t(key)}
@@ -603,7 +598,7 @@ function ActivationAlreadyThere({
           <div className="act-card">
             <div className="act-mentor-preview">
               <div className="act-mentor-dot" />
-              <span className="act-mentor-label">MENTOR PREVIEW</span>
+              <span className="act-mentor-label">{t("MENTOR PREVIEW")}</span>
             </div>
             <div className="act-mentor-row">
               <div className="act-mentor-avatar">👨</div>
@@ -622,18 +617,18 @@ function ActivationAlreadyThere({
           </div>
           <div className="act-card">
             <h3 className="act-card__title">📊 BUDGET CHECK</h3>
-            <p className="act-budget-row">🏠 Estimated Monthly Cost — €2,075</p>
-            <p className="act-budget-row">💳 Your Declared Budget — €2,500</p>
+            <p className="act-budget-row">🏠 {t("Estimated Monthly Cost")} — €2,075</p>
+            <p className="act-budget-row">💳 {t("Your Declared Budget")} — €2,500</p>
             <p className="act-budget-result act-budget-result--ok">
-              ● Financially Sustainable
+              ● {t("Financially Sustainable")}
             </p>
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">🔄 PLATFORM SUPPORT</h3>
+            <h3 className="act-card__title">🔄 {t("PLATFORM SUPPORT")}</h3>
             {[
-              "Get Answers To Your Questions",
-              "Understand The Next Step",
-              "Find The Right People",
+              t("Get Answers To Your Questions"),
+              t("Understand The Next Step"),
+              t("Find The Right People And Resources"),
             ].map((i) => (
               <p key={i} className="act-check-item">
                 ✓ {i}
@@ -667,12 +662,12 @@ function ActivationComparison({
   const { t } = useT();
   const margin = budget - estimatedCost;
   const MACRO_COMPARISON = macroComparison ?? [
-    { label: "Cost Of Living", currentScore: 25, targetScore: 60, direction: "improvement" },
-    { label: "Housing Market", currentScore: 40, targetScore: 55, direction: "improvement" },
-    { label: "Economic Power", currentScore: 65, targetScore: 58, direction: "decline" },
-    { label: "Quality Of Life", currentScore: 70, targetScore: 82, direction: "improvement" },
-    { label: "Work Opportunities", currentScore: 75, targetScore: 70, direction: "decline" },
-    { label: "Social Integration", currentScore: 55, targetScore: 78, direction: "improvement" },
+    { label: t("Cost Of Living"), currentScore: 25, targetScore: 60, direction: "improvement" },
+    { label: t("Housing Market"), currentScore: 40, targetScore: 55, direction: "improvement" },
+    { label: t("Economic Power"), currentScore: 65, targetScore: 58, direction: "decline" },
+    { label: t("Quality Of Life"), currentScore: 70, targetScore: 82, direction: "improvement" },
+    { label: t("Work Opportunities"), currentScore: 75, targetScore: 70, direction: "decline" },
+    { label: t("Social Integration"), currentScore: 55, targetScore: 78, direction: "improvement" },
   ];
   return (
     <div className="activation-main">
@@ -687,13 +682,10 @@ function ActivationComparison({
       </div>
       <div className="activation-header">
         <h1 className="activation-title">
-          See How Your Life Could Change In {targetCity}
+          {t("See How Your Life Could Change In {city}").replace("{city}", targetCity)}
         </h1>
         <p className="activation-subtitle">
-          Based On Your Profile, Syncro Compares {currentCity} And {targetCity}{" "}
-          To Show How Your Cost Of Living,
-          <br />
-          Lifestyle, Social Integration And Opportunities Could Evolve.
+          {t("Based On Your Profile, Syncro Compares {currentCity} And {targetCity} To Show How Your Cost Of Living, Lifestyle, Social Integration And Opportunities Could Evolve.").replace("{currentCity}", currentCity).replace("{targetCity}", targetCity)}
         </p>
       </div>
       <div className="activation-grid">
@@ -702,7 +694,7 @@ function ActivationComparison({
             <div className="act-card__img-area">
               <span style={{ fontSize: "3.5rem" }}>📓</span>
             </div>
-            <h3 className="act-card__title">📅 Your First 3 Months Strategy</h3>
+            <h3 className="act-card__title">📅 {t("Your First 3 Months Strategy")}</h3>
             {STRATEGY_MONTH_KEYS.map((m) => (
               <div key={m.titleKey} className="act-month">
                 <p className="act-month__title">
@@ -724,27 +716,26 @@ function ActivationComparison({
               💬
             </span>
             <p className="act-card__badge act-card__badge--free">
-              🆓 Free – Community Lounge
+              🆓 {t("Free – Community Lounge")}
             </p>
             <p className="act-badge-desc">
-              Read Discussions. Ask Questions. Join Local Events.
+              {t("Read Discussions. Ask Questions. Join Local Events.")}
             </p>
             <p className="act-card__badge act-card__badge--premium">
-              🌟 Premium – Target Lounge
+              🌟 {t("Premium – Target Lounge")}
             </p>
             <p className="act-badge-desc">
-              Get Matched With Curated Groups Based On Your Budget, Relocation
-              Stage And Lifestyle.
+              {t("Get Matched With Curated Groups Based On Your Budget, Relocation Stage And Lifestyle.")}
             </p>
           </div>
           <div className="act-card act-card--warning">
             <h3 className="act-card__title" style={{ color: "#d4900a" }}>
-              ⚠ Hidden Risk
+              ⚠ {t("Hidden Risk")}
             </h3>
             {[
               {
-                label: "Find The Right Housing",
-                body: `Rent Prices May Rise Quickly. Syncro Suggests Budget-Compatible Neighborhoods And Safer Options.`,
+                label: t("Find The Right Housing"),
+                body: t("Rent Prices May Rise Quickly. Syncro Suggests Budget-Compatible Neighborhoods And Safer Options."),
               },
             ].map((r) => (
               <div key={r.label} className="act-month">
@@ -765,7 +756,7 @@ function ActivationComparison({
               🏅 Verified Professionals Network
             </h3>
             <p className="act-card__subtitle">
-              Real Local Support, Not A Marketplace.
+              {t("Real Local Support, Not A Marketplace.")}
             </p>
             {PROFESSIONAL_KEYS.map((p) => (
               <p key={p.labelKey} className="act-pro-item">
@@ -777,9 +768,9 @@ function ActivationComparison({
             <div className="act-card__img-area">
               <span style={{ fontSize: "3rem" }}>🌍</span>
             </div>
-            <h3 className="act-card__title">📦 EXPAT STARTER KIT:</h3>
+            <h3 className="act-card__title">📦 {t("EXPAT STARTER KIT:")}</h3>
             <p className="act-card__subtitle">
-              Your Relocation Profile Analysis.
+              {t("Your Relocation Profile Analysis.")}
             </p>
             {STARTER_KIT_KEYS.map((key) => (
               <p key={key} className="act-check-item">
@@ -796,7 +787,7 @@ function ActivationComparison({
             </div>
             <h3 className="act-card__title">🎯 EVENTS</h3>
             <p className="act-card__subtitle">
-              Learn, Connect And Meet People In The Community.
+              {t("Learn, Connect And Meet People In The Community.")}
             </p>
             {EVENTS_KEYS.map((key) => (
               <p key={key} className="act-check-item">
@@ -808,14 +799,14 @@ function ActivationComparison({
             onClick={() => router.push("/expats/subscriptions")}
             className="act-cta-btn"
           >
-            Start My {targetCity} Plan
+            {t("Start My {city} Plan").replace("{city}", targetCity)}
           </button>
         </div>
         <div className="act-col">
           <div className="act-card">
             <div className="act-mentor-preview">
               <div className="act-mentor-dot" />
-              <span className="act-mentor-label">MENTOR PREVIEW</span>
+              <span className="act-mentor-label">{t("MENTOR PREVIEW")}</span>
             </div>
             <div className="act-mentor-row">
               <div className="act-mentor-avatar">👨</div>
@@ -828,8 +819,7 @@ function ActivationComparison({
             </div>
             <p className="act-mentor-insight">
               <strong>
-                People Who Relocated With This Structure Avoided Up To €6,000 In
-                Early Mistakes.
+                {t("People Who Relocated With This Structure Avoided Up To €6,000 In Early Mistakes.")}
               </strong>
             </p>
             <div className="act-mentor-tiers">
@@ -838,7 +828,7 @@ function ActivationComparison({
             </div>
           </div>
           <div className="act-card">
-            <h3 className="act-card__title">📊 SIMULATOR BUDGET</h3>
+            <h3 className="act-card__title">📊 {t("SIMULATOR BUDGET")}</h3>
             {MACRO_COMPARISON.map((m) => (
               <div key={m.label} className="act-comparison-row">
                 <span className="act-comparison-label">{m.label}</span>
@@ -864,32 +854,32 @@ function ActivationComparison({
             ))}
             <div className="act-budget-divider" />
             <p className="act-budget-row">
-              🏠 Estimated Monthly Cost — €{estimatedCost.toLocaleString()}
+              🏠 {t("Estimated Monthly Cost")} — €{estimatedCost.toLocaleString()}
             </p>
             <p className="act-budget-row">
-              💳 Your Declared Budget — €{budget.toLocaleString()}
+              💳 {t("Your Declared Budget")} — €{budget.toLocaleString()}
             </p>
             <p className="act-budget-row">
-              📈 Remaining Margin — €{margin.toLocaleString()}
+              📈 {t("Remaining Margin")} — €{margin.toLocaleString()}
             </p>
             <p
               className={`act-budget-result ${margin >= 0 ? "act-budget-result--ok" : "act-budget-result--risk"}`}
             >
-              ● {margin >= 0 ? "Financially Sustainable" : "Budget At Risk"}
+              {margin >= 0 ? `● ${t("Financially Sustainable")}` : `● ${t("Budget At Risk")}`}
             </p>
           </div>
           <div className="act-card">
             <div className="act-card__img-area">
               <span style={{ fontSize: "3rem" }}>🚦</span>
             </div>
-            <h3 className="act-card__title">🔄 PLATFORM SUPPORT</h3>
+            <h3 className="act-card__title">🔄 {t("PLATFORM SUPPORT")}</h3>
             <p className="act-card__subtitle">
-              Sometimes You Just Need Clarity.
+              {t("Sometimes You Just Need Clarity.")}
             </p>
             {[
-              "Get Answers To Your Questions",
-              "Understand The Next Step",
-              "Find The Right People And Resources",
+              t("Get Answers To Your Questions"),
+              t("Understand The Next Step"),
+              t("Find The Right People And Resources"),
             ].map((i) => (
               <p key={i} className="act-check-item">
                 ✓ {i}
@@ -915,11 +905,12 @@ function NextActionsBanner({
   onAction: () => void;
   isLoading: boolean;
 }) {
+  const { t } = useT();
   const LABELS: Record<string, string> = {
-    complete_onboarding: "Complete Your Profile",
-    create_snapshot: "Create Your Profile Snapshot",
-    compute_scoring: "Compute Your City Scores",
-    view_results: "View Your City Results",
+    complete_onboarding: t("Complete Your Profile"),
+    create_snapshot: t("Create Your Profile Snapshot"),
+    compute_scoring: t("Compute Your City Scores"),
+    view_results: t("View Your City Results"),
   };
   return (
     <div className="act-next-banner">
@@ -943,7 +934,7 @@ function NextActionsBanner({
         onClick={onAction}
         disabled={isLoading}
       >
-        {isLoading ? "Processing…" : (LABELS[action] ?? "Continue")}
+        {isLoading ? t("Processing…") : (LABELS[action] ?? t("Continue"))}
       </button>
     </div>
   );
@@ -952,6 +943,7 @@ function NextActionsBanner({
 // ─── Real Scoring Card ────────────────────────────────────────────────────────
 
 function RealScoringCard({ scores }: { scores: CityScoreResponse[] }) {
+  const { t } = useT();
   if (!scores.length) return null;
   const top = scores[0];
   const radarData = Object.entries(top.radarValues ?? {}).map(
@@ -965,7 +957,7 @@ function RealScoringCard({ scores }: { scores: CityScoreResponse[] }) {
   );
   return (
     <div className="act-card act-card--scoring">
-      <h3 className="act-card__title">🏆 Your Top City: {top.cityName}</h3>
+      <h3 className="act-card__title">🏆 {t("Your Top City:")} {top.cityName}</h3>
       <div style={{ textAlign: "center", marginBottom: 12 }}>
         <span className="act-score-big">{top.scoreTotal}</span>
         <span className="act-score-label"> / 100</span>
@@ -980,7 +972,7 @@ function RealScoringCard({ scores }: { scores: CityScoreResponse[] }) {
                   : "#f2b203",
           }}
         >
-          {top.compatibilityLevel?.replace(/_/g, " ")}
+          {t(top.compatibilityLevel ?? "")}
         </span>
       </div>
       {radarData.length > 0 && (
@@ -1223,18 +1215,26 @@ export default function ActivationPage() {
   const { latestSimulation, loadSimulations } = useBudget();
   const [actionInProgress, setActionInProgress] = useState(false);
 
-  useEffect(() => {
+  // Reload all data on mount and when window regains focus (e.g. returning from budget simulator)
+  const refreshAll = useCallback(() => {
     loadActivationState().catch(() => null);
     loadOnboarding().catch(() => null);
     loadSimulations().catch(() => null);
   }, [loadActivationState, loadOnboarding, loadSimulations]);
 
-  // Auto-compute scoring if target city exists but no scores
   useEffect(() => {
-    if (onboarding?.targetCityId && !scoringResult?.scores?.length) {
+    refreshAll();
+    const handleFocus = () => refreshAll();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshAll]);
+
+  // Auto-compute scoring when target city changes
+  useEffect(() => {
+    if (onboarding?.targetCityId) {
       computeScoring(onboarding.targetCityId).catch(() => null);
     }
-  }, [onboarding?.targetCityId, scoringResult?.scores?.length, computeScoring]);
+  }, [onboarding?.targetCityId, computeScoring]);
 
   const router = useRouter();
 

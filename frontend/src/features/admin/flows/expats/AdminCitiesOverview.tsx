@@ -43,6 +43,16 @@ const NUM_FIELDS: { key: keyof AdminCreateCityPayload; label: string }[] = [
   { key: "apartment3brCenter", label: "3BR center (EUR)" },
   { key: "costSingleNoRent", label: "Single no rent (EUR)" },
   { key: "costFamilyNoRent", label: "Family no rent (EUR)" },
+  { key: "apartment1brOutside", label: "1BR outside (EUR)" },
+  { key: "apartment3brOutside", label: "3BR outside (EUR)" },
+  { key: "utilitiesMonthly", label: "Utilities monthly (EUR)" },
+  { key: "mobilePlanMonthly", label: "Mobile plan monthly (EUR)" },
+  { key: "internetMonthly", label: "Internet monthly (EUR)" },
+  { key: "mealForTwoMidrange", label: "Meal for two (EUR)" },
+  { key: "gasolinePerLiter", label: "Gasoline / liter (EUR)" },
+  { key: "publicTransportMonthly", label: "Public transport monthly (EUR)" },
+  { key: "preschoolMonthly", label: "Preschool monthly (EUR)" },
+  { key: "internationalSchoolAnnual", label: "International school annual (EUR)" },
 ];
 
 function cityToForm(c: AdminCityDatasetResponse): AdminCreateCityPayload {
@@ -72,6 +82,16 @@ function cityToForm(c: AdminCityDatasetResponse): AdminCreateCityPayload {
     apartment3brCenter: Number(c.apartment3brCenter),
     costSingleNoRent: Number(c.costSingleNoRent),
     costFamilyNoRent: Number(c.costFamilyNoRent),
+    apartment1brOutside: Number(c.apartment1brOutside ?? 0),
+    apartment3brOutside: Number(c.apartment3brOutside ?? 0),
+    utilitiesMonthly: Number(c.utilitiesMonthly ?? 0),
+    mobilePlanMonthly: Number(c.mobilePlanMonthly ?? 0),
+    internetMonthly: Number(c.internetMonthly ?? 0),
+    mealForTwoMidrange: Number(c.mealForTwoMidrange ?? 0),
+    gasolinePerLiter: Number(c.gasolinePerLiter ?? 0),
+    publicTransportMonthly: Number(c.publicTransportMonthly ?? 0),
+    preschoolMonthly: Number(c.preschoolMonthly ?? 0),
+    internationalSchoolAnnual: Number(c.internationalSchoolAnnual ?? 0),
     districts: (c.districts ?? []).map((d) => ({
       name: d.name ?? "",
       description: d.description,
