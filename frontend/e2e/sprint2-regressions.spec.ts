@@ -645,6 +645,55 @@ async function setupAuthenticatedSprint2Mocks(page: Page, scenario: MockScenario
 }
 
 test.describe("Sprint 2 regressions — authenticated flow", () => {
+  test("does not auto-run the budget simulation when onboarding is missing and no city is selected", async ({
+    page,
+  }) => {
+    const simulationRequests: Record<string, unknown>[] = [];
+
+    await seedAuthenticatedStorage(page);
+    await setupAuthenticatedSprint2Mocks(page, {
+      onboarding: {
+        id: "placeholder-onboarding",
+        userType: "planning_move",
+        completedSteps: 0,
+        completionPercent: 0,
+      },
+      simulations: [],
+      capturedSimulationRequests: simulationRequests,
+    });
+
+    await page.route("**/api/v1/relocation/onboarding", async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 404,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Relocation profile not found" }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      });
+    });
+
+    await page.goto("/expats/budget");
+    await expect(page.getByRole("heading", { name: "Budget Simulator" })).toBeVisible();
+
+    await page.waitForTimeout(900);
+    expect(simulationRequests).toHaveLength(0);
+
+    await page.locator(".bp-select").selectOption("city-berlin");
+
+    await expect.poll(() => simulationRequests.length).toBe(1);
+    expect(simulationRequests[0]).toMatchObject({
+      cityId: "city-berlin",
+      planCode: "FREE",
+    });
+  });
+
   test("shows corrected deposit and keeps simulator state after leaving the page", async ({
     page,
   }) => {

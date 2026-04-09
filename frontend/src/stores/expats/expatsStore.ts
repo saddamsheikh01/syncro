@@ -56,6 +56,15 @@ const initialState: ExpatsState = {
 
 export const expatsStore = createStore<ExpatsState>(initialState);
 
+const isHttpStatus = (error: unknown, status: number): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "response" in error &&
+  typeof error.response === "object" &&
+  error.response !== null &&
+  "status" in error.response &&
+  error.response.status === status;
+
 const getStoredSession = () => {
   if (typeof window === "undefined") return null;
   const id = localStorage.getItem(SESSION_ID_KEY);
@@ -321,6 +330,10 @@ export const expatsActions = {
           : onboarding;
       expatsStore.setState({ onboarding: merged, status: "idle" });
     } catch (e) {
+      if (isHttpStatus(e, 404)) {
+        expatsStore.setState({ onboarding: null, status: "idle", error: null });
+        return;
+      }
       expatsStore.setState({ status: "error", error: "Failed to load onboarding" });
       throw e;
     }
