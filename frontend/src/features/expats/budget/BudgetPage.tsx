@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
+import { useExpats } from "../../../hooks/expats/useExpats";
 import { getCities } from "../../../services/expats";
 import { expatsActions } from "../../../stores/expats/expatsStore";
 import { BUDGET_FORM_STATE_STORAGE_KEY } from "../../../stores/expats/budgetStore";
@@ -61,7 +62,8 @@ const readBudgetFormState = (): BudgetFormState => {
 export default function BudgetPage() {
   const router = useRouter();
   const { t } = useT();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, status: authStatus } = useAuth();
+  const { onboarding, loadOnboarding } = useExpats();
   const isAnonymous = !isAuthenticated;
   const {
     isLoading,
@@ -73,11 +75,7 @@ export default function BudgetPage() {
     loadSimulations,
     loadTrackingEntries,
   } = useBudget();
-  const initialFormStateRef = useRef<BudgetFormState | null>(null);
-  if (initialFormStateRef.current === null) {
-    initialFormStateRef.current = readBudgetFormState();
-  }
-  const initialFormState = initialFormStateRef.current;
+  const [initialFormState] = useState<BudgetFormState>(() => readBudgetFormState());
 
   const [budget, setBudget] = useState(initialFormState.budget);
   const [savings, setSavings] = useState(initialFormState.savings);
@@ -87,27 +85,66 @@ export default function BudgetPage() {
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [anonymousSessionReady, setAnonymousSessionReady] = useState(false);
+  const [initialDataReady, setInitialDataReady] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialSimulationTriggeredRef = useRef(false);
   const { isModalOpen, modalMessage, openGate, closeModal } = useRegistrationGate();
+  const [hasAnonymousSessionToken] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem("expats.session.token") !== null
+  );
+
+  const shouldRequireResolvedCity = isAuthenticated && !hasAnonymousSessionToken;
+  const sessionReady = isAuthenticated
+    ? authStatus !== "idle" && authStatus !== "loading"
+    : anonymousSessionReady;
+  const effectiveCityId =
+    cityId || activeSimulation?.cityId || onboarding?.targetCityId || onboarding?.currentCityId || "";
 
   // Auto-init anonymous session if not authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      setSessionReady(true);
+    if (authStatus === "idle" || authStatus === "loading") {
       return;
     }
+
+    if (isAuthenticated) {
+      return;
+    }
+
     expatsActions.initSession()
-      .then(() => setSessionReady(true))
-      .catch(() => setSessionReady(true)); // proceed anyway — simulation may work without session
-  }, [isAuthenticated]);
+      .then(() => setAnonymousSessionReady(true))
+      .catch(() => setAnonymousSessionReady(true)); // proceed anyway — simulation may work without session
+  }, [authStatus, isAuthenticated]);
 
   useEffect(() => {
     if (!sessionReady) return;
-    loadSimulations().catch(() => {});
-    loadTrackingEntries().catch(() => {});
-    getCities().then(setCities).catch(() => {});
-  }, [sessionReady, loadSimulations, loadTrackingEntries]);
+    let cancelled = false;
+
+    const loadInitialData = async () => {
+      await Promise.all([
+        loadSimulations().catch(() => null),
+        loadTrackingEntries().catch(() => null),
+        getCities()
+          .then((nextCities) => {
+            if (!cancelled) {
+              setCities(nextCities);
+            }
+          })
+          .catch(() => null),
+        shouldRequireResolvedCity ? loadOnboarding().catch(() => null) : Promise.resolve(null),
+      ]);
+
+      if (!cancelled) {
+        setInitialDataReady(true);
+      }
+    };
+
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionReady, loadSimulations, loadTrackingEntries, shouldRequireResolvedCity, loadOnboarding]);
 
   useEffect(() => {
     writeStorage(BUDGET_FORM_STATE_STORAGE_KEY, {
@@ -119,14 +156,11 @@ export default function BudgetPage() {
     });
   }, [budget, savings, housingType, livingType, cityId]);
 
-  // Pre-select city from current simulation context
-  useEffect(() => {
-    if (activeSimulation?.cityId && !cityId) {
-      setCityId(activeSimulation.cityId);
-    }
-  }, [activeSimulation?.cityId, cityId]);
-
   const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
+    if (shouldRequireResolvedCity && !c) {
+      return;
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       runSimulation({
@@ -138,32 +172,50 @@ export default function BudgetPage() {
         cityId: c || null,
       }).catch(() => {});
     }, 600);
-  }, [runSimulation]);
+  }, [runSimulation, shouldRequireResolvedCity]);
 
-  // Auto-run on mount
   useEffect(() => {
-    triggerSimulation(budget, savings, housingType, livingType, cityId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!sessionReady || !initialDataReady || initialSimulationTriggeredRef.current) {
+      return;
+    }
+
+    if (shouldRequireResolvedCity && !effectiveCityId) {
+      initialSimulationTriggeredRef.current = true;
+      return;
+    }
+
+    initialSimulationTriggeredRef.current = true;
+    triggerSimulation(budget, savings, housingType, livingType, effectiveCityId);
+  }, [
+    budget,
+    effectiveCityId,
+    housingType,
+    initialDataReady,
+    livingType,
+    savings,
+    sessionReady,
+    shouldRequireResolvedCity,
+    triggerSimulation,
+  ]);
 
   const handleBudgetChange = (val: number) => {
     setBudget(val);
-    triggerSimulation(val, savings, housingType, livingType, cityId);
+    triggerSimulation(val, savings, housingType, livingType, effectiveCityId);
   };
 
   const handleSavingsChange = (val: number) => {
     setSavings(val);
-    triggerSimulation(budget, val, housingType, livingType, cityId);
+    triggerSimulation(budget, val, housingType, livingType, effectiveCityId);
   };
 
   const handleHousingChange = (val: HousingType) => {
     setHousingType(val);
-    triggerSimulation(budget, savings, val, livingType, cityId);
+    triggerSimulation(budget, savings, val, livingType, effectiveCityId);
   };
 
   const handleLivingChange = (val: LivingType) => {
     setLivingType(val);
-    triggerSimulation(budget, savings, housingType, val, cityId);
+    triggerSimulation(budget, savings, housingType, val, effectiveCityId);
   };
 
   const handleCityChange = (val: string) => {
@@ -202,7 +254,7 @@ export default function BudgetPage() {
             </div>
             <select
               className="bp-select"
-              value={cityId}
+              value={effectiveCityId}
               onChange={(e) => handleCityChange(e.target.value)}
             >
               <option value="">{isAnonymous ? t("Select a city") : t("Use profile city")}</option>

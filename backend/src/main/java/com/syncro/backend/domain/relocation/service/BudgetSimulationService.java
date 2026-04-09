@@ -86,7 +86,8 @@ public class BudgetSimulationService {
             throw new BadRequestException("Il tuo piano non include l'accesso a " + planCode + ". Effettua l'upgrade.");
         }
 
-        RelocationProfile profile = profileResolver.findOrRecover(userId);
+        RelocationProfile profile = profileResolver.findOrRecoverOptional(userId)
+                .orElseGet(() -> createMinimalRegisteredProfile(user, request));
 
         RelocationCityDataset city = resolveCity(request.cityId(), profile);
 
@@ -418,16 +419,29 @@ public class BudgetSimulationService {
         }
     }
 
+    private RelocationProfile createMinimalRegisteredProfile(User user, CreateBudgetSimulationRequest req) {
+        RelocationProfile profile = buildMinimalProfile(req);
+        profile.setUser(user);
+        profile = profileRepository.save(profile);
+        log.info("Created minimal relocation profile {} for user {} from budget simulation", profile.getId(), user.getId());
+        return profile;
+    }
+
     private RelocationProfile buildMinimalProfile(CreateBudgetSimulationRequest req) {
         RelocationProfile p = new RelocationProfile();
         p.setUserType("planning_move");
-        p.setHousehold(req.household() != null ? req.household() : "single");
+        p.setHousehold(req.household() != null ? req.household() : "alone");
+        p.setHasPets(req.hasPet() != null ? req.hasPet() : false);
         p.setMonthlyBudget(req.monthlyBudget() != null ? req.monthlyBudget() : java.math.BigDecimal.ZERO);
         p.setPrimaryGoal("quality_of_life");
         p.setSocialPriority("medium");
         p.setDesiredLifestyle(req.desiredLifestyle() != null ? req.desiredLifestyle() : "balanced");
         p.setWorkStatus("employed");
+        p.setIsRemote(false);
         p.setPriorityProblem("monthly_costs");
+        p.setCompletedSteps(0);
+        p.setCompletionPercent(0);
+        p.setStatus("IN_PROGRESS");
         return p;
     }
 
