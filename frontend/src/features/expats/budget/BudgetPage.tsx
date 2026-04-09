@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/elements/Logo";
 import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
 import { useExpats } from "../../../hooks/expats/useExpats";
@@ -238,6 +240,19 @@ export default function BudgetPage() {
   return (
     <>
       <div className="bp-shell">
+        {isAnonymous && (
+          <header className="bp-public-header">
+            <Link href="/expats" className="bp-public-header__brand" aria-label="Syncro expats">
+              <span className="bp-public-header__logo">
+                <Logo width={112} className="h-auto w-[112px]" priority />
+              </span>
+            </Link>
+            <Link href="/register?redirect=/expats/budget" className="bp-public-header__cta">
+              {t("Create Free Account")}
+            </Link>
+          </header>
+        )}
+
         <h1 className="bp-title">{t("Budget Simulator")}</h1>
 
         <PlanTabs onLockedClick={(ctx) => openGate(ctx)} />
@@ -584,6 +599,51 @@ export default function BudgetPage() {
           margin: 0 auto;
           padding: 32px 24px 64px;
         }
+        .bp-public-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 24px;
+          padding: 14px 16px;
+          border: 1px solid rgba(228, 233, 242, 0.9);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.88);
+          box-shadow: 0 16px 40px rgba(13, 27, 54, 0.08);
+          backdrop-filter: blur(14px);
+        }
+        .bp-public-header__brand {
+          display: inline-flex;
+          align-items: center;
+          text-decoration: none;
+        }
+        .bp-public-header__logo {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 14px;
+          border-radius: 16px;
+          background: #fff;
+          box-shadow: 0 10px 24px rgba(13, 27, 54, 0.08);
+        }
+        .bp-public-header__cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 44px;
+          padding: 0 18px;
+          border-radius: 999px;
+          background: #0d1b36;
+          color: #fff;
+          font-size: 0.875rem;
+          font-weight: 700;
+          text-decoration: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+        .bp-public-header__cta:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 10px 22px rgba(13, 27, 54, 0.22);
+        }
         .bp-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -595,6 +655,18 @@ export default function BudgetPage() {
         @media (max-width: 768px) {
           .bp-grid {
             grid-template-columns: 1fr;
+          }
+        }
+        @media (max-width: 640px) {
+          .bp-public-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .bp-public-header__brand {
+            justify-content: center;
+          }
+          .bp-public-header__cta {
+            width: 100%;
           }
         }
         .bp-title {
