@@ -23,7 +23,7 @@ const MOCK_SIMULATION_RESPONSE = {
     housingType: "1br_center",
     cityName: "Lisbon",
     country: "Portugal",
-    entryCost: { firstMonthRent: 900, deposit: 900, basicSetup: 195, totalEntryCost: 1995 },
+    entryCost: { firstMonthRent: 900, deposit: 1800, basicSetup: 195, totalEntryCost: 2895 },
     monthlyBalance: 600,
     balanceStatus: "POSITIVE",
     financialRunway: { months: 5.7, level: "MODERATE" },
@@ -37,6 +37,13 @@ const MOCK_REGISTRATION_REQUIRED = {
   status: 403,
   code: "REGISTRATION_REQUIRED",
   message: "Register to unlock this feature",
+};
+
+type CapturedSimulationPayload = {
+  planCode?: string;
+  monthlyBudget?: number;
+  housingType?: string;
+  livingType?: string;
 };
 
 async function setupAnonymousMocks(page: Page) {
@@ -345,7 +352,7 @@ test.describe("Budget Simulator — Registration Gate", () => {
 
 test.describe("Budget Simulator — Simulation API", () => {
   test("POST simulation sends correct payload", async ({ page }) => {
-    let capturedPayload: any = null;
+    let capturedPayload: unknown = null;
 
     await setupAnonymousMocks(page);
     await page.route("**/api/v1/relocation/budget/simulations", (route) => {
@@ -374,10 +381,14 @@ test.describe("Budget Simulator — Simulation API", () => {
     await page.waitForTimeout(1200);
 
     expect(capturedPayload).not.toBeNull();
-    expect(capturedPayload.planCode).toBe("FREE");
-    expect(capturedPayload.monthlyBudget).toBeGreaterThan(0);
-    expect(capturedPayload.housingType).toBeTruthy();
-    expect(capturedPayload.livingType).toBeTruthy();
+    const payload = capturedPayload as CapturedSimulationPayload | null;
+    if (!payload) {
+      throw new Error("Simulation payload was not captured");
+    }
+    expect(payload.planCode).toBe("FREE");
+    expect(payload.monthlyBudget).toBeGreaterThan(0);
+    expect(payload.housingType).toBeTruthy();
+    expect(payload.livingType).toBeTruthy();
   });
 
   test("simulation response source is 'anonymous'", async ({ page }) => {

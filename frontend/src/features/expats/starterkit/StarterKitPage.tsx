@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/hooks";
 import { useStarterKit } from "../../../hooks/expats/useStarterKit";
+import { useBudget } from "../../../hooks/expats/useBudget";
+import { useExpats } from "../../../hooks/expats/useExpats";
 import ScoreCard from "./ScoreCard";
 import PlanTabs from "../shared/PlanTabs";
 
@@ -11,10 +13,41 @@ export default function StarterKitPage() {
   const { t } = useT();
   const router = useRouter();
   const { isLoading, starterKit, generateKit, loadLatestKit } = useStarterKit();
+  const { activeSimulation, loadSimulations } = useBudget();
+  const { onboarding, loadOnboarding } = useExpats();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    loadLatestKit();
-  }, [loadLatestKit]);
+    let mounted = true;
+
+    Promise.allSettled([
+      loadOnboarding(),
+      loadSimulations(),
+      loadLatestKit(),
+    ]).finally(() => {
+      if (mounted) {
+        setInitialLoadComplete(true);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [loadLatestKit, loadOnboarding, loadSimulations]);
+
+  const currentContextCityId = useMemo(
+    () => activeSimulation?.cityId ?? onboarding?.targetCityId ?? onboarding?.currentCityId ?? null,
+    [activeSimulation?.cityId, onboarding?.currentCityId, onboarding?.targetCityId]
+  );
+
+  useEffect(() => {
+    if (!initialLoadComplete || !currentContextCityId) {
+      return;
+    }
+    if (!starterKit || starterKit.cityId !== currentContextCityId) {
+      generateKit({ cityId: currentContextCityId }).catch(() => null);
+    }
+  }, [currentContextCityId, generateKit, initialLoadComplete, starterKit]);
 
   const payload = starterKit?.payload ?? {};
 
@@ -58,7 +91,9 @@ export default function StarterKitPage() {
     housing_market: t("The housing market may require more planning, as availability and pricing can make finding accommodation more challenging."),
   };
 
-  const cityName = starterKit ? String((citySnapshot as Record<string, unknown>)?.cityName ?? "") : "";
+  const cityName = starterKit
+    ? String((citySnapshot as Record<string, unknown>)?.cityName ?? "")
+    : (activeSimulation?.cityName ?? onboarding?.targetCityName ?? onboarding?.currentCityName ?? "");
 
   // Build translated snapshot texts from indicator keys
   const rawStrengths = (citySnapshot as Record<string, unknown>)?.strengths as { indicator?: string; message?: string }[] | undefined;
@@ -95,16 +130,20 @@ export default function StarterKitPage() {
 
         <PlanTabs />
 
-        {!starterKit && !isLoading && (
+        {!starterKit && !isLoading && initialLoadComplete && (
           <div className="sk-empty">
             <p>{t("No starter kit generated yet.")}</p>
-            <button className="sk-generate-btn" onClick={() => generateKit()} type="button">
+            <button
+              className="sk-generate-btn"
+              onClick={() => generateKit(currentContextCityId ? { cityId: currentContextCityId } : undefined)}
+              type="button"
+            >
               {t("Generate your Starter Kit")}
             </button>
           </div>
         )}
 
-        {isLoading && !starterKit && (
+        {(isLoading || !initialLoadComplete) && !starterKit && (
           <div className="sk-empty">
             <p>{t("Generating...")}</p>
           </div>
@@ -183,30 +222,30 @@ export default function StarterKitPage() {
 
             {/* ── Budget Minimo Realistico ──────────────────── */}
             {budgetAnalysis && (
-              <div className="sk-card">
+              <div className="sk-card" data-testid="starter-kit-budget-card">
                 <div className="sk-card__header">
                   <span className="sk-card__icon">💰</span>
                   <h2 className="sk-card__title">{t("Realistic Minimum Budget")}</h2>
                 </div>
                 <div className="sk-budget-grid">
-                  <div className="sk-budget-item">
+                  <div className="sk-budget-item" data-testid="starter-kit-budget-rent">
                     <span className="sk-budget-label">{t("Rent")}</span>
                     <strong>€{(budgetAnalysis.rent ?? 0).toLocaleString()}</strong>
                   </div>
-                  <div className="sk-budget-item">
+                  <div className="sk-budget-item" data-testid="starter-kit-budget-living-expenses">
                     <span className="sk-budget-label">{t("Living Expenses")}</span>
                     <strong>€{(budgetAnalysis.livingExpenses ?? 0).toLocaleString()}</strong>
                   </div>
-                  <div className="sk-budget-item">
+                  <div className="sk-budget-item" data-testid="starter-kit-budget-minimum">
                     <span className="sk-budget-label">{t("Minimum Budget")}</span>
                     <strong>€{(budgetAnalysis.minimumRealisticBudget ?? 0).toLocaleString()}</strong>
                   </div>
-                  <div className="sk-budget-item">
+                  <div className="sk-budget-item" data-testid="starter-kit-budget-user">
                     <span className="sk-budget-label">{t("Your Budget")}</span>
                     <strong>€{(budgetAnalysis.userBudget ?? 0).toLocaleString()}</strong>
                   </div>
                 </div>
-                <div className="sk-budget-margin">
+                <div className="sk-budget-margin" data-testid="starter-kit-budget-margin">
                   <span>{t("Margin")}: <strong style={{ color: (budgetAnalysis.margin ?? 0) >= 0 ? "#16a34a" : "#dc2626" }}>€{(budgetAnalysis.margin ?? 0).toLocaleString()}</strong></span>
                   <span className="sk-budget-status" data-status={budgetAnalysis.marginStatus}>{budgetAnalysis.marginStatus ?? "—"}</span>
                 </div>
@@ -255,7 +294,7 @@ export default function StarterKitPage() {
                   <span className="sk-card__icon">🛡️</span>
                   <h2 className="sk-card__title">{t("Scam Sentinel")}</h2>
                   {scamSentinel.country && (
-                    <span className="sk-scam-country">{scamSentinel.city ?? scamSentinel.country}</span>
+                    <span className="sk-scam-country" data-testid="starter-kit-scam-location">{scamSentinel.city ?? scamSentinel.country}</span>
                   )}
                 </div>
                 <ul className="sk-scam-list">
@@ -278,7 +317,7 @@ export default function StarterKitPage() {
             {/* Regenerate link */}
             <button
               className="sk-regen"
-              onClick={() => generateKit()}
+              onClick={() => generateKit(currentContextCityId ? { cityId: currentContextCityId } : undefined)}
               disabled={isLoading}
               type="button"
             >

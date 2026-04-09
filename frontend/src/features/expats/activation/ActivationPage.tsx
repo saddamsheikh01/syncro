@@ -10,7 +10,11 @@ import { useStarterKit } from "../../../hooks/expats/useStarterKit";
 import { useRisk } from "../../../hooks/expats/useRisk";
 import RadarChart from "../wow/RadarChart";
 import MicroTestCard from "../microtest/MicroTestCard";
-import type { CityScoreResponse } from "../../../types/expats";
+import type {
+  BudgetSimulationResponse,
+  CityScoreResponse,
+  OnboardingResponse,
+} from "../../../types/expats";
 
 const RADAR_FALLBACK_VALUES = [48, 72, 73, 52, 89, 87];
 const RADAR_MACROAREA_KEYS = [
@@ -47,23 +51,38 @@ function buildRadarData(t: (k: string) => string, breakdown?: Record<string, num
   });
 }
 
-const STRATEGY_MONTHS = [
-  {
-    icon: "📋",
-    title: "Month 1 – Set Your Foundations",
-    body: "Identify The Right Neighborhoods, Validate Housing Options And Understand Local Costs.",
-  },
-  {
-    icon: "🏗️",
-    title: "Month 2 – Build Your Local Structure",
-    body: "Secure Housing, Organize Banking And Paperwork, And Start Exploring Communities.",
-  },
-  {
-    icon: "🌐",
-    title: "Month 3 – Integrate And Expand",
-    body: "Strengthen Your Network, Optimize Lifestyle And Unlock Local Opportunities.",
-  },
-];
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function resolveContextSimulation(
+  activeSimulation: BudgetSimulationResponse | null,
+  latestSimulation: BudgetSimulationResponse | null,
+  onboarding: OnboardingResponse | null
+): BudgetSimulationResponse | null {
+  const preferredCityId = onboarding?.targetCityId ?? onboarding?.currentCityId ?? null;
+  const candidates = [activeSimulation, latestSimulation].filter(
+    (simulation): simulation is BudgetSimulationResponse => !!simulation
+  );
+
+  if (preferredCityId) {
+    const matching = candidates.find((simulation) => simulation.cityId === preferredCityId);
+    if (matching) {
+      return matching;
+    }
+  }
+
+  return candidates[0] ?? null;
+}
 
 const STRATEGY_MONTH_KEYS = [
   {
@@ -277,19 +296,20 @@ function ActivationPlanningMove({
             </div>
           </div>
 
-          <div className="act-card">
+          <div className="act-card" data-testid="activation-budget-card">
             <div className="act-card__img-area">
               <span style={{ fontSize: "3rem" }}>📊</span>
             </div>
             <h3 className="act-card__title">📊 {t("SIMULATOR BUDGET")}</h3>
-            <p className="act-budget-row">
+            <p className="act-budget-row" data-testid="activation-estimated-cost">
               🏠 {t("Estimated Monthly Cost")} — €{estimatedCost.toLocaleString()}
             </p>
-            <p className="act-budget-row">
+            <p className="act-budget-row" data-testid="activation-declared-budget">
               💳 {t("Your Declared Budget")} — €{budget.toLocaleString()}
             </p>
-            <p className="act-budget-row">📉 {t("Remaining Margin")} — €{margin}</p>
+            <p className="act-budget-row" data-testid="activation-remaining-margin">📉 {t("Remaining Margin")} — €{margin}</p>
             <p
+              data-testid="activation-budget-status"
               className={`act-budget-result ${margin > 0 ? "act-budget-result--ok" : "act-budget-result--risk"}`}
             >
               {margin > 0
@@ -648,14 +668,12 @@ function ActivationComparison({
   targetCity = "Valencia",
   budget = 2500,
   estimatedCost = 2075,
-  score = 70,
   macroComparison,
 }: {
   currentCity?: string;
   targetCity?: string;
   budget?: number;
   estimatedCost?: number;
-  score?: number;
   macroComparison?: { label: string; currentScore: number; targetScore: number; direction: string }[];
 }) {
   const router = useRouter();
@@ -827,7 +845,7 @@ function ActivationComparison({
               <p>🌟 Premium: 30 Min / Month + Target Lounge Access</p>
             </div>
           </div>
-          <div className="act-card">
+          <div className="act-card" data-testid="activation-budget-card">
             <h3 className="act-card__title">📊 {t("SIMULATOR BUDGET")}</h3>
             {MACRO_COMPARISON.map((m) => (
               <div key={m.label} className="act-comparison-row">
@@ -853,16 +871,17 @@ function ActivationComparison({
               </div>
             ))}
             <div className="act-budget-divider" />
-            <p className="act-budget-row">
+            <p className="act-budget-row" data-testid="activation-estimated-cost">
               🏠 {t("Estimated Monthly Cost")} — €{estimatedCost.toLocaleString()}
             </p>
-            <p className="act-budget-row">
+            <p className="act-budget-row" data-testid="activation-declared-budget">
               💳 {t("Your Declared Budget")} — €{budget.toLocaleString()}
             </p>
-            <p className="act-budget-row">
+            <p className="act-budget-row" data-testid="activation-remaining-margin">
               📈 {t("Remaining Margin")} — €{margin.toLocaleString()}
             </p>
             <p
+              data-testid="activation-budget-status"
               className={`act-budget-result ${margin >= 0 ? "act-budget-result--ok" : "act-budget-result--risk"}`}
             >
               {margin >= 0 ? `● ${t("Financially Sustainable")}` : `● ${t("Budget At Risk")}`}
@@ -1006,6 +1025,7 @@ function Sprint2Dashboard() {
   const router = useRouter();
   const { t } = useT();
   const {
+    activeSimulation,
     latestSimulation,
     trackingEntries,
     loadSimulations,
@@ -1028,6 +1048,7 @@ function Sprint2Dashboard() {
   const riskIndicators = riskSnapshot?.riskIndicators as
     | Record<string, string>
     | undefined;
+  const contextSimulation = activeSimulation ?? latestSimulation;
 
   const RISK_BADGE_COLOR: Record<string, string> = {
     LOW: "#16a34a",
@@ -1044,10 +1065,10 @@ function Sprint2Dashboard() {
         <div className="s2-card">
           <span className="s2-card__icon">💰</span>
           <h3 className="s2-card__title">{t("Budget Simulator")}</h3>
-          {latestSimulation ? (
+          {contextSimulation ? (
             <p className="s2-card__info">
-              {t("Latest")}: {latestSimulation.cityName} (
-              {latestSimulation.planCode})
+              {t("Latest")}: {contextSimulation.cityName} (
+              {contextSimulation.planCode})
               {activeAlerts > 0 && (
                 <span className="s2-alert-dot">
                   {" "}
@@ -1212,7 +1233,7 @@ export default function ActivationPage() {
     computeScoring,
     isLoading,
   } = useExpats();
-  const { latestSimulation, loadSimulations } = useBudget();
+  const { activeSimulation, latestSimulation, loadSimulations } = useBudget();
   const [actionInProgress, setActionInProgress] = useState(false);
 
   // Reload all data on mount and when window regains focus (e.g. returning from budget simulator)
@@ -1275,8 +1296,7 @@ export default function ActivationPage() {
 
   const userType = onboarding?.userType ?? activationState?.userType;
   const cityName =
-    onboarding?.targetCityName ?? onboarding?.currentCityName ?? "Lisbon";
-  const budget = onboarding?.monthlyBudget ?? 2500;
+    onboarding?.targetCityName ?? onboarding?.currentCityName ?? activeSimulation?.cityName ?? latestSimulation?.cityName ?? "Lisbon";
   const nextAction = activationState?.nextActions?.[0];
   const isComparison = !!(
     onboarding?.currentCityName &&
@@ -1284,9 +1304,11 @@ export default function ActivationPage() {
     onboarding?.targetCityId
   );
 
-  // Dynamic data from latest simulation
-  const simOutput = latestSimulation?.outputPayload ?? {};
-  const estimatedCost = (simOutput.estimatedMonthlyCost ?? simOutput.totalMonthlyCost ?? null) as number | null;
+  const contextSimulation = resolveContextSimulation(activeSimulation, latestSimulation, onboarding ?? null);
+  const simOutput = contextSimulation?.outputPayload ?? {};
+  const simInput = contextSimulation?.inputPayload ?? {};
+  const budget = toNumber(simInput.monthlyBudget) ?? onboarding?.monthlyBudget ?? 2500;
+  const estimatedCost = toNumber(simOutput.estimatedMonthlyCost ?? simOutput.totalMonthlyCost);
 
   // Dynamic data from scoring
   const targetScore = scoringResult?.scores?.find(

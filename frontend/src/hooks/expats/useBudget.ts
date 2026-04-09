@@ -10,6 +10,7 @@ export const useBudget = () => {
   const error = useBudgetStore((s) => s.error);
   const simulations = useBudgetStore((s) => s.simulations);
   const latestSimulation = useBudgetStore((s) => s.latestSimulation);
+  const activeSimulation = useBudgetStore((s) => s.activeSimulation);
   const trackingEntries = useBudgetStore((s) => s.trackingEntries);
 
   const isLoading = status === "loading";
@@ -34,6 +35,7 @@ export const useBudget = () => {
     isLoading,
     simulations,
     latestSimulation,
+    activeSimulation,
     trackingEntries,
     runSimulation,
     loadSimulations,
