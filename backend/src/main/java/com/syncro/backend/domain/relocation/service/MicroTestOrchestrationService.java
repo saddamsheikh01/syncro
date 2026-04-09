@@ -7,9 +7,13 @@ import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.*;
 import com.syncro.backend.domain.relocation.entity.MicroTestAssignment;
 import com.syncro.backend.domain.relocation.repository.MicroTestAssignmentRepository;
+import com.syncro.backend.domain.tests.dto.TestAnswerRequest;
+import com.syncro.backend.domain.tests.dto.TestSubmissionRequest;
+import com.syncro.backend.domain.tests.dto.TestSubmissionResponse;
 import com.syncro.backend.domain.tests.entity.TestAnswerOption;
 import com.syncro.backend.domain.tests.entity.TestDefinition;
 import com.syncro.backend.domain.tests.entity.TestQuestion;
+import com.syncro.backend.domain.tests.entity.TestQuestionType;
 import com.syncro.backend.domain.tests.entity.UserTestAnswer;
 import com.syncro.backend.domain.tests.entity.UserTestSubmission;
 import com.syncro.backend.domain.tests.repository.TestAnswerOptionRepository;
@@ -17,7 +21,9 @@ import com.syncro.backend.domain.tests.repository.TestDefinitionRepository;
 import com.syncro.backend.domain.tests.repository.TestQuestionRepository;
 import com.syncro.backend.domain.tests.repository.UserTestAnswerRepository;
 import com.syncro.backend.domain.tests.repository.UserTestSubmissionRepository;
+import com.syncro.backend.domain.tests.service.TestService;
 import com.syncro.backend.domain.analytics.service.AnalyticsService;
+import com.syncro.backend.security.UserPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +45,7 @@ public class MicroTestOrchestrationService {
     private final UserTestAnswerRepository userTestAnswerRepository;
     private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
+    private final TestService testService;
 
     public MicroTestOrchestrationService(MicroTestAssignmentRepository assignmentRepository,
                                           TestDefinitionRepository testDefinitionRepository,
@@ -47,7 +54,8 @@ public class MicroTestOrchestrationService {
                                           UserTestSubmissionRepository submissionRepository,
                                           UserTestAnswerRepository userTestAnswerRepository,
                                           AnalyticsService analyticsService,
-                                          UserRepository userRepository) {
+                                          UserRepository userRepository,
+                                          TestService testService) {
         this.assignmentRepository = assignmentRepository;
         this.testDefinitionRepository = testDefinitionRepository;
         this.testQuestionRepository = testQuestionRepository;
@@ -56,6 +64,7 @@ public class MicroTestOrchestrationService {
         this.userTestAnswerRepository = userTestAnswerRepository;
         this.analyticsService = analyticsService;
         this.userRepository = userRepository;
+        this.testService = testService;
     }
 
     @Transactional
@@ -131,28 +140,43 @@ public class MicroTestOrchestrationService {
 
         User user = userRepository.getReferenceById(userId);
         TestDefinition testDef = assignment.getTestDefinition();
+        List<TestQuestion> allQuestions = testQuestionRepository
+                .findByTestDefinitionIdOrderByPositionAsc(testDef.getId());
+        if (allQuestions.isEmpty()) {
+            throw new BadRequestException("Test senza domande");
+        }
+        Map<UUID, TestQuestion> questionsById = allQuestions.stream()
+                .collect(Collectors.toMap(TestQuestion::getId, q -> q, (left, right) -> left, LinkedHashMap::new));
+        Map<UUID, TestQuestion> currentBlockQuestions = resolveCurrentBlockQuestions(assignment, allQuestions);
+        Map<UUID, List<UUID>> currentBlockAnswers = normalizeBlockAnswers(request, currentBlockQuestions);
 
-        // Create or get existing submission for this test
-        UserTestSubmission submission = submissionRepository
-                .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(userId, testDef.getId())
-                .orElseGet(() -> {
-                    UserTestSubmission s = new UserTestSubmission();
-                    s.setUser(user);
-                    s.setTestDefinition(testDef);
-                    s.setScorePayload(new HashMap<>());
-                    return submissionRepository.save(s);
-                });
+        Optional<UserTestSubmission> existingSubmission = submissionRepository
+                .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(userId, testDef.getId());
+        if (assignment.getBlockStartPosition() > 0 && existingSubmission.isEmpty()) {
+            throw new BadRequestException("Progressione micro-test incoerente");
+        }
 
-        // Save answers
-        for (MicroTestSubmitRequest.MicroTestAnswerRequest answer : request.answers()) {
-            TestAnswerOption option = testAnswerOptionRepository.findById(answer.answerOptionId())
-                    .orElseThrow(() -> new BadRequestException("Answer option non trovata: " + answer.answerOptionId()));
+        Map<UUID, List<UUID>> cumulativeAnswers = new LinkedHashMap<>();
+        if (assignment.getBlockStartPosition() > 0) {
+            cumulativeAnswers.putAll(loadSubmissionAnswers(existingSubmission.orElseThrow()));
+        }
+        cumulativeAnswers.putAll(currentBlockAnswers);
 
-            UserTestAnswer testAnswer = new UserTestAnswer();
-            testAnswer.setSubmission(submission);
-            testAnswer.setQuestion(testQuestionRepository.getReferenceById(answer.questionId()));
-            testAnswer.setAnswerOption(option);
-            userTestAnswerRepository.save(testAnswer);
+        UserTestSubmission submission = persistPartialSubmission(
+                user,
+                testDef,
+                existingSubmission.orElse(null),
+                cumulativeAnswers,
+                questionsById
+        );
+
+        if (cumulativeAnswers.size() >= allQuestions.size()) {
+            TestSubmissionResponse finalSubmission = testService.submitTest(
+                    new UserPrincipal(userId),
+                    testDef.getId(),
+                    toTestSubmissionRequest(cumulativeAnswers)
+            );
+            submission = submissionRepository.getReferenceById(finalSubmission.submissionId());
         }
 
         // Mark assignment as completed
@@ -219,6 +243,140 @@ public class MicroTestOrchestrationService {
         Optional<UserTestSubmission> submission = submissionRepository
                 .findFirstByUser_IdAndTestDefinition_IdOrderBySubmittedAtDesc(userId, testId);
         if (submission.isEmpty()) return 0;
-        return userTestAnswerRepository.findBySubmission_Id(submission.get().getId()).size();
+        return (int) userTestAnswerRepository.findBySubmission_Id(submission.get().getId()).stream()
+                .map(answer -> answer.getQuestion().getId())
+                .distinct()
+                .count();
+    }
+
+    private Map<UUID, TestQuestion> resolveCurrentBlockQuestions(MicroTestAssignment assignment, List<TestQuestion> allQuestions) {
+        int totalQuestions = allQuestions.size();
+        int blockStart = assignment.getBlockStartPosition();
+        if (blockStart < 0 || blockStart >= totalQuestions) {
+            throw new BadRequestException("Blocco micro-test non valido");
+        }
+        int blockEnd = Math.min(blockStart + assignment.getBlockSize(), totalQuestions);
+        return allQuestions.subList(blockStart, blockEnd).stream()
+                .collect(Collectors.toMap(TestQuestion::getId, q -> q, (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private Map<UUID, List<UUID>> normalizeBlockAnswers(
+            MicroTestSubmitRequest request,
+            Map<UUID, TestQuestion> blockQuestions
+    ) {
+        if (request.answers() == null || request.answers().isEmpty()) {
+            throw new BadRequestException("Risposte mancanti");
+        }
+
+        Map<UUID, List<UUID>> answersByQuestion = new LinkedHashMap<>();
+        for (MicroTestSubmitRequest.MicroTestAnswerRequest answer : request.answers()) {
+            if (answer == null || answer.questionId() == null || answer.answerOptionId() == null) {
+                throw new BadRequestException("Risposte non valide");
+            }
+            TestQuestion question = blockQuestions.get(answer.questionId());
+            if (question == null) {
+                throw new BadRequestException("Le risposte non appartengono al blocco corrente");
+            }
+            answersByQuestion.computeIfAbsent(question.getId(), ignored -> new ArrayList<>()).add(answer.answerOptionId());
+        }
+
+        for (TestQuestion question : blockQuestions.values()) {
+            List<UUID> optionIds = answersByQuestion.getOrDefault(question.getId(), List.of());
+            List<UUID> distinctOptionIds = optionIds.stream().distinct().toList();
+            if (distinctOptionIds.size() != optionIds.size()) {
+                throw new BadRequestException("Risposte duplicate");
+            }
+            if (question.isRequired() && distinctOptionIds.isEmpty()) {
+                throw new BadRequestException("Risposte mancanti");
+            }
+            if (question.getQuestionType() == TestQuestionType.SINGLE && distinctOptionIds.size() > 1) {
+                throw new BadRequestException("Risposte non valide");
+            }
+            int maxSelections = resolveMaxSelections(question);
+            if (distinctOptionIds.size() > maxSelections) {
+                throw new BadRequestException("Troppe risposte selezionate");
+            }
+            for (UUID optionId : distinctOptionIds) {
+                testAnswerOptionRepository.findByIdAndQuestion_Id(optionId, question.getId())
+                        .orElseThrow(() -> new BadRequestException("Answer option non trovata: " + optionId));
+            }
+            if (!distinctOptionIds.isEmpty()) {
+                answersByQuestion.put(question.getId(), distinctOptionIds);
+            }
+        }
+        return answersByQuestion;
+    }
+
+    private int resolveMaxSelections(TestQuestion question) {
+        if (question.getQuestionType() == TestQuestionType.SINGLE) {
+            return 1;
+        }
+        Integer maxSelections = question.getMaxSelections();
+        if (maxSelections == null || maxSelections < 1) {
+            return Integer.MAX_VALUE;
+        }
+        return maxSelections;
+    }
+
+    private Map<UUID, List<UUID>> loadSubmissionAnswers(UserTestSubmission submission) {
+        Map<UUID, List<UUID>> answersByQuestion = new LinkedHashMap<>();
+        for (UserTestAnswer answer : userTestAnswerRepository.findBySubmission_Id(submission.getId())) {
+            answersByQuestion.computeIfAbsent(answer.getQuestion().getId(), ignored -> new ArrayList<>())
+                    .add(answer.getAnswerOption().getId());
+        }
+        answersByQuestion.replaceAll((ignored, optionIds) -> optionIds.stream().distinct().toList());
+        return answersByQuestion;
+    }
+
+    private UserTestSubmission persistPartialSubmission(
+            User user,
+            TestDefinition testDef,
+            UserTestSubmission existingSubmission,
+            Map<UUID, List<UUID>> answersByQuestion,
+            Map<UUID, TestQuestion> questionsById
+    ) {
+        UserTestSubmission submission = existingSubmission;
+        if (submission == null) {
+            submission = new UserTestSubmission();
+            submission.setUser(user);
+            submission.setTestDefinition(testDef);
+        } else {
+            userTestAnswerRepository.deleteBySubmissionId(submission.getId());
+        }
+
+        submission.setScorePayload(new HashMap<>());
+        submission.setSubmittedAt(Instant.now());
+        submission = submissionRepository.save(submission);
+
+        List<TestAnswerOption> options = testAnswerOptionRepository.findByQuestion_IdIn(answersByQuestion.keySet());
+        Map<UUID, TestAnswerOption> optionsById = options.stream()
+                .collect(Collectors.toMap(TestAnswerOption::getId, option -> option));
+
+        List<UserTestAnswer> entities = new ArrayList<>();
+        for (Map.Entry<UUID, List<UUID>> entry : answersByQuestion.entrySet()) {
+            TestQuestion question = questionsById.get(entry.getKey());
+            for (UUID optionId : entry.getValue()) {
+                TestAnswerOption option = optionsById.get(optionId);
+                if (option == null) {
+                    throw new BadRequestException("Answer option non trovata: " + optionId);
+                }
+                UserTestAnswer entity = new UserTestAnswer();
+                entity.setSubmission(submission);
+                entity.setQuestion(question);
+                entity.setAnswerOption(option);
+                entities.add(entity);
+            }
+        }
+        if (!entities.isEmpty()) {
+            userTestAnswerRepository.saveAll(entities);
+        }
+        return submission;
+    }
+
+    private TestSubmissionRequest toTestSubmissionRequest(Map<UUID, List<UUID>> answersByQuestion) {
+        List<TestAnswerRequest> answers = answersByQuestion.entrySet().stream()
+                .map(entry -> new TestAnswerRequest(entry.getKey(), List.copyOf(entry.getValue())))
+                .toList();
+        return new TestSubmissionRequest(answers);
     }
 }

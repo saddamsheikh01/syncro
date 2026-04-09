@@ -1,6 +1,7 @@
 "use client";
 
 import { createStore } from "../utils/createStore";
+import { readStorage, writeStorage } from "../utils/storage";
 import type {
   BudgetSimulationResponse,
   BudgetTrackingResponse,
@@ -24,6 +25,40 @@ import {
   getRiskIndicators,
 } from "../../services/expats";
 
+export const BUDGET_ACTIVE_SIMULATION_STORAGE_KEY = "syncro.expats.budget.activeSimulation";
+export const BUDGET_FORM_STATE_STORAGE_KEY = "syncro.expats.budget.formState";
+
+const readActiveSimulation = (): BudgetSimulationResponse | null =>
+  readStorage<BudgetSimulationResponse | null>(BUDGET_ACTIVE_SIMULATION_STORAGE_KEY, null);
+
+const writeActiveSimulation = (simulation: BudgetSimulationResponse | null): void => {
+  writeStorage(BUDGET_ACTIVE_SIMULATION_STORAGE_KEY, simulation);
+};
+
+const resolveActiveSimulation = (
+  simulations: BudgetSimulationResponse[],
+  currentActive: BudgetSimulationResponse | null
+): BudgetSimulationResponse | null => {
+  if (currentActive) {
+    const synced = simulations.find((simulation) => simulation.id === currentActive.id) ?? currentActive;
+    writeActiveSimulation(synced);
+    return synced;
+  }
+
+  const fallback = simulations[0] ?? null;
+  writeActiveSimulation(fallback);
+  return fallback;
+};
+
+const isHttpStatus = (error: unknown, status: number): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "response" in error &&
+  typeof error.response === "object" &&
+  error.response !== null &&
+  "status" in error.response &&
+  error.response.status === status;
+
 // ─── State ───────────────────────────────────────────────────────────────────
 
 export interface BudgetStoreState extends Record<string, unknown> {
@@ -33,6 +68,7 @@ export interface BudgetStoreState extends Record<string, unknown> {
   // Budget Simulation
   simulations: BudgetSimulationResponse[];
   latestSimulation: BudgetSimulationResponse | null;
+  activeSimulation: BudgetSimulationResponse | null;
 
   // Budget Tracking
   trackingEntries: BudgetTrackingResponse[];
@@ -47,18 +83,23 @@ export interface BudgetStoreState extends Record<string, unknown> {
   riskSnapshot: RiskSnapshotResponse | null;
 }
 
-const initialState: BudgetStoreState = {
+export const createBudgetStoreState = (): BudgetStoreState => ({
   status: "idle",
   error: null,
   simulations: [],
   latestSimulation: null,
+  activeSimulation: readActiveSimulation(),
   trackingEntries: [],
   starterKit: null,
   microTestNext: null,
   riskSnapshot: null,
-};
+});
 
-export const budgetStore = createStore<BudgetStoreState>(initialState);
+export const budgetStore = createStore<BudgetStoreState>(createBudgetStoreState());
+
+export const resetBudgetStore = () => {
+  budgetStore.setState(createBudgetStoreState(), true);
+};
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
@@ -69,10 +110,12 @@ export const budgetActions = {
     budgetStore.setState({ status: "loading", error: null });
     try {
       const result = await runBudgetSimulation(payload);
+      writeActiveSimulation(result);
       budgetStore.setState((s) => ({
         status: "idle",
         latestSimulation: result,
-        simulations: [result, ...s.simulations],
+        activeSimulation: result,
+        simulations: [result, ...s.simulations.filter((simulation) => simulation.id !== result.id)],
       }));
       return result;
     } catch (e) {
@@ -86,14 +129,19 @@ export const budgetActions = {
     budgetStore.setState({ status: "loading", error: null });
     try {
       const simulations = await getBudgetSimulations();
+      const activeSimulation = resolveActiveSimulation(
+        simulations,
+        budgetStore.getState().activeSimulation
+      );
       budgetStore.setState({
         status: "idle",
         simulations,
         latestSimulation: simulations[0] ?? null,
+        activeSimulation,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // 403 = anonymous user, not an error — just no history
-      if (e?.response?.status === 403) {
+      if (isHttpStatus(e, 403)) {
         budgetStore.setState({ status: "idle", simulations: [], latestSimulation: null });
         return;
       }
@@ -126,9 +174,9 @@ export const budgetActions = {
     try {
       const entries = await getBudgetTracking();
       budgetStore.setState({ status: "idle", trackingEntries: entries });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // 403 = anonymous user, not an error — just no tracking
-      if (e?.response?.status === 403) {
+      if (isHttpStatus(e, 403)) {
         budgetStore.setState({ status: "idle", trackingEntries: [] });
         return;
       }

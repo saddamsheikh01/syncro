@@ -4,6 +4,7 @@ import com.syncro.backend.common.exception.NotFoundException;
 import com.syncro.backend.domain.auth.entity.User;
 import com.syncro.backend.domain.auth.repository.UserRepository;
 import com.syncro.backend.domain.relocation.dto.StarterKitResponse;
+import com.syncro.backend.domain.relocation.entity.BudgetSimulation;
 import com.syncro.backend.domain.relocation.entity.RelocationCityDataset;
 import com.syncro.backend.domain.relocation.entity.RelocationProfile;
 import com.syncro.backend.domain.relocation.entity.StarterKitReport;
@@ -44,6 +45,8 @@ class StarterKitServiceTest {
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         lenient().when(subscriptionService.getUserPlan(any())).thenReturn("SUPER_PRO");
+        lenient().when(budgetSimulationRepository.findFirstByUser_IdAndCity_IdOrderByCreatedAtDesc(any(), any()))
+                .thenReturn(Optional.empty());
     }
 
     @Test
@@ -135,6 +138,55 @@ class StarterKitServiceTest {
             int score = (int) stress.get("score");
             // planning_move=2 + with_children=2 + family_stability=2 + housing=2 = 8 → HIGH
             return score == 8 && "HIGH".equals(stress.get("level"));
+        }));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void generate_budgetAnalysisUsesMatchingCitySimulationBudget() {
+        User user = mockUser();
+        RelocationProfile profile = mockProfile("planning_move");
+        RelocationCityDataset city = profile.getTargetCity();
+        BudgetSimulation matchingSimulation = mock(BudgetSimulation.class);
+
+        when(profileResolver.findOrRecover(user.getId())).thenReturn(profile);
+        when(scoringHelper.computeCityCost(any(), anyBoolean())).thenReturn(new BigDecimal("1500"));
+        when(scoringHelper.getCityMacroareeMap(any())).thenReturn(Map.of(
+                "opportunita_lavorative", new BigDecimal("70"),
+                "integrazione_sociale", new BigDecimal("60"),
+                "qualita_vita", new BigDecimal("65"),
+                "potere_economico", new BigDecimal("55"),
+                "costo_vita", new BigDecimal("50"),
+                "mercato_immobiliare", new BigDecimal("45")
+        ));
+        when(budgetSimulationRepository.findFirstByUser_IdAndCity_IdOrderByCreatedAtDesc(user.getId(), city.getId()))
+                .thenReturn(Optional.of(matchingSimulation));
+        when(matchingSimulation.getOutputPayload()).thenReturn(new LinkedHashMap<>(Map.of(
+                "estimatedMonthlyCost", 2850,
+                "rent", 1500,
+                "livingCost", 1350,
+                "livingType", "family"
+        )));
+        when(matchingSimulation.getInputPayload()).thenReturn(new LinkedHashMap<>(Map.of(
+                "monthlyBudget", 3650
+        )));
+        when(reportRepository.save(any())).thenAnswer(inv -> {
+            StarterKitReport report = inv.getArgument(0);
+            report.setId(UUID.randomUUID());
+            report.setCreatedAt(Instant.now());
+            return report;
+        });
+        when(mapper.toStarterKitResponse(any())).thenReturn(mock(StarterKitResponse.class));
+
+        service.generate(user.getId(), null);
+
+        verify(reportRepository).save(argThat(report -> {
+            Map<String, Object> budget = (Map<String, Object>) report.getPayload().get("budgetAnalysis");
+            BigDecimal userBudget = BigDecimal.valueOf(((Number) budget.get("userBudget")).doubleValue());
+            BigDecimal margin = BigDecimal.valueOf(((Number) budget.get("margin")).doubleValue());
+            return userBudget.compareTo(new BigDecimal("3650")) == 0
+                    && margin.compareTo(new BigDecimal("800")) == 0
+                    && "matching_simulation".equals(budget.get("source"));
         }));
     }
 

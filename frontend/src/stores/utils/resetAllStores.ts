@@ -15,6 +15,11 @@ import { zyraStore } from "../zyra/zyraStore";
 import { testsStore } from "../insights/insightsStore";
 import { notificationsStore } from "../notifications/notificationsStore";
 import { writeStorage } from "./storage";
+import {
+  BUDGET_ACTIVE_SIMULATION_STORAGE_KEY,
+  BUDGET_FORM_STATE_STORAGE_KEY,
+  resetBudgetStore,
+} from "../expats/budgetStore";
 
 const LANGUAGE_STORAGE_KEY = "syncro.user.language";
 const POSITION_STORAGE_KEY = "syncro.user.position";
@@ -45,6 +50,9 @@ export const resetAllStores = () => {
   writeStorage(POSITION_STORAGE_KEY, null);
   writeStorage(TUTORIAL_STORAGE_KEY, null);
   writeStorage(ANALYTICS_QUEUE_STORAGE_KEY, null);
+  writeStorage(BUDGET_ACTIVE_SIMULATION_STORAGE_KEY, null);
+  writeStorage(BUDGET_FORM_STATE_STORAGE_KEY, null);
+  resetBudgetStore();
 
   if (typeof window !== "undefined") {
     window.sessionStorage.removeItem(ANALYTICS_SESSION_STORAGE_KEY);

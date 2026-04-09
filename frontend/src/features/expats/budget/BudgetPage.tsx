@@ -6,6 +6,8 @@ import { useT, useAuth } from "@/hooks";
 import { useBudget } from "../../../hooks/expats/useBudget";
 import { getCities } from "../../../services/expats";
 import { expatsActions } from "../../../stores/expats/expatsStore";
+import { BUDGET_FORM_STATE_STORAGE_KEY } from "../../../stores/expats/budgetStore";
+import { readStorage, writeStorage } from "../../../stores/utils/storage";
 import type { CityListItem } from "../../../types/expats";
 import SimulationHistory from "./SimulationHistory";
 import BudgetTracking from "./BudgetTracking";
@@ -15,6 +17,46 @@ import { useRegistrationGate } from "../../../hooks/expats/useRegistrationGate";
 
 type HousingType = "1br_center" | "3br_center";
 type LivingType = "single" | "family";
+type BudgetFormState = {
+  budget: number;
+  savings: number;
+  housingType: HousingType;
+  livingType: LivingType;
+  cityId: string;
+};
+
+const DEFAULT_BUDGET_FORM_STATE: BudgetFormState = {
+  budget: 2000,
+  savings: 0,
+  housingType: "1br_center",
+  livingType: "single",
+  cityId: "",
+};
+
+const isHousingType = (value: unknown): value is HousingType =>
+  value === "1br_center" || value === "3br_center";
+
+const isLivingType = (value: unknown): value is LivingType =>
+  value === "single" || value === "family";
+
+const readBudgetFormState = (): BudgetFormState => {
+  const stored = readStorage<Partial<BudgetFormState> | null>(
+    BUDGET_FORM_STATE_STORAGE_KEY,
+    null
+  );
+
+  return {
+    budget: typeof stored?.budget === "number" ? stored.budget : DEFAULT_BUDGET_FORM_STATE.budget,
+    savings: typeof stored?.savings === "number" ? stored.savings : DEFAULT_BUDGET_FORM_STATE.savings,
+    housingType: isHousingType(stored?.housingType)
+      ? stored.housingType
+      : DEFAULT_BUDGET_FORM_STATE.housingType,
+    livingType: isLivingType(stored?.livingType)
+      ? stored.livingType
+      : DEFAULT_BUDGET_FORM_STATE.livingType,
+    cityId: typeof stored?.cityId === "string" ? stored.cityId : DEFAULT_BUDGET_FORM_STATE.cityId,
+  };
+};
 
 export default function BudgetPage() {
   const router = useRouter();
@@ -23,6 +65,7 @@ export default function BudgetPage() {
   const isAnonymous = !isAuthenticated;
   const {
     isLoading,
+    activeSimulation,
     latestSimulation,
     simulations,
     trackingEntries,
@@ -30,18 +73,23 @@ export default function BudgetPage() {
     loadSimulations,
     loadTrackingEntries,
   } = useBudget();
+  const initialFormStateRef = useRef<BudgetFormState | null>(null);
+  if (initialFormStateRef.current === null) {
+    initialFormStateRef.current = readBudgetFormState();
+  }
+  const initialFormState = initialFormStateRef.current;
 
-  const [budget, setBudget] = useState(2000);
-  const [savings, setSavings] = useState(0);
-  const [housingType, setHousingType] = useState<HousingType>("1br_center");
-  const [livingType, setLivingType] = useState<LivingType>("single");
-  const [cityId, setCityId] = useState<string>("");
+  const [budget, setBudget] = useState(initialFormState.budget);
+  const [savings, setSavings] = useState(initialFormState.savings);
+  const [housingType, setHousingType] = useState<HousingType>(initialFormState.housingType);
+  const [livingType, setLivingType] = useState<LivingType>(initialFormState.livingType);
+  const [cityId, setCityId] = useState<string>(initialFormState.cityId);
   const [cities, setCities] = useState<CityListItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { isModalOpen, modalMessage, openGate, closeModal, gatedAction } = useRegistrationGate();
+  const { isModalOpen, modalMessage, openGate, closeModal } = useRegistrationGate();
 
   // Auto-init anonymous session if not authenticated
   useEffect(() => {
@@ -61,12 +109,22 @@ export default function BudgetPage() {
     getCities().then(setCities).catch(() => {});
   }, [sessionReady, loadSimulations, loadTrackingEntries]);
 
-  // Pre-select city from latest simulation
   useEffect(() => {
-    if (latestSimulation?.cityId && !cityId) {
-      setCityId(latestSimulation.cityId);
+    writeStorage(BUDGET_FORM_STATE_STORAGE_KEY, {
+      budget,
+      savings,
+      housingType,
+      livingType,
+      cityId,
+    });
+  }, [budget, savings, housingType, livingType, cityId]);
+
+  // Pre-select city from current simulation context
+  useEffect(() => {
+    if (activeSimulation?.cityId && !cityId) {
+      setCityId(activeSimulation.cityId);
     }
-  }, [latestSimulation?.cityId]);
+  }, [activeSimulation?.cityId, cityId]);
 
   const triggerSimulation = useCallback((b: number, s: number, h: HousingType, l: LivingType, c: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -113,7 +171,8 @@ export default function BudgetPage() {
     triggerSimulation(budget, savings, housingType, livingType, val);
   };
 
-  const out = latestSimulation?.outputPayload ?? {};
+  const currentSimulation = activeSimulation ?? latestSimulation;
+  const out = currentSimulation?.outputPayload ?? {};
   const totalCost = (out.estimatedMonthlyCost ?? out.totalMonthlyCost ?? 0) as number;
   const rent = (out.rent ?? 0) as number;
   const entryCost = out.entryCost as Record<string, number> | undefined;
@@ -260,13 +319,19 @@ export default function BudgetPage() {
             onClick={() => {
               // Force re-render by briefly setting to 0 then to defaults
               setBudget(0);
-              setSavings(0);
-              setHousingType("1br_center");
-              setLivingType("single");
-              setCityId("");
+              setSavings(DEFAULT_BUDGET_FORM_STATE.savings);
+              setHousingType(DEFAULT_BUDGET_FORM_STATE.housingType);
+              setLivingType(DEFAULT_BUDGET_FORM_STATE.livingType);
+              setCityId(DEFAULT_BUDGET_FORM_STATE.cityId);
               requestAnimationFrame(() => {
-                setBudget(2000);
-                triggerSimulation(2000, 0, "1br_center", "single", "");
+                setBudget(DEFAULT_BUDGET_FORM_STATE.budget);
+                triggerSimulation(
+                  DEFAULT_BUDGET_FORM_STATE.budget,
+                  DEFAULT_BUDGET_FORM_STATE.savings,
+                  DEFAULT_BUDGET_FORM_STATE.housingType,
+                  DEFAULT_BUDGET_FORM_STATE.livingType,
+                  DEFAULT_BUDGET_FORM_STATE.cityId
+                );
               });
             }}
           >
@@ -287,22 +352,22 @@ export default function BudgetPage() {
 
         {/* ── Entry Cost ────────────────────────────────────── */}
         {entryCost && (
-          <div className="bp-card">
+          <div className="bp-card" data-testid="budget-entry-cost-card">
             <h2 className="bp-card__title">{t("Entry Cost")}</h2>
             <div className="bp-entry-list">
-              <div className="bp-entry-item">
+              <div className="bp-entry-item" data-testid="budget-entry-first-month">
                 <span>🏠 {t("First Month Rent")}</span>
                 <span className="bp-entry-val">€{(entryCost.firstMonthRent ?? rent).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="bp-entry-item">
+              <div className="bp-entry-item" data-testid="budget-entry-deposit">
                 <span>💰 {t("Deposit")} (2 {t("months")})</span>
                 <span className="bp-entry-val">€{(entryCost.deposit ?? rent * 2).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="bp-entry-item">
+              <div className="bp-entry-item" data-testid="budget-entry-basic-setup">
                 <span>🎆 {t("Basic Setup")} ({t("Furniture / SIM Etc.")})</span>
                 <span className="bp-entry-val">€{(entryCost.basicSetup ?? 500).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="bp-entry-item bp-entry-item--total">
+              <div className="bp-entry-item bp-entry-item--total" data-testid="budget-entry-total">
                 <span>📊 <strong>{t("Total Estimated Entry Cost")}</strong></span>
                 <span className="bp-entry-val bp-entry-val--total">€{(entryCost.totalEntryCost ?? 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</span>
               </div>
@@ -381,7 +446,7 @@ export default function BudgetPage() {
         </div>{/* close bp-grid */}
 
         {/* ── Upsell Banner (anonymous only) ───────────────── */}
-        {isAnonymous && latestSimulation && (
+        {isAnonymous && currentSimulation && (
           <div className="bp-upsell">
             <div className="bp-upsell__content">
               <h3 className="bp-upsell__title">📊 {t("Want more from your simulation?")}</h3>
@@ -399,7 +464,7 @@ export default function BudgetPage() {
         )}
 
         {/* ── Premium Preview (anonymous only) ─────────────── */}
-        {isAnonymous && latestSimulation && (
+        {isAnonymous && currentSimulation && (
           <div className="bp-preview">
             <div className="bp-preview__header">
               <h3 className="bp-preview__title">🔒 {t("Premium Analysis Preview")}</h3>

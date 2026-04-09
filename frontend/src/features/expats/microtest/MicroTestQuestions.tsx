@@ -31,9 +31,9 @@ export default function MicroTestQuestions({ questions, isLoading, onSubmit, onC
 
   return (
     <>
-      <div className="mt-questions">
+      <div className="mt-questions" data-testid="micro-test-questions">
         {questions.map((q, idx) => (
-          <div key={q.questionId} className="mt-question">
+          <div key={q.questionId} className="mt-question" data-testid={`micro-test-question-${idx + 1}`}>
             <p className="mt-question__text">
               <span className="mt-question__num">{idx + 1}.</span> {q.questionText}
             </p>
@@ -57,10 +57,11 @@ export default function MicroTestQuestions({ questions, isLoading, onSubmit, onC
         ))}
 
         <div className="mt-questions__actions">
-          <button className="mt-btn mt-btn--secondary" onClick={onCancel} type="button">
+          <button className="mt-btn mt-btn--secondary" data-testid="micro-test-cancel" onClick={onCancel} type="button">
             {t("Cancel")}
           </button>
           <button
+            data-testid="micro-test-submit"
             className="mt-btn mt-btn--primary"
             onClick={handleSubmit}
             disabled={!allAnswered || isLoading}

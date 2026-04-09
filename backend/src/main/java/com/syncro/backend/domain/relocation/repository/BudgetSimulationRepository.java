@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface BudgetSimulationRepository extends JpaRepository<BudgetSimulation, UUID> {
@@ -17,6 +18,7 @@ public interface BudgetSimulationRepository extends JpaRepository<BudgetSimulati
     List<BudgetSimulation> findByUser_IdOrderByCreatedAtDesc(UUID userId);
     List<BudgetSimulation> findByUser_IdAndPlanCodeOrderByCreatedAtDesc(UUID userId, String planCode);
     List<BudgetSimulation> findByAnonymousSession_IdOrderByCreatedAtDesc(UUID sessionId);
+    Optional<BudgetSimulation> findFirstByUser_IdAndCity_IdOrderByCreatedAtDesc(UUID userId, UUID cityId);
 
     // Admin queries — paginated
     Page<BudgetSimulation> findByOrderByCreatedAtDesc(Pageable pageable);

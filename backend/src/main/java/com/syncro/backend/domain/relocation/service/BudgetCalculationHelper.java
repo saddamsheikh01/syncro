@@ -59,7 +59,7 @@ public class BudgetCalculationHelper {
     public Map<String, Object> computeEntryCostFree(RelocationCityDataset city, BigDecimal rent, String livingType) {
         Map<String, Object> entry = new LinkedHashMap<>();
         BigDecimal firstMonthRent = rent;
-        BigDecimal deposit = rent;
+        BigDecimal deposit = rent.multiply(TWO).setScale(2, RoundingMode.HALF_UP);
         BigDecimal basicSetup = computeBasicSetup(city, livingType);
 
         entry.put("firstMonthRent", firstMonthRent);

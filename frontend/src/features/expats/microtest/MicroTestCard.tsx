@@ -41,11 +41,11 @@ export default function MicroTestCard() {
 
   return (
     <>
-      <div className="mt-card">
+      <div className="mt-card" data-testid="micro-test-card">
         <div className="mt-card__header">
           <span className="mt-card__icon">🧠</span>
           <div>
-            <h3 className="mt-card__title">{microTestNext.testTitle}</h3>
+            <h3 className="mt-card__title" data-testid="micro-test-title">{microTestNext.testTitle}</h3>
             <p className="mt-card__desc">{microTestNext.testDescription}</p>
           </div>
         </div>
@@ -53,7 +53,7 @@ export default function MicroTestCard() {
         <div className="mt-card__meta">
           <MicroTestCountdown expiresAt={microTestNext.expiresAt} />
           {microTestNext.totalBlocks > 0 && (
-            <span className="mt-card__progress">
+            <span className="mt-card__progress" data-testid="micro-test-progress">
               {t("Block")} {microTestNext.blockNumber}/{microTestNext.totalBlocks}
               {" · "}{microTestNext.completionPercent}%
             </span>
@@ -61,6 +61,7 @@ export default function MicroTestCard() {
         </div>
 
         <button
+          data-testid="micro-test-start"
           className="mt-card__cta"
           onClick={() => setShowQuestions(true)}
           disabled={isLoading}

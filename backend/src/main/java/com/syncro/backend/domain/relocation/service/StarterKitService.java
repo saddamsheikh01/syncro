@@ -77,17 +77,18 @@ public class StarterKitService {
         // City Fit Cards — FREE: 3 cards (Work, Housing, Social), PREMIUM+: all 6
         payload.put("cityFitCards", buildCityFitCards(city, scores, isPremium));
 
-        // Budget analysis — prefer data from latest simulation for consistency
+        // Budget analysis — use only the simulation that matches the current kit city
         boolean isFamily = profile.getHousehold() != null &&
                 (profile.getHousehold().contains("children") || profile.getHousehold().contains("family"));
         BigDecimal minBudget = scoringHelper.computeCityCost(city, isFamily);
 
-        List<BudgetSimulation> userSims = budgetSimulationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
-        BudgetSimulation latestSim = userSims.isEmpty() ? null : userSims.get(0);
-        if (latestSim != null && latestSim.getOutputPayload() != null) {
-            payload.put("budgetAnalysis", buildBudgetFromSimulation(latestSim, profile));
+        BudgetSimulation matchingSim = budgetSimulationRepository
+                .findFirstByUser_IdAndCity_IdOrderByCreatedAtDesc(userId, city.getId())
+                .orElse(null);
+        if (matchingSim != null && matchingSim.getOutputPayload() != null) {
+            payload.put("budgetAnalysis", buildBudgetFromSimulation(matchingSim, profile));
             // Use simulation cost for safety buffer
-            Object simCost = latestSim.getOutputPayload().get("estimatedMonthlyCost");
+            Object simCost = matchingSim.getOutputPayload().get("estimatedMonthlyCost");
             if (simCost instanceof Number n) minBudget = BigDecimal.valueOf(n.doubleValue());
         } else {
             payload.put("budgetAnalysis", buildBudgetAnalysis(city, profile, minBudget, isFamily));
@@ -237,6 +238,7 @@ public class StarterKitService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> buildBudgetFromSimulation(BudgetSimulation sim, RelocationProfile profile) {
         Map<String, Object> out = sim.getOutputPayload();
+        Map<String, Object> input = sim.getInputPayload();
         Map<String, Object> budget = new LinkedHashMap<>();
 
         BigDecimal monthlyCost = out.get("estimatedMonthlyCost") instanceof Number n
@@ -251,7 +253,13 @@ public class StarterKitService {
         budget.put("livingExpenses", livingCost);
         budget.put("isFamily", "family".equals(out.get("livingType")));
 
-        BigDecimal userBudget = profile.getMonthlyBudget();
+        BigDecimal userBudget = readBigDecimal(input != null ? input.get("monthlyBudget") : null);
+        if (userBudget == null) {
+            userBudget = profile.getMonthlyBudget();
+        }
+        if (userBudget == null) {
+            userBudget = BigDecimal.ZERO;
+        }
         BigDecimal margin = userBudget.subtract(monthlyCost);
         budget.put("userBudget", userBudget);
         budget.put("margin", margin);
@@ -262,7 +270,7 @@ public class StarterKitService {
         else if (margin.compareTo(BigDecimal.ZERO) >= 0) status = "very_tight";
         else status = "unsustainable";
         budget.put("marginStatus", status);
-        budget.put("source", "latest_simulation");
+        budget.put("source", "matching_simulation");
         return budget;
     }
 
@@ -524,6 +532,23 @@ public class StarterKitService {
             return profile.getTargetCity();
         }
         throw new NotFoundException("Nessuna citta specificata");
+    }
+
+    private BigDecimal readBigDecimal(Object raw) {
+        if (raw instanceof BigDecimal bd) {
+            return bd;
+        }
+        if (raw instanceof Number n) {
+            return BigDecimal.valueOf(n.doubleValue());
+        }
+        if (raw instanceof String s && !s.isBlank()) {
+            try {
+                return new BigDecimal(s);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private Map<String, BigDecimal> getCityScores(RelocationCityDataset city) {
