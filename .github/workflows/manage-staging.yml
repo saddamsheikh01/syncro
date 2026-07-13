@@ -1,0 +1,92 @@
+name: Manage Syncro staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Start, stop or inspect the staging EC2 instance
+        required: true
+        type: choice
+        options: [status, start, stop]
+        default: status
+
+concurrency:
+  group: manage-syncro-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  manage:
+    if: github.ref_name == 'staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Assume staging lifecycle role through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::104091534081:role/github-syncro-staging-deploy
+          aws-region: eu-central-1
+
+      - name: Manage staging instance
+        id: manage
+        shell: bash
+        env:
+          REQUESTED_ACTION: ${{ inputs.action }}
+        run: |
+          set -euo pipefail
+          instance_id="$(aws ec2 describe-instances \
+            --filters Name=tag:Name,Values=syncro-staging-server Name=instance-state-name,Values=pending,running,stopping,stopped \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)"
+          [[ "${instance_id}" != "None" && -n "${instance_id}" ]]
+          state="$(aws ec2 describe-instances --instance-ids "${instance_id}" --query 'Reservations[0].Instances[0].State.Name' --output text)"
+          case "${REQUESTED_ACTION}" in
+            status)
+              ;;
+            start)
+              if [[ "${state}" == "stopping" ]]; then
+                aws ec2 wait instance-stopped --instance-ids "${instance_id}"
+                state=stopped
+              fi
+              if [[ "${state}" == "stopped" ]]; then
+                aws ec2 start-instances --instance-ids "${instance_id}" >/dev/null
+              fi
+              aws ec2 wait instance-status-ok --instance-ids "${instance_id}"
+              state=running
+              ;;
+            stop)
+              if [[ "${state}" == "pending" ]]; then
+                aws ec2 wait instance-status-ok --instance-ids "${instance_id}"
+                state=running
+              fi
+              if [[ "${state}" == "running" ]]; then
+                command_id="$(aws ssm send-command --instance-ids "${instance_id}" \
+                  --document-name AWS-RunShellScript \
+                  --parameters 'commands=["sudo systemctl stop syncro-compose.service"]' \
+                  --query 'Command.CommandId' --output text)"
+                aws ssm wait command-executed --command-id "${command_id}" --instance-id "${instance_id}"
+                aws ec2 stop-instances --instance-ids "${instance_id}" >/dev/null
+              fi
+              aws ec2 wait instance-stopped --instance-ids "${instance_id}"
+              state=stopped
+              ;;
+          esac
+          echo "state=${state}" >> "${GITHUB_OUTPUT}"
+          echo "Syncro staging: ${state} (${instance_id})"
+
+      - name: Notify Telegram
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --request POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data parse_mode=HTML \
+            --data-urlencode "text=<b>🛠️ Syncro staging</b>
+
+          Azione: <code>${{ inputs.action }}</code>
+          Stato: <code>${{ steps.manage.outputs.state || 'errore' }}</code>
+          🔗 <a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Vedi workflow</a>"
