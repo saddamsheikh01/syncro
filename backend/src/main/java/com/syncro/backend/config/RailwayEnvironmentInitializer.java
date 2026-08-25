@@ -33,9 +33,9 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
 
         String publicDomain = firstRealValue(
             System.getenv("RAILWAY_PUBLIC_DOMAIN"),
-            env.getProperty("RAILWAY_PUBLIC_DOMAIN")
+            envOrNull(env, "RAILWAY_PUBLIC_DOMAIN")
         );
-        if (isBlank(env.getProperty("APP_API_BASE_URL")) && !isBlank(publicDomain)) {
+        if (isBlank(envOrNull(env, "APP_API_BASE_URL")) && !isBlank(publicDomain)) {
             String baseUrl = "https://" + publicDomain.trim();
             map.put("APP_API_BASE_URL", baseUrl);
             map.put("app.api.base-url", baseUrl);
@@ -53,10 +53,9 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         addIfPresent(candidates, System.getenv("DATABASE_PUBLIC_URL"));
         addIfPresent(candidates, System.getenv("POSTGRES_URL"));
         addIfPresent(candidates, System.getenv("SPRING_DATASOURCE_URL"));
-        addIfPresent(candidates, env.getProperty("DATABASE_PRIVATE_URL"));
-        addIfPresent(candidates, env.getProperty("DATABASE_URL"));
-        addIfPresent(candidates, env.getProperty("DATABASE_PUBLIC_URL"));
-        addIfPresent(candidates, env.getProperty("spring.datasource.url"));
+        addIfPresent(candidates, envOrNull(env, "DATABASE_PRIVATE_URL"));
+        addIfPresent(candidates, envOrNull(env, "DATABASE_URL"));
+        addIfPresent(candidates, envOrNull(env, "DATABASE_PUBLIC_URL"));
 
         Map<String, String> processEnv = System.getenv();
         if (processEnv != null) {
@@ -80,32 +79,32 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         String host = firstRealValue(
             System.getenv("PGHOST"),
             System.getenv("POSTGRES_HOST"),
-            env.getProperty("PGHOST"),
-            env.getProperty("POSTGRES_HOST")
+            envOrNull(env, "PGHOST"),
+            envOrNull(env, "POSTGRES_HOST")
         );
         String database = firstRealValue(
             System.getenv("PGDATABASE"),
             System.getenv("POSTGRES_DB"),
-            env.getProperty("PGDATABASE"),
-            env.getProperty("POSTGRES_DB")
+            envOrNull(env, "PGDATABASE"),
+            envOrNull(env, "POSTGRES_DB")
         );
         String username = firstRealValue(
             System.getenv("PGUSER"),
             System.getenv("POSTGRES_USER"),
-            env.getProperty("PGUSER"),
-            env.getProperty("POSTGRES_USER")
+            envOrNull(env, "PGUSER"),
+            envOrNull(env, "POSTGRES_USER")
         );
         String password = firstRealValue(
             System.getenv("PGPASSWORD"),
             System.getenv("POSTGRES_PASSWORD"),
-            env.getProperty("PGPASSWORD"),
-            env.getProperty("POSTGRES_PASSWORD")
+            envOrNull(env, "PGPASSWORD"),
+            envOrNull(env, "POSTGRES_PASSWORD")
         );
         String port = firstRealValue(
             System.getenv("PGPORT"),
             System.getenv("POSTGRES_PORT"),
-            env.getProperty("PGPORT"),
-            env.getProperty("POSTGRES_PORT")
+            envOrNull(env, "PGPORT"),
+            envOrNull(env, "POSTGRES_PORT")
         );
         if (host == null || database == null || username == null) {
             return false;
@@ -117,8 +116,8 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
     private static boolean hasRealHost(ConfigurableEnvironment env) {
         return isRealHost(System.getenv("POSTGRES_HOST"))
             || isRealHost(System.getenv("PGHOST"))
-            || isRealHost(env.getProperty("POSTGRES_HOST"))
-            || isRealHost(env.getProperty("PGHOST"));
+            || isRealHost(envOrNull(env, "POSTGRES_HOST"))
+            || isRealHost(envOrNull(env, "PGHOST"));
     }
 
     private static void applyDatabaseUrl(String rawUrl, Map<String, Object> map) {
@@ -188,9 +187,9 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         message.append("(copy the URL from postgres-volume). ");
         message.append("Do not type ${{postgres-volume.DATABASE_URL}} as plain text unless Railway interpolates it. ");
         message.append("Seen: ");
-        message.append("DATABASE_URL=").append(describeValue(System.getenv("DATABASE_URL"), env.getProperty("DATABASE_URL")));
-        message.append(", DATABASE_PRIVATE_URL=").append(describeValue(System.getenv("DATABASE_PRIVATE_URL"), env.getProperty("DATABASE_PRIVATE_URL")));
-        message.append(", PGHOST=").append(describeValue(System.getenv("PGHOST"), env.getProperty("PGHOST")));
+        message.append("DATABASE_URL=").append(describeValue(System.getenv("DATABASE_URL"), envOrNull(env, "DATABASE_URL")));
+        message.append(", DATABASE_PRIVATE_URL=").append(describeValue(System.getenv("DATABASE_PRIVATE_URL"), envOrNull(env, "DATABASE_PRIVATE_URL")));
+        message.append(", PGHOST=").append(describeValue(System.getenv("PGHOST"), envOrNull(env, "PGHOST")));
         List<String> relatedKeys = relatedEnvKeys();
         if (!relatedKeys.isEmpty()) {
             message.append(", related keys=").append(relatedKeys);
@@ -259,6 +258,22 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         }
         String trimmed = normalized.trim().toLowerCase(Locale.ROOT);
         return trimmed.startsWith("postgresql://");
+    }
+
+    /**
+     * Never resolve {@code spring.datasource.url} here: the railway YAML value contains
+     * {@code ${PGHOST}} and Spring throws if that env var is not set yet.
+     */
+    private static String envOrNull(ConfigurableEnvironment env, String key) {
+        String fromProcess = System.getenv(key);
+        if (fromProcess != null && !fromProcess.isBlank()) {
+            return fromProcess;
+        }
+        try {
+            return env.getProperty(key);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     private static String unwrap(String value) {

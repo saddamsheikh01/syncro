@@ -7,9 +7,9 @@ spring:
     hibernate:
       ddl-auto: none
   datasource:
-    url: jdbc:postgresql://${PGHOST}:${PGPORT:5432}/${PGDATABASE}
-    username: ${PGUSER}
-    password: ${PGPASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:127.0.0.1}:${PGPORT:5432}/${PGDATABASE:railway}}
+    username: ${PGUSER:${POSTGRES_USER:postgres}}
+    password: ${PGPASSWORD:${POSTGRES_PASSWORD:}}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:5}
       connection-timeout: 20000
