@@ -21,13 +21,25 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         ConfigurableEnvironment env = applicationContext.getEnvironment();
         Map<String, Object> map = new HashMap<>();
 
-        String existingHost = env.getProperty("POSTGRES_HOST");
-        String databaseUrl = firstNonBlank(env.getProperty("DATABASE_PRIVATE_URL"), env.getProperty("DATABASE_URL"));
-        if (isBlank(existingHost) && !isBlank(databaseUrl)) {
+        String databaseUrl = firstRealValue(
+            System.getenv("DATABASE_PRIVATE_URL"),
+            System.getenv("DATABASE_URL"),
+            env.getProperty("DATABASE_PRIVATE_URL"),
+            env.getProperty("DATABASE_URL")
+        );
+        if (isUsableDatabaseUrl(databaseUrl)) {
             applyDatabaseUrl(databaseUrl, map);
+        } else if (isRailwayRuntime() && !hasRealHost(env)) {
+            throw new IllegalStateException(
+                "Postgres is not linked. In Railway: backend service → Variables → "
+                    + "Add variable reference → Postgres DATABASE_URL (or DATABASE_PRIVATE_URL)."
+            );
         }
 
-        String publicDomain = env.getProperty("RAILWAY_PUBLIC_DOMAIN");
+        String publicDomain = firstRealValue(
+            System.getenv("RAILWAY_PUBLIC_DOMAIN"),
+            env.getProperty("RAILWAY_PUBLIC_DOMAIN")
+        );
         if (isBlank(env.getProperty("APP_API_BASE_URL")) && !isBlank(publicDomain)) {
             String baseUrl = "https://" + publicDomain.trim();
             map.put("APP_API_BASE_URL", baseUrl);
@@ -39,11 +51,18 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         }
     }
 
+    private static boolean hasRealHost(ConfigurableEnvironment env) {
+        return isRealHost(System.getenv("POSTGRES_HOST"))
+            || isRealHost(System.getenv("PGHOST"))
+            || isRealHost(env.getProperty("POSTGRES_HOST"))
+            || isRealHost(env.getProperty("PGHOST"));
+    }
+
     private static void applyDatabaseUrl(String rawUrl, Map<String, Object> map) {
         String normalized = rawUrl.trim().replace("postgres://", "postgresql://");
         URI uri = URI.create(normalized);
         String host = uri.getHost();
-        if (host == null || host.isBlank()) {
+        if (!isRealHost(host)) {
             return;
         }
 
@@ -73,29 +92,62 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
             + (privateNetwork ? "" : "?sslmode=require");
 
         map.put("POSTGRES_HOST", host);
+        map.put("PGHOST", host);
         map.put("POSTGRES_PORT", String.valueOf(port));
+        map.put("PGPORT", String.valueOf(port));
         map.put("POSTGRES_DB", database);
+        map.put("PGDATABASE", database);
         map.put("POSTGRES_USER", username);
+        map.put("PGUSER", username);
         map.put("POSTGRES_PASSWORD", password);
+        map.put("PGPASSWORD", password);
         map.put("spring.datasource.url", jdbcUrl);
         map.put("spring.datasource.username", username);
         map.put("spring.datasource.password", password);
     }
 
-    private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    private static boolean isRailwayRuntime() {
+        return firstRealValue(
+            System.getenv("RAILWAY_ENVIRONMENT"),
+            System.getenv("RAILWAY_PROJECT_ID"),
+            System.getenv("RAILWAY_SERVICE_ID")
+        ) != null;
     }
 
-    private static String firstNonBlank(String... values) {
+    private static boolean isUsableDatabaseUrl(String value) {
+        if (!isRealValue(value)) {
+            return false;
+        }
+        String trimmed = value.trim().toLowerCase();
+        return trimmed.startsWith("postgres://") || trimmed.startsWith("postgresql://");
+    }
+
+    private static boolean isRealHost(String value) {
+        return isRealValue(value);
+    }
+
+    private static boolean isRealValue(String value) {
+        if (value == null) {
+            return false;
+        }
+        String trimmed = value.trim();
+        return !trimmed.isEmpty() && !trimmed.contains("${") && !trimmed.contains("$(");
+    }
+
+    private static String firstRealValue(String... values) {
         if (values == null) {
             return null;
         }
         for (String value : values) {
-            if (!isBlank(value)) {
-                return value;
+            if (isRealValue(value)) {
+                return value.trim();
             }
         }
         return null;
+    }
+
+    private static String decode(String value) {
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
     private static boolean isBlank(String value) {

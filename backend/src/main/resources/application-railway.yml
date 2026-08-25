@@ -7,8 +7,13 @@ spring:
     hibernate:
       ddl-auto: update
   datasource:
+    url: jdbc:postgresql://${PGHOST}:${PGPORT:5432}/${PGDATABASE}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:5}
+      connection-timeout: 20000
+      initialization-fail-timeout: 60000
 
 springdoc:
   api-docs:
