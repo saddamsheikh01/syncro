@@ -1,19 +1,20 @@
 # If using nginx/reverse proxy in front, set: client_max_body_size 60m; proxy_read_timeout 600s; proxy_send_timeout 600s;
 server:
+  port: ${PORT:${SERVER_PORT:8080}}
   tomcat:
     connection-timeout: 600000
 
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://${POSTGRES_HOST:${PGHOST}}:${POSTGRES_PORT:${PGPORT:5432}}/${POSTGRES_DB:${PGDATABASE}}
+    username: ${POSTGRES_USER:${PGUSER}}
+    password: ${POSTGRES_PASSWORD:${PGPASSWORD}}
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: ${POSTGRES_SCHEMA}
+        default_schema: ${POSTGRES_SCHEMA:public}
   flyway:
     enabled: true
     schemas: ${POSTGRES_SCHEMA:public}
@@ -33,17 +34,19 @@ springdoc:
     enabled: false
 
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://syncroapp.it,https://www.syncroapp.it}
   api:
     base-url: ${APP_API_BASE_URL:http://localhost:8080}
   jwt:
     secret: ${JWT_SECRET}
-    issuer: ${JWT_ISSUER}
-    access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES}
-    refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS}
+    issuer: ${JWT_ISSUER:syncro}
+    access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
+    refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
   admin:
     bootstrap-secret: ${ADMIN_BOOTSTRAP_SECRET}
   media:
-    storage-dir: ${MEDIA_STORAGE_PATH}
+    storage-dir: ${MEDIA_STORAGE_PATH:/data/media}
     base-url: ${MEDIA_BASE_URL:${APP_API_BASE_URL:http://localhost:8080}/media}
   google-maps:
     api-key: ${GOOGLE_MAPS_API_KEY:}
@@ -230,7 +233,7 @@ app:
       pt: ${BREVO_PASSWORD_RESET_TEMPLATE_ID_PT:0}
       sq: ${BREVO_PASSWORD_RESET_TEMPLATE_ID_SQ:0}
   astrology:
-    ephemeris-path: /opt/apps/syncro/ephe
+    ephemeris-path: ${SWISS_EPHEMERIS_PATH:/opt/apps/syncro/ephe}
   zyra:
     provider: ${ZYRA_PROVIDER:OPENAI}
     base-url: ${ZYRA_BASE_URL:https://api.openai.com/v1}

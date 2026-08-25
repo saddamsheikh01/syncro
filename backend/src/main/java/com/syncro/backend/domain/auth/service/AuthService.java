@@ -56,6 +56,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,6 +86,7 @@ public class AuthService {
     private final EmailNotificationService emailNotificationService;
     private final EmailVerificationService emailVerificationService;
     private final UserService userService;
+    private final boolean autoVerifyEmail;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -101,7 +103,8 @@ public class AuthService {
         BrevoMailClient brevoMailClient,
         EmailNotificationService emailNotificationService,
         EmailVerificationService emailVerificationService,
-        UserService userService
+        UserService userService,
+        @Value("${app.auth.auto-verify-email:false}") boolean autoVerifyEmail
     ) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
@@ -117,6 +120,7 @@ public class AuthService {
         this.emailNotificationService = emailNotificationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
+        this.autoVerifyEmail = autoVerifyEmail;
     }
 
     @Transactional
@@ -145,7 +149,7 @@ public class AuthService {
         user.setPhone(phone);
         user.setLanguage(normalizeLanguage(request.language()));
         user.setOnboardingCompleted(false);
-        user.setEmailVerified(false);
+        user.setEmailVerified(autoVerifyEmail);
         user.setStatus(UserStatus.ACTIVE);
         User savedUser = userRepository.save(user);
 
@@ -158,6 +162,9 @@ public class AuthService {
 
         referralService.registerReferralUsage(request.refCode(), savedUser.getId(), ip, userAgent);
         analyticsService.trackServerEventSafe(savedUser.getId(), "USER_REGISTERED", buildRegisterPayload(request));
+        if (autoVerifyEmail) {
+            return RegisterResponse.auth(buildAuthResponse(savedUser));
+        }
         try {
             emailVerificationService.sendOtp(email);
         } catch (Exception ex) {

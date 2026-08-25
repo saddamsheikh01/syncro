@@ -1,0 +1,13 @@
+.git
+.github
+.cursor
+frontend
+**/target
+**/.next
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+backend/media-storage
+backend/ephe
+*.log

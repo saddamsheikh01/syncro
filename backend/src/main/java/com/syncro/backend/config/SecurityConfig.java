@@ -33,6 +33,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(http401UnauthorizedEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/health",
+                                "/actuator/health",
+                                "/actuator/health/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

@@ -1,0 +1,13 @@
+# Syncro backend on Railway.
+# Connect this GitHub repo, add a PostgreSQL plugin, then set the variables
+# listed in .env.example.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+numReplicas = 1

@@ -9,11 +9,14 @@ spring:
       max-request-size: 100MB
 
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   auth:
     google:
       client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
       token-info-url: ${GOOGLE_OAUTH_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
       timeout-seconds: ${GOOGLE_OAUTH_TIMEOUT_SECONDS:5}
+    auto-verify-email: ${AUTH_AUTO_VERIFY_EMAIL:false}
   brevo:
     api-key: ${BREVO_API_KEY:}
     base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}

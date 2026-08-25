@@ -1,6 +1,8 @@
 package com.syncro.backend.config;
 
+import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -12,32 +14,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class CorsConfig {
 
     @Bean(name = "syncroCorsConfigurationSource")
-    @Profile("prod")
-    public CorsConfigurationSource corsConfigurationSource() {
-        return buildCorsConfigurationSource(List.of(
-            "https://syncroapp.it",
-            "https://www.syncroapp.it"
-        ));
-    }
-
-    @Bean(name = "syncroCorsConfigurationSource")
-    @Profile("staging")
-    public CorsConfigurationSource corsConfigurationSourceStaging() {
-        return buildCorsConfigurationSource(List.of(
-            "https://staging.syncroapp.it",
-            "https://syncroapp.it",
-            "https://www.syncroapp.it"
-        ));
-    }
-
-    @Bean(name = "syncroCorsConfigurationSource")
-    @Profile("dev")
-    public CorsConfigurationSource corsConfigurationSourceDev() {
-        return buildCorsConfigurationSource(List.of(
-            "https://syncroapp.it",
-            "https://www.syncroapp.it",
-            "http://localhost:3000"
-        ));
+    @Profile("!test")
+    public CorsConfigurationSource corsConfigurationSource(
+        @Value("${app.cors.allowed-origins}") String allowedOrigins
+    ) {
+        return buildCorsConfigurationSource(parseOrigins(allowedOrigins));
     }
 
     @Bean(name = "syncroCorsConfigurationSource")
@@ -46,11 +27,25 @@ public class CorsConfig {
         return buildCorsConfigurationSource(List.of("*"));
     }
 
+    private static List<String> parseOrigins(String allowedOrigins) {
+        return Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isEmpty())
+            .toList();
+    }
+
     private CorsConfigurationSource buildCorsConfigurationSource(List<String> allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "Accept-Language",
+            "X-Expat-Session-Token"
+        ));
         config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

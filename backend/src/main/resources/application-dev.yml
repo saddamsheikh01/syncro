@@ -44,6 +44,8 @@ springdoc:
     enabled: true
 
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://syncroapp.it,https://www.syncroapp.it,http://localhost:3000}
   api:
     base-url: ${APP_API_BASE_URL:http://localhost:${SERVER_PORT:8080}}
   jwt:
