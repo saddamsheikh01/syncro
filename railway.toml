@@ -8,6 +8,6 @@ watchPatterns = ["backend/**", "railway.toml", ".dockerignore"]
 
 [deploy]
 healthcheckPath = "/health"
-healthcheckTimeout = 300
+healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 numReplicas = 1

@@ -25,3 +25,262 @@ CREATE TABLE IF NOT EXISTS admin_users (
     last_login TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS user_auth_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,
+    provider_user_id VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    full_name VARCHAR(255),
+    birth_date DATE,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    gender VARCHAR(50),
+    zodiac_sign VARCHAR(50),
+    sun_sign VARCHAR(50),
+    moon_sign VARCHAR(50),
+    asc_sign VARCHAR(50),
+    venus_sign VARCHAR(50),
+    mars_sign VARCHAR(50),
+    birth_place VARCHAR(255),
+    birth_latitude DOUBLE PRECISION,
+    birth_longitude DOUBLE PRECISION,
+    birth_time TIME,
+    sun_degree DOUBLE PRECISION,
+    moon_degree DOUBLE PRECISION,
+    asc_degree DOUBLE PRECISION,
+    venus_degree DOUBLE PRECISION,
+    mars_degree DOUBLE PRECISION,
+    job_title VARCHAR(120),
+    company_name VARCHAR(160),
+    bio VARCHAR(500),
+    traits_text VARCHAR(500),
+    loves_text VARCHAR(500),
+    dislikes_text VARCHAR(500),
+    goals_text VARCHAR(500),
+    values_text VARCHAR(500),
+    zyra_recap TEXT,
+    zyra_recap_highlights TEXT,
+    zyra_birth_chart_interpretation TEXT,
+    relationship_status VARCHAR(50),
+    orientation VARCHAR(50),
+    children_status VARCHAR(50),
+    visibility VARCHAR(50) NOT NULL DEFAULT 'PUBLIC',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    matchmaking_filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+    feed_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+    privacy_policy_accepted BOOLEAN NOT NULL DEFAULT false,
+    privacy_policy_accepted_at TIMESTAMPTZ,
+    newsletter_consent BOOLEAN NOT NULL DEFAULT false,
+    newsletter_consent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS experiences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    category_id UUID,
+    source TEXT NOT NULL DEFAULT 'MANUAL',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    place_id UUID,
+    provider TEXT,
+    external_id TEXT,
+    price NUMERIC,
+    price_currency TEXT DEFAULT 'EUR',
+    original_price NUMERIC,
+    duration_minutes INTEGER,
+    image_url TEXT,
+    images JSONB DEFAULT '[]'::jsonb,
+    booking_url TEXT,
+    rating NUMERIC,
+    review_count INTEGER DEFAULT 0,
+    latitude NUMERIC,
+    longitude NUMERIC,
+    location_name TEXT,
+    highlights JSONB DEFAULT '[]'::jsonb,
+    inclusions JSONB DEFAULT '[]'::jsonb,
+    exclusions JSONB DEFAULT '[]'::jsonb,
+    languages JSONB DEFAULT '[]'::jsonb,
+    cancellation_policy TEXT,
+    meeting_point TEXT,
+    min_participants INTEGER,
+    max_participants INTEGER,
+    last_synced_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS analytics_event_definitions (
+    event_name VARCHAR(255) NOT NULL,
+    event_version INTEGER NOT NULL DEFAULT 1,
+    description VARCHAR(1000) NOT NULL DEFAULT '',
+    payload_required_keys TEXT[] NOT NULL DEFAULT '{}',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (event_name, event_version)
+);
+
+CREATE TABLE IF NOT EXISTS analytics_sessions (
+    session_id UUID PRIMARY KEY,
+    user_id UUID,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ended_at TIMESTAMPTZ,
+    duration_seconds NUMERIC,
+    platform VARCHAR(255),
+    app_version VARCHAR(255),
+    route_start VARCHAR(255),
+    route_end VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+    user_id UUID,
+    event_type VARCHAR(255) NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    event_version INTEGER NOT NULL DEFAULT 1,
+    session_id UUID,
+    idempotency_key VARCHAR(255),
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    route VARCHAR(255),
+    platform VARCHAR(255),
+    app_version VARCHAR(255),
+    event_source VARCHAR(255) NOT NULL DEFAULT 'web',
+    consent_analytics BOOLEAN NOT NULL DEFAULT true,
+    user_agent TEXT,
+    payload JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS analytics_daily_kpi (
+    metric_date DATE NOT NULL,
+    kpi_name VARCHAR(255) NOT NULL,
+    value NUMERIC NOT NULL DEFAULT 0,
+    computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (metric_date, kpi_name)
+);
+
+CREATE TABLE IF NOT EXISTS analytics_ingestion_errors (
+    id BIGSERIAL PRIMARY KEY,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID,
+    idempotency_key VARCHAR(255),
+    raw_event JSONB NOT NULL DEFAULT '{}',
+    error_code VARCHAR(255) NOT NULL DEFAULT '',
+    error_message TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS test_definitions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    active BOOLEAN NOT NULL DEFAULT true,
+    test_type VARCHAR(50) NOT NULL DEFAULT 'OTHER',
+    scoring_strategy VARCHAR(50) NOT NULL DEFAULT 'SINGLE_SCORE',
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_definition_id UUID NOT NULL REFERENCES test_definitions(id) ON DELETE CASCADE,
+    question_text TEXT NOT NULL,
+    question_type VARCHAR(50) NOT NULL DEFAULT 'SINGLE_CHOICE',
+    position INTEGER NOT NULL DEFAULT 0,
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_answer_options (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID NOT NULL REFERENCES test_questions(id) ON DELETE CASCADE,
+    answer_text TEXT NOT NULL,
+    score_value INTEGER NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL DEFAULT 0,
+    config JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_test_submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    test_id UUID NOT NULL REFERENCES test_definitions(id),
+    score_payload JSONB NOT NULL DEFAULT '{}',
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_test_answers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES user_test_submissions(id) ON DELETE CASCADE,
+    question_id UUID NOT NULL REFERENCES test_questions(id),
+    answer_option_id UUID NOT NULL REFERENCES test_answer_options(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_psy_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    profile JSONB NOT NULL DEFAULT '{}',
+    interests_score INTEGER,
+    lifestyle_score INTEGER,
+    values_score INTEGER,
+    objectives_score INTEGER,
+    psy_score INTEGER,
+    astro_score INTEGER,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS test_definition_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_definition_id UUID NOT NULL REFERENCES test_definitions(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    title VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(test_definition_id, language)
+);
+
+CREATE TABLE IF NOT EXISTS test_question_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID NOT NULL REFERENCES test_questions(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    question_text TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(question_id, language)
+);
+
+CREATE TABLE IF NOT EXISTS test_answer_option_translations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    answer_option_id UUID NOT NULL REFERENCES test_answer_options(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL,
+    answer_text TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(answer_option_id, language)
+);

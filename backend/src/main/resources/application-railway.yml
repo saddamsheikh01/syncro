@@ -1,11 +1,12 @@
 # Railway overrides. Activate with SPRING_PROFILES_ACTIVE=prod,railway
 server:
-  port: ${PORT:${SERVER_PORT:8080}}
+  port: ${PORT:8080}
+  address: 0.0.0.0
 
 spring:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
   datasource:
     url: jdbc:postgresql://${PGHOST}:${PGPORT:5432}/${PGDATABASE}
     username: ${PGUSER}
@@ -13,13 +14,13 @@ spring:
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:5}
       connection-timeout: 20000
-      initialization-fail-timeout: 60000
+      initialization-fail-timeout: 30000
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    enabled: true
+    enabled: false
 
 app:
   cors:
