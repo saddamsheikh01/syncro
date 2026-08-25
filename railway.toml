@@ -1,10 +1,10 @@
-# Syncro backend on Railway.
-# Connect this GitHub repo, add a PostgreSQL plugin, then set the variables
-# listed in .env.example.
+# Connect this GitHub repo in Railway. Leave Root Directory empty.
+# Then add a PostgreSQL plugin and generate a public domain.
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
+watchPatterns = ["backend/**", "railway.toml", ".dockerignore"]
 
 [deploy]
 healthcheckPath = "/health"

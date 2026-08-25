@@ -24,5 +24,6 @@ USER syncro
 
 EXPOSE 8080
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+ENV SPRING_PROFILES_ACTIVE=prod,railway
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

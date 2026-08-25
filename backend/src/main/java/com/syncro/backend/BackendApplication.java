@@ -14,8 +14,22 @@ public class BackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication app = new SpringApplication(BackendApplication.class);
+		if (isRailwayRuntime()) {
+			app.setAdditionalProfiles("prod", "railway");
+		}
 		app.addInitializers(new RailwayEnvironmentInitializer(), new DevSchemaConfig());
 		app.run(args);
+	}
+
+	private static boolean isRailwayRuntime() {
+		return hasEnv("RAILWAY_ENVIRONMENT")
+			|| hasEnv("RAILWAY_PROJECT_ID")
+			|| hasEnv("RAILWAY_SERVICE_ID");
+	}
+
+	private static boolean hasEnv(String name) {
+		String value = System.getenv(name);
+		return value != null && !value.isBlank();
 	}
 
 }
