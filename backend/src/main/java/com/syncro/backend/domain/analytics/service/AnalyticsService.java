@@ -50,7 +50,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class AnalyticsService {
@@ -83,6 +86,7 @@ public class AnalyticsService {
     private final UserRepository userRepository;
     private final TestDefinitionRepository testDefinitionRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final TransactionTemplate requiresNewTx;
 
     public AnalyticsService(
         AnalyticsEventRepository analyticsEventRepository,
@@ -93,7 +97,8 @@ public class AnalyticsService {
         AnalyticsDailyKpiRepository analyticsDailyKpiRepository,
         UserRepository userRepository,
         TestDefinitionRepository testDefinitionRepository,
-        JdbcTemplate jdbcTemplate
+        JdbcTemplate jdbcTemplate,
+        PlatformTransactionManager transactionManager
     ) {
         this.analyticsEventRepository = analyticsEventRepository;
         this.analyticsEventDefinitionRepository = analyticsEventDefinitionRepository;
@@ -104,6 +109,9 @@ public class AnalyticsService {
         this.userRepository = userRepository;
         this.testDefinitionRepository = testDefinitionRepository;
         this.jdbcTemplate = jdbcTemplate;
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.requiresNewTx = tx;
     }
 
     @Transactional
@@ -194,6 +202,23 @@ public class AnalyticsService {
 
     @Transactional
     public void trackServerEvent(UUID userId, String eventName, Map<String, Object> payload) {
+        persistServerEvent(userId, eventName, payload, true);
+    }
+
+    /**
+     * Best-effort tracking. Runs in a new transaction so a missing catalog row
+     * or analytics schema error cannot mark the caller's transaction rollback-only
+     * (that was aborting signup/login with HTTP 500).
+     */
+    public void trackServerEventSafe(UUID userId, String eventName, Map<String, Object> payload) {
+        try {
+            requiresNewTx.executeWithoutResult(status -> persistServerEvent(userId, eventName, payload, false));
+        } catch (RuntimeException ex) {
+            logger.warn("Tracciamento server event fallito: {}", ex.getMessage());
+        }
+    }
+
+    private void persistServerEvent(UUID userId, String eventName, Map<String, Object> payload, boolean enforceDefinition) {
         persistValidatedEvent(
             userId,
             eventName,
@@ -209,16 +234,8 @@ public class AnalyticsService {
             Boolean.TRUE,
             null,
             payload,
-            true
+            enforceDefinition
         );
-    }
-
-    public void trackServerEventSafe(UUID userId, String eventName, Map<String, Object> payload) {
-        try {
-            trackServerEvent(userId, eventName, payload);
-        } catch (RuntimeException ex) {
-            logger.warn("Tracciamento server event fallito: {}", ex.getMessage());
-        }
     }
 
     @Transactional(readOnly = true)

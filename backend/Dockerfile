@@ -26,4 +26,4 @@ EXPOSE 8080
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=70.0 -XX:+UseSerialGC"
 ENV SPRING_PROFILES_ACTIVE=prod,railway
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "echo '[railway] db env keys:' && env | awk -F= 'BEGIN{IGNORECASE=1} $1 ~ /DATABASE|POSTGRES|^PG/ {print $1}' ; exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar /app/app.jar"]

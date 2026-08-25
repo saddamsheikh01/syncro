@@ -3,7 +3,10 @@ package com.syncro.backend.config;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -12,7 +15,7 @@ import org.springframework.core.env.MapPropertySource;
 
 /**
  * Maps Railway-provided variables onto the app's existing env names:
- * DATABASE_URL (postgres://) and RAILWAY_PUBLIC_DOMAIN.
+ * DATABASE_URL (postgres:// / postgresql:// / jdbc:postgresql://) and RAILWAY_PUBLIC_DOMAIN.
  */
 public class RailwayEnvironmentInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
@@ -21,19 +24,11 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         ConfigurableEnvironment env = applicationContext.getEnvironment();
         Map<String, Object> map = new HashMap<>();
 
-        String databaseUrl = firstRealValue(
-            System.getenv("DATABASE_PRIVATE_URL"),
-            System.getenv("DATABASE_URL"),
-            env.getProperty("DATABASE_PRIVATE_URL"),
-            env.getProperty("DATABASE_URL")
-        );
+        String databaseUrl = findDatabaseUrl(env);
         if (isUsableDatabaseUrl(databaseUrl)) {
             applyDatabaseUrl(databaseUrl, map);
-        } else if (isRailwayRuntime() && !hasRealHost(env)) {
-            throw new IllegalStateException(
-                "Postgres is not linked. In Railway: backend service → Variables → "
-                    + "Add variable reference → Postgres DATABASE_URL (or DATABASE_PRIVATE_URL)."
-            );
+        } else if (!applyFromDiscreteVars(env, map) && isRailwayRuntime() && !hasRealHost(env)) {
+            throw new IllegalStateException(missingPostgresMessage(env, databaseUrl));
         }
 
         String publicDomain = firstRealValue(
@@ -51,6 +46,74 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         }
     }
 
+    private static String findDatabaseUrl(ConfigurableEnvironment env) {
+        List<String> candidates = new ArrayList<>();
+        addIfPresent(candidates, System.getenv("DATABASE_PRIVATE_URL"));
+        addIfPresent(candidates, System.getenv("DATABASE_URL"));
+        addIfPresent(candidates, System.getenv("DATABASE_PUBLIC_URL"));
+        addIfPresent(candidates, System.getenv("POSTGRES_URL"));
+        addIfPresent(candidates, System.getenv("SPRING_DATASOURCE_URL"));
+        addIfPresent(candidates, env.getProperty("DATABASE_PRIVATE_URL"));
+        addIfPresent(candidates, env.getProperty("DATABASE_URL"));
+        addIfPresent(candidates, env.getProperty("DATABASE_PUBLIC_URL"));
+        addIfPresent(candidates, env.getProperty("spring.datasource.url"));
+
+        Map<String, String> processEnv = System.getenv();
+        if (processEnv != null) {
+            for (Map.Entry<String, String> entry : processEnv.entrySet()) {
+                if (entry.getValue() == null) {
+                    continue;
+                }
+                addIfPresent(candidates, entry.getValue());
+            }
+        }
+
+        for (String candidate : candidates) {
+            if (isUsableDatabaseUrl(candidate)) {
+                return unwrap(candidate);
+            }
+        }
+        return firstNonBlank(candidates);
+    }
+
+    private static boolean applyFromDiscreteVars(ConfigurableEnvironment env, Map<String, Object> map) {
+        String host = firstRealValue(
+            System.getenv("PGHOST"),
+            System.getenv("POSTGRES_HOST"),
+            env.getProperty("PGHOST"),
+            env.getProperty("POSTGRES_HOST")
+        );
+        String database = firstRealValue(
+            System.getenv("PGDATABASE"),
+            System.getenv("POSTGRES_DB"),
+            env.getProperty("PGDATABASE"),
+            env.getProperty("POSTGRES_DB")
+        );
+        String username = firstRealValue(
+            System.getenv("PGUSER"),
+            System.getenv("POSTGRES_USER"),
+            env.getProperty("PGUSER"),
+            env.getProperty("POSTGRES_USER")
+        );
+        String password = firstRealValue(
+            System.getenv("PGPASSWORD"),
+            System.getenv("POSTGRES_PASSWORD"),
+            env.getProperty("PGPASSWORD"),
+            env.getProperty("POSTGRES_PASSWORD")
+        );
+        String port = firstRealValue(
+            System.getenv("PGPORT"),
+            System.getenv("POSTGRES_PORT"),
+            env.getProperty("PGPORT"),
+            env.getProperty("POSTGRES_PORT")
+        );
+        if (host == null || database == null || username == null) {
+            return false;
+        }
+        applyJdbc(map, host, port != null ? port : "5432", database, username, password != null ? password : "");
+        return true;
+    }
+
     private static boolean hasRealHost(ConfigurableEnvironment env) {
         return isRealHost(System.getenv("POSTGRES_HOST"))
             || isRealHost(System.getenv("PGHOST"))
@@ -59,7 +122,7 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
     }
 
     private static void applyDatabaseUrl(String rawUrl, Map<String, Object> map) {
-        String normalized = rawUrl.trim().replace("postgres://", "postgresql://");
+        String normalized = toPostgresqlUri(rawUrl);
         URI uri = URI.create(normalized);
         String host = uri.getHost();
         if (!isRealHost(host)) {
@@ -87,14 +150,25 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
             }
         }
 
+        applyJdbc(map, host, String.valueOf(port), database, username, password);
+    }
+
+    private static void applyJdbc(
+        Map<String, Object> map,
+        String host,
+        String port,
+        String database,
+        String username,
+        String password
+    ) {
         boolean privateNetwork = host.endsWith(".railway.internal");
         String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + database
             + (privateNetwork ? "" : "?sslmode=require");
 
         map.put("POSTGRES_HOST", host);
         map.put("PGHOST", host);
-        map.put("POSTGRES_PORT", String.valueOf(port));
-        map.put("PGPORT", String.valueOf(port));
+        map.put("POSTGRES_PORT", port);
+        map.put("PGPORT", port);
         map.put("POSTGRES_DB", database);
         map.put("PGDATABASE", database);
         map.put("POSTGRES_USER", username);
@@ -106,6 +180,66 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
         map.put("spring.datasource.password", password);
     }
 
+    private static String missingPostgresMessage(ConfigurableEnvironment env, String databaseUrl) {
+        StringBuilder message = new StringBuilder();
+        message.append("Postgres is not linked on the BACKEND service (the GitHub/Java service, not the database). ");
+        message.append("Open that service → Variables → + New Variable and paste: ");
+        message.append("DATABASE_URL=postgresql://postgres:...@postgres.railway.internal:5432/railway ");
+        message.append("(copy the URL from postgres-volume). ");
+        message.append("Do not type ${{postgres-volume.DATABASE_URL}} as plain text unless Railway interpolates it. ");
+        message.append("Seen: ");
+        message.append("DATABASE_URL=").append(describeValue(System.getenv("DATABASE_URL"), env.getProperty("DATABASE_URL")));
+        message.append(", DATABASE_PRIVATE_URL=").append(describeValue(System.getenv("DATABASE_PRIVATE_URL"), env.getProperty("DATABASE_PRIVATE_URL")));
+        message.append(", PGHOST=").append(describeValue(System.getenv("PGHOST"), env.getProperty("PGHOST")));
+        List<String> relatedKeys = relatedEnvKeys();
+        if (!relatedKeys.isEmpty()) {
+            message.append(", related keys=").append(relatedKeys);
+        }
+        if (databaseUrl != null && databaseUrl.contains("${")) {
+            message.append(". DATABASE_URL looks like an uninterpolated template; paste the real postgresql:// URL instead.");
+        }
+        return message.toString();
+    }
+
+    private static String describeValue(String... values) {
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            String trimmed = value.trim();
+            if (trimmed.contains("${")) {
+                return "template";
+            }
+            if (isUsableDatabaseUrl(trimmed)) {
+                return "postgres-url";
+            }
+            return "set";
+        }
+        return "missing";
+    }
+
+    private static List<String> relatedEnvKeys() {
+        List<String> keys = new ArrayList<>();
+        Map<String, String> processEnv = System.getenv();
+        if (processEnv == null) {
+            return keys;
+        }
+        for (String key : processEnv.keySet()) {
+            if (key == null) {
+                continue;
+            }
+            String upper = key.toUpperCase(Locale.ROOT);
+            if (upper.contains("DATABASE")
+                || upper.contains("POSTGRES")
+                || upper.startsWith("PG")
+                || upper.contains("DATASOURCE")) {
+                keys.add(key);
+            }
+        }
+        keys.sort(String::compareTo);
+        return keys;
+    }
+
     private static boolean isRailwayRuntime() {
         return firstRealValue(
             System.getenv("RAILWAY_ENVIRONMENT"),
@@ -115,11 +249,48 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
     }
 
     private static boolean isUsableDatabaseUrl(String value) {
-        if (!isRealValue(value)) {
+        String unwrapped = unwrap(value);
+        if (unwrapped == null || unwrapped.isBlank()) {
             return false;
         }
-        String trimmed = value.trim().toLowerCase();
-        return trimmed.startsWith("postgres://") || trimmed.startsWith("postgresql://");
+        String normalized = toPostgresqlUri(unwrapped);
+        if (!isRealValue(normalized)) {
+            return false;
+        }
+        String trimmed = normalized.trim().toLowerCase(Locale.ROOT);
+        return trimmed.startsWith("postgresql://");
+    }
+
+    private static String unwrap(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (!trimmed.isEmpty() && trimmed.charAt(0) == '\uFEFF') {
+            trimmed = trimmed.substring(1).trim();
+        }
+        if (trimmed.length() >= 2) {
+            char start = trimmed.charAt(0);
+            char end = trimmed.charAt(trimmed.length() - 1);
+            if ((start == '"' && end == '"') || (start == '\'' && end == '\'')) {
+                trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+            }
+        }
+        return trimmed;
+    }
+
+    private static String toPostgresqlUri(String rawUrl) {
+        String value = unwrap(rawUrl);
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        if (value.regionMatches(true, 0, "jdbc:", 0, 5)) {
+            value = value.substring(5);
+        }
+        if (value.regionMatches(true, 0, "postgres://", 0, 11)) {
+            value = "postgresql://" + value.substring("postgres://".length());
+        }
+        return value;
     }
 
     private static boolean isRealHost(String value) {
@@ -144,6 +315,21 @@ public class RailwayEnvironmentInitializer implements ApplicationContextInitiali
             }
         }
         return null;
+    }
+
+    private static String firstNonBlank(List<String> values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private static void addIfPresent(List<String> values, String value) {
+        if (value != null && !value.isBlank()) {
+            values.add(value);
+        }
     }
 
     private static String decode(String value) {
