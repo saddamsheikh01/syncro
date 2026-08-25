@@ -1,7 +1,6 @@
 # Railway overrides. Activate with SPRING_PROFILES_ACTIVE=prod,railway
 server:
   port: ${PORT:8080}
-  address: 0.0.0.0
 
 spring:
   jpa:
@@ -15,6 +14,9 @@ spring:
       maximum-pool-size: ${DB_POOL_MAX:5}
       connection-timeout: 20000
       initialization-fail-timeout: 30000
+  flyway:
+    connect-retries: 10
+    connect-retries-interval: 5
 
 springdoc:
   api-docs:
